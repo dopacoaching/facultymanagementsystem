@@ -47,5 +47,9 @@ client/.env.local
 *.tsbuildinfo
 next-env.d.ts
 
+# Scratch / test files in server/
+server/*.json
+server/*.txt
+
 # Vercel
 .vercel
