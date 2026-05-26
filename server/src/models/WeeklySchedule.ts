@@ -56,6 +56,8 @@ const WeeklyScheduleSchema = new Schema<IWeeklySchedule>(
   { timestamps: true }
 )
 
-WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1 }, { unique: true })
+// Allow one non-revised (original) AND one revised draft per (batchId, weekStartDate).
+// Uniqueness is enforced at the (batchId, weekStartDate, isRevised) level.
+WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1, isRevised: 1 }, { unique: true })
 
 export const WeeklySchedule = model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)

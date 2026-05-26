@@ -6,6 +6,7 @@ import { User } from './models/User'
 import { Faculty } from './models/Faculty'
 import { Campus } from './models/Campus'
 import { Batch } from './models/Batch'
+import { BatchChapter } from './models/BatchChapter'
 import { PermanentFacultyContract } from './models/PermanentFacultyContract'
 
 /** Read an integer from env, fall back to a default. */
@@ -24,6 +25,7 @@ async function seed() {
     Faculty.deleteMany({}),
     Campus.deleteMany({}),
     Batch.deleteMany({}),
+    BatchChapter.deleteMany({}),
     PermanentFacultyContract.deleteMany({}),
   ])
 
@@ -214,6 +216,99 @@ async function seed() {
     { username: 'dileep',       passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Dileep'] },
   ])
 
+  // ── BatchChapters (demo chapters for Feroke Girls — RESIDENTIAL) ─────────────
+  // Pre-seed chapters so the video-first workflow is immediately usable.
+  // Coordinator marks videoComplete → then logs session.
+  // (Other batches will auto-accumulate chapters as sessions are logged.)
+  const NEET_CHAPTERS: { subject: string; chapters: string[] }[] = [
+    {
+      subject: 'Physics',
+      chapters: [
+        'Physical World & Measurement',
+        'Kinematics',
+        'Laws of Motion',
+        'Work, Energy & Power',
+        'Motion of System of Particles',
+        'Gravitation',
+        'Properties of Bulk Matter',
+        'Thermodynamics',
+        'Behaviour of Perfect Gases',
+        'Oscillations',
+        'Waves',
+      ],
+    },
+    {
+      subject: 'Chemistry',
+      chapters: [
+        'Some Basic Concepts of Chemistry',
+        'Structure of Atom',
+        'Classification of Elements & Periodicity',
+        'Chemical Bonding & Molecular Structure',
+        'States of Matter',
+        'Thermodynamics',
+        'Equilibrium',
+        'Redox Reactions',
+        'Hydrogen',
+        'The s-Block Elements',
+        'Some p-Block Elements',
+        'Organic Chemistry — Basic Principles',
+        'Hydrocarbons',
+        'Environmental Chemistry',
+      ],
+    },
+    {
+      subject: 'Biology',
+      chapters: [
+        'The Living World',
+        'Biological Classification',
+        'Plant Kingdom',
+        'Animal Kingdom',
+        'Morphology of Flowering Plants',
+        'Anatomy of Flowering Plants',
+        'Structural Organisation in Animals',
+        'Cell: The Unit of Life',
+        'Biomolecules',
+        'Cell Cycle & Cell Division',
+        'Transport in Plants',
+        'Mineral Nutrition',
+        'Photosynthesis in Higher Plants',
+        'Respiration in Plants',
+        'Plant Growth & Development',
+        'Digestion & Absorption',
+        'Breathing & Exchange of Gases',
+        'Body Fluids & Circulation',
+        'Excretory Products & their Elimination',
+        'Locomotion & Movement',
+        'Neural Control & Coordination',
+        'Chemical Coordination & Integration',
+      ],
+    },
+  ]
+
+  // Insert chapters for Feroke Girls (residential) batch with videoComplete=false
+  const chapterDocs: {
+    batchId: mongoose.Types.ObjectId
+    subject: string
+    chapterName: string
+    chapterOrder: number
+    videoComplete: boolean
+    facultyClassDone: boolean
+  }[] = []
+
+  for (const { subject, chapters } of NEET_CHAPTERS) {
+    chapters.forEach((chapterName, idx) => {
+      chapterDocs.push({
+        batchId:         batchFerGirls._id,
+        subject,
+        chapterName,
+        chapterOrder:    idx + 1,
+        videoComplete:   false,
+        facultyClassDone: false,
+      })
+    })
+  }
+  await BatchChapter.insertMany(chapterDocs)
+
   console.log('\nSeed complete ✓')
   console.log(`── Admin (login via /admin/login, password: ${es('SEED_ADMIN_PASSWORD', 'dopa@1234')}) ────`)
   console.log(`  ${adminUsername}`)
@@ -231,6 +326,7 @@ async function seed() {
   console.log('  anoop_k   | dileep')
   console.log(`────────────────────────────────────────────────────────────────────`)
   console.log(`Faculty: ${facultyDocs.length} | Users: 1 admin + 4 management + 3 coordinators + 14 faculty`)
+  console.log(`Chapters: ${chapterDocs.length} NEET chapters seeded for Feroke Girls (all videoComplete=false)`)
   await mongoose.disconnect()
 }
 
