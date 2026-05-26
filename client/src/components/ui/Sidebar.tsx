@@ -31,8 +31,9 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Exam Topics',  href: '/academics/exams',     icon: '📝' },
   { label: 'AC Reports',   href: '/academics/reports',   icon: '📊' },
   // Integrated School
-  { label: 'IS Sessions',  href: '/is/sessions',        icon: '🏫' },
-  { label: 'IS Timetable', href: '/is/timetable',       icon: '⏱' },
+  { label: 'IS Sessions',  href: '/is/sessions',  icon: '🏫' },
+  { label: 'IS Timetable', href: '/is/timetable', icon: '⏱' },
+  { label: 'IS Chapters',  href: '/is/chapters',  icon: '📖' },
 ]
 
 const HR_NAV: NavItem[] = [
@@ -57,6 +58,7 @@ const IS_ACADEMICS_NAV: NavItem[] = [
   { label: 'Dashboard',   href: '/is',           icon: '◈' },
   { label: 'IS Sessions', href: '/is/sessions',  icon: '📅' },
   { label: 'IS Timetable',href: '/is/timetable', icon: '⏱' },
+  { label: 'IS Chapters', href: '/is/chapters',  icon: '📖' },
 ]
 
 // COORDINATOR: Session logging + Chapter progress view
@@ -73,12 +75,13 @@ const FACULTY_NAV: NavItem[] = [
 ]
 
 function navForRole(role: string | null): NavItem[] {
-  if (role === 'ADMIN')                                           return ADMIN_NAV
-  if (role === 'HR_MANAGER')                                      return HR_NAV
-  if (role === 'ACADEMICS_MANAGER')                               return ACADEMICS_NAV
-  if (role === 'IS_ACADEMICS_MANAGER' || role === 'IS_COORDINATOR') return IS_ACADEMICS_NAV
-  if (role === 'COORDINATOR')                                     return COORDINATOR_NAV
-  if (role === 'FACULTY')                                         return FACULTY_NAV
+  if (role === 'ADMIN')               return ADMIN_NAV
+  if (role === 'HR_MANAGER')          return HR_NAV
+  if (role === 'ACADEMICS_MANAGER')   return ACADEMICS_NAV
+  if (role === 'IS_ACADEMICS_MANAGER') return IS_ACADEMICS_NAV
+  if (role === 'IS_COORDINATOR')      return IS_ACADEMICS_NAV   // same view, RBAC enforced at API
+  if (role === 'COORDINATOR')         return COORDINATOR_NAV
+  if (role === 'FACULTY')             return FACULTY_NAV
   return []
 }
 

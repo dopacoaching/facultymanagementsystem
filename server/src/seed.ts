@@ -8,6 +8,9 @@ import { Campus } from './models/Campus'
 import { Batch } from './models/Batch'
 import { BatchChapter } from './models/BatchChapter'
 import { PermanentFacultyContract } from './models/PermanentFacultyContract'
+import { ISTimetableSlot } from './models/ISTimetableSlot'
+import { ISBatchChapter } from './models/ISBatchChapter'
+import { SpecialDay } from './models/SpecialDay'
 
 /** Read an integer from env, fall back to a default. */
 const e = (key: string, def: number): number => {
@@ -27,7 +30,11 @@ async function seed() {
     Batch.deleteMany({}),
     BatchChapter.deleteMany({}),
     PermanentFacultyContract.deleteMany({}),
+    ISBatchChapter.deleteMany({}),
+    SpecialDay.deleteMany({}),
   ])
+  // Drop old ISTimetableSlot collection to reset indexes (schema changed from dayOfWeek-based to date-based)
+  await ISTimetableSlot.collection.drop().catch(() => { /* collection may not exist yet */ })
 
   // ── Campuses ──────────────────────────────────────────────────────────────
   // Academics campuses (Residential + Offline)
@@ -309,6 +316,59 @@ async function seed() {
   }
   await BatchChapter.insertMany(chapterDocs)
 
+  // ── IS Batch Chapters ─────────────────────────────────────────────────────
+  // Seed NEET chapters for all IS batches (no video gate — status-based only).
+  // Plus One batches: Physics + Chemistry (11th syllabus focus)
+  // Plus Two batches: Chemistry + Biology (12th syllabus focus)
+  // IG2 batches (no subgroup): Physics + Biology
+  const IS_CHAPTERS_PLUS_ONE = [
+    { subject: 'Physics',   chapters: ['Physical World & Measurement', 'Kinematics', 'Laws of Motion', 'Work, Energy & Power', 'Motion of System of Particles', 'Gravitation', 'Properties of Bulk Matter', 'Thermodynamics', 'Behaviour of Perfect Gases', 'Oscillations', 'Waves'] },
+    { subject: 'Chemistry', chapters: ['Some Basic Concepts of Chemistry', 'Structure of Atom', 'Classification of Elements & Periodicity', 'Chemical Bonding & Molecular Structure', 'States of Matter', 'Thermodynamics (Chem)', 'Equilibrium', 'Redox Reactions', 'Hydrogen', 'The s-Block Elements', 'Some p-Block Elements'] },
+  ]
+  const IS_CHAPTERS_PLUS_TWO = [
+    { subject: 'Chemistry', chapters: ['Solid State', 'Solutions', 'Electrochemistry', 'Chemical Kinetics', 'Surface Chemistry', 'General Principles of Isolation', 'p-Block Elements (12th)', 'd & f Block Elements', 'Coordination Compounds', 'Haloalkanes & Haloarenes', 'Alcohols, Phenols & Ethers', 'Aldehydes, Ketones & Carboxylic Acids', 'Amines', 'Biomolecules (Chem)', 'Polymers', 'Chemistry in Everyday Life'] },
+    { subject: 'Biology',   chapters: ['Reproduction in Organisms', 'Sexual Reproduction in Flowering Plants', 'Human Reproduction', 'Reproductive Health', 'Principles of Inheritance', 'Molecular Basis of Inheritance', 'Evolution', 'Human Health & Disease', 'Strategies for Enhancement', 'Microbes in Human Welfare', 'Biotechnology: Principles', 'Biotechnology & Its Applications', 'Organisms & Populations', 'Ecosystem', 'Biodiversity & Conservation', 'Environmental Issues'] },
+  ]
+  const IS_CHAPTERS_IG2 = [
+    { subject: 'Physics',  chapters: ['Physical World & Measurement', 'Kinematics', 'Laws of Motion', 'Work, Energy & Power', 'Gravitation', 'Properties of Bulk Matter', 'Thermodynamics', 'Waves', 'Electrostatics', 'Current Electricity', 'Magnetic Effects', 'Electromagnetic Induction', 'Optics', 'Dual Nature of Radiation', 'Atoms & Nuclei'] },
+    { subject: 'Biology',  chapters: ['The Living World', 'Biological Classification', 'Plant Kingdom', 'Animal Kingdom', 'Morphology of Flowering Plants', 'Cell: The Unit of Life', 'Biomolecules', 'Cell Cycle & Division', 'Photosynthesis', 'Respiration in Plants', 'Digestion & Absorption', 'Breathing & Exchange of Gases', 'Body Fluids & Circulation', 'Excretory Products', 'Neural Control', 'Locomotion & Movement'] },
+  ]
+
+  const isChapterDocs: {
+    batchId: mongoose.Types.ObjectId
+    subject: string
+    chapterName: string
+    chapterOrder: number
+    status: 'NOT_YET_SCHEDULED'
+  }[] = []
+
+  const plusOneBatches = [r1, r2, s1]
+  const plusTwoBatches = [r3, s2, s3]
+  const ig2Batches     = [r4, s4, s5]
+
+  for (const batch of plusOneBatches) {
+    for (const { subject, chapters } of IS_CHAPTERS_PLUS_ONE) {
+      chapters.forEach((chapterName, idx) => {
+        isChapterDocs.push({ batchId: batch._id, subject, chapterName, chapterOrder: idx + 1, status: 'NOT_YET_SCHEDULED' })
+      })
+    }
+  }
+  for (const batch of plusTwoBatches) {
+    for (const { subject, chapters } of IS_CHAPTERS_PLUS_TWO) {
+      chapters.forEach((chapterName, idx) => {
+        isChapterDocs.push({ batchId: batch._id, subject, chapterName, chapterOrder: idx + 1, status: 'NOT_YET_SCHEDULED' })
+      })
+    }
+  }
+  for (const batch of ig2Batches) {
+    for (const { subject, chapters } of IS_CHAPTERS_IG2) {
+      chapters.forEach((chapterName, idx) => {
+        isChapterDocs.push({ batchId: batch._id, subject, chapterName, chapterOrder: idx + 1, status: 'NOT_YET_SCHEDULED' })
+      })
+    }
+  }
+  await ISBatchChapter.insertMany(isChapterDocs)
+
   console.log('\nSeed complete ✓')
   console.log(`── Admin (login via /admin/login, password: ${es('SEED_ADMIN_PASSWORD', 'dopa@1234')}) ────`)
   console.log(`  ${adminUsername}`)
@@ -327,6 +387,7 @@ async function seed() {
   console.log(`────────────────────────────────────────────────────────────────────`)
   console.log(`Faculty: ${facultyDocs.length} | Users: 1 admin + 4 management + 3 coordinators + 14 faculty`)
   console.log(`Chapters: ${chapterDocs.length} NEET chapters seeded for Feroke Girls (all videoComplete=false)`)
+  console.log(`IS Chapters: ${isChapterDocs.length} chapters seeded across 9 IS batches (status: NOT_YET_SCHEDULED)`)
   await mongoose.disconnect()
 }
 

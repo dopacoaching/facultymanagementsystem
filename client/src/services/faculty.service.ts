@@ -1,11 +1,18 @@
 import { apiFetch } from './api'
 import type { Faculty } from '@/types'
 
+export interface BatchCampus {
+  _id:      string
+  name:     string
+  location?: string
+}
+
 export interface Batch {
-  _id: string
-  name: string
-  type: string
-  campusId: string
+  _id:         string
+  name:        string
+  type:        string
+  /** Populated object from /hr/batches — use .campusId._id or .campusId.name */
+  campusId:    BatchCampus | string
   ig1Subgroup?: string
 }
 

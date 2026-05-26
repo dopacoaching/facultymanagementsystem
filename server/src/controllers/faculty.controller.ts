@@ -65,7 +65,9 @@ export const deactivateFaculty = asyncHandler(async (req: AuthRequest, res: Resp
 })
 
 export const getBatches = asyncHandler(async (_req: AuthRequest, res: Response) => {
-  // NOTE: Batch.find({ isActive: true }) is correct — Batch model has isActive:Boolean default true
-  const batches = await Batch.find({ isActive: true }).sort({ name: 1 })
+  // Populate campusId so the client can derive campus names (used in IS timetable campus filter)
+  const batches = await Batch.find({ isActive: true })
+    .populate('campusId', 'name location')
+    .sort({ name: 1 })
   res.json(batches)
 })

@@ -1,0 +1,1 @@
+{"error":"Schema hasn't been registered for model \"Campus\".\nUse mongoose.model(name, schema)"}

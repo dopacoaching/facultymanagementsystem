@@ -4,6 +4,9 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import { connectDB } from './config/db'
 
+// Register all Mongoose models before any route handler runs (needed for populate())
+import './models/index'
+
 import authRoutes from './routes/auth.routes'
 import hrRoutes from './routes/hr.routes'
 import academicsRoutes from './routes/academics.routes'
