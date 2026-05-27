@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll, create, cancel } from '@/services/session.service'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
+import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Session, Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 
@@ -66,7 +67,7 @@ export default function SessionsPage() {
 
   // Derived: is the form's selected batch requiring video-first?
   const formBatchType = getBatchType(form.batchId, batches)
-  const needsVideoFirst = formBatchType === 'RESIDENTIAL' || formBatchType === 'ONLINE'
+  const needsVideoFirst = formBatchType ? isVideoFirstBatch(formBatchType) : false
 
   const load = () => {
     if (accessToken) getAll({}, accessToken).then(setSessions).catch(console.error)

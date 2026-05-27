@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll as getSessions } from '@/services/session.service'
 import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
+import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Session } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import Link from 'next/link'
@@ -51,7 +52,7 @@ export default function AcademicsDashboard() {
       setBatches(ac)
 
       // Load chapter stats for Residential + Online batches (video-first matters)
-      const videoFirstBatches = ac.filter((b) => b.type === 'RESIDENTIAL' || b.type === 'ONLINE')
+      const videoFirstBatches = ac.filter((b) => isVideoFirstBatch(b.type))
       Promise.all(
         videoFirstBatches.map((b) =>
           apiFetch<{_id:string;videoComplete:boolean;facultyClassDone:boolean}[]>(

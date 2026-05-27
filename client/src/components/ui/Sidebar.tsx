@@ -6,6 +6,19 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { clearCredentials } from '@/store/slices/authSlice'
 import { logout, changePassword } from '@/services/auth.service'
+import PasswordInput from './PasswordInput'
+
+/** Mirror of the server validatePasswordComplexity rule. */
+function validatePasswordComplexity(pw: string): string | null {
+  if (!pw || pw.length < 8)  return 'Password must be at least 8 characters'
+  if (pw.length > 64)         return 'Password must be at most 64 characters'
+  if (!/[A-Z]/.test(pw))     return 'Password must contain at least one uppercase letter'
+  if (!/[a-z]/.test(pw))     return 'Password must contain at least one lowercase letter'
+  if (!/[0-9]/.test(pw))     return 'Password must contain at least one digit'
+  if (!/[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(pw))
+    return 'Password must contain at least one special character (!@#$%^&* etc.)'
+  return null
+}
 
 interface NavItem {
   label: string
@@ -124,7 +137,8 @@ export default function Sidebar() {
   async function handleChangePassword() {
     setPwdError('')
     if (!pwdForm.current) { setPwdError('Enter your current password'); return }
-    if (pwdForm.next.length < 6) { setPwdError('New password must be at least 6 characters'); return }
+    const complexityError = validatePasswordComplexity(pwdForm.next)
+    if (complexityError) { setPwdError(complexityError); return }
     if (pwdForm.next !== pwdForm.confirm) { setPwdError('Passwords do not match'); return }
     if (!accessToken) return
     setPwdSaving(true)
@@ -286,24 +300,41 @@ export default function Sidebar() {
                 <>
                   {pwdError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{pwdError}</div>}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {[
-                      { key: 'current', label: 'Current Password', auto: 'current-password' },
-                      { key: 'next',    label: 'New Password',     auto: 'new-password' },
-                      { key: 'confirm', label: 'Confirm New Password', auto: 'new-password' },
-                    ].map(({ key, label, auto }) => (
-                      <div key={key} className="form-group">
-                        <label className="label">{label}</label>
-                        <input
-                          type="password"
-                          className="input"
-                          value={pwdForm[key as keyof typeof pwdForm]}
-                          onChange={(e) => setPwdForm({ ...pwdForm, [key]: e.target.value })}
-                          placeholder={key === 'next' ? 'At least 6 characters' : ''}
-                          autoComplete={auto}
-                          onKeyDown={key === 'confirm' ? (e) => { if (e.key === 'Enter') handleChangePassword() } : undefined}
-                        />
-                      </div>
-                    ))}
+                    {/* Current password — plain input (no strength bar needed) */}
+                    <div className="form-group">
+                      <label className="label">Current Password</label>
+                      <input
+                        type="password"
+                        className="input"
+                        value={pwdForm.current}
+                        onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
+                        autoComplete="current-password"
+                      />
+                    </div>
+
+                    {/* New password — PasswordInput with strength bar */}
+                    <div className="form-group">
+                      <label className="label">New Password</label>
+                      <PasswordInput
+                        value={pwdForm.next}
+                        onChange={(e) => setPwdForm({ ...pwdForm, next: e.target.value })}
+                        autoComplete="new-password"
+                        placeholder="8+ chars · upper · lower · digit · symbol"
+                      />
+                    </div>
+
+                    {/* Confirm — plain input */}
+                    <div className="form-group">
+                      <label className="label">Confirm New Password</label>
+                      <input
+                        type="password"
+                        className="input"
+                        value={pwdForm.confirm}
+                        onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
+                        autoComplete="new-password"
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
+                      />
+                    </div>
                   </div>
                 </>
               )}

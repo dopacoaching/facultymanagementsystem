@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
+import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 
@@ -61,9 +62,9 @@ export default function CoordinatorAccessPage() {
 
   const batchLocked = Boolean(assignedBatchId)
 
-  // Determine if the selected batch requires video-first
+  // Determine if the selected batch requires video-first (RESIDENTIAL and ONLINE)
   const selectedBatch = batches.find((b) => b._id === form.batchId)
-  const needsVideoFirst = selectedBatch?.type === 'RESIDENTIAL' || selectedBatch?.type === 'ONLINE'
+  const needsVideoFirst = selectedBatch ? isVideoFirstBatch(selectedBatch.type) : false
   const assignedBatch   = batches.find((b) => b._id === assignedBatchId)
 
   useEffect(() => {
@@ -226,7 +227,7 @@ export default function CoordinatorAccessPage() {
                 <option value="">— select campus/batch —</option>
                 {batches.map((b) => (
                   <option key={b._id} value={b._id}>
-                    {b.name} ({b.type}{(b.type === 'RESIDENTIAL' || b.type === 'ONLINE') ? ' 🎬' : ''})
+                    {b.name} ({b.type}{isVideoFirstBatch(b.type) ? ' 🎬' : ''})
                   </option>
                 ))}
               </select>

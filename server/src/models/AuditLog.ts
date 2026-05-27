@@ -45,10 +45,26 @@ const AuditLogSchema = new Schema<IAuditLog>(
   }
 )
 
-// Append-only guard — never allow updates or deletes
+// Append-only guards — never allow updates or deletes on audit records
 AuditLogSchema.pre('findOneAndUpdate', function () {
-  throw new Error('AuditLog is append-only. No updates allowed.')
+  throw new Error('AuditLog is append-only. Updates are not allowed.')
 })
+AuditLogSchema.pre('updateOne', function () {
+  throw new Error('AuditLog is append-only. Updates are not allowed.')
+})
+AuditLogSchema.pre('updateMany', function () {
+  throw new Error('AuditLog is append-only. Updates are not allowed.')
+})
+AuditLogSchema.pre('deleteOne', function () {
+  throw new Error('AuditLog is append-only. Deletes are not allowed.')
+})
+AuditLogSchema.pre('deleteMany', function () {
+  throw new Error('AuditLog is append-only. Deletes are not allowed.')
+})
+AuditLogSchema.pre('findOneAndDelete', function () {
+  throw new Error('AuditLog is append-only. Deletes are not allowed.')
+})
+
 AuditLogSchema.index({ facultyId: 1, timestamp: -1 })
 
 export const AuditLog = model<IAuditLog>('AuditLog', AuditLogSchema)

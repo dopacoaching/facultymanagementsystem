@@ -81,7 +81,10 @@ const PermanentFacultyContractSchema = new Schema<IPermanentFacultyContract>(
     variableComponent:        Number,
     cancellationPenaltyPerClass: Number,
     minHoursRequirement:      Number,
-    isConfigured:             { type: Boolean, default: true },
+    // IMPORTANT: defaults to false — must be explicitly set to true via PATCH /hr/contract/:facultyId
+    // after the HR Manager fills in the configurablePayJson and any other required fields.
+    // The salary calculator returns PENDING_CONFIG until isConfigured === true.
+    isConfigured:             { type: Boolean, default: false },
     configurablePayJson:      { type: Schema.Types.Mixed },
     notes:                    String,
   },

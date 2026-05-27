@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppDispatch } from '@/store/hooks'
 import { setCredentials, clearCredentials } from '@/store/slices/authSlice'
-import { login } from '@/services/auth.service'
+import { login, logout } from '@/services/auth.service'
 
 const schema = z.object({
   username: z.string().min(1, 'Username required'),
@@ -40,8 +40,11 @@ export default function LoginPage() {
     try {
       const res = await login(data.username, data.password)
 
-      // Admin accounts must use the management portal — do not reveal its existence
+      // Admin accounts must use the management portal — do not reveal its existence.
+      // Also clear the httpOnly refreshToken cookie the server just set, so the
+      // admin's session doesn't linger on a shared / staff device.
       if (res.role === 'ADMIN') {
+        try { await logout() } catch {}
         dispatch(clearCredentials())
         setError('password', { message: 'Invalid credentials' })
         return
