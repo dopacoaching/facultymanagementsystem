@@ -5,6 +5,7 @@ import {
 } from '../controllers/faculty.controller'
 import {
   calcSalary, approveSalary, getAuditLog, getCarryForward, getSalaryReports, getMyHistory,
+  getDashboard, getContract, updateContract,
 } from '../controllers/salary.controller'
 
 const router = Router()
@@ -31,5 +32,12 @@ router.get('/salary/history', authorize('FACULTY'), getMyHistory)
 
 // Audit log — ADMIN only
 router.get('/audit-log', authorize('ADMIN'), getAuditLog)
+
+// Dashboard — aggregated view for HR_MANAGER and ADMIN
+router.get('/dashboard', authorize('HR_MANAGER', 'ADMIN'), getDashboard)
+
+// Contract (PermanentFacultyContract) — read/update
+router.get('/contract/:facultyId', authorize('HR_MANAGER', 'ADMIN'), getContract)
+router.patch('/contract/:facultyId', authorize('HR_MANAGER', 'ADMIN'), updateContract)
 
 export default router

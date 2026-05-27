@@ -4,6 +4,8 @@ import { Faculty } from '../models/Faculty'
 import { SalaryRecord } from '../models/SalaryRecord'
 import { AuditLog } from '../models/AuditLog'
 import { CarryForwardBalance } from '../models/CarryForwardBalance'
+import { Session } from '../models/Session'
+import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { calculateMonthlySalary } from '../services/salary/calculator'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
@@ -179,4 +181,166 @@ export const getMyHistory = asyncHandler(async (req: AuthRequest, res: Response)
     .limit(24)
 
   res.json(records)
+})
+
+// ─── HR Dashboard ──────────────────────────────────────────────────────────────
+
+/**
+ * GET /hr/dashboard?month=M&year=Y
+ * Aggregates: hours progress, payroll status, cancellation log, and totals.
+ * HR_MANAGER and ADMIN only.
+ */
+export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const month = Number(req.query.month ?? new Date().getMonth() + 1)
+  const year  = Number(req.query.year  ?? new Date().getFullYear())
+
+  const startDate = new Date(year, month - 1, 1)
+  const endDate   = new Date(year, month,     1)
+
+  const [faculty, contracts, salaryRecords, cancelledSessions, hoursAgg] = await Promise.all([
+    Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
+    PermanentFacultyContract.find({}).lean(),
+    SalaryRecord.find({ month, year }).lean(),
+    Session.find({
+      status: 'CANCELLED',
+      sessionDate: { $gte: startDate, $lt: endDate },
+    })
+      .populate('facultyId', 'name')
+      .sort({ sessionDate: -1 })
+      .limit(15)
+      .lean(),
+    Session.aggregate([
+      {
+        $match: {
+          status: { $in: ['COMPLETED', 'SCHEDULED'] },
+          sessionDate: { $gte: startDate, $lt: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: '$facultyId',
+          totalHours: { $sum: '$durationHours' },
+          sessionCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  const contractMap = new Map(contracts.map((c) => [c.facultyId.toString(), c]))
+  const recordMap   = new Map(salaryRecords.map((r) => [r.facultyId.toString(), r]))
+  const hoursMap    = new Map(hoursAgg.map((h: { _id: Types.ObjectId; totalHours: number; sessionCount: number }) => [h._id.toString(), h]))
+
+  // Panel 1 + 2: Hours Progress (quota-based faculty only)
+  const QUOTA_TYPES = ['FIXED_QUOTA_CARRYFORWARD', 'FIXED_QUOTA_NOCARRY', 'BASE_OVERTIME']
+  const hoursProgress = faculty
+    .map((f) => {
+      const contract = contractMap.get(f._id.toString())
+      if (!contract || !QUOTA_TYPES.includes(contract.contractType)) return null
+      const quota  = (contract.monthlyHourQuota ?? contract.overtimeThresholdHours ?? 0) as number
+      const logged = (hoursMap.get(f._id.toString())?.totalHours ?? 0) as number
+      const pct    = quota > 0 ? Math.round((logged / quota) * 100) : 100
+      const deficit = Math.max(0, quota - logged)
+      const surplus = Math.max(0, logged - quota)
+      const status  = pct >= 100 ? 'MET' : pct >= 70 ? 'ON_TRACK' : pct >= 40 ? 'AT_RISK' : 'MISSED'
+      return { facultyId: f._id, name: f.name, subject: f.subject, contractType: contract.contractType, quota, logged, pct, deficit, surplus, status }
+    })
+    .filter(Boolean)
+
+  // Panel 6: Payroll Status (all faculty)
+  const payrollStatus = faculty.map((f) => {
+    const record   = recordMap.get(f._id.toString())
+    const contract = contractMap.get(f._id.toString())
+    let status = 'PENDING'
+    let finalPayable: number | null = null
+    let penaltiesApplied: number | null = null
+    let overtimePay: number | null = null
+
+    if (record?.status === 'APPROVED') {
+      status = 'APPROVED'
+      finalPayable     = record.finalPayable
+      penaltiesApplied = record.penaltiesApplied
+      overtimePay      = record.overtimePay
+    } else if (contract?.contractType === 'CONFIGURABLE' && !contract.isConfigured) {
+      status = 'BLOCKED'
+    }
+    return { facultyId: f._id, name: f.name, subject: f.subject, salaryModel: f.salaryModel, status, finalPayable, penaltiesApplied, overtimePay }
+  })
+
+  // Panels 3 + 4: Aggregated totals from approved records
+  const approvedRecs   = salaryRecords.filter((r) => r.status === 'APPROVED')
+  const totalPenalties = approvedRecs.reduce((s, r) => s + (r.penaltiesApplied ?? 0), 0)
+  const totalOvertimePay   = approvedRecs.reduce((s, r) => s + (r.overtimePay   ?? 0), 0)
+  const totalOvertimeHours = approvedRecs.reduce((s, r) => s + (r.overtimeHours ?? 0), 0)
+  const totalPayroll   = approvedRecs.reduce((s, r) => s + (r.finalPayable  ?? 0), 0)
+
+  // Panel 5: Cancellation log (fetched with limit 15)
+  const cancellationLog = cancelledSessions.map((s) => ({
+    sessionId: s._id,
+    facultyName: (s.facultyId as unknown as { name: string })?.name ?? 'Unknown',
+    subject: s.subject,
+    chapter: s.chapter,
+    sessionDate: s.sessionDate,
+    durationHours: s.durationHours,
+    cancellationInitiator: s.cancellationInitiator ?? 'UNKNOWN',
+  }))
+
+  res.json({
+    month,
+    year,
+    hoursProgress,
+    payrollStatus,
+    cancellationLog,
+    totals: {
+      totalPenalties,
+      totalOvertimePay,
+      totalOvertimeHours,
+      totalPayroll,
+      approved:     approvedRecs.length,
+      pending:      payrollStatus.filter((p) => p.status === 'PENDING').length,
+      blocked:      payrollStatus.filter((p) => p.status === 'BLOCKED').length,
+      totalFaculty: faculty.length,
+    },
+  })
+})
+
+// ─── Contract CRUD ─────────────────────────────────────────────────────────────
+
+/**
+ * GET /hr/contract/:facultyId
+ * Returns the PermanentFacultyContract for a faculty.
+ */
+export const getContract = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const fid = req.params.facultyId as string
+  const contract = await PermanentFacultyContract.findOne({
+    facultyId: new Types.ObjectId(fid),
+  })
+  if (!contract) { res.status(404).json({ error: 'No contract found for this faculty' }); return }
+  res.json(contract)
+})
+
+/**
+ * PATCH /hr/contract/:facultyId
+ * Updates contract fields — primarily used for CONFIGURABLE faculty (Dileep).
+ * Only HR_MANAGER and ADMIN may update contracts.
+ */
+export const updateContract = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const fid = req.params.facultyId as string
+  const contract = await PermanentFacultyContract.findOneAndUpdate(
+    { facultyId: new Types.ObjectId(fid) },
+    { $set: req.body },
+    { new: true, runValidators: true },
+  )
+  if (!contract) { res.status(404).json({ error: 'No contract found for this faculty' }); return }
+
+  const faculty = await Faculty.findById(fid)
+  await writeAuditLog({
+    eventType: 'PAY_CONFIG_UPDATED',
+    facultyId: fid,
+    facultyName: faculty?.name ?? 'Unknown',
+    amount: 0,
+    reason: `Contract updated (${Object.keys(req.body).join(', ')})`,
+    loggedByUserId: req.user!.userId,
+  })
+
+  res.json(contract)
 })
