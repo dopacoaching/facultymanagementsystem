@@ -35,9 +35,21 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     // minute idle window resets on every authenticated request.  The new token
     // is sent in a response header; the client should silently swap it into the
     // Redux store so the next request uses the fresh token.
-    const { lastActive: _dropped, ...rest } = payload
+    //
+    // IMPORTANT: jwt.verify returns the decoded payload including the standard
+    // JWT claims `iat` and `exp`.  Spreading that payload into jwt.sign while
+    // also passing `expiresIn` causes jsonwebtoken to throw
+    // "Bad options.expiresIn — payload already has exp property".
+    // We therefore reconstruct the payload from known custom claims only so
+    // that jwt.sign generates fresh iat/exp from the expiresIn option.
     const refreshedToken = jwt.sign(
-      { ...rest, lastActive: Date.now() },
+      {
+        userId:    payload.userId,
+        role:      payload.role,
+        ...(payload.facultyId != null ? { facultyId: payload.facultyId } : {}),
+        ...(payload.batchId   != null ? { batchId:   payload.batchId   } : {}),
+        lastActive: Date.now(),
+      },
       process.env.JWT_SECRET!,
       { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m' } as object,
     )
