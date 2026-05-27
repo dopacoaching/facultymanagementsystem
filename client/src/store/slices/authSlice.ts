@@ -17,12 +17,8 @@ const authSlice = createSlice({
       state.accessToken = null; state.role = null; state.userId = null
       state.facultyId = null; state.batchId = null
     },
-    /** Silently swap the access token (used by apiFetch when it reads X-Refreshed-Token). */
-    refreshToken: (state, action: PayloadAction<string>) => {
-      state.accessToken = action.payload
-    },
   },
 })
 
-export const { setCredentials, clearCredentials, refreshToken } = authSlice.actions
+export const { setCredentials, clearCredentials } = authSlice.actions
 export default authSlice.reducer

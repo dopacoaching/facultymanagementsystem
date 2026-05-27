@@ -1,27 +1,36 @@
 /**
  * apiFetch — centralised HTTP client with automatic silent token refresh.
  *
- * On any 401 from a non-auth endpoint the interceptor:
- *  1. Reads the response body to check for SESSION_EXPIRED.
- *     - SESSION_EXPIRED → clears Redux + redirects to /login?reason=session_expired
- *       (does NOT attempt a refresh — the session is truly gone)
- *  2. For ordinary 401 (expired JWT, not inactivity):
- *     a. Calls POST /auth/refresh (uses the httpOnly refreshToken cookie)
- *     b. Updates the Redux store with the new access token
- *     c. Retries the original request once with the new token
- *     d. If refresh fails → dispatches clearCredentials() so the Shell redirects to /login
+ * Token lifecycle
+ * ──────────────
+ * • Login / explicit logout update Redux (accessToken) — this is what the
+ *   Shell UI reads to decide whether to show authenticated content.
  *
- * On every successful authenticated response the interceptor also reads the
- * X-Refreshed-Token header (set by authenticate() middleware on the server).
- * If present, it silently swaps the stored access token so the sliding 30-minute
- * inactivity window keeps rolling on every API call.
+ * • Every successful authenticated response carries an X-Refreshed-Token header
+ *   that re-signs the access token with a fresh `lastActive` timestamp, extending
+ *   the 30-minute inactivity window.  We store this in a module-level `latestToken`
+ *   variable and use it for the NEXT outgoing request — we do NOT dispatch it to
+ *   Redux.  Dispatching on every response changes `accessToken` in the store on
+ *   every API call, which recreates any useCallback that depends on `accessToken`,
+ *   which re-fires the useEffect that called the API, causing an infinite loop.
  *
- * Concurrent requests that all 401 at the same time share a single in-flight
- * refresh promise (no thundering-herd of refresh calls).
+ * • When the access token (or latestToken) has expired the interceptor:
+ *     1. Reads the response body for SESSION_EXPIRED — inactivity timeout.
+ *        → clears latestToken + Redux, redirects to /login?reason=session_expired
+ *     2. Ordinary 401 → calls POST /auth/refresh (httpOnly refreshToken cookie)
+ *        → stores the new access token in latestToken (no Redux dispatch)
+ *        → retries the original request once with the fresh token
+ *        → if refresh fails → dispatches clearCredentials() so the Shell redirects
+ *
+ * • latestToken is cleared via a Redux subscription whenever accessToken becomes
+ *   null (logout / session expiry), so a stale cache cannot survive across
+ *   logout + re-login within the same page session.
+ *
+ * Concurrent 401s share a single in-flight refresh promise (no thundering-herd).
  */
 
 import { store } from '@/store'
-import { setCredentials, clearCredentials, refreshToken as refreshTokenAction } from '@/store/slices/authSlice'
+import { clearCredentials } from '@/store/slices/authSlice'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
 
@@ -31,7 +40,21 @@ interface FetchOptions {
   body?: unknown
 }
 
-// Shared refresh promise so concurrent 401s don't each fire a separate refresh.
+// ── Module-level token cache ──────────────────────────────────────────────────
+// Updated on every authenticated response without touching Redux.
+// apiFetch reads it at call time so the inactivity window keeps rolling
+// without causing component re-renders.
+let latestToken: string | null = null
+
+// Clear the cache when the user is fully logged out (accessToken → null).
+store.subscribe(() => {
+  const { accessToken } = (
+    store.getState() as { auth: { accessToken: string | null } }
+  ).auth
+  if (!accessToken) latestToken = null
+})
+
+// ── Shared refresh promise ────────────────────────────────────────────────────
 let refreshInFlight: Promise<string | null> | null = null
 
 async function tryRefreshToken(): Promise<string | null> {
@@ -47,26 +70,15 @@ async function tryRefreshToken(): Promise<string | null> {
 
       const { accessToken } = (await res.json()) as { accessToken: string }
 
-      // Re-read the current auth state so we can preserve role/userId/etc.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const auth = (store.getState() as any).auth as {
-        role: string | null
-        userId: string | null
-        facultyId: string | null
-        batchId: string | null
-      }
-
-      store.dispatch(setCredentials({
-        accessToken,
-        role: auth.role ?? '',
-        userId: auth.userId ?? '',
-        facultyId: auth.facultyId,
-        batchId: auth.batchId,
-      }))
-
+      // Store in the module cache only — no Redux dispatch.
+      // The Redux accessToken from login remains as-is (it's still truthy so
+      // the Shell shows authenticated UI).  All subsequent apiFetch calls will
+      // use latestToken, which is fresh.
+      latestToken = accessToken
       return accessToken
     } catch {
       // Refresh token is invalid/expired — force the user back to login.
+      latestToken = null
       store.dispatch(clearCredentials())
       return null
     } finally {
@@ -83,18 +95,15 @@ function buildHeaders(token?: string): Record<string, string> {
   return h
 }
 
-/** Read X-Refreshed-Token and silently update the Redux store if present. */
+/** Store X-Refreshed-Token locally — no Redux dispatch to avoid render loops. */
 function absorbRefreshedToken(response: Response): void {
   const refreshed = response.headers.get('X-Refreshed-Token')
-  if (refreshed) {
-    store.dispatch(refreshTokenAction(refreshed))
-  }
+  if (refreshed) latestToken = refreshed
 }
 
-/** Redirect to login with a reason parameter (replaces current history entry). */
+/** Redirect to the appropriate login page with a reason query param. */
 function redirectToLogin(reason: string): void {
   if (typeof window !== 'undefined') {
-    // Determine correct login page: admin vs staff
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const role = (store.getState() as any).auth?.role as string | null
     const loginPath = role === 'ADMIN' ? '/admin/login' : '/login'
@@ -104,17 +113,22 @@ function redirectToLogin(reason: string): void {
 
 export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
   const { token, method = 'GET', body } = opts
+
+  // Prefer the sliding-window latestToken over the caller's (possibly stale)
+  // closure token.  Only upgrade if the caller supplied a token at all — an
+  // unauthenticated call should stay unauthenticated.
+  const effectiveToken = token ? (latestToken ?? token) : undefined
+
   const fetchInit: RequestInit = {
     method,
-    headers: buildHeaders(token),
+    headers: buildHeaders(effectiveToken),
     credentials: 'include',
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   }
 
   const res = await fetch(`${BASE}/api${path}`, fetchInit)
 
-  // ── Sliding-window token refresh ─────────────────────────────────────────
-  // On every successful response absorb a refreshed token if the server sent one.
+  // ── Success ──────────────────────────────────────────────────────────────
   if (res.ok) {
     absorbRefreshedToken(res)
     return res.json() as Promise<T>
@@ -122,17 +136,17 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
 
   // ── 401 handling ─────────────────────────────────────────────────────────
   if (res.status === 401 && !path.startsWith('/auth/')) {
-    // Read the body once so we can inspect the error code.
     const errBody = await res.json().catch(() => ({ error: '' })) as { error?: string }
 
     // SESSION_EXPIRED = inactivity timeout — do NOT attempt a refresh.
     if (errBody.error === 'SESSION_EXPIRED') {
+      latestToken = null
       store.dispatch(clearCredentials())
       redirectToLogin('session_expired')
       throw new Error('Your session expired due to inactivity. Please sign in again.')
     }
 
-    // Ordinary token expiry — try a silent refresh.
+    // Ordinary token expiry — try a silent refresh via the httpOnly cookie.
     const newToken = await tryRefreshToken()
 
     if (!newToken) {
