@@ -36,6 +36,8 @@ interface SuggestResponse {
     isPending: boolean
     case: number
     excluded: { chapterName: string; subject: string; reason: string }[]
+    /** true when a Friday exam found no this-week chapters and fell back to older ones */
+    usedFallback?: boolean
   }
   bySubject: { subject: string; chapters: string[] }[]
 }
@@ -140,12 +142,20 @@ export default function SchedulePage() {
     if (!accessToken || !batchId || !weekStart) return
     setSuggesting(true)
     try {
-      // Monday exam = week start + 2 days; Friday exam = week start + 6 days
+      // Monday exam = week start (Sat) + 2 days; Friday exam = week start + 6 days
       const base = new Date(weekStart)
       const examDate = new Date(base)
       examDate.setDate(base.getDate() + (forDay === 'monday' ? 2 : 6))
+
+      // GAP 4: always send weekStartDate so the server can apply the Saturday cutoff
+      // for Monday exams and the this-week preference for Friday exams (GAP 5).
+      const params = new URLSearchParams({
+        batchId,
+        examDate:      examDate.toISOString().slice(0, 10),
+        weekStartDate: base.toISOString().slice(0, 10),
+      })
       const data = await apiFetch<SuggestResponse>(
-        `/academics/exams/suggest?batchId=${batchId}&examDate=${examDate.toISOString().slice(0, 10)}`,
+        `/academics/exams/suggest?${params.toString()}`,
         { token: accessToken }
       )
       setSuggestion(data)
@@ -340,9 +350,19 @@ export default function SchedulePage() {
                 <div style={{ fontSize: '0.875rem', color: 'var(--color-text)', fontWeight: 500, marginBottom: '0.5rem' }}>
                   {suggestion.suggestion.topic}
                 </div>
+                {/* GAP 5: Friday fallback notice */}
+                {suggestion.suggestion.usedFallback && (
+                  <div style={{
+                    fontSize: '0.75rem', color: '#92400e', marginBottom: '0.375rem',
+                    padding: '0.3rem 0.5rem', borderRadius: '0.25rem',
+                    background: '#fef3c7', border: '1px solid #f59e0b',
+                  }}>
+                    ⚠ No new chapters completed this week — using earlier chapter as fallback.
+                  </div>
+                )}
                 {suggestion.suggestion.excluded.length > 0 && (
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
-                    <span style={{ fontWeight: 600 }}>Excluded (1-day buffer):</span>{' '}
+                    <span style={{ fontWeight: 600 }}>Excluded (buffer):</span>{' '}
                     {suggestion.suggestion.excluded.map((ex) => ex.chapterName).join(', ')}
                   </div>
                 )}

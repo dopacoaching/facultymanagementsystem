@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppDispatch } from '@/store/hooks'
 import { setCredentials, clearCredentials } from '@/store/slices/authSlice'
 import { login } from '@/services/auth.service'
@@ -29,6 +29,9 @@ const roleHome: Record<string, string> = {
 export default function LoginPage() {
   const dispatch = useAppDispatch()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const sessionExpired = searchParams.get('reason') === 'session_expired'
+
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<Form>({
     resolver: zodResolver(schema),
   })
@@ -178,6 +181,26 @@ export default function LoginPage() {
               DOPA Coaching — Sign in to continue
             </p>
           </div>
+
+          {/* Session-expired banner */}
+          {sessionExpired && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius)',
+              background: '#fef3c7',
+              border: '1px solid #f59e0b',
+              marginBottom: '1rem',
+            }}>
+              <span style={{ fontSize: '1rem', flexShrink: 0 }}>⏱</span>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#92400e' }}>Session timed out</div>
+                <div style={{ fontSize: '0.8rem', color: '#78350f', marginTop: '0.1rem' }}>
+                  You were signed out after 30 minutes of inactivity. Please sign in again.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Card */}
           <div style={{

@@ -27,6 +27,8 @@ app.use(cors({
     cb(new Error(`CORS: origin ${origin} not allowed`))
   },
   credentials: true,
+  // Expose so the client can read the refreshed access token header set by authenticate()
+  exposedHeaders: ['X-Refreshed-Token'],
 }))
 app.use(express.json())
 app.use(cookieParser())

@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppSelector, useAppDispatch } from '@/store/hooks'
 import { setCredentials, clearCredentials } from '@/store/slices/authSlice'
 import { login } from '@/services/auth.service'
@@ -18,6 +18,8 @@ type Form = z.infer<typeof schema>
 export default function AdminLoginPage() {
   const dispatch  = useAppDispatch()
   const router    = useRouter()
+  const searchParams = useSearchParams()
+  const sessionExpired = searchParams.get('reason') === 'session_expired'
   const { accessToken, role } = useAppSelector((s) => s.auth)
 
   // Already authenticated as ADMIN — go straight to dashboard
@@ -92,6 +94,26 @@ export default function AdminLoginPage() {
             Restricted access — authorised personnel only
           </p>
         </div>
+
+        {/* Session-expired banner */}
+        {sessionExpired && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius)',
+            background: '#fef3c7',
+            border: '1px solid #f59e0b',
+            marginBottom: '1rem',
+          }}>
+            <span style={{ fontSize: '1rem', flexShrink: 0 }}>⏱</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#92400e' }}>Session timed out</div>
+              <div style={{ fontSize: '0.8rem', color: '#78350f', marginTop: '0.1rem' }}>
+                Signed out after 30 minutes of inactivity. Please sign in again.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Login card */}
         <div style={{

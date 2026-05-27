@@ -5,9 +5,13 @@ import { User } from '../models/User'
 import { JWTPayload } from '../types'
 import { asyncHandler } from '../utils/asyncHandler'
 import { AuthRequest } from '../middleware/auth'
+import { validatePasswordComplexity } from './user.controller'
+
+/** Inactivity window — 30 minutes.  Exported so authenticate() can import it. */
+export const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 
 const signAccess = (p: JWTPayload) =>
-  jwt.sign(p, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m' } as object)
+  jwt.sign({ ...p, lastActive: Date.now() }, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m' } as object)
 
 const signRefresh = (p: JWTPayload) =>
   jwt.sign(p, process.env.JWT_REFRESH_SECRET!, { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d' } as object)
@@ -64,6 +68,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
   }
   try {
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as JWTPayload
+    // Re-stamp lastActive so the session inactivity clock resets on refresh
     const accessToken = signAccess({ userId: payload.userId, role: payload.role, facultyId: payload.facultyId, batchId: payload.batchId })
     res.json({ accessToken })
   } catch {
@@ -79,9 +84,8 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
 export const changePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { currentPassword, newPassword, userId: targetUserId } = req.body
 
-  if (!newPassword || newPassword.length < 6) {
-    res.status(400).json({ error: 'New password must be at least 6 characters' }); return
-  }
+  const pwError = validatePasswordComplexity(newPassword)
+  if (pwError) { res.status(400).json({ error: pwError }); return }
 
   // Determine which account to update
   // HR_MANAGER and ADMIN can change any user's password; others are restricted to their own

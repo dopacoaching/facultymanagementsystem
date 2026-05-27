@@ -51,6 +51,8 @@ export interface JWTPayload {
   role: UserRole
   facultyId?: string
   batchId?: string
+  /** Unix timestamp (ms) of the last verified request — used for inactivity timeout */
+  lastActive?: number
 }
 
 // ── Salary result sub-types ────────────────────────────────────────────────

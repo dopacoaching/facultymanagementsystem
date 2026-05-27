@@ -8,6 +8,19 @@ import type { AppUser, CreateUserPayload } from '@/services/user.service'
 import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import type { Faculty } from '@/types'
+import PasswordInput from '@/components/ui/PasswordInput'
+
+/** Client-side mirror of the server's validatePasswordComplexity rule. */
+function validatePasswordComplexity(pw: string): string | null {
+  if (!pw || pw.length < 8)  return 'Password must be at least 8 characters'
+  if (pw.length > 64)         return 'Password must be at most 64 characters'
+  if (!/[A-Z]/.test(pw))     return 'Password must contain at least one uppercase letter'
+  if (!/[a-z]/.test(pw))     return 'Password must contain at least one lowercase letter'
+  if (!/[0-9]/.test(pw))     return 'Password must contain at least one digit'
+  if (!/[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(pw))
+    return 'Password must contain at least one special character (!@#$%^&* etc.)'
+  return null
+}
 
 const ALL_ROLES: UserRole[] = [
   'ADMIN', 'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',
@@ -75,9 +88,8 @@ export default function AdminUsersPage() {
     if (!createForm.username || !createForm.password || !createForm.role) {
       setCreateError('Username, password and role are required'); return
     }
-    if (createForm.password.length < 6) {
-      setCreateError('Password must be at least 6 characters'); return
-    }
+    const pwErr = validatePasswordComplexity(createForm.password)
+    if (pwErr) { setCreateError(pwErr); return }
     setCreating(true); setCreateError('')
     try {
       const payload = { ...createForm }
@@ -120,7 +132,8 @@ export default function AdminUsersPage() {
         batchId: editBatchId || null,
       }
       if (editPw) {
-        if (editPw.length < 6) { setEditError('Password must be at least 6 characters'); setEditSaving(false); return }
+        const pwErr = validatePasswordComplexity(editPw)
+        if (pwErr) { setEditError(pwErr); setEditSaving(false); return }
         payload.password = editPw
       }
       await updateUser(editTarget._id, payload, accessToken)
@@ -170,11 +183,14 @@ export default function AdminUsersPage() {
                     onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
                     autoComplete="off" placeholder="e.g. john_doe" />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="label">Password</label>
-                  <input type="password" className="input" value={createForm.password}
+                  <PasswordInput
+                    value={createForm.password}
                     onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                    autoComplete="new-password" placeholder="Min 6 characters" />
+                    autoComplete="new-password"
+                    placeholder="Min 8 chars · upper · lower · digit · symbol"
+                  />
                 </div>
                 <div className="form-group">
                   <label className="label">Role</label>
@@ -244,10 +260,14 @@ export default function AdminUsersPage() {
                   </select>
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="label">Reset Password (leave blank to keep current)</label>
-                  <input type="password" className="input" value={editPw}
+                  <label className="label">Reset Password <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank to keep current)</span></label>
+                  <PasswordInput
+                    value={editPw}
                     onChange={(e) => setEditPw(e.target.value)}
-                    autoComplete="new-password" placeholder="Min 6 characters" />
+                    autoComplete="new-password"
+                    placeholder="Min 8 chars · upper · lower · digit · symbol"
+                    showStrength={editPw.length > 0}
+                  />
                 </div>
               </div>
             </div>

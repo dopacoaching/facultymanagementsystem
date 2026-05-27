@@ -6,6 +6,7 @@ import { BatchChapter } from '../models/BatchChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
+import { isVideoFirstBatch } from '../utils/batchUtils'
 import { Types } from 'mongoose'
 
 export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -85,7 +86,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
 
   // ── 2. VIDEO-FIRST GATE (Residential + Online only) ──────────────────────
-  if (batch.type === 'RESIDENTIAL' || batch.type === 'ONLINE') {
+  if (isVideoFirstBatch(batch.type)) {
     const chapterRecord = await BatchChapter.findOne({
       batchId: batchOid,
       subject,
@@ -137,7 +138,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // ── 5. RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK ─────────────────────────────
-  if (batch.type === 'RESIDENTIAL' || batch.type === 'ONLINE') {
+  if (isVideoFirstBatch(batch.type)) {
     const todaySessions = await Session.find({
       facultyId: facultyOid,
       sessionDate: { $gte: dayStart, $lte: dayEnd },

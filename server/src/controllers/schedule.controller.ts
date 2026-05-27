@@ -4,6 +4,7 @@ import { WeeklySchedule } from '../models/WeeklySchedule'
 import { BatchChapter } from '../models/BatchChapter'
 import { Batch } from '../models/Batch'
 import { asyncHandler } from '../utils/asyncHandler'
+import { isVideoFirstBatch } from '../utils/batchUtils'
 import { Types } from 'mongoose'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -204,10 +205,8 @@ export const reviseSchedule = asyncHandler(async (req: AuthRequest, res: Respons
 export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { batchId, examDate, weekStartDate } = req.query
 
-  if (!batchId) { res.status(400).json({ error: 'batchId required' }); return }
-
-  const rawDate = (examDate ?? weekStartDate) as string | undefined
-  if (!rawDate) { res.status(400).json({ error: 'examDate required' }); return }
+  if (!batchId)    { res.status(400).json({ error: 'batchId required' }); return }
+  if (!examDate)   { res.status(400).json({ error: 'examDate required' }); return }
 
   let batchOid: Types.ObjectId
   try { batchOid = new Types.ObjectId(batchId as string) } catch {
@@ -217,16 +216,25 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   const batch = await Batch.findById(batchOid)
   if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
 
-  const isOffline = batch.type === 'OFFLINE'
+  const isOffline = !isVideoFirstBatch(batch.type)
 
-  // 1-day buffer: chapters must be done BEFORE (examDate - 1 day) at midnight
-  const bufferCutoff = midnight(rawDate)
-  bufferCutoff.setDate(bufferCutoff.getDate() - 1)
-  // bufferCutoff is now midnight of the day before the exam
+  const examDateObj = midnight(examDate as string)
+  const examDay     = examDateObj.getDay()   // 0 Sun · 1 Mon · 2 Tue · … · 5 Fri · 6 Sat
 
-  const examDateObj = midnight(rawDate)
+  // ── GAP 4: Day-specific buffer cutoff ──────────────────────────────────────
+  // Monday exam: use weekStartDate (the preceding Saturday) as the cutoff so that
+  // chapters done on Saturday and Sunday are inside the buffer and excluded.
+  // All other days: standard 1-day buffer (midnight of the day before the exam).
+  let bufferCutoff: Date
+  if (examDay === 1 && weekStartDate) {
+    // Monday → cutoff = Saturday (weekStartDate)
+    bufferCutoff = midnight(weekStartDate as string)
+  } else {
+    bufferCutoff = midnight(examDate as string)
+    bufferCutoff.setDate(bufferCutoff.getDate() - 1)
+  }
 
-  // Build base query — Offline doesn't require videoComplete
+  // Build base eligible query — Offline doesn't require videoComplete
   const eligibleFilter: Record<string, unknown> = {
     batchId: batchOid,
     facultyClassDone: true,
@@ -236,10 +244,30 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
     eligibleFilter.videoComplete = true
   }
 
-  const eligible = await BatchChapter.find(eligibleFilter)
+  const allEligible = await BatchChapter.find(eligibleFilter)
     .sort({ facultyClassDoneAt: -1 })
 
-  // Find chapters excluded by the 1-day buffer (completed between cutoff and exam day)
+  // ── GAP 5: Friday exam prefers this-week chapters ──────────────────────────
+  // For Friday, first try chapters completed since the week start (weekStartDate,
+  // i.e. the preceding Saturday). If none exist in this window, fall back to all
+  // eligible chapters and mark usedFallback = true for the client.
+  let eligible = allEligible
+  let usedFallback = false
+
+  if (examDay === 5 && weekStartDate) {
+    const weekStartMidnight = midnight(weekStartDate as string)
+    const thisWeek = allEligible.filter(
+      (ch) => ch.facultyClassDoneAt != null && ch.facultyClassDoneAt >= weekStartMidnight,
+    )
+    if (thisWeek.length > 0) {
+      eligible = thisWeek
+    } else {
+      usedFallback = true
+      // eligible stays = allEligible (full fallback)
+    }
+  }
+
+  // Find chapters excluded by the buffer (completed between bufferCutoff and exam day)
   const bufferFilter: Record<string, unknown> = {
     batchId: batchOid,
     facultyClassDone: true,
@@ -252,7 +280,7 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   const excluded = bufferExcluded.map((ch) => ({
     chapterName: ch.chapterName,
     subject:     ch.subject,
-    reason: `Completed ${ch.facultyClassDoneAt?.toDateString() ?? 'unknown'} — within 1-day buffer of exam (${examDateObj.toDateString()})`,
+    reason: `Completed ${ch.facultyClassDoneAt?.toDateString() ?? 'unknown'} — within buffer window before exam (${examDateObj.toDateString()})`,
   }))
 
   // Group eligible by subject (most recent first within each subject)
@@ -276,31 +304,31 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
 
   if (eligible.length === 0) {
     // CASE 4: no eligible chapters at all
-    topic      = '[Topic Pending — Academics to confirm]'
-    isPending  = true
+    topic         = '[Topic Pending — Academics to confirm]'
+    isPending     = true
     suggestedCase = 4
   } else if (subjects.length === 1 && bySubjectMap[subjects[0]].length >= 2) {
     // CASE 1: 2+ chapters from same subject
     const [ch1, ch2] = bySubjectMap[subjects[0]]
-    topic      = `Exam: ${ch1} + ${ch2}`
-    isPending  = false
+    topic         = `Exam: ${ch1} + ${ch2}`
+    isPending     = false
     suggestedCase = 1
   } else if (subjects.length >= 2) {
     // CASE 2: chapters from 2 different subjects
     const ch1 = bySubjectMap[subjects[0]][0]
     const ch2 = bySubjectMap[subjects[1]][0]
-    topic      = `Exam: ${ch1} + ${ch2}`
-    isPending  = false
+    topic         = `Exam: ${ch1} + ${ch2}`
+    isPending     = false
     suggestedCase = 2
   } else {
     // CASE 3: exactly 1 chapter total
-    topic      = `Exam: ${eligible[0].chapterName}`
-    isPending  = false
+    topic         = `Exam: ${eligible[0].chapterName}`
+    isPending     = false
     suggestedCase = 3
   }
 
   res.json({
-    suggestion: { topic, isPending, case: suggestedCase, excluded },
+    suggestion: { topic, isPending, case: suggestedCase, excluded, usedFallback },
     bySubject,
   })
 })
