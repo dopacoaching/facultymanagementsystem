@@ -221,14 +221,27 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   const examDateObj = midnight(examDate as string)
   const examDay     = examDateObj.getDay()   // 0 Sun · 1 Mon · 2 Tue · … · 5 Fri · 6 Sat
 
+  // Auto-derive weekStartDate when the client doesn't send it (e.g. standalone
+  // exams page). DOPA academic week starts on Saturday.
+  //   Monday exam  → preceding Saturday = examDate − 2 days
+  //   Friday exam  → preceding Saturday = examDate − 6 days
+  //   Other days   → null (GAP 4/5 conditions won't fire)
+  const derivedWeekStart: string | null = weekStartDate
+    ? (weekStartDate as string)
+    : examDay === 1
+      ? (() => { const d = new Date(examDateObj); d.setDate(d.getDate() - 2); return d.toISOString().slice(0, 10) })()
+      : examDay === 5
+        ? (() => { const d = new Date(examDateObj); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10) })()
+        : null
+
   // ── GAP 4: Day-specific buffer cutoff ──────────────────────────────────────
-  // Monday exam: use weekStartDate (the preceding Saturday) as the cutoff so that
-  // chapters done on Saturday and Sunday are inside the buffer and excluded.
+  // Monday exam: use the (derived) weekStartDate — the preceding Saturday — as the
+  // cutoff so chapters done on Saturday and Sunday are inside the buffer and excluded.
   // All other days: standard 1-day buffer (midnight of the day before the exam).
   let bufferCutoff: Date
-  if (examDay === 1 && weekStartDate) {
-    // Monday → cutoff = Saturday (weekStartDate)
-    bufferCutoff = midnight(weekStartDate as string)
+  if (examDay === 1 && derivedWeekStart) {
+    // Monday → cutoff = Saturday (derivedWeekStart)
+    bufferCutoff = midnight(derivedWeekStart)
   } else {
     bufferCutoff = midnight(examDate as string)
     bufferCutoff.setDate(bufferCutoff.getDate() - 1)
@@ -254,8 +267,8 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   let eligible = allEligible
   let usedFallback = false
 
-  if (examDay === 5 && weekStartDate) {
-    const weekStartMidnight = midnight(weekStartDate as string)
+  if (examDay === 5 && derivedWeekStart) {
+    const weekStartMidnight = midnight(derivedWeekStart)
     const thisWeek = allEligible.filter(
       (ch) => ch.facultyClassDoneAt != null && ch.facultyClassDoneAt >= weekStartMidnight,
     )

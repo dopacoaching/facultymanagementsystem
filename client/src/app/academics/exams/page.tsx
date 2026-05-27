@@ -11,6 +11,7 @@ interface SuggestResponse {
     isPending: boolean
     case: number
     excluded: { chapterName: string; subject: string; reason: string }[]
+    usedFallback?: boolean
   }
   bySubject: { subject: string; chapters: string[] }[]
 }
@@ -82,8 +83,10 @@ export default function ExamTopicsPage() {
           </button>
         </div>
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: '0.75rem', marginBottom: 0 }}>
-          The 1-day buffer means chapters must be completed <strong>before midnight of the day before the exam</strong> to be eligible.
+          Buffer rules: <strong>Monday exams</strong> — chapters must be done before the preceding Saturday (Sat–Sun work is excluded).
+          <strong> All other days</strong> — chapters must be done before midnight of the day before the exam.
           Residential &amp; Online batches also require video to be marked complete.
+          Friday exams prefer chapters completed <em>this week</em>; falls back to all eligible if none exist.
         </p>
       </div>
 
@@ -120,6 +123,15 @@ export default function ExamTopicsPage() {
               {result.suggestion.topic}
             </div>
           </div>
+
+          {/* Friday fallback notice */}
+          {result.suggestion.usedFallback && (
+            <div className="alert" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', color: 'var(--color-warning)', padding: '0.75rem 1rem' }}>
+              <span style={{ marginRight: '0.5rem' }}>⚠</span>
+              <strong>Fallback used.</strong> No chapters were completed <em>this week</em>, so the suggestion is drawn from all eligible chapters across all weeks.
+              Consider logging more sessions this week before the Friday exam.
+            </div>
+          )}
 
           {/* Eligible chapters by subject */}
           {result.bySubject.length > 0 && (
