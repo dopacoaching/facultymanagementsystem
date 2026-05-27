@@ -19,14 +19,6 @@ interface ISession {
   status: string
 }
 
-interface TimetableSlot {
-  _id: string
-  subject: string
-  startTime: string
-  endTime: string
-  dayOfWeek: number
-}
-
 const STATUS_BADGE: Record<string, string> = {
   COMPLETED:     'badge-green',
   CANCELLED:     'badge-red',
@@ -163,7 +155,6 @@ export default function AdminDashboard() {
   const [faculty,     setFaculty]     = useState<Faculty[]>([])
   const [acSessions,  setAcSessions]  = useState<Session[]>([])
   const [isSessions,  setIsSessions]  = useState<ISession[]>([])
-  const [slots,       setSlots]       = useState<TimetableSlot[]>([])
   const [auditLogs,   setAuditLogs]   = useState<AuditLog[]>([])
 
   useEffect(() => {
@@ -171,7 +162,6 @@ export default function AdminDashboard() {
     getFaculty(accessToken, true).then(setFaculty).catch(console.error)  // include inactive for accurate stats
     getSessions({}, accessToken).then(setAcSessions).catch(console.error)
     apiFetch<ISession[]>('/integrated-school/sessions', { token: accessToken }).then(setIsSessions).catch(console.error)
-    apiFetch<TimetableSlot[]>('/integrated-school/timetable', { token: accessToken }).then(setSlots).catch(console.error)
     getAuditLog(accessToken, 1, 8).then((r) => setAuditLogs(r.logs)).catch(console.error)
   }, [accessToken])
 
@@ -277,7 +267,6 @@ export default function AdminDashboard() {
             { label: 'IS Completed',      value: isCompleted,       icon: '✅', color: 'var(--color-success)' },
             { label: 'IS Scheduled',      value: isScheduled,       icon: '⏳', color: 'var(--color-info)'    },
             { label: 'IS Cancelled',      value: isCancelled,       icon: '❌', color: 'var(--color-danger)'  },
-            { label: 'Timetable Slots',   value: slots.length,      icon: '⏱', color: 'var(--color-accent)'  },
           ].map(({ label, value, icon, color }) => (
             <div key={label} className="stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
