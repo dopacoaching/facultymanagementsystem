@@ -61,7 +61,8 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
     return
   }
 
-  const result = await calculateMonthlySalary(facultyId, Number(month), Number(year))
+  // persist = true → commit audit-log rows + carry-forward balance (this is the approval)
+  const result = await calculateMonthlySalary(facultyId, Number(month), Number(year), true)
   if (result.status === 'BLOCKED' || result.status === 'PENDING_CONFIG') {
     res.status(422).json({ error: result.reason ?? 'Payroll blocked', blocked: true }); return
   }

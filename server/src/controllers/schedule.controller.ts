@@ -226,13 +226,20 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   //   Monday exam  → preceding Saturday = examDate − 2 days
   //   Friday exam  → preceding Saturday = examDate − 6 days
   //   Other days   → null (GAP 4/5 conditions won't fire)
-  const derivedWeekStart: string | null = weekStartDate
-    ? (weekStartDate as string)
-    : examDay === 1
-      ? (() => { const d = new Date(examDateObj); d.setDate(d.getDate() - 2); return d.toISOString().slice(0, 10) })()
-      : examDay === 5
-        ? (() => { const d = new Date(examDateObj); d.setDate(d.getDate() - 6); return d.toISOString().slice(0, 10) })()
-        : null
+  // NOTE: kept as a Date (NOT round-tripped through toISOString().slice(0,10)) —
+  // that conversion shifts the calendar day by the server's UTC offset (e.g. IST),
+  // producing an off-by-one Saturday. Date arithmetic via midnight()+setDate() is
+  // timezone-stable because every comparison value is built the same way.
+  let derivedWeekStart: Date | null = null
+  if (weekStartDate) {
+    derivedWeekStart = midnight(weekStartDate as string)
+  } else if (examDay === 1) {
+    derivedWeekStart = midnight(examDate as string)
+    derivedWeekStart.setDate(derivedWeekStart.getDate() - 2)
+  } else if (examDay === 5) {
+    derivedWeekStart = midnight(examDate as string)
+    derivedWeekStart.setDate(derivedWeekStart.getDate() - 6)
+  }
 
   // ── GAP 4: Day-specific buffer cutoff ──────────────────────────────────────
   // Monday exam: use the (derived) weekStartDate — the preceding Saturday — as the
@@ -241,7 +248,7 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   let bufferCutoff: Date
   if (examDay === 1 && derivedWeekStart) {
     // Monday → cutoff = Saturday (derivedWeekStart)
-    bufferCutoff = midnight(derivedWeekStart)
+    bufferCutoff = derivedWeekStart
   } else {
     bufferCutoff = midnight(examDate as string)
     bufferCutoff.setDate(bufferCutoff.getDate() - 1)
@@ -268,7 +275,7 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
   let usedFallback = false
 
   if (examDay === 5 && derivedWeekStart) {
-    const weekStartMidnight = midnight(derivedWeekStart)
+    const weekStartMidnight = derivedWeekStart
     const thisWeek = allEligible.filter(
       (ch) => ch.facultyClassDoneAt != null && ch.facultyClassDoneAt >= weekStartMidnight,
     )

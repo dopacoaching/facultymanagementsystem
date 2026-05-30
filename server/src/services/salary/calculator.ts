@@ -96,6 +96,7 @@ async function calcFixedMonthlyLeave(
   year: number,
   facultyName: string,
   facultyId: string,
+  persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const salary = contract.fixedMonthlySalary ?? 0
   const leaveAllowance = month === 4
@@ -116,14 +117,16 @@ async function calcFixedMonthlyLeave(
   ]
   if (penalties > 0) {
     breakdown.push({ label: 'Excess Leave Deduction', amount: penalties, isDeduction: true })
-    await writeAuditLog({
-      eventType: 'PENALTY_APPLIED',
-      facultyId,
-      facultyName,
-      amount: penalties,
-      reason: `${excessLeaves} excess leave day(s) × ${fmt(perDayRate)}/day`,
-      loggedByUserId: 'SYSTEM',
-    })
+    if (persist) {
+      await writeAuditLog({
+        eventType: 'PENALTY_APPLIED',
+        facultyId,
+        facultyName,
+        amount: penalties,
+        reason: `${excessLeaves} excess leave day(s) × ${fmt(perDayRate)}/day`,
+        loggedByUserId: 'SYSTEM',
+      })
+    }
   }
 
   const finalPayable = salary - penalties
@@ -190,6 +193,7 @@ async function calcFixedQuotaCarryForward(
   facultyId: string,
   facultyName: string,
   fId: Types.ObjectId,
+  persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const salary = contract.fixedMonthlySalary ?? 0
   const quota = contract.monthlyHourQuota ?? 0
@@ -201,12 +205,15 @@ async function calcFixedQuotaCarryForward(
   const previousMonthBalance = prevRecord?.balanceHours ?? 0
   const combinedTotal = previousMonthBalance + currentMonthBalance
 
-  // Persist current month balance
-  await CarryForwardBalance.findOneAndUpdate(
-    { facultyId: fId, month, year },
-    { balanceHours: currentMonthBalance },
-    { upsert: true, new: true }
-  )
+  // Persist current month balance — ONLY on approval, never on preview, so that
+  // repeatedly viewing the calculation doesn't keep overwriting the stored balance.
+  if (persist) {
+    await CarryForwardBalance.findOneAndUpdate(
+      { facultyId: fId, month, year },
+      { balanceHours: currentMonthBalance },
+      { upsert: true, new: true }
+    )
+  }
 
   const alerts: SalaryAlert[] = []
   if (currentMonthBalance > 0) {
@@ -215,14 +222,16 @@ async function calcFixedQuotaCarryForward(
       code: 'QUOTA_SHORTFALL',
       message: `${currentMonthBalance.toFixed(1)} hr(s) short of ${quota}h quota this month. Balance carried forward.`,
     })
-    await writeAuditLog({
-      eventType: 'BALANCE_CARRY_FORWARD',
-      facultyId,
-      facultyName,
-      amount: 0,
-      reason: `Hour deficit: ${currentMonthBalance.toFixed(1)} hrs short of ${quota}h quota (previous carry: ${previousMonthBalance.toFixed(1)} hrs)`,
-      loggedByUserId: 'SYSTEM',
-    })
+    if (persist) {
+      await writeAuditLog({
+        eventType: 'BALANCE_CARRY_FORWARD',
+        facultyId,
+        facultyName,
+        amount: 0,
+        reason: `Hour deficit: ${currentMonthBalance.toFixed(1)} hrs short of ${quota}h quota (previous carry: ${previousMonthBalance.toFixed(1)} hrs)`,
+        loggedByUserId: 'SYSTEM',
+      })
+    }
   }
 
   const breakdown: SalaryBreakdown[] = [
@@ -286,6 +295,7 @@ async function calcBaseOvertime(
   hoursLogged: number,
   facultyId: string,
   facultyName: string,
+  persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const base = contract.fixedMonthlySalary ?? 0
   const threshold = contract.overtimeThresholdHours ?? 50
@@ -310,14 +320,16 @@ async function calcBaseOvertime(
       code: 'OVERTIME_EARNED',
       message: `${overtimeHours} overtime hour(s) earned at ${fmt(rate)}/hr = ${fmt(overtimePay)}.`,
     })
-    await writeAuditLog({
-      eventType: 'OVERTIME_ADDED',
-      facultyId,
-      facultyName,
-      amount: overtimePay,
-      reason: `${overtimeHours} hrs overtime at ${fmt(rate)}/hr`,
-      loggedByUserId: 'SYSTEM',
-    })
+    if (persist) {
+      await writeAuditLog({
+        eventType: 'OVERTIME_ADDED',
+        facultyId,
+        facultyName,
+        amount: overtimePay,
+        reason: `${overtimeHours} hrs overtime at ${fmt(rate)}/hr`,
+        loggedByUserId: 'SYSTEM',
+      })
+    }
   }
 
   return { baseSalary: base, overtimeHours, overtimePay, finalPayable, breakdown, alerts }
@@ -334,6 +346,7 @@ async function calcSplitFixedVariable(
   facultyCancellations: number,
   facultyId: string,
   facultyName: string,
+  persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const fixed = contract.fixedComponent ?? 0
   const variable = contract.variableComponent ?? 0
@@ -368,14 +381,16 @@ async function calcSplitFixedVariable(
   ]
   if (penaltyAmount > 0) {
     breakdown.push({ label: `Cancellation Penalty (${facultyCancellations} × ${fmt(penaltyPerClass)})`, amount: penaltyAmount, isDeduction: true })
-    await writeAuditLog({
-      eventType: 'PENALTY_APPLIED',
-      facultyId,
-      facultyName,
-      amount: penaltyAmount,
-      reason: `${facultyCancellations} class(es) cancelled by faculty × ${fmt(penaltyPerClass)}`,
-      loggedByUserId: 'SYSTEM',
-    })
+    if (persist) {
+      await writeAuditLog({
+        eventType: 'PENALTY_APPLIED',
+        facultyId,
+        facultyName,
+        amount: penaltyAmount,
+        reason: `${facultyCancellations} class(es) cancelled by faculty × ${fmt(penaltyPerClass)}`,
+        loggedByUserId: 'SYSTEM',
+      })
+    }
   }
   breakdown.push({ label: 'Effective Variable Component', amount: effectiveVariable })
   breakdown.push({ label: 'Total Payable', amount: finalPayable })
@@ -425,10 +440,17 @@ async function calcConfigurable(
 
 // ─── Main entry point ──────────────────────────────────────────────────────────
 
+/**
+ * @param persist  When true (salary APPROVAL), side-effects run: audit-log rows
+ *                 are written and the carry-forward balance is committed to the DB.
+ *                 When false (read-only PREVIEW from GET /hr/salary), the calculation
+ *                 is pure — no AuditLog spam, no balance overwrites on repeated views.
+ */
 export async function calculateMonthlySalary(
   facultyId: string,
   month: number,
-  year: number
+  year: number,
+  persist = false,
 ): Promise<SalaryResult> {
   // 1. Load faculty
   const faculty = await Faculty.findById(facultyId)
@@ -484,22 +506,22 @@ export async function calculateMonthlySalary(
         partial = await calcFixedMonthlyMinDays(contract, daysWorked)
         break
       case 'FIXED_MONTHLY_LEAVE':
-        partial = await calcFixedMonthlyLeave(contract, daysWorked, month, year, faculty.name, facultyId)
+        partial = await calcFixedMonthlyLeave(contract, daysWorked, month, year, faculty.name, facultyId, persist)
         break
       case 'HOURLY_MIN_DAYS':
         partial = await calcHourlyMinDays(contract, hoursLogged, daysWorked, month)
         break
       case 'FIXED_QUOTA_CARRYFORWARD':
-        partial = await calcFixedQuotaCarryForward(contract, hoursLogged, month, year, facultyId, faculty.name, fId)
+        partial = await calcFixedQuotaCarryForward(contract, hoursLogged, month, year, facultyId, faculty.name, fId, persist)
         break
       case 'FIXED_QUOTA_NOCARRY':
         partial = await calcFixedQuotaNoCarry(contract, hoursLogged)
         break
       case 'BASE_OVERTIME':
-        partial = await calcBaseOvertime(contract, hoursLogged, facultyId, faculty.name)
+        partial = await calcBaseOvertime(contract, hoursLogged, facultyId, faculty.name, persist)
         break
       case 'SPLIT_FIXED_VARIABLE':
-        partial = await calcSplitFixedVariable(contract, hoursLogged, daysWorked, facultyCancellations, facultyId, faculty.name)
+        partial = await calcSplitFixedVariable(contract, hoursLogged, daysWorked, facultyCancellations, facultyId, faculty.name, persist)
         break
       case 'CONFIGURABLE':
         partial = await calcConfigurable(contract, hoursLogged)

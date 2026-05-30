@@ -23,7 +23,9 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
     return
   }
 
-  const user = await User.findOne({ username, isActive: true })
+  // createUser stores usernames lowercased+trimmed — normalise the login input the
+  // same way so an account created with any uppercase letters can still sign in.
+  const user = await User.findOne({ username: String(username).trim().toLowerCase(), isActive: true })
   if (!user) {
     res.status(401).json({ error: 'Invalid credentials' })
     return
