@@ -51,21 +51,15 @@ export default function AcademicsDashboard() {
       const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
       setBatches(ac)
 
-      // Load chapter stats for Residential + Online batches (video-first matters)
+      // Load chapter stats for Residential + Online batches using a single
+      // aggregate query instead of N parallel per-batch requests.
       const videoFirstBatches = ac.filter((b) => isVideoFirstBatch(b.type))
-      Promise.all(
-        videoFirstBatches.map((b) =>
-          apiFetch<{_id:string;videoComplete:boolean;facultyClassDone:boolean}[]>(
-            `/academics/chapters?batchId=${b._id}`, { token: accessToken! }
-          ).then((chs) => ({
-            batchId:        b._id,
-            totalChapters:  chs.length,
-            videoComplete:  chs.filter((c) => c.videoComplete).length,
-            facultyClassDone: chs.filter((c) => c.facultyClassDone).length,
-            pendingVideo:   chs.filter((c) => c.facultyClassDone && !c.videoComplete).length,
-          }))
-        )
-      ).then(setChapterSummary).catch(console.error)
+      if (videoFirstBatches.length > 0) {
+        const ids = videoFirstBatches.map((b) => b._id).join(',')
+        apiFetch<ChapterSummary[]>(`/academics/chapters/summary?batchIds=${ids}`, { token: accessToken! })
+          .then(setChapterSummary)
+          .catch(console.error)
+      }
     }).catch(console.error)
   }, [accessToken])
 

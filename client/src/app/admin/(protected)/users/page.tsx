@@ -114,12 +114,12 @@ export default function AdminUsersPage() {
 
   async function handleToggleActive(u: AppUser) {
     if (!accessToken) return
-    if (u._id === selfId) { alert('You cannot deactivate your own account'); return }
+    if (u._id === selfId) { setEditError('You cannot deactivate your own account.'); return }
     try {
       await updateUser(u._id, { isActive: !u.isActive }, accessToken)
       load()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Update failed')
+      setEditError(e instanceof Error ? e.message : 'Update failed')
     }
   }
 

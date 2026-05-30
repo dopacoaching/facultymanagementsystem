@@ -48,7 +48,7 @@ export default function FacultySalaryPage() {
       setHistory(data)
       setShowHistory(true)
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Failed to load history')
+      setError(e instanceof Error ? e.message : 'Failed to load history')
     } finally { setHistoryLoading(false) }
   }
 

@@ -355,6 +355,40 @@ export const suggestTopic = asyncHandler(async (req: AuthRequest, res: Response)
 
 // ─── Chapters ─────────────────────────────────────────────────────────────────
 
+/**
+ * GET /chapters/summary?batchIds=id1,id2,...
+ * Returns aggregated chapter stats for multiple batches in a single DB query.
+ * Replaces the N parallel /chapters?batchId=X calls from the academics dashboard.
+ */
+export const getChapterSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { batchIds } = req.query
+  if (!batchIds || typeof batchIds !== 'string') {
+    res.status(400).json({ error: 'batchIds query param required (comma-separated ObjectIds)' }); return
+  }
+
+  const ids: Types.ObjectId[] = []
+  for (const raw of batchIds.split(',').map((s) => s.trim()).filter(Boolean)) {
+    try { ids.push(new Types.ObjectId(raw)) } catch { /* skip invalid */ }
+  }
+  if (ids.length === 0) { res.json([]); return }
+
+  const rows = await BatchChapter.aggregate([
+    { $match: { batchId: { $in: ids } } },
+    {
+      $group: {
+        _id:              '$batchId',
+        totalChapters:    { $sum: 1 },
+        videoComplete:    { $sum: { $cond: ['$videoComplete', 1, 0] } },
+        facultyClassDone: { $sum: { $cond: ['$facultyClassDone', 1, 0] } },
+        pendingVideo:     { $sum: { $cond: [{ $and: ['$facultyClassDone', { $not: '$videoComplete' }] }, 1, 0] } },
+      },
+    },
+    { $project: { batchId: '$_id', totalChapters: 1, videoComplete: 1, facultyClassDone: 1, pendingVideo: 1, _id: 0 } },
+  ])
+
+  res.json(rows)
+})
+
 export const getChapters = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { batchId, subject } = req.query
   const filter: Record<string, unknown> = {}

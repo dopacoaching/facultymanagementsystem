@@ -151,19 +151,19 @@ export default function SessionsPage() {
     try {
       await apiFetch(`/academics/sessions/${id}/status`, { method: 'PATCH', body: { status: 'COMPLETED' }, token: accessToken })
       load()
-    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Failed') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to mark session complete') }
   }
 
   async function handleCancel(id: string) {
     if (!accessToken) return
     const initiator = cancelInitiator[id]
-    if (!initiator) { alert('Select cancellation initiator first'); return }
+    if (!initiator) { setError('Select a cancellation initiator before cancelling.'); return }
     setCancelling(id)
     try {
       await cancel(id, initiator, accessToken)
       load()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Cancel failed')
+      setError(e instanceof Error ? e.message : 'Cancel failed')
     } finally { setCancelling('') }
   }
 

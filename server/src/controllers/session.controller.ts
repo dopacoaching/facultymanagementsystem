@@ -7,7 +7,13 @@ import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { isVideoFirstBatch } from '../utils/batchUtils'
+import { validateObjectId } from '../utils/objectId'
 import { Types } from 'mongoose'
+
+/** Return true when the caller's role restricts them to their assigned batch only. */
+function isCoordinator(role: string): boolean {
+  return role === 'COORDINATOR' || role === 'IS_COORDINATOR'
+}
 
 export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
   let { facultyId, batchId, batchType, excludeBatchType, month, year } = req.query as Record<string, string | undefined>
@@ -41,9 +47,15 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     }
   }
 
+  // Optional limit (default 500 hard cap to prevent unbounded responses).
+  // Pass limit=N for lightweight views like the faculty dashboard.
+  const maxLimit = 500
+  const requestedLimit = req.query.limit ? Math.min(Number(req.query.limit), maxLimit) : maxLimit
+
   const sessions = await Session.find(filter)
     .populate('facultyId', 'name subject')
     .sort({ sessionDate: -1 })
+    .limit(requestedLimit)
 
   res.json(sessions)
 })
@@ -157,6 +169,13 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
+  // ── M-7: Coordinator batch ownership gate ─────────────────────────────────
+  if (isCoordinator(req.user!.role)) {
+    if (!req.user!.batchId || req.user!.batchId !== batchId) {
+      res.status(403).json({ error: 'You can only log sessions for your assigned batch.' }); return
+    }
+  }
+
   // ── All checks passed — create session ────────────────────────────────────
   const session = await Session.create({
     facultyId: facultyOid,
@@ -189,13 +208,14 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
 })
 
 export const updateSessionStatus = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { id } = req.params
+  const oid = validateObjectId(req.params.id, 'sessionId', res)
+  if (!oid) return
   const { status } = req.body
   const ALLOWED = ['SCHEDULED', 'COMPLETED', 'NOT_COMPLETED']
   if (!status || !ALLOWED.includes(status)) {
     res.status(400).json({ error: `status must be one of: ${ALLOWED.join(', ')}` }); return
   }
-  const session = await Session.findByIdAndUpdate(id, { status }, { new: true })
+  const session = await Session.findByIdAndUpdate(oid, { status }, { new: true })
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
   res.json(session)
 })
@@ -204,6 +224,8 @@ export const updateSessionStatus = asyncHandler(async (req: AuthRequest, res: Re
  * PATCH /sessions/:id  (full edit — ADMIN / manager roles only)
  */
 export const updateSession = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const oid = validateObjectId(req.params.id, 'sessionId', res)
+  if (!oid) return
   const { id } = req.params
   const allowed = ['facultyId', 'batchId', 'subject', 'chapter', 'durationHours', 'sessionDate', 'timeSlot']
   const update: Record<string, unknown> = {}
@@ -228,7 +250,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'No valid fields provided for update' }); return
   }
 
-  const session = await Session.findByIdAndUpdate(id, update, { new: true, runValidators: true })
+  const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
     .populate('facultyId', 'name subject')
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
   res.json(session)
@@ -245,6 +267,15 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
   if (!sessionId) {
     res.status(400).json({ error: 'sessionId required' })
     return
+  }
+
+  // M-7: Coordinators may only cancel sessions for their assigned batch.
+  if (isCoordinator(req.user!.role)) {
+    const targetSession = await Session.findById(sessionId).lean()
+    if (!targetSession) { res.status(404).json({ error: 'Session not found' }); return }
+    if (!req.user!.batchId || targetSession.batchId.toString() !== req.user!.batchId) {
+      res.status(403).json({ error: 'You can only cancel sessions for your assigned batch.' }); return
+    }
   }
 
   const effectiveInitiator = cancellationInitiator === 'STUDENT' ? 'MANAGEMENT' : cancellationInitiator as 'FACULTY' | 'MANAGEMENT'

@@ -3,7 +3,7 @@ import { authenticate, authorize } from '../middleware/auth'
 import { getSessions, createSession, cancelSession, updateSessionStatus, updateSession } from '../controllers/session.controller'
 import {
   getSchedules, createOrUpdateSchedule, publishSchedule, reviseSchedule,
-  updateExamTopic, suggestTopic, getChapters, updateChapter,
+  updateExamTopic, suggestTopic, getChapters, updateChapter, getChapterSummary,
 } from '../controllers/schedule.controller'
 import type { Request, Response, NextFunction } from 'express'
 
@@ -48,6 +48,8 @@ router.post('/schedules/:id/revise', authorize('ACADEMICS_MANAGER', 'HR_MANAGER'
 router.get('/exams/suggest', suggestTopic)
 
 // ── Chapters ──────────────────────────────────────────────────────────────────
+// Summary aggregate — used by the academics dashboard to avoid N parallel queries.
+router.get('/chapters/summary', getChapterSummary)
 router.get('/chapters', getChapters)
 // Coordinators mark video-complete; managers can also set facultyClassDone manually
 router.patch('/chapters/:id', authorize('COORDINATOR', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'), updateChapter)

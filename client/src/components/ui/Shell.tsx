@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
 import Sidebar from './Sidebar'
+import { ErrorBoundary } from './ErrorBoundary'
 
 /** Map URL segments to human-readable page titles */
 function getPageTitle(pathname: string): string {
@@ -121,7 +122,9 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
           padding: '1.75rem 2rem',
           overflowY: 'auto',
         }}>
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

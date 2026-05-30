@@ -18,7 +18,11 @@ export default function FacultyDashboard() {
 
   useEffect(() => {
     if (accessToken && facultyId) {
-      getAll({ facultyId }, accessToken).then(setSessions).catch(console.error)
+      // Fetch only the 10 most recent sessions for the dashboard overview.
+      // Faculty can see all their sessions on the /faculty/sessions page.
+      getAll({ facultyId, limit: 10 } as Parameters<typeof getAll>[0], accessToken)
+        .then(setSessions)
+        .catch(console.error)
     }
   }, [accessToken, facultyId])
 

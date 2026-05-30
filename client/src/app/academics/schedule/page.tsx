@@ -217,12 +217,13 @@ export default function SchedulePage() {
 
   async function handlePublish(scheduleId: string) {
     if (!accessToken) return
-    setPublishing(scheduleId)
+    setPublishing(scheduleId); setError('')
     try {
       await apiFetch(`/academics/schedules/${scheduleId}/publish`, { token: accessToken, method: 'POST' })
+      setSuccess('Schedule published successfully.')
       load()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Publish failed')
+      setError(e instanceof Error ? e.message : 'Publish failed')
     } finally { setPublishing('') }
   }
 
@@ -230,17 +231,15 @@ export default function SchedulePage() {
 
   async function handleRevise(scheduleId: string) {
     if (!accessToken) return
-    if (!confirm('Create a revised copy of this published schedule? The original will remain and a new draft will be created.')) return
-    setRevising(scheduleId)
+    setRevising(scheduleId); setError('')
     try {
-      const { revision } = await apiFetch<{ revision: Schedule }>(`/academics/schedules/${scheduleId}/revise`, {
-        token: accessToken,
-        method: 'POST',
+      await apiFetch<{ revision: Schedule }>(`/academics/schedules/${scheduleId}/revise`, {
+        token: accessToken, method: 'POST',
       })
-      alert(`Revision created (ID: ${revision._id}). Edit and publish the draft to replace the current schedule.`)
+      setSuccess('Revision draft created. Edit and publish the draft to replace the current schedule.')
       load()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Revise failed')
+      setError(e instanceof Error ? e.message : 'Revise failed')
     } finally { setRevising('') }
   }
 
@@ -253,7 +252,7 @@ export default function SchedulePage() {
 
   async function saveTopicEdit() {
     if (!accessToken || !editingTopicId) return
-    setTopicSaving(true)
+    setTopicSaving(true); setError('')
     try {
       await apiFetch(`/academics/schedules/${editingTopicId}/exam-topic`, {
         token: accessToken,
@@ -263,7 +262,7 @@ export default function SchedulePage() {
       setEditingTopicId(null)
       load()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Update failed')
+      setError(e instanceof Error ? e.message : 'Topic update failed')
     } finally { setTopicSaving(false) }
   }
 

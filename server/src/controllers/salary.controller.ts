@@ -9,7 +9,17 @@ import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { calculateMonthlySalary } from '../services/salary/calculator'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
+import { validateObjectId } from '../utils/objectId'
 import { Types } from 'mongoose'
+
+// Whitelisted fields for contract updates — prevents mass assignment of facultyId, _id, etc.
+const CONTRACT_WRITABLE = [
+  'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'hasCarryForward',
+  'minDaysNormal', 'minDaysDryMonths', 'dryMonths', 'monthlyLeaveAllowance',
+  'aprilLeaveAllowance', 'overtimeThresholdHours', 'overtimeRatePerHour',
+  'fixedComponent', 'variableComponent', 'cancellationPenaltyPerClass',
+  'minHoursRequirement', 'isConfigured', 'configurablePayJson', 'notes',
+] as const
 
 export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) => {
   let { facultyId, month, year } = req.query as { facultyId?: string; month?: string; year?: string }
@@ -121,10 +131,9 @@ export const getAuditLog = asyncHandler(async (req: AuthRequest, res: Response) 
 
 export const getCarryForward = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { facultyId } = req.query
-  if (!facultyId) { res.status(400).json({ error: 'facultyId required' }); return }
-  const balances = await CarryForwardBalance.find({
-    facultyId: new Types.ObjectId(facultyId as string),
-  }).sort({ year: -1, month: -1 })
+  const fid = validateObjectId(facultyId as string | undefined, 'facultyId', res)
+  if (!fid) return
+  const balances = await CarryForwardBalance.find({ facultyId: fid }).sort({ year: -1, month: -1 })
   res.json(balances)
 })
 
@@ -311,10 +320,9 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
  * Returns the PermanentFacultyContract for a faculty.
  */
 export const getContract = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const fid = req.params.facultyId as string
-  const contract = await PermanentFacultyContract.findOne({
-    facultyId: new Types.ObjectId(fid),
-  })
+  const fid = validateObjectId(req.params.facultyId, 'facultyId', res)
+  if (!fid) return
+  const contract = await PermanentFacultyContract.findOne({ facultyId: fid })
   if (!contract) { res.status(404).json({ error: 'No contract found for this faculty' }); return }
   res.json(contract)
 })
@@ -323,12 +331,26 @@ export const getContract = asyncHandler(async (req: AuthRequest, res: Response) 
  * PATCH /hr/contract/:facultyId
  * Updates contract fields — primarily used for CONFIGURABLE faculty (Dileep).
  * Only HR_MANAGER and ADMIN may update contracts.
+ * Whitelists allowed fields to prevent mass assignment (e.g. of facultyId, _id).
  */
 export const updateContract = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const fid = req.params.facultyId as string
+  const fid = validateObjectId(req.params.facultyId, 'facultyId', res)
+  if (!fid) return
+
+  // Build update from whitelisted fields only
+  const safeUpdate: Record<string, unknown> = {}
+  for (const key of CONTRACT_WRITABLE) {
+    if ((req.body as Record<string, unknown>)[key] !== undefined) {
+      safeUpdate[key] = (req.body as Record<string, unknown>)[key]
+    }
+  }
+  if (Object.keys(safeUpdate).length === 0) {
+    res.status(400).json({ error: 'No valid contract fields provided' }); return
+  }
+
   const contract = await PermanentFacultyContract.findOneAndUpdate(
-    { facultyId: new Types.ObjectId(fid) },
-    { $set: req.body },
+    { facultyId: fid },
+    { $set: safeUpdate },
     { new: true, runValidators: true },
   )
   if (!contract) { res.status(404).json({ error: 'No contract found for this faculty' }); return }
@@ -336,10 +358,10 @@ export const updateContract = asyncHandler(async (req: AuthRequest, res: Respons
   const faculty = await Faculty.findById(fid)
   await writeAuditLog({
     eventType: 'PAY_CONFIG_UPDATED',
-    facultyId: fid,
+    facultyId: fid.toString(),
     facultyName: faculty?.name ?? 'Unknown',
     amount: 0,
-    reason: `Contract updated (${Object.keys(req.body).join(', ')})`,
+    reason: `Contract updated (${Object.keys(safeUpdate).join(', ')})`,
     loggedByUserId: req.user!.userId,
   })
 

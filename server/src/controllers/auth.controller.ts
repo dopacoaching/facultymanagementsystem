@@ -2,19 +2,33 @@ import { Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import { User } from '../models/User'
+import { RefreshToken, hashToken } from '../models/RefreshToken'
 import { JWTPayload } from '../types'
 import { asyncHandler } from '../utils/asyncHandler'
 import { AuthRequest } from '../middleware/auth'
-import { validatePasswordComplexity } from './user.controller'
+import { validatePasswordComplexity } from '../utils/passwordUtils'
 
 /** Inactivity window — 30 minutes.  Exported so authenticate() can import it. */
 export const SESSION_TIMEOUT_MS = 30 * 60 * 1000
+
+/** How long a refresh token lives (must match JWT_REFRESH_EXPIRES_IN). */
+const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 const signAccess = (p: JWTPayload) =>
   jwt.sign({ ...p, lastActive: Date.now() }, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m' } as object)
 
 const signRefresh = (p: JWTPayload) =>
   jwt.sign(p, process.env.JWT_REFRESH_SECRET!, { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d' } as object)
+
+/** Shared cookie options for the httpOnly refreshToken cookie. */
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  // Restrict to the auth namespace so the cookie isn't sent on every API call.
+  path: '/api/auth',
+  maxAge: REFRESH_TOKEN_TTL_MS,
+}
 
 export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, res: Response) => {
   const { username, password } = req.body
@@ -44,36 +58,73 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
     batchId: user.batchId?.toString(),
   }
 
-  const accessToken = signAccess(payload)
+  const accessToken  = signAccess(payload)
   const refreshToken = signRefresh(payload)
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+  // Store a hash of the refresh token so we can revoke it on logout.
+  // The raw token goes only into the httpOnly cookie; never into the DB.
+  await RefreshToken.create({
+    tokenHash: hashToken(refreshToken),
+    userId:    user._id,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
   })
 
+  res.cookie('refreshToken', refreshToken, refreshCookieOptions)
   res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId })
 })
 
-export const logout = asyncHandler(async (_req: Request & { user?: JWTPayload }, res: Response) => {
-  res.clearCookie('refreshToken')
+export const logout = asyncHandler(async (req: Request & { user?: JWTPayload }, res: Response) => {
+  // Delete the stored token hash to revoke this session server-side.
+  const raw = (req as Request & { cookies: Record<string, string> }).cookies?.refreshToken
+  if (raw) {
+    await RefreshToken.deleteOne({ tokenHash: hashToken(raw) }).catch(() => null)
+  }
+  res.clearCookie('refreshToken', { ...refreshCookieOptions, maxAge: undefined })
   res.json({ success: true })
 })
 
 export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload }, res: Response) => {
-  const token = (req as Request & { cookies: Record<string, string> }).cookies?.refreshToken
-  if (!token) {
+  const raw = (req as Request & { cookies: Record<string, string> }).cookies?.refreshToken
+  if (!raw) {
     res.status(401).json({ error: 'No refresh token' })
     return
   }
+
+  // Check that this token hasn't been revoked.
+  const stored = await RefreshToken.findOne({ tokenHash: hashToken(raw) })
+  if (!stored) {
+    res.status(401).json({ error: 'Refresh token revoked or expired' })
+    return
+  }
+
   try {
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET!) as JWTPayload
+    const payload = jwt.verify(raw, process.env.JWT_REFRESH_SECRET!) as JWTPayload
+
+    // ── Token rotation: delete the old token and issue a new one ─────────────
+    // This limits the damage of a stolen token — each token can only be used once.
+    await RefreshToken.deleteOne({ tokenHash: hashToken(raw) })
+
+    const newRefreshToken = signRefresh({
+      userId: payload.userId, role: payload.role,
+      facultyId: payload.facultyId, batchId: payload.batchId,
+    })
+    await RefreshToken.create({
+      tokenHash: hashToken(newRefreshToken),
+      userId:    stored.userId,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+    })
+
     // Re-stamp lastActive so the session inactivity clock resets on refresh
-    const accessToken = signAccess({ userId: payload.userId, role: payload.role, facultyId: payload.facultyId, batchId: payload.batchId })
+    const accessToken = signAccess({
+      userId: payload.userId, role: payload.role,
+      facultyId: payload.facultyId, batchId: payload.batchId,
+    })
+
+    res.cookie('refreshToken', newRefreshToken, refreshCookieOptions)
     res.json({ accessToken })
   } catch {
+    // JWT verify failed (expired or tampered)
+    await RefreshToken.deleteOne({ tokenHash: hashToken(raw) }).catch(() => null)
     res.status(401).json({ error: 'Invalid refresh token' })
   }
 })
@@ -111,6 +162,9 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
   const salt = await bcrypt.genSalt(12)
   user.passwordHash = await bcrypt.hash(newPassword, salt)
   await user.save()
+
+  // Invalidate all existing refresh tokens for this user so other devices are signed out.
+  await RefreshToken.deleteMany({ userId: user._id })
 
   res.json({ success: true, message: 'Password changed successfully' })
 })

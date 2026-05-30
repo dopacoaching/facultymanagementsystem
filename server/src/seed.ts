@@ -11,6 +11,7 @@ import { PermanentFacultyContract } from './models/PermanentFacultyContract'
 import { ISTimetableSlot } from './models/ISTimetableSlot'
 import { ISBatchChapter } from './models/ISBatchChapter'
 import { SpecialDay } from './models/SpecialDay'
+import { validatePasswordComplexity } from './utils/passwordUtils'
 
 /** Read an integer from env, fall back to a default. */
 const e = (key: string, def: number): number => {
@@ -174,9 +175,19 @@ async function seed() {
   // ── Users ─────────────────────────────────────────────────────────────────
   const hash = (p: string) => bcrypt.hash(p, 12)
 
-  const adminPwd   = await hash(es('SEED_ADMIN_PASSWORD',  'dopa@1234'))
-  const mgmtPwd    = await hash(es('SEED_MGMT_PASSWORD',   'dopa@1234'))
-  const facultyPwd = await hash(es('SEED_FACULTY_PASSWORD','faculty123'))
+  const adminPwdRaw   = es('SEED_ADMIN_PASSWORD',   'Dopa@Admin1!')
+  const mgmtPwdRaw    = es('SEED_MGMT_PASSWORD',    'Dopa@Mgmt1!')
+  const facultyPwdRaw = es('SEED_FACULTY_PASSWORD',  'Dopa@Faculty1!')
+
+  // Enforce the same complexity policy that createUser/changePassword use.
+  for (const [key, pwd] of [['SEED_ADMIN_PASSWORD', adminPwdRaw], ['SEED_MGMT_PASSWORD', mgmtPwdRaw], ['SEED_FACULTY_PASSWORD', facultyPwdRaw]]) {
+    const err = validatePasswordComplexity(pwd)
+    if (err) throw new Error(`${key} fails complexity check: ${err}`)
+  }
+
+  const adminPwd   = await hash(adminPwdRaw)
+  const mgmtPwd    = await hash(mgmtPwdRaw)
+  const facultyPwd = await hash(facultyPwdRaw)
 
   // Usernames are configurable via env so they can be changed without code changes
   const adminUsername    = es('SEED_ADMIN_USERNAME',       'it@dopacoaching.com')
@@ -369,25 +380,18 @@ async function seed() {
   }
   await ISBatchChapter.insertMany(isChapterDocs)
 
+  // Security: never log plaintext passwords to stdout.
+  // Distribute credentials out-of-band (e.g. a password manager or secure file).
   console.log('\nSeed complete ✓')
-  console.log(`── Admin (login via /admin/login, password: ${es('SEED_ADMIN_PASSWORD', 'dopa@1234')}) ────`)
-  console.log(`  ${adminUsername}`)
-  console.log(`── HR Manager (password: ${es('SEED_MGMT_PASSWORD', 'dopa@1234')}) ────────────────────────`)
-  console.log(`  ${hrUsername}`)
-  console.log(`── Academics — Repeaters (password: same) ──────────────────────────`)
-  console.log(`  ${repeatersUsername}`)
-  console.log(`── Academics — Integrated School (password: same) ──────────────────`)
-  console.log(`  ${isAcUsername}`)
-  console.log(`── Coordinators (password: same) ───────────────────────────────────`)
-  console.log('  coordinator_calicut | coordinator_melmuri | coordinator_ayikk')
-  console.log(`── Faculty (password: ${es('SEED_FACULTY_PASSWORD', 'faculty123')}) ─────────────────────────`)
-  console.log('  ashraf_ac | adil_vk | sanoop | fahad_t | ashique_ek | hisham_np')
-  console.log('  muneeb_c  | fahim_bm | muhsin_av | anand_k | habid_pp | shibli')
-  console.log('  anoop_k   | dileep')
-  console.log(`────────────────────────────────────────────────────────────────────`)
   console.log(`Faculty: ${facultyDocs.length} | Users: 1 admin + 4 management + 3 coordinators + 14 faculty`)
   console.log(`Chapters: ${chapterDocs.length} NEET chapters seeded for Feroke Girls (all videoComplete=false)`)
   console.log(`IS Chapters: ${isChapterDocs.length} chapters seeded across 9 IS batches (status: NOT_YET_SCHEDULED)`)
+  console.log('\nCredentials summary (set via env vars — do NOT commit real values):')
+  console.log(`  Admin:    ${adminUsername}   (SEED_ADMIN_PASSWORD)`)
+  console.log(`  HR/Mgmt:  ${hrUsername}, ${repeatersUsername}, ${isAcUsername}   (SEED_MGMT_PASSWORD)`)
+  console.log(`  Coords:   coordinator_calicut | coordinator_melmuri | coordinator_ayikk   (SEED_MGMT_PASSWORD)`)
+  console.log(`  Faculty:  ashraf_ac … dileep (14 accounts)   (SEED_FACULTY_PASSWORD)`)
+  console.log('  ⚠  Distribute passwords securely. Change all defaults before going live.')
   await mongoose.disconnect()
 }
 

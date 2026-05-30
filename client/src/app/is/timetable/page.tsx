@@ -212,7 +212,7 @@ export default function ISTimetablePage() {
         method: 'PATCH', token: accessToken, body: { status },
       })
       loadDaily()
-    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Update failed') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Update failed') }
   }
 
   // ── Delete slot ─────────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ export default function ISTimetablePage() {
     try {
       await apiFetch(`/integrated-school/timetable/${id}`, { method: 'DELETE', token: accessToken })
       loadDaily()
-    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Delete failed') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Delete failed') }
   }
 
   // ── Add special day ─────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ export default function ISTimetablePage() {
     try {
       await apiFetch(`/integrated-school/special-days/${id}`, { method: 'DELETE', token: accessToken })
       loadDaily()
-    } catch (e: unknown) { alert(e instanceof Error ? e.message : 'Delete failed') }
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Delete failed') }
   }
 
   // ── Group slots by time slot ────────────────────────────────────────────────

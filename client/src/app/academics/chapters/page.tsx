@@ -29,6 +29,7 @@ export default function ChaptersPage() {
   const [subjectFilter, setSubject] = useState('')
   const [loading, setLoading]       = useState(false)
   const [toggling, setToggling]     = useState<Record<string, boolean>>({})
+  const [toggleError, setToggleError] = useState('')
 
   // Roles that can mark video-complete
   const canMarkVideo = role === 'COORDINATOR' || role === 'ACADEMICS_MANAGER' || role === 'ADMIN' || role === 'HR_MANAGER'
@@ -72,7 +73,7 @@ export default function ChaptersPage() {
       })
       setChapters((prev) => prev.map((c) => c._id === id ? updated : c))
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Update failed')
+      setToggleError(e instanceof Error ? e.message : 'Update failed')
     } finally {
       setToggling((t) => ({ ...t, [id]: false }))
     }
@@ -92,6 +93,12 @@ export default function ChaptersPage() {
           </p>
         </div>
       </div>
+
+      {toggleError && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setToggleError('')}>
+          <span className="alert-icon">⚠</span>{toggleError}
+        </div>
+      )}
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.25rem' }}>
