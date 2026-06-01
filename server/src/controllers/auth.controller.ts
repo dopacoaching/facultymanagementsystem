@@ -20,11 +20,19 @@ const signAccess = (p: JWTPayload) =>
 const signRefresh = (p: JWTPayload) =>
   jwt.sign(p, process.env.JWT_REFRESH_SECRET!, { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d' } as object)
 
-/** Shared cookie options for the httpOnly refreshToken cookie. */
+/**
+ * Shared cookie options for the httpOnly refreshToken cookie.
+ *
+ * Cross-site note: in production the client (Netlify) and API (Render) are on
+ * different domains, so the cookie must use sameSite='none' + secure=true or the
+ * browser will refuse to send it on the cross-origin /auth/refresh request.
+ * In development (same localhost) sameSite='lax' keeps things simple over HTTP.
+ */
+const isProduction = process.env.NODE_ENV === 'production'
 const refreshCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  secure: isProduction,                              // HTTPS required for sameSite='none'
+  sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
   // Restrict to the auth namespace so the cookie isn't sent on every API call.
   path: '/api/auth',
   maxAge: REFRESH_TOKEN_TTL_MS,

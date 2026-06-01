@@ -51,5 +51,11 @@ next-env.d.ts
 server/*.json
 server/*.txt
 
+# Netlify
+.netlify/
+
+# Render / deployment build output
+server/dist/
+
 # Vercel
 .vercel

@@ -1,0 +1,18 @@
+# ── Netlify configuration for DOPA FMS (Next.js client) ──────────────────────
+# The Express API server is deployed separately (Render/Railway/Fly.io).
+# Set NEXT_PUBLIC_API_URL in Netlify → Site Settings → Environment Variables
+# to point at your deployed API server.
+#
+# The official @netlify/plugin-nextjs handles all routing/SSR automatically —
+# do NOT add manual [[redirects]] for the app (they conflict with the plugin).
+
+[build]
+  base    = "client"
+  command = "npm install && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

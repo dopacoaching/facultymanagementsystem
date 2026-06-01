@@ -17,6 +17,13 @@ import adminRoutes from './routes/admin.routes'
 
 const app = express()
 
+// Behind a hosting proxy (Render/Netlify/Heroku), trust the first proxy hop so
+// req.ip reflects the real client (needed for correct per-IP rate limiting) and
+// secure cookies are handled correctly.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
+
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(helmet())
 

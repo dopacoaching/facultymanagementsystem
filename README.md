@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DOPA Faculty Management System
 
-## Getting Started
+Full-stack faculty management system for DOPA Coaching (Calicut) — salary/payroll,
+session tracking, academic scheduling, exam-topic suggestions, and Integrated School
+timetabling.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Layer    | Tech |
+|----------|------|
+| Frontend | Next.js 15 (App Router) · Redux Toolkit · React Hook Form · TypeScript |
+| Backend  | Express · Mongoose · JWT auth · TypeScript |
+| Database | MongoDB (Atlas in production) |
+| Hosting  | Netlify (client) · Render/Railway (API) · MongoDB Atlas (DB) |
+
+## Project structure
+
+```
+faculty-management-system/
+├── client/       # Next.js frontend
+├── server/       # Express API
+├── netlify.toml  # Netlify build config (client)
+└── DEPLOYMENT.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Server
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd server
+cp .env.example .env        # fill in MONGODB_URI, JWT secrets, seed values
+npm install
+npm run seed                # creates users + faculty + chapters
+npm run dev                 # http://localhost:5000
+```
 
-## Learn More
+### 2. Client
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd client
+cp .env.local.example .env.local   # set NEXT_PUBLIC_API_URL + coordinator token
+npm install
+npm run dev                 # http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Roles & login
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Role | Login page | Seeded username |
+|------|-----------|-----------------|
+| Admin | `/admin/login` | `SEED_ADMIN_USERNAME` (e.g. it@dopacoaching.com) |
+| HR Manager | `/login` | `admin_hr` |
+| Academics Manager | `/login` | `repeaters` |
+| IS Academics Manager | `/login` | `academicis` |
+| Coordinators | `/login` | `coordinator_calicut`, `coordinator_melmuri`, `coordinator_ayikk` |
+| Faculty | `/login` | `ashraf_ac` … `dileep` |
 
-## Deploy on Vercel
+Passwords are set via `SEED_*_PASSWORD` env vars and must meet the complexity
+policy (8–64 chars, upper, lower, digit, special char).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for full Netlify + Render + MongoDB Atlas steps.
+
+## Security
+
+This codebase has undergone a security audit. Key protections:
+- JWT access tokens (15 min) + httpOnly refresh tokens (7 days) with server-side
+  revocation and rotation
+- Rate limiting on auth + global API
+- Helmet security headers, env-aware CORS
+- Mass-assignment whitelists on all write endpoints
+- Append-only audit log
+- Password complexity enforcement
+
+All secrets live in environment variables and are never committed.
