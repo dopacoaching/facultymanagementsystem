@@ -173,66 +173,22 @@ async function seed() {
   ])
 
   // ── Users ─────────────────────────────────────────────────────────────────
+  // Only the ADMIN account is seeded. All other role accounts (HR managers,
+  // academics managers, coordinators, faculty logins) are created by the admin
+  // at runtime via /admin/users — each role can have one or more people.
   const hash = (p: string) => bcrypt.hash(p, 12)
 
-  const adminPwdRaw   = es('SEED_ADMIN_PASSWORD',   'Dopa@Admin1!')
-  const mgmtPwdRaw    = es('SEED_MGMT_PASSWORD',    'Dopa@Mgmt1!')
-  const facultyPwdRaw = es('SEED_FACULTY_PASSWORD',  'Dopa@Faculty1!')
+  const adminPwdRaw = es('SEED_ADMIN_PASSWORD', 'Dopa@Admin1!')
 
   // Enforce the same complexity policy that createUser/changePassword use.
-  for (const [key, pwd] of [['SEED_ADMIN_PASSWORD', adminPwdRaw], ['SEED_MGMT_PASSWORD', mgmtPwdRaw], ['SEED_FACULTY_PASSWORD', facultyPwdRaw]]) {
-    const err = validatePasswordComplexity(pwd)
-    if (err) throw new Error(`${key} fails complexity check: ${err}`)
-  }
+  const adminPwdError = validatePasswordComplexity(adminPwdRaw)
+  if (adminPwdError) throw new Error(`SEED_ADMIN_PASSWORD fails complexity check: ${adminPwdError}`)
 
-  const adminPwd   = await hash(adminPwdRaw)
-  const mgmtPwd    = await hash(mgmtPwdRaw)
-  const facultyPwd = await hash(facultyPwdRaw)
+  const adminPwd = await hash(adminPwdRaw)
+  const adminUsername = es('SEED_ADMIN_USERNAME', 'it@dopacoaching.com')
 
-  // Usernames are configurable via env so they can be changed without code changes
-  const adminUsername    = es('SEED_ADMIN_USERNAME',       'it@dopacoaching.com')
-  const hrUsername       = es('SEED_HR_USERNAME',          'admin_hr')
-  const repeatersUsername = es('SEED_REPEATERS_USERNAME',  'repeaters')
-  const isAcUsername     = es('SEED_IS_ACADEMIC_USERNAME', 'academicis')
-
-  // Management accounts:
-  //   [ADMIN]             → full access to everything (login via /admin/login only)
-  //   [HR_MANAGER]        → salary, payroll, audit
-  //   [ACADEMICS_MANAGER] → Repeaters/DOPA sessions, schedule, exam topics
-  //   [IS_ACADEMICS_MANAGER] → Integrated School sessions, timetable
-  //   coordinator_calicut → COORDINATOR (Feroke Girls residential campus — academics)
-  //   coordinator_melmuri → IS_COORDINATOR (IG1 Melmuri — IS campus)
-  //   coordinator_ayikk   → IS_COORDINATOR (IG2 Ayikkarapadi — IS campus)
-  await User.insertMany([
-    { username: adminUsername,         passwordHash: adminPwd,   role: 'ADMIN' },
-    { username: hrUsername,            passwordHash: mgmtPwd,    role: 'HR_MANAGER' },
-    { username: repeatersUsername,     passwordHash: mgmtPwd,    role: 'ACADEMICS_MANAGER' },
-    { username: isAcUsername,          passwordHash: mgmtPwd,    role: 'IS_ACADEMICS_MANAGER' },
-    // Academics coordinator — assigned to Feroke Girls (RESIDENTIAL)
-    { username: 'coordinator_calicut', passwordHash: mgmtPwd,    role: 'COORDINATOR',    batchId: batchFerGirls._id },
-    // IS coordinators — assigned to their IS campus batches
-    { username: 'coordinator_melmuri', passwordHash: mgmtPwd,    role: 'IS_COORDINATOR', batchId: r1._id },
-    { username: 'coordinator_ayikk',   passwordHash: mgmtPwd,    role: 'IS_COORDINATOR', batchId: r4._id },
-  ])
-
-  // Faculty accounts — each linked to their Faculty document via facultyId
-  // Default password from SEED_FACULTY_PASSWORD env var (HR should change after first login)
-  await User.insertMany([
-    { username: 'ashraf_ac',    passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Ashraf AC'] },
-    { username: 'adil_vk',      passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Abdul Adil VK'] },
-    { username: 'sanoop',       passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Dr. Sanoop Sebastian'] },
-    { username: 'fahad_t',      passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Fahad T'] },
-    { username: 'ashique_ek',   passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Muhammed Ashique EK'] },
-    { username: 'hisham_np',    passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Hisham Abdul Kadir NP'] },
-    { username: 'muneeb_c',     passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Muneeb Haneefa C'] },
-    { username: 'fahim_bm',     passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Fahim BM'] },
-    { username: 'muhsin_av',    passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Muhsin AV'] },
-    { username: 'anand_k',      passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Anand K'] },
-    { username: 'habid_pp',     passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Habid PP'] },
-    { username: 'shibli',       passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Dr. Dunoonul Shibli'] },
-    { username: 'anoop_k',      passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Anoop K'] },
-    { username: 'dileep',       passwordHash: facultyPwd, role: 'FACULTY', facultyId: byName['Dileep'] },
-  ])
+  // ADMIN — full access; logs in via /admin/login only.
+  await User.create({ username: adminUsername.trim().toLowerCase(), passwordHash: adminPwd, role: 'ADMIN' })
 
   // ── BatchChapters (demo chapters for Feroke Girls — RESIDENTIAL) ─────────────
   // Pre-seed chapters so the video-first workflow is immediately usable.
@@ -383,15 +339,14 @@ async function seed() {
   // Security: never log plaintext passwords to stdout.
   // Distribute credentials out-of-band (e.g. a password manager or secure file).
   console.log('\nSeed complete ✓')
-  console.log(`Faculty: ${facultyDocs.length} | Users: 1 admin + 4 management + 3 coordinators + 14 faculty`)
+  console.log(`Faculty records: ${facultyDocs.length} | Users: 1 (ADMIN only)`)
   console.log(`Chapters: ${chapterDocs.length} NEET chapters seeded for Feroke Girls (all videoComplete=false)`)
   console.log(`IS Chapters: ${isChapterDocs.length} chapters seeded across 9 IS batches (status: NOT_YET_SCHEDULED)`)
-  console.log('\nCredentials summary (set via env vars — do NOT commit real values):')
-  console.log(`  Admin:    ${adminUsername}   (SEED_ADMIN_PASSWORD)`)
-  console.log(`  HR/Mgmt:  ${hrUsername}, ${repeatersUsername}, ${isAcUsername}   (SEED_MGMT_PASSWORD)`)
-  console.log(`  Coords:   coordinator_calicut | coordinator_melmuri | coordinator_ayikk   (SEED_MGMT_PASSWORD)`)
-  console.log(`  Faculty:  ashraf_ac … dileep (14 accounts)   (SEED_FACULTY_PASSWORD)`)
-  console.log('  ⚠  Distribute passwords securely. Change all defaults before going live.')
+  console.log('\nOnly the ADMIN account is seeded:')
+  console.log(`  Admin:  ${adminUsername.trim().toLowerCase()}   (password = SEED_ADMIN_PASSWORD)  → log in at /admin/login`)
+  console.log('\nCreate all other role accounts (HR, Academics, IS, Coordinators, Faculty)')
+  console.log('via the admin panel → /admin/users. Each role supports multiple people.')
+  console.log('⚠  Change the admin password before going live.')
   await mongoose.disconnect()
 }
 
