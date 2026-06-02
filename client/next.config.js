@@ -13,6 +13,16 @@ const nextConfig = {
   // Silence the "missing suspense boundary" hydration warning in development.
   // Remove this once all data-fetching components have proper Suspense wrappers.
   experimental: {},
+
+  // Webpack alias so that @server/* resolves from the monorepo server/src/ directory.
+  // This is needed because Next.js only auto-resolves paths inside the project root.
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@server': path.join(__dirname, '../server/src'),
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig

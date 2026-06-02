@@ -1,0 +1,93 @@
+import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
+import { connectDB } from '@/lib/db'
+import { authenticate, authorize, json, withToken } from '@/lib/auth'
+import { User } from '@server/models/User'
+import { writeAuditLog } from '@server/services/salary/audit'
+import { validatePasswordComplexity } from '@server/utils/passwordUtils'
+import type { UserRole } from '@server/types'
+
+const VALID_ROLES: UserRole[] = [
+  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',
+  'COORDINATOR', 'IS_COORDINATOR', 'FACULTY',
+]
+
+/** PATCH /api/admin/users/:id — update a user (password reset, activate/deactivate, role change) */
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const auth = authenticate(req)
+    if (auth instanceof NextResponse) return auth
+    const { payload, refreshedToken } = auth
+
+    const forbidden = authorize(payload, 'ADMIN')
+    if (forbidden) return forbidden
+
+    const { id } = await params
+    const body = await req.json() as Record<string, unknown>
+
+    // Prevent admins from locking themselves out
+    if (id === payload.userId && body.isActive === false) {
+      return withToken(json({ error: 'You cannot deactivate your own account' }, 400), refreshedToken)
+    }
+
+    const update: Record<string, unknown> = {}
+    const auditReasons: string[] = []
+
+    if (body.isActive !== undefined) {
+      update.isActive = Boolean(body.isActive)
+      auditReasons.push(`isActive → ${update.isActive}`)
+    }
+    if (body.batchId !== undefined) {
+      update.batchId = body.batchId || undefined
+      auditReasons.push('batchId updated')
+    }
+
+    if (body.role) {
+      if (![...VALID_ROLES, 'ADMIN'].includes(body.role as string)) {
+        return withToken(json({ error: 'Invalid role' }, 400), refreshedToken)
+      }
+      update.role = body.role
+      auditReasons.push(`role → ${body.role}`)
+    }
+
+    if (body.password) {
+      const pwError = validatePasswordComplexity(body.password as string)
+      if (pwError) return withToken(json({ error: pwError }, 400), refreshedToken)
+      update.passwordHash = await bcrypt.hash(body.password as string, 12)
+      auditReasons.push('password reset')
+    }
+
+    if (Object.keys(update).length === 0) {
+      return withToken(json({ error: 'No valid fields to update' }, 400), refreshedToken)
+    }
+
+    await connectDB()
+
+    const user = await User.findByIdAndUpdate(id, update, { new: true })
+      .select('-passwordHash')
+      .populate('facultyId', 'name subject')
+      .populate('batchId',   'name type')
+
+    if (!user) return withToken(json({ error: 'User not found' }, 404), refreshedToken)
+
+    // Audit: user account changed
+    await writeAuditLog({
+      eventType:   'FACULTY_UPDATED',
+      facultyId:   String(id),
+      facultyName: `[User] ${user.username}`,
+      amount:      0,
+      reason:      `User account updated: ${auditReasons.join(', ')} — by admin ${payload.userId}`,
+      loggedByUserId: payload.userId,
+    })
+
+    return withToken(json(user), refreshedToken)
+  } catch (err) {
+    console.error('[PATCH /api/admin/users/:id]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/** DELETE /api/admin/users/:id — not in original routes but kept as 405 */
+export async function DELETE(_req: NextRequest) {
+  return NextResponse.json({ error: 'Method not allowed — use PATCH to deactivate' }, { status: 405 })
+}

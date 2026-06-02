@@ -1,0 +1,111 @@
+import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
+import { connectDB } from '@/lib/db'
+import { authenticate, authorize, json, withToken } from '@/lib/auth'
+import { User } from '@server/models/User'
+import { Faculty } from '@server/models/Faculty'
+import { Batch } from '@server/models/Batch'
+import { writeAuditLog } from '@server/services/salary/audit'
+import { validatePasswordComplexity } from '@server/utils/passwordUtils'
+import type { UserRole } from '@server/types'
+
+const VALID_ROLES: UserRole[] = [
+  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',
+  'COORDINATOR', 'IS_COORDINATOR', 'FACULTY',
+]
+
+/** GET /api/admin/users — list all users */
+export async function GET(req: NextRequest) {
+  try {
+    const auth = authenticate(req)
+    if (auth instanceof NextResponse) return auth
+    const { payload, refreshedToken } = auth
+
+    const forbidden = authorize(payload, 'ADMIN')
+    if (forbidden) return forbidden
+
+    await connectDB()
+
+    const users = await User.find({})
+      .select('-passwordHash')
+      .populate('facultyId', 'name subject')
+      .populate('batchId',   'name type')
+      .sort({ role: 1, username: 1 })
+
+    return withToken(json(users), refreshedToken)
+  } catch (err) {
+    console.error('[GET /api/admin/users]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/** POST /api/admin/users — create a new user account */
+export async function POST(req: NextRequest) {
+  try {
+    const auth = authenticate(req)
+    if (auth instanceof NextResponse) return auth
+    const { payload, refreshedToken } = auth
+
+    const forbidden = authorize(payload, 'ADMIN')
+    if (forbidden) return forbidden
+
+    const { username, password, role, facultyId, batchId } = await req.json()
+
+    if (!username?.trim()) {
+      return withToken(json({ error: 'username is required' }, 400), refreshedToken)
+    }
+    const pwError = validatePasswordComplexity(password)
+    if (pwError) return withToken(json({ error: pwError }, 400), refreshedToken)
+
+    if (!role || ![...VALID_ROLES, 'ADMIN'].includes(role)) {
+      return withToken(json({
+        error: `role must be one of: ${[...VALID_ROLES, 'ADMIN'].join(', ')}`,
+      }, 400), refreshedToken)
+    }
+
+    await connectDB()
+
+    // Validate optional references
+    if (facultyId) {
+      const fac = await Faculty.findById(facultyId)
+      if (!fac) return withToken(json({ error: 'facultyId does not exist' }, 400), refreshedToken)
+    }
+    if (batchId) {
+      const bat = await Batch.findById(batchId)
+      if (!bat) return withToken(json({ error: 'batchId does not exist' }, 400), refreshedToken)
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12)
+    const user = await User.create({
+      username:     username.trim().toLowerCase(),
+      passwordHash,
+      role,
+      facultyId:    facultyId || undefined,
+      batchId:      batchId   || undefined,
+    })
+
+    // Audit: user account created
+    await writeAuditLog({
+      eventType:   'FACULTY_CREATED',
+      facultyId:   user._id.toString(),
+      facultyName: `[User] ${username.trim().toLowerCase()}`,
+      amount:      0,
+      reason:      `User account created with role ${role} by admin ${payload.userId}`,
+      loggedByUserId: payload.userId,
+    })
+
+    const safe = await User.findById(user._id)
+      .select('-passwordHash')
+      .populate('facultyId', 'name subject')
+      .populate('batchId',   'name type')
+
+    return withToken(json(safe, 201), refreshedToken)
+  } catch (err: unknown) {
+    const e = err as { name?: string; code?: number | string }
+    if (e.name === 'MongoServerError' && e.code === 11000) {
+      return NextResponse.json({ error: 'Duplicate entry — a record with that value already exists.' }, { status: 409 })
+    }
+    console.error('[POST /api/admin/users]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
