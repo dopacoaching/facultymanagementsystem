@@ -17,17 +17,18 @@ const nextConfig = {
   // Webpack alias so that @server/* resolves from the monorepo server/src/ directory.
   // This is needed because Next.js only auto-resolves paths inside the project root.
   webpack(config) {
+    const clientModules = path.join(__dirname, 'node_modules')
     config.resolve.alias = {
       ...config.resolve.alias,
       '@server': path.join(__dirname, '../server/src'),
+      // Server files live outside client/ and have no local node_modules on
+      // Vercel. Explicit aliases take highest webpack priority and resolve
+      // every package those files import to client/node_modules.
+      'mongoose':     path.join(clientModules, 'mongoose'),
+      'jsonwebtoken': path.join(clientModules, 'jsonwebtoken'),
+      'bcryptjs':     path.join(clientModules, 'bcryptjs'),
+      'zod':          path.join(clientModules, 'zod'),
     }
-    // Server source files (imported via @server/*) live outside client/ and
-    // have no local node_modules. Point webpack at client/node_modules so that
-    // imports like 'mongoose', 'jsonwebtoken', etc. inside server/src/ resolve.
-    config.resolve.modules = [
-      path.join(__dirname, 'node_modules'),
-      'node_modules',
-    ]
     return config
   },
 }
