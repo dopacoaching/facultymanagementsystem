@@ -105,8 +105,8 @@ function roleLabel(role: string | null): string {
     HR_MANAGER:           'HR Manager',
     ACADEMICS_MANAGER:    'Academics',
     IS_ACADEMICS_MANAGER: 'IS Academics',
-    COORDINATOR:          'Coordinator',
-    IS_COORDINATOR:       'IS Coordinator',
+    COORDINATOR:          'Class Teacher',
+    IS_COORDINATOR:       'IS Class Teacher',
     FACULTY:              'Faculty',
   }
   return map[role] ?? role.replace(/_/g, ' ')

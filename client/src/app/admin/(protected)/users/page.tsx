@@ -37,8 +37,17 @@ const ROLE_BADGE: Record<string, string> = {
   FACULTY:              'badge-gray',
 }
 
+const ROLE_DISPLAY: Record<string, string> = {
+  ADMIN:                'Admin',
+  HR_MANAGER:           'HR Manager',
+  ACADEMICS_MANAGER:    'Academics Manager',
+  IS_ACADEMICS_MANAGER: 'IS Academics Manager',
+  COORDINATOR:          'Class Teacher',
+  IS_COORDINATOR:       'IS Class Teacher',
+  FACULTY:              'Faculty',
+}
 function getRoleLabel(role: string) {
-  return role.replace(/_/g, ' ')
+  return ROLE_DISPLAY[role] ?? role.replace(/_/g, ' ')
 }
 
 export default function AdminUsersPage() {

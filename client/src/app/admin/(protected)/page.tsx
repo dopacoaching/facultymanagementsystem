@@ -91,7 +91,7 @@ function CoordinatorAccessSection() {
   return (
     <section>
       <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-        Coordinator Access
+        Class Teacher Access
       </h2>
       <div style={{
         background: 'var(--color-surface)',
@@ -109,7 +109,7 @@ function CoordinatorAccessSection() {
             📝 Session Log Form (Secret Link)
           </div>
           <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>
-            Share this link with coordinators only — it is not linked anywhere on the website.
+            Share this link with class teachers only — it is not linked anywhere on the website.
           </div>
           <code style={{
             display: 'block',
