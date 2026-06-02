@@ -1,10 +1,8 @@
-import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import { connectDB } from './config/db'
 
 // Register all Mongoose models before any route handler runs (needed for populate())
 import './models/index'
@@ -42,7 +40,7 @@ const allowedOrigins: string[] = isProd
 
 if (isProd && !process.env.CLIENT_URL) {
   console.error('FATAL: CLIENT_URL environment variable is required in production.')
-  process.exit(1)
+  // Don't process.exit — let requests fail with CORS errors rather than killing the process
 }
 
 app.use(cors({
@@ -112,16 +110,5 @@ app.use((err: Error & { name?: string; code?: number | string }, _req: express.R
     error: process.env.NODE_ENV === 'production' ? 'Internal server error' : (err.message ?? 'Internal server error'),
   })
 })
-
-const PORT = Number(process.env.PORT ?? 5000)
-
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
-  })
-  .catch((err) => {
-    console.error('DB connection failed:', err)
-    process.exit(1)
-  })
 
 export default app
