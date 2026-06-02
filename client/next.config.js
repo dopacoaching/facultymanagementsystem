@@ -21,6 +21,13 @@ const nextConfig = {
       ...config.resolve.alias,
       '@server': path.join(__dirname, '../server/src'),
     }
+    // Server source files (imported via @server/*) live outside client/ and
+    // have no local node_modules. Point webpack at client/node_modules so that
+    // imports like 'mongoose', 'jsonwebtoken', etc. inside server/src/ resolve.
+    config.resolve.modules = [
+      path.join(__dirname, 'node_modules'),
+      'node_modules',
+    ]
     return config
   },
 }
