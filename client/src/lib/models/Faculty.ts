@@ -53,5 +53,6 @@ const FacultySchema = new Schema<IFaculty>(
 )
 
 FacultySchema.index({ name: 1 })
+FacultySchema.index({ isActive: 1, name: 1 })
 
 export const Faculty = model<IFaculty>('Faculty', FacultySchema)

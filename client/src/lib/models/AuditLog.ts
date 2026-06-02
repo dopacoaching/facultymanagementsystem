@@ -66,5 +66,7 @@ AuditLogSchema.pre('findOneAndDelete', function () {
 })
 
 AuditLogSchema.index({ facultyId: 1, timestamp: -1 })
+AuditLogSchema.index({ eventType: 1, timestamp: -1 })
+AuditLogSchema.index({ loggedByUserId: 1, timestamp: -1 })
 
 export const AuditLog = model<IAuditLog>('AuditLog', AuditLogSchema)

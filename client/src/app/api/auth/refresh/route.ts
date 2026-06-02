@@ -3,14 +3,21 @@ import { cookies } from 'next/headers'
 import { connectDB } from '@/lib/db'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@/lib/auth'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
-
-// Rate limiting: TODO — add Upstash Redis rate limiting here when configured.
+import { refreshLimiter, getIP } from '@/lib/ratelimit'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const isProduction = process.env.NODE_ENV === 'production'
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
+    if (refreshLimiter) {
+      const ip = getIP(req)
+      const { success } = await refreshLimiter.limit(ip)
+      if (!success) {
+        return NextResponse.json({ error: 'Too many requests — slow down.' }, { status: 429 })
+      }
+    }
+
     const cookieStore = await cookies()
     const raw = cookieStore.get('refreshToken')?.value
 

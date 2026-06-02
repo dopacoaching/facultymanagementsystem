@@ -5,7 +5,7 @@ import { signAccessToken, signRefreshToken } from '@/lib/auth'
 import { User } from '@/lib/models/User'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 
-// Rate limiting: TODO — add Upstash Redis rate limiting here when configured.
+import { loginLimiter, getIP } from '@/lib/ratelimit'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -13,6 +13,21 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 export async function POST(req: NextRequest) {
   try {
+    if (loginLimiter) {
+      const ip = getIP(req)
+      const { success, limit, remaining, reset } = await loginLimiter.limit(ip)
+      if (!success) {
+        return NextResponse.json(
+          { error: 'Too many login attempts — try again in 15 minutes.' },
+          { status: 429, headers: {
+            'X-RateLimit-Limit': String(limit),
+            'X-RateLimit-Remaining': String(remaining),
+            'X-RateLimit-Reset': String(reset),
+          }},
+        )
+      }
+    }
+
     const { username, password } = await req.json()
 
     if (!username || !password) {

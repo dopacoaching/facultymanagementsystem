@@ -19,12 +19,17 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    // HR_MANAGER and ADMIN can change any user's password; others are restricted to their own
+    // HR_MANAGER and ADMIN can change other users' passwords; others are restricted to their own
     const canChangeOthers = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
     const resolvedUserId = canChangeOthers && targetUserId ? targetUserId : payload.userId
 
     const user = await User.findById(resolvedUserId)
     if (!user) return withToken(json({ error: 'User not found' }, 404), refreshedToken)
+
+    // Privilege escalation guard: HR_MANAGER cannot reset ADMIN passwords
+    if (payload.role === 'HR_MANAGER' && user.role === 'ADMIN') {
+      return withToken(json({ error: 'Insufficient permissions to reset admin password' }, 403), refreshedToken)
+    }
 
     // If changing own password, require current password verification
     if (resolvedUserId === payload.userId) {

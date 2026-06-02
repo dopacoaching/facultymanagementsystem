@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
         return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
       }
     } else if (batchType) {
+      const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE', 'INTEGRATED_SCHOOL']
+      if (!VALID_BATCH_TYPES.includes(batchType)) {
+        return withToken(json({ error: 'Invalid batchType' }, 400), refreshedToken)
+      }
       const batchIds = await Batch.find({ type: batchType as never, isActive: true }).distinct('_id')
       filter.batchId = { $in: batchIds }
     } else if (excludeBatchType) {

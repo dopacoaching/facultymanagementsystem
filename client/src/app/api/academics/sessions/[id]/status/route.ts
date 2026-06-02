@@ -30,6 +30,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await connectDB()
 
+    // Coordinator batch ownership guard — must match assigned batch
+    if (payload.role === 'COORDINATOR' || payload.role === 'IS_COORDINATOR') {
+      const target = await Session.findById(oid).lean()
+      if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+      if (!payload.batchId || target.batchId.toString() !== payload.batchId) {
+        return withToken(json({ error: 'You can only update sessions for your assigned batch.' }, 403), refreshedToken)
+      }
+    }
+
     const session = await Session.findOneAndUpdate(
       { _id: oid, status: { $ne: 'CANCELLED' } },
       { status },

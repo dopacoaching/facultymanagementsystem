@@ -34,7 +34,17 @@ export async function GET(req: NextRequest) {
     const includeInactive = searchParams.get('includeInactive')
     const filter = includeInactive === 'true' ? {} : { isActive: true }
 
-    const faculty = await Faculty.find(filter).sort({ name: 1 })
+    // FACULTY role: scope to own profile only
+    if (payload.role === 'FACULTY') {
+      if (!payload.facultyId) return withToken(json({ error: 'Faculty account not linked to a profile' }, 403), refreshedToken)
+      const own = await Faculty.findById(payload.facultyId).select('name subject type isActive')
+      return withToken(json(own ? [own] : []), refreshedToken)
+    }
+
+    // Non-HR roles (Coordinator, Academics): name/subject only — no salary data
+    const isHR = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
+    const projection = isHR ? undefined : 'name subject type isActive _id'
+    const faculty = await Faculty.find(filter).select(projection ?? '').sort({ name: 1 })
     return withToken(json(faculty), refreshedToken)
   } catch (err) {
     console.error('[GET /api/hr/faculty]', err)

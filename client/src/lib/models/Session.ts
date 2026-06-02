@@ -34,5 +34,7 @@ const SessionSchema = new Schema<ISession>(
 
 SessionSchema.index({ facultyId: 1, sessionDate: 1 })
 SessionSchema.index({ batchId: 1, sessionDate: 1 })
+SessionSchema.index({ facultyId: 1, batchId: 1, sessionDate: 1 })
+SessionSchema.index({ status: 1, sessionDate: 1 })
 
 export const Session = model<ISession>('Session', SessionSchema)

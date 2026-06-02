@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'ADMIN')
+    const forbidden = authorize(payload, 'ADMIN', 'HR_MANAGER')
     if (forbidden) return forbidden
 
     const { searchParams } = new URL(req.url)
@@ -27,7 +27,12 @@ export async function GET(req: NextRequest) {
         return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
       }
     }
-    if (eventType && eventType !== 'ALL') {
+    const VALID_EVENTS = [
+      'PENALTY_APPLIED','OVERTIME_ADDED','BALANCE_CARRY_FORWARD',
+      'SALARY_APPROVED','PAY_CONFIG_UPDATED','SESSION_CANCELLED',
+      'FACULTY_CREATED','FACULTY_UPDATED',
+    ]
+    if (eventType && eventType !== 'ALL' && VALID_EVENTS.includes(eventType)) {
       filter.eventType = eventType
     }
 

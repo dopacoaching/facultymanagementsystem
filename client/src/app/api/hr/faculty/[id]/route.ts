@@ -42,8 +42,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     await connectDB()
 
+    // FACULTY role: can only view their own profile
+    if (payload.role === 'FACULTY') {
+      if (payload.facultyId !== id) {
+        return withToken(json({ error: 'Forbidden' }, 403), refreshedToken)
+      }
+    }
+
     const faculty = await Faculty.findById(oid)
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
+
+    // Non-HR roles: strip salary data from response
+    const isHR = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
+    if (!isHR) {
+      const safe = faculty.toObject() as unknown as Record<string, unknown>
+      const salaryFields = ['hourlyRate','fixedMonthlySalary','monthlyHourQuota','monthlyDayQuota',
+        'overtimeThreshold','overtimeRate','fixedComponent','variableComponent',
+        'totalContractDays','configurablePayJson','salaryModel']
+      salaryFields.forEach(f => delete safe[f])
+      return withToken(json(safe), refreshedToken)
+    }
 
     return withToken(json(faculty), refreshedToken)
   } catch (err) {

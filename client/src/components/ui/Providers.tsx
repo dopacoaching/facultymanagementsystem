@@ -5,7 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react'
 import { store, persistor, type RootState, type AppDispatch } from '@/store'
 import { setCredentials, clearCredentials } from '@/store/slices/authSlice'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 /**
  * On mount: if Redux has a persisted role (user was previously logged in) but
