@@ -1,0 +1,21 @@
+{
+  "folders": [
+    {
+      "name": "App (Next.js)",
+      "path": "./client"
+    },
+    {
+      "name": "Project root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "typescript.tsdk": "client/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "editor.formatOnSave": true,
+    "files.exclude": {
+      "**/.next": true,
+      "**/node_modules": true
+    }
+  }
+}

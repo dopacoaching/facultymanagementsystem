@@ -22,9 +22,9 @@ function excludeISBatches(req: Request, _res: Response, next: NextFunction) {
 // ── Sessions ─────────────────────────────────────────────────────────────────
 // GET: exclude IS batches when no explicit batchId given
 router.get('/sessions', excludeISBatches, getSessions)
-router.post('/sessions', authorize('COORDINATOR', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), createSession)
-router.post('/sessions/cancel', authorize('COORDINATOR', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), cancelSession)
-router.patch('/sessions/:id/status', authorize('COORDINATOR', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
+router.post('/sessions', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), createSession)
+router.post('/sessions/cancel', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), cancelSession)
+router.patch('/sessions/:id/status', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
 // Full edit — admin / manager only
 router.patch('/sessions/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSession)
 

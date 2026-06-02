@@ -1,7 +1,9 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAppSelector } from '@/store/hooks'
+import { useAppSelector, useAppDispatch } from '@/store/hooks'
+import { setCredentials } from '@/store/slices/authSlice'
+import { refresh } from '@/services/auth.service'
 import Sidebar from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
 
@@ -47,17 +49,41 @@ interface ShellProps {
 }
 
 export default function Shell({ children, loginPath = '/login' }: ShellProps) {
-  const { accessToken, role } = useAppSelector((s) => s.auth)
+  const { accessToken, role, userId, facultyId, batchId } = useAppSelector((s) => s.auth)
+  const dispatch = useAppDispatch()
   const router = useRouter()
   const pathname = usePathname()
+  // true while a silent refresh is in-flight (prevents premature login redirect)
+  const [refreshing, setRefreshing] = useState(!accessToken)
 
   useEffect(() => {
-    if (!accessToken) {
-      router.replace(loginPath)
+    if (accessToken) {
+      setRefreshing(false)
+      return
     }
-  }, [accessToken, loginPath, router])
+    // accessToken was stripped from localStorage on page reload — attempt a
+    // silent refresh via the httpOnly cookie before redirecting to login.
+    let cancelled = false
+    refresh()
+      .then(({ accessToken: newToken }) => {
+        if (cancelled) return
+        dispatch(setCredentials({
+          accessToken: newToken,
+          role: role ?? null,
+          userId: userId ?? null,
+          facultyId: facultyId ?? null,
+          batchId: batchId ?? null,
+        }))
+      })
+      .catch(() => {
+        if (!cancelled) router.replace(loginPath)
+      })
+      .finally(() => { if (!cancelled) setRefreshing(false) })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Don't flash protected content while redirecting.
+  // Don't flash protected content while refreshing or redirecting.
   if (!accessToken) return null
 
   const pageTitle = getPageTitle(pathname)

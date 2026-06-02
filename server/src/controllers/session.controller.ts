@@ -89,13 +89,21 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
 
   const date = new Date(sessionDate)
   if (isNaN(date.getTime())) { res.status(400).json({ error: 'Invalid sessionDate' }); return }
+  date.setHours(0, 0, 0, 0)
 
-  const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0)
+  const dayStart = new Date(date)
   const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999)
 
   // Fetch batch so we know its type and campusId
   const batch = await Batch.findById(batchOid)
   if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
+
+  // ── M-7: Coordinator batch ownership gate (before any DB queries) ────────
+  if (isCoordinator(req.user!.role)) {
+    if (!req.user!.batchId || req.user!.batchId !== batchId) {
+      res.status(403).json({ error: 'You can only log sessions for your assigned batch.' }); return
+    }
+  }
 
   // ── 2. VIDEO-FIRST GATE (Residential + Online only) ──────────────────────
   if (isVideoFirstBatch(batch.type)) {
@@ -169,13 +177,6 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  // ── M-7: Coordinator batch ownership gate ─────────────────────────────────
-  if (isCoordinator(req.user!.role)) {
-    if (!req.user!.batchId || req.user!.batchId !== batchId) {
-      res.status(403).json({ error: 'You can only log sessions for your assigned batch.' }); return
-    }
-  }
-
   // ── All checks passed — create session ────────────────────────────────────
   const session = await Session.create({
     facultyId: facultyOid,
@@ -215,8 +216,18 @@ export const updateSessionStatus = asyncHandler(async (req: AuthRequest, res: Re
   if (!status || !ALLOWED.includes(status)) {
     res.status(400).json({ error: `status must be one of: ${ALLOWED.join(', ')}` }); return
   }
-  const session = await Session.findByIdAndUpdate(oid, { status }, { new: true })
-  if (!session) { res.status(404).json({ error: 'Session not found' }); return }
+  const session = await Session.findOneAndUpdate(
+    { _id: oid, status: { $ne: 'CANCELLED' } },
+    { status },
+    { new: true },
+  )
+  if (!session) {
+    const exists = await Session.exists({ _id: oid })
+    res.status(exists ? 409 : 404).json({
+      error: exists ? 'Cannot change the status of a cancelled session.' : 'Session not found',
+    })
+    return
+  }
   res.json(session)
 })
 
@@ -280,8 +291,8 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
 
   const effectiveInitiator = cancellationInitiator === 'STUDENT' ? 'MANAGEMENT' : cancellationInitiator as 'FACULTY' | 'MANAGEMENT'
 
-  const session = await Session.findByIdAndUpdate(
-    sessionId,
+  const session = await Session.findOneAndUpdate(
+    { _id: sessionId, status: { $ne: 'CANCELLED' } },
     {
       status: 'CANCELLED',
       cancellationInitiator: effectiveInitiator,
@@ -290,7 +301,11 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
     { new: true }
   ).populate('facultyId', 'name')
 
-  if (!session) { res.status(404).json({ error: 'Session not found' }); return }
+  if (!session) {
+    const exists = await Session.exists({ _id: sessionId })
+    res.status(exists ? 409 : 404).json({ error: exists ? 'Session is already cancelled.' : 'Session not found' })
+    return
+  }
 
   const populatedFaculty = session.facultyId as unknown as { _id: Types.ObjectId; name: string }
   const facultyOid = (populatedFaculty?._id ?? session.facultyId) as Types.ObjectId

@@ -205,16 +205,6 @@ async function calcFixedQuotaCarryForward(
   const previousMonthBalance = prevRecord?.balanceHours ?? 0
   const combinedTotal = previousMonthBalance + currentMonthBalance
 
-  // Persist current month balance — ONLY on approval, never on preview, so that
-  // repeatedly viewing the calculation doesn't keep overwriting the stored balance.
-  if (persist) {
-    await CarryForwardBalance.findOneAndUpdate(
-      { facultyId: fId, month, year },
-      { balanceHours: currentMonthBalance },
-      { upsert: true, new: true }
-    )
-  }
-
   const alerts: SalaryAlert[] = []
   if (currentMonthBalance > 0) {
     alerts.push({
@@ -223,6 +213,8 @@ async function calcFixedQuotaCarryForward(
       message: `${currentMonthBalance.toFixed(1)} hr(s) short of ${quota}h quota this month. Balance carried forward.`,
     })
     if (persist) {
+      // Write audit log first — if it throws, the carry-forward record is not
+      // committed and the next approval attempt will safely re-calculate.
       await writeAuditLog({
         eventType: 'BALANCE_CARRY_FORWARD',
         facultyId,
@@ -232,6 +224,16 @@ async function calcFixedQuotaCarryForward(
         loggedByUserId: 'SYSTEM',
       })
     }
+  }
+
+  // Persist current month balance — ONLY on approval, never on preview, so that
+  // repeatedly viewing the calculation doesn't keep overwriting the stored balance.
+  if (persist) {
+    await CarryForwardBalance.findOneAndUpdate(
+      { facultyId: fId, month, year },
+      { balanceHours: currentMonthBalance },
+      { upsert: true, new: true }
+    )
   }
 
   const breakdown: SalaryBreakdown[] = [
@@ -298,7 +300,7 @@ async function calcBaseOvertime(
   persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const base = contract.fixedMonthlySalary ?? 0
-  const threshold = contract.overtimeThresholdHours ?? 50
+  const threshold = contract.overtimeThresholdHours ?? contract.monthlyHourQuota ?? 50
   const rate = contract.overtimeRatePerHour ?? 0
   const overtimeHours = Math.max(0, hoursLogged - threshold)
   const overtimePay = overtimeHours * rate
@@ -356,8 +358,8 @@ async function calcSplitFixedVariable(
 
   const penaltyAmount = facultyCancellations * penaltyPerClass
   const effectiveVariable = Math.max(0, variable - penaltyAmount)
-  const baseSalary = fixed + effectiveVariable
-  const finalPayable = baseSalary
+  const baseSalary = fixed + variable
+  const finalPayable = fixed + effectiveVariable
   const alerts: SalaryAlert[] = []
 
   if (daysWorked < minDays) {
@@ -489,6 +491,12 @@ export async function calculateMonthlySalary(
   // 5. Aggregate session data
   const hoursLogged = sessions.reduce((s, r) => s + r.durationHours, 0)
   const daysWorked = new Set(sessions.map((s) => s.sessionDate.toDateString())).size
+  // Weekday-only count: used for leave-based contracts where workingDays is Mon–Fri
+  const weekdayDaysWorked = new Set(
+    sessions
+      .filter((s) => { const d = s.sessionDate.getDay(); return d !== 0 && d !== 6 })
+      .map((s) => s.sessionDate.toDateString()),
+  ).size
   const facultyCancellations = cancellations.filter((c) => c.cancellationInitiator === 'FACULTY').length
 
   // 6. Dispatch to contract-type handler
@@ -506,7 +514,7 @@ export async function calculateMonthlySalary(
         partial = await calcFixedMonthlyMinDays(contract, daysWorked)
         break
       case 'FIXED_MONTHLY_LEAVE':
-        partial = await calcFixedMonthlyLeave(contract, daysWorked, month, year, faculty.name, facultyId, persist)
+        partial = await calcFixedMonthlyLeave(contract, weekdayDaysWorked, month, year, faculty.name, facultyId, persist)
         break
       case 'HOURLY_MIN_DAYS':
         partial = await calcHourlyMinDays(contract, hoursLogged, daysWorked, month)

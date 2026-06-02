@@ -159,8 +159,16 @@ export default function CoordinatorAccessPage() {
     }
   }
 
-  // Don't render before token check resolves
-  if (token !== process.env.NEXT_PUBLIC_COORDINATOR_TOKEN) return null
+  // Guard: token mismatch or env var not set → show clear error instead of blank page
+  const expectedToken = process.env.NEXT_PUBLIC_COORDINATOR_TOKEN
+  if (!expectedToken || token !== expectedToken) {
+    return (
+      <div style={{ maxWidth: 480, margin: '4rem auto', textAlign: 'center', color: 'var(--color-muted)' }}>
+        <h2 style={{ color: 'var(--color-error, #ef4444)' }}>Invalid access link</h2>
+        <p>This coordinator link is invalid or has expired. Please request a new link from your administrator.</p>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>

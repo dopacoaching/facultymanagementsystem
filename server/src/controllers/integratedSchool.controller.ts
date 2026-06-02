@@ -182,7 +182,17 @@ export const getWeeklyTimetable = asyncHandler(async (req: AuthRequest, res: Res
     }).populate('campusId', 'name'),
   ])
 
-  res.json({ slots, specialDays, weekStart: monday, weekEnd: sunday })
+  // Attach resolved timings per slot (same as daily view, keyed on each slot's day)
+  const slotsWithTimings = slots.map((slot) => {
+    const dow = new Date(slot.date).getDay()
+    const weekday = dow === 1 ? 'MONDAY' : dow === 5 ? 'FRIDAY' : null
+    const batch   = slot.batchId as unknown as { ig1Subgroup?: string }
+    const base    = getBatchTimings(batch?.ig1Subgroup)
+    const timings = weekday ? applyExamDayTimings(weekday, base) : base
+    return { ...slot.toObject(), timings }
+  })
+
+  res.json({ slots: slotsWithTimings, specialDays, weekStart: monday, weekEnd: sunday })
 })
 
 // ─── Update slot (status / fields) ───────────────────────────────────────────
@@ -246,10 +256,29 @@ export const updateSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     .populate('facultyId', 'name subject')
     .populate('campusId',  'name location')
 
+  // Use the effective chapter/subject — the update may have renamed them
+  const effectiveChapter = (update.chapter as string) ?? slot.chapter
+  const effectiveSubject = (update.subject as string) ?? slot.subject
+
+  // If chapter or subject was renamed without a status change, sync the ISBatchChapter
+  // key so it doesn't become orphaned under the old name.
+  if (update.status === undefined && (update.chapter !== undefined || update.subject !== undefined)) {
+    await ISBatchChapter.findOneAndUpdate(
+      { batchId: slot.batchId, chapterName: slot.chapter, subject: slot.subject },
+      {
+        $set: {
+          ...(update.chapter !== undefined ? { chapterName: update.chapter as string } : {}),
+          ...(update.subject !== undefined ? { subject: update.subject as string } : {}),
+        },
+      },
+      { upsert: false },
+    )
+  }
+
   // If completed, auto-mark ISBatchChapter
   if (update.status === 'COMPLETED') {
     await ISBatchChapter.findOneAndUpdate(
-      { batchId: slot.batchId, chapterName: slot.chapter, subject: slot.subject },
+      { batchId: slot.batchId, chapterName: effectiveChapter, subject: effectiveSubject },
       {
         $set: {
           status:         'COMPLETED',
@@ -262,7 +291,7 @@ export const updateSlot = asyncHandler(async (req: AuthRequest, res: Response) =
   }
   if (update.status === 'CANCELLED') {
     await ISBatchChapter.findOneAndUpdate(
-      { batchId: slot.batchId, chapterName: slot.chapter, subject: slot.subject },
+      { batchId: slot.batchId, chapterName: effectiveChapter, subject: effectiveSubject },
       {
         $set: { status: 'CANCELLED' },
         $unset: { scheduledDate: 1, timetableSlotId: 1 },

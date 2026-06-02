@@ -19,17 +19,17 @@ export default function AdminProtectedLayout({ children }: { children: React.Rea
   const router = useRouter()
 
   useEffect(() => {
-    if (!accessToken) {
-      // Not logged in at all — send to the admin login page
-      router.replace('/admin/login')
-    } else if (role !== 'ADMIN') {
-      // Logged in but wrong role — send to regular staff login
+    // Only redirect for wrong role when a token is confirmed present.
+    // When accessToken is null on page reload, Shell handles the silent refresh
+    // and will redirect to /admin/login if the refresh fails — no double-redirect.
+    if (accessToken && role !== 'ADMIN') {
       router.replace('/login')
     }
   }, [accessToken, role, router])
 
-  // Don't flash protected content while redirecting
-  if (!accessToken || role !== 'ADMIN') return null
+  // Block content if authenticated but wrong role.
+  // If accessToken is null, Shell renders null while refreshing — no flash.
+  if (accessToken && role !== 'ADMIN') return null
 
   return <Shell loginPath="/admin/login">{children}</Shell>
 }

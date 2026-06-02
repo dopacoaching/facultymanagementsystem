@@ -180,15 +180,26 @@ export default function ISTimetablePage() {
   // ── Assign slot ─────────────────────────────────────────────────────────────
   async function handleAssign() {
     if (!accessToken) return
-    if (!form.batchId || !form.campusId || !form.subject || !form.chapter || !form.timeSlot) {
+    if (!form.batchId || !form.subject || !form.chapter || !form.timeSlot) {
       setError('Batch, subject, chapter and time slot are required'); return
+    }
+    // Derive campusId directly from the selected batch at submit time to avoid
+    // a one-render lag when the batch changes and the auto-populate effect hasn't fired yet.
+    const selectedBatch = isIsBatches.find((b) => b._id === form.batchId)
+    const campusId = selectedBatch
+      ? (typeof selectedBatch.campusId === 'object'
+          ? (selectedBatch.campusId as { _id: string })._id
+          : selectedBatch.campusId as string)
+      : form.campusId
+    if (!campusId) {
+      setError('Campus could not be determined for the selected batch'); return
     }
     setSaving(true); setError('')
     try {
       await apiFetch('/integrated-school/timetable/assign', {
         token: accessToken,
         method: 'POST',
-        body: { ...form, date: selectedDate },
+        body: { ...form, campusId, date: selectedDate },
       })
       setShowAssign(false)
       setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '' }))

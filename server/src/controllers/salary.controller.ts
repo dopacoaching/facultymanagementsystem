@@ -114,7 +114,9 @@ export const getAuditLog = asyncHandler(async (req: AuthRequest, res: Response) 
   const { facultyId, eventType, page = '1', limit = '50' } = req.query
   const filter: Record<string, unknown> = {}
   if (facultyId) {
-    try { filter.facultyId = new Types.ObjectId(facultyId as string) } catch {}
+    try { filter.facultyId = new Types.ObjectId(facultyId as string) } catch {
+      res.status(400).json({ error: 'Invalid facultyId' }); return
+    }
   }
   if (eventType && eventType !== 'ALL') {
     filter.eventType = eventType

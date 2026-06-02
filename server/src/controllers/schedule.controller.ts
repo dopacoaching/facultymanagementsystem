@@ -69,13 +69,14 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
   if (classEntries   !== undefined) updateDoc.classEntries    = classEntries
 
   // Only match the original (non-revised) draft — not any pending revision
+  const isNew = !(await WeeklySchedule.exists({ batchId: batchOid, weekStartDate: startDate, isRevised: false }))
   const schedule = await WeeklySchedule.findOneAndUpdate(
     { batchId: batchOid, weekStartDate: startDate, isRevised: false },
     updateDoc,
     { upsert: true, new: true }
   ).populate('classEntries.facultyId', 'name subject')
 
-  res.status(201).json(schedule)
+  res.status(isNew ? 201 : 200).json(schedule)
 })
 
 // ─── Update exam topic ────────────────────────────────────────────────────────

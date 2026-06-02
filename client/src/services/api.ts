@@ -141,8 +141,10 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
     // SESSION_EXPIRED = inactivity timeout — do NOT attempt a refresh.
     if (errBody.error === 'SESSION_EXPIRED') {
       latestToken = null
-      store.dispatch(clearCredentials())
+      // Read role before clearing — clearCredentials sets role to null synchronously,
+      // so redirectToLogin must read it first to pick the correct login path.
       redirectToLogin('session_expired')
+      store.dispatch(clearCredentials())
       throw new Error('Your session expired due to inactivity. Please sign in again.')
     }
 
