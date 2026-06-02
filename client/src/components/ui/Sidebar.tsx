@@ -114,7 +114,12 @@ function roleLabel(role: string | null): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const dispatch = useAppDispatch()
@@ -164,24 +169,14 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside style={{
-        width: 'var(--sidebar-width)',
-        minHeight: '100vh',
-        background: 'linear-gradient(180deg, #3730a3 0%, #4f46e5 40%, #6366f1 100%)',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        boxShadow: '2px 0 20px rgba(79,70,229,.25)',
-        position: 'relative',
-        zIndex: 10,
-      }}>
+      <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}`}>
         {/* Logo / Brand */}
         <div style={{
           padding: '1.5rem 1.25rem 1.25rem',
           borderBottom: '1px solid rgba(255,255,255,.12)',
           marginBottom: '0.5rem',
         }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{
               width: 42, height: 42, borderRadius: 10,
@@ -202,6 +197,13 @@ export default function Sidebar() {
                 {roleLabel(role)}
               </div>
             </div>
+          </div>
+          {/* Mobile close button */}
+          <button
+            className="sidebar-close-btn"
+            onClick={onClose}
+            aria-label="Close menu"
+          >×</button>
           </div>
         </div>
 

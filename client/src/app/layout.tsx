@@ -1,11 +1,28 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Providers from '@/components/ui/Providers'
+
+export const viewport: Viewport = {
+  themeColor: '#4f46e5',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
 
 export const metadata: Metadata = {
   title: 'DOPA Faculty Management System',
   description: 'Internal FMS for DOPA Coaching',
-  icons: { icon: '/DOPA-Logo.png', apple: '/DOPA-Logo.png' },
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/DOPA-Logo.png',
+    apple: '/DOPA-Logo.png',
+    shortcut: '/DOPA-Logo.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'DOPA FMS',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

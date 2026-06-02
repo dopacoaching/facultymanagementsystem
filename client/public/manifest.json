@@ -1,0 +1,12 @@
+{
+  "name": "DOPA Faculty Management System",
+  "short_name": "DOPA FMS",
+  "description": "Faculty scheduling and salary management for DOPA Coaching",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/DOPA-Logo.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
