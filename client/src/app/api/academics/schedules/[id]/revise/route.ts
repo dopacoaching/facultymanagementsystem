@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { WeeklySchedule } from '@server/models/WeeklySchedule'
+import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
 
 /** POST /api/academics/schedules/:id/revise */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { AuditLog } from '@server/models/AuditLog'
+import { AuditLog } from '@/lib/models/AuditLog'
 
 /** GET /api/hr/audit-log?facultyId=&eventType=&page=&limit= */
 export async function GET(req: NextRequest) {

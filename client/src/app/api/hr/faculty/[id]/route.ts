@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { Faculty } from '@server/models/Faculty'
-import { writeAuditLog } from '@server/services/salary/audit'
+import { Faculty } from '@/lib/models/Faculty'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 const FACULTY_WRITABLE = [
   'name', 'subject', 'type', 'salaryModel', 'isActive',

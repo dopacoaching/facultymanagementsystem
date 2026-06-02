@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { SalaryRecord } from '@server/models/SalaryRecord'
+import { SalaryRecord } from '@/lib/models/SalaryRecord'
 
 /** GET /api/hr/salary/history — faculty view their own approved salary records */
 export async function GET(req: NextRequest) {

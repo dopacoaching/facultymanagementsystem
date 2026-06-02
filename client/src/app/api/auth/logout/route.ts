@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { connectDB } from '@/lib/db'
-import { RefreshToken, hashToken } from '@server/models/RefreshToken'
+import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 
 const isProduction = process.env.NODE_ENV === 'production'
 

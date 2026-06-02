@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { calculateMonthlySalary } from '@server/services/salary/calculator'
+import { calculateMonthlySalary } from '@/lib/services/salary/calculator'
 
 /** GET /api/hr/salary?facultyId=&month=&year= */
 export async function GET(req: NextRequest) {

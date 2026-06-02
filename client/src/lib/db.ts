@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
 // Import all models so Mongoose registers them before any populate() call runs
-import '@server/models/index'
+import '@/lib/models/index'
 
 const uri = process.env.MONGODB_URI!
 

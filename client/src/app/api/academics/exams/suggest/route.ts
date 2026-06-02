@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { Batch } from '@server/models/Batch'
-import { BatchChapter } from '@server/models/BatchChapter'
-import { isVideoFirstBatch } from '@server/utils/batchUtils'
+import { Batch } from '@/lib/models/Batch'
+import { BatchChapter } from '@/lib/models/BatchChapter'
+import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 
 function midnight(d: Date | string): Date {
   const dt = new Date(d)

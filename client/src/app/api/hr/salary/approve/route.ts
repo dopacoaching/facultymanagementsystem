@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { Faculty } from '@server/models/Faculty'
-import { SalaryRecord } from '@server/models/SalaryRecord'
-import { calculateMonthlySalary } from '@server/services/salary/calculator'
-import { writeAuditLog } from '@server/services/salary/audit'
+import { Faculty } from '@/lib/models/Faculty'
+import { SalaryRecord } from '@/lib/models/SalaryRecord'
+import { calculateMonthlySalary } from '@/lib/services/salary/calculator'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** POST /api/hr/salary/approve */
 export async function POST(req: NextRequest) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { SpecialDay } from '@server/models/SpecialDay'
+import { SpecialDay } from '@/lib/models/SpecialDay'
 
 function midnight(d: string | Date): Date {
   const dt = new Date(d)

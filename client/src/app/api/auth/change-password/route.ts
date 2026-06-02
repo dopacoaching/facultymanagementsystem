@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { User } from '@server/models/User'
-import { RefreshToken } from '@server/models/RefreshToken'
-import { validatePasswordComplexity } from '@server/utils/passwordUtils'
+import { User } from '@/lib/models/User'
+import { RefreshToken } from '@/lib/models/RefreshToken'
+import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
 
 export async function POST(req: NextRequest) {
   try {

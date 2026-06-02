@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { Batch } from '@server/models/Batch'
-import { SpecialDay } from '@server/models/SpecialDay'
-import { getBatchTimings, applyExamDayTimings } from '@server/services/integratedSchool/timings'
+import { Batch } from '@/lib/models/Batch'
+import { SpecialDay } from '@/lib/models/SpecialDay'
+import { getBatchTimings, applyExamDayTimings } from '@/lib/services/integratedSchool/timings'
 
 function midnight(d: string | Date): Date {
   const dt = new Date(d)

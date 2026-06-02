@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { BatchChapter } from '@server/models/BatchChapter'
+import { BatchChapter } from '@/lib/models/BatchChapter'
 
 /** PATCH /api/academics/chapters/:id — update chapter completion flags */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

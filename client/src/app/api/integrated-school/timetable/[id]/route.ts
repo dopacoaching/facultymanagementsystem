@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { ISTimetableSlot } from '@server/models/ISTimetableSlot'
-import { ISBatchChapter } from '@server/models/ISBatchChapter'
-import { checkISConflicts } from '@server/services/integratedSchool/conflictChecker'
+import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
+import { ISBatchChapter } from '@/lib/models/ISBatchChapter'
+import { checkISConflicts } from '@/lib/services/integratedSchool/conflictChecker'
 
 /** PATCH /api/integrated-school/timetable/:id */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

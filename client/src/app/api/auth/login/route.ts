@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { signAccessToken, signRefreshToken } from '@/lib/auth'
-import { User } from '@server/models/User'
-import { RefreshToken, hashToken } from '@server/models/RefreshToken'
+import { User } from '@/lib/models/User'
+import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 
 // Rate limiting: TODO — add Upstash Redis rate limiting here when configured.
 

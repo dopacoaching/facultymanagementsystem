@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { Faculty } from '@server/models/Faculty'
-import { Session } from '@server/models/Session'
-import { SalaryRecord } from '@server/models/SalaryRecord'
-import { PermanentFacultyContract } from '@server/models/PermanentFacultyContract'
+import { Faculty } from '@/lib/models/Faculty'
+import { Session } from '@/lib/models/Session'
+import { SalaryRecord } from '@/lib/models/SalaryRecord'
+import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 
 /** GET /api/hr/dashboard?month=&year= */
 export async function GET(req: NextRequest) {

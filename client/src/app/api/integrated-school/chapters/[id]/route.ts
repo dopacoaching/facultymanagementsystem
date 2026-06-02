@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { ISBatchChapter } from '@server/models/ISBatchChapter'
+import { ISBatchChapter } from '@/lib/models/ISBatchChapter'
 
 /** PATCH /api/integrated-school/chapters/:id — manual status override */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

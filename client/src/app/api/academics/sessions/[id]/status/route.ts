@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { Session } from '@server/models/Session'
+import { Session } from '@/lib/models/Session'
 
 /** PATCH /api/academics/sessions/:id/status */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

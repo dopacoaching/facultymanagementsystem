@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { CarryForwardBalance } from '@server/models/CarryForwardBalance'
+import { CarryForwardBalance } from '@/lib/models/CarryForwardBalance'
 
 /** GET /api/hr/salary/carry-forward?facultyId= */
 export async function GET(req: NextRequest) {

@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { User } from '@server/models/User'
-import { Faculty } from '@server/models/Faculty'
-import { Batch } from '@server/models/Batch'
-import { writeAuditLog } from '@server/services/salary/audit'
-import { validatePasswordComplexity } from '@server/utils/passwordUtils'
-import type { UserRole } from '@server/types'
+import { User } from '@/lib/models/User'
+import { Faculty } from '@/lib/models/Faculty'
+import { Batch } from '@/lib/models/Batch'
+import { writeAuditLog } from '@/lib/services/salary/audit'
+import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
+import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
   'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',

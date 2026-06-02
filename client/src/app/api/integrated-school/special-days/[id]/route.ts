@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { SpecialDay } from '@server/models/SpecialDay'
+import { SpecialDay } from '@/lib/models/SpecialDay'
 
 /** DELETE /api/integrated-school/special-days/:id */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

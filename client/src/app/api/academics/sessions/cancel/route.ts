@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { Session } from '@server/models/Session'
-import { PermanentFacultyContract } from '@server/models/PermanentFacultyContract'
-import { writeAuditLog } from '@server/services/salary/audit'
+import { Session } from '@/lib/models/Session'
+import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function isCoordinator(role: string): boolean {
   return role === 'COORDINATOR' || role === 'IS_COORDINATOR'

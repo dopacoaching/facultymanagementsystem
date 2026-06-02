@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { connectDB } from '@/lib/db'
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@/lib/auth'
-import { RefreshToken, hashToken } from '@server/models/RefreshToken'
+import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 
 // Rate limiting: TODO — add Upstash Redis rate limiting here when configured.
 

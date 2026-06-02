@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { BatchChapter } from '@server/models/BatchChapter'
+import { BatchChapter } from '@/lib/models/BatchChapter'
 
 /** GET /api/academics/chapters?batchId=&subject= */
 export async function GET(req: NextRequest) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { ISBatchChapter } from '@server/models/ISBatchChapter'
+import { ISBatchChapter } from '@/lib/models/ISBatchChapter'
 
 /** GET /api/integrated-school/chapters?batchId=&subject=&status= */
 export async function GET(req: NextRequest) {

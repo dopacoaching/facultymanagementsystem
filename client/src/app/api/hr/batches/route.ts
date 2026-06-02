@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { Batch } from '@server/models/Batch'
+import { Batch } from '@/lib/models/Batch'
 
 /** GET /api/hr/batches — all active batches */
 export async function GET(req: NextRequest) {

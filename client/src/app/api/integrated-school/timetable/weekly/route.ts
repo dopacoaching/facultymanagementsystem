@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
-import { ISTimetableSlot } from '@server/models/ISTimetableSlot'
-import { SpecialDay } from '@server/models/SpecialDay'
-import { getBatchTimings, applyExamDayTimings } from '@server/services/integratedSchool/timings'
+import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
+import { SpecialDay } from '@/lib/models/SpecialDay'
+import { getBatchTimings, applyExamDayTimings } from '@/lib/services/integratedSchool/timings'
 
 /** GET /api/integrated-school/timetable/weekly?weekStart=&batchId=&campusId=&facultyId= */
 export async function GET(req: NextRequest) {
