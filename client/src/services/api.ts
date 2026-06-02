@@ -32,7 +32,10 @@
 import { store } from '@/store'
 import { clearCredentials } from '@/store/slices/authSlice'
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000'
+// Empty string = same-origin (Vercel single deployment).
+// Set NEXT_PUBLIC_API_URL=http://localhost:5000 in .env.local only when running
+// the client against a separate Express dev server instead of Next.js API routes.
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 interface FetchOptions {
   token?: string

@@ -19,7 +19,7 @@ export async function POST(_req: NextRequest) {
     res.cookies.set('refreshToken', '', {
       httpOnly: true,
       secure:   isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'lax',
       path:     '/api/auth',
       maxAge:   0,
     })

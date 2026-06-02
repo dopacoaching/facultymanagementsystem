@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     res.cookies.set('refreshToken', refreshToken, {
       httpOnly: true,
       secure:   isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'lax',
       path:     '/api/auth',
       maxAge:   REFRESH_TOKEN_TTL_MS / 1000,
     })
