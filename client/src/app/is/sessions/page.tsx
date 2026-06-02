@@ -17,6 +17,22 @@ interface ISession {
   status: string
 }
 
+const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+
+function formatDuration(decimalHours: number): string {
+  const h = Math.floor(decimalHours)
+  const m = Math.round((decimalHours - h) * 60)
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
+}
+
+function splitDuration(decimalHours: number): { h: number; m: number } {
+  const h = Math.floor(decimalHours)
+  const m = Math.round((decimalHours - h) * 60)
+  return { h, m }
+}
+
 const STATUS_BADGE: Record<string, string> = {
   SCHEDULED:     'badge-blue',
   COMPLETED:     'badge-green',
@@ -35,12 +51,13 @@ export default function ISSessionsPage() {
   const [showForm, setShowForm]       = useState(false)
   const [cancelling, setCancelling]   = useState('')
   const [form, setForm] = useState({
-    facultyId: '',
-    batchId: '',
-    subject: '',
-    chapter: '',
-    durationHours: 1,
-    sessionDate: new Date().toISOString().slice(0, 10),
+    facultyId:       '',
+    batchId:         '',
+    subject:         '',
+    chapter:         '',
+    durationHours:   1,
+    durationMinutes: 0,
+    sessionDate:     new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]                     = useState(false)
   const [cancelInitiator, setCancelInitiator]   = useState<Record<string, string>>({})
@@ -54,7 +71,7 @@ export default function ISSessionsPage() {
 
   // Edit modal
   const [editing, setEditing]       = useState<ISession | null>(null)
-  const [editForm, setEditForm]     = useState({ facultyId: '', batchId: '', subject: '', chapter: '', durationHours: 1, sessionDate: '' })
+  const [editForm, setEditForm]     = useState({ facultyId: '', batchId: '', subject: '', chapter: '', durationHours: 1, durationMinutes: 0, sessionDate: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError]   = useState('')
 
@@ -114,7 +131,14 @@ export default function ISSessionsPage() {
       await apiFetch('/integrated-school/sessions', {
         token: accessToken,
         method: 'POST',
-        body: { ...form, durationHours: Number(form.durationHours) },
+        body: {
+          facultyId:    form.facultyId,
+          batchId:      form.batchId,
+          subject:      form.subject,
+          chapter:      form.chapter,
+          sessionDate:  form.sessionDate,
+          durationHours: form.durationHours + form.durationMinutes / 60,
+        },
       })
       setShowForm(false); load()
     } catch (e: unknown) {
@@ -153,13 +177,15 @@ export default function ISSessionsPage() {
 
   function openEdit(s: ISession) {
     setEditing(s)
+    const { h, m } = splitDuration(s.durationHours)
     setEditForm({
-      facultyId:     typeof s.facultyId === 'object' ? (s.facultyId?._id ?? '') : (s.facultyId ?? ''),
-      batchId:       s.batchId ?? '',
-      subject:       s.subject,
-      chapter:       s.chapter,
-      durationHours: s.durationHours,
-      sessionDate:   s.sessionDate.slice(0, 10),
+      facultyId:       typeof s.facultyId === 'object' ? (s.facultyId?._id ?? '') : (s.facultyId ?? ''),
+      batchId:         s.batchId ?? '',
+      subject:         s.subject,
+      chapter:         s.chapter,
+      durationHours:   h,
+      durationMinutes: m,
+      sessionDate:     s.sessionDate.slice(0, 10),
     })
     setEditError('')
   }
@@ -170,7 +196,14 @@ export default function ISSessionsPage() {
     try {
       await apiFetch(`/integrated-school/sessions/${editing._id}`, {
         method: 'PATCH',
-        body: { ...editForm, durationHours: Number(editForm.durationHours) },
+        body: {
+          facultyId:    editForm.facultyId,
+          batchId:      editForm.batchId,
+          subject:      editForm.subject,
+          chapter:      editForm.chapter,
+          sessionDate:  editForm.sessionDate,
+          durationHours: editForm.durationHours + editForm.durationMinutes / 60,
+        },
         token: accessToken,
       })
       setEditing(null); load()
@@ -273,9 +306,18 @@ export default function ISSessionsPage() {
                     placeholder="Chapter name or topic" />
                 </div>
                 <div className="form-group">
-                  <label className="label">Duration (hrs)</label>
-                  <input type="number" className="input" min={0.5} step={0.5} value={form.durationHours}
-                    onChange={(e) => setForm({ ...form, durationHours: +e.target.value })} />
+                  <label className="label">Duration</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="number" className="input" min={0} max={12} step={1}
+                      value={form.durationHours}
+                      onChange={(e) => setForm({ ...form, durationHours: Math.max(0, Math.floor(+e.target.value)) })}
+                      placeholder="Hrs" style={{ flex: 1 }} />
+                    <select className="input" value={form.durationMinutes}
+                      onChange={(e) => setForm({ ...form, durationMinutes: +e.target.value })}
+                      style={{ flex: 1 }}>
+                      {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}m</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>
@@ -332,9 +374,18 @@ export default function ISSessionsPage() {
                     onChange={(e) => setEditForm({ ...editForm, chapter: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="label">Duration (hrs)</label>
-                  <input type="number" className="input" min={0.5} step={0.5} value={editForm.durationHours}
-                    onChange={(e) => setEditForm({ ...editForm, durationHours: +e.target.value })} />
+                  <label className="label">Duration</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="number" className="input" min={0} max={12} step={1}
+                      value={editForm.durationHours}
+                      onChange={(e) => setEditForm({ ...editForm, durationHours: Math.max(0, Math.floor(+e.target.value)) })}
+                      placeholder="Hrs" style={{ flex: 1 }} />
+                    <select className="input" value={editForm.durationMinutes}
+                      onChange={(e) => setEditForm({ ...editForm, durationMinutes: +e.target.value })}
+                      style={{ flex: 1 }}>
+                      {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}m</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>
@@ -370,7 +421,7 @@ export default function ISSessionsPage() {
                   <th>Faculty</th>
                   <th>Subject</th>
                   <th>Chapter</th>
-                  <th>Hrs</th>
+                  <th>Duration</th>
                   <th>Date</th>
                   <th>Status</th>
                   <th>Actions</th>
@@ -384,7 +435,7 @@ export default function ISSessionsPage() {
                     </td>
                     <td>{s.subject}</td>
                     <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>{s.chapter}</td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{s.durationHours}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatDuration(s.durationHours)}</td>
                     <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
                       {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>

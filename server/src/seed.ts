@@ -92,7 +92,6 @@ async function seed() {
     { name: 'Tamil Batch',                type: 'OFFLINE', campusId: campusTamilNadu._id },
     { name: 'Thrissur Offline',           type: 'OFFLINE', campusId: campusThrissurOffline._id },
     // ── Integrated School (IS) ────────────────────────────────────────────────
-    { name: 'Feroke Girls IS', type: 'INTEGRATED_SCHOOL', campusId: campusFeroke._id },
     { name: 'R1', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
     { name: 'R2', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
     { name: 'R3', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
