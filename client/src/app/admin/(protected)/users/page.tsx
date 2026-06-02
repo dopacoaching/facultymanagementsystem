@@ -64,6 +64,7 @@ export default function AdminUsersPage() {
   const [editPw, setEditPw]           = useState('')
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
+  const [toggling, setToggling]       = useState('')
 
   const load = async () => {
     if (!accessToken) return
@@ -113,14 +114,15 @@ export default function AdminUsersPage() {
   }
 
   async function handleToggleActive(u: AppUser) {
-    if (!accessToken) return
-    if (u._id === selfId) { setEditError('You cannot deactivate your own account.'); return }
+    if (!accessToken || toggling) return
+    if (u._id === selfId) { setError('You cannot deactivate your own account.'); return }
+    setToggling(u._id); setError('')
     try {
       await updateUser(u._id, { isActive: !u.isActive }, accessToken)
       load()
     } catch (e: unknown) {
-      setEditError(e instanceof Error ? e.message : 'Update failed')
-    }
+      setError(e instanceof Error ? e.message : 'Update failed')
+    } finally { setToggling('') }
   }
 
   async function handleEditSave() {
@@ -176,7 +178,7 @@ export default function AdminUsersPage() {
             </div>
             <div style={{ padding: '1.5rem' }}>
               {createError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{createError}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="input-group">
                 <div className="form-group">
                   <label className="label">Username</label>
                   <input className="input" value={createForm.username}
@@ -243,7 +245,7 @@ export default function AdminUsersPage() {
             </div>
             <div style={{ padding: '1.5rem' }}>
               {editError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{editError}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="input-group">
                 <div className="form-group">
                   <label className="label">Role</label>
                   <select className="input" value={editRole}
@@ -341,9 +343,10 @@ export default function AdminUsersPage() {
                           <button
                             className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-success'}`}
                             onClick={() => handleToggleActive(u)}
+                            disabled={toggling === u._id}
                             title={u.isActive ? 'Deactivate' : 'Reactivate'}
                           >
-                            {u.isActive ? '⏸' : '▶'}
+                            {toggling === u._id ? '…' : u.isActive ? '⏸' : '▶'}
                           </button>
                         )}
                       </div>

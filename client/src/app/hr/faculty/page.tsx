@@ -395,7 +395,7 @@ export default function FacultyPage() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="input-group">
                 {/* Name */}
                 <div className="form-group">
                   <label className="label">Full Name</label>

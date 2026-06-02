@@ -93,7 +93,7 @@ export default function ISDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="panel-grid-2" style={{ marginBottom: 0 }}>
         {/* Today's Schedule */}
         <div className="card">
           <div className="card-header">

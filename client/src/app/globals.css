@@ -319,6 +319,38 @@ select.input {
   gap: 1rem;
 }
 
+/* ── Schedule class-entry row ─────────────────────────────────────────────── */
+.schedule-entry-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 1fr 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: flex-end;
+}
+
+/* ── Exam-topic bar (4-col: input · button · input · button) ──────────────── */
+.exam-topic-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+/* ── Two-column panel grid ────────────────────────────────────────────────── */
+.panel-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Salary carry-forward 3 cells ─────────────────────────────────────────── */
+.carry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
 /* ── Error / feedback text ───────────────────────────────────────────────────── */
 .error-text {
   color: var(--color-danger);
@@ -678,6 +710,26 @@ tbody tr:hover td {
     grid-template-columns: 1fr;
   }
 
+  /* Schedule entry row collapses */
+  .schedule-entry-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Exam-topic bar collapses to 2 columns */
+  .exam-topic-grid {
+    grid-template-columns: 1fr auto;
+  }
+
+  /* Two-column panel grid collapses */
+  .panel-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Carry-forward grid collapses to 1 column */
+  .carry-grid {
+    grid-template-columns: 1fr;
+  }
+
   /* Page header stacks on small screens */
   .page-header {
     flex-direction: column;
@@ -708,6 +760,18 @@ tbody tr:hover td {
 
 /* Mobile (≤ 480px) */
 @media (max-width: 480px) {
+  .schedule-entry-row {
+    grid-template-columns: 1fr;
+  }
+
+  .exam-topic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .carry-grid {
+    grid-template-columns: 1fr;
+  }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }

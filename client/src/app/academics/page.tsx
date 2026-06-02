@@ -107,7 +107,7 @@ export default function AcademicsDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+      <div className="panel-grid-2" style={{ marginBottom: '1.25rem' }}>
 
         {/* ── Pending video chapters alert ─────────────────────────────── */}
         <div className="card">

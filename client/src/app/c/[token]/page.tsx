@@ -324,7 +324,7 @@ export default function CoordinatorAccessPage() {
           </div>
 
           {/* Hours + Date */}
-          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '1rem' }}>
+          <div className="input-group">
             <div className="form-group">
               <label className="label">Hours Taught</label>
               <input

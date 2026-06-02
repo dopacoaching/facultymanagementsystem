@@ -108,7 +108,7 @@ export default function LoginPage() {
             margin: '0 auto 1.75rem',
           }}>
             <Image
-              src="/DOPA-Logo.png"
+              src="/logo.png"
               alt="DOPA Coaching"
               width={70}
               height={70}
@@ -169,7 +169,7 @@ export default function LoginPage() {
               boxShadow: '0 8px 24px rgba(79,70,229,.35)',
             }}>
               <Image
-                src="/DOPA-Logo.png"
+                src="/logo.png"
                 alt="DOPA"
                 width={50}
                 height={50}

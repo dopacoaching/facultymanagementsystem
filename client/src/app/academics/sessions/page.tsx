@@ -213,6 +213,13 @@ export default function SessionsPage() {
         <button className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>+ New Session</button>
       </div>
 
+      {/* Page-level error (table actions: mark complete, cancel) */}
+      {error && !showForm && !editing && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setError('')}>
+          <span className="alert-icon">⚠</span>{error}
+        </div>
+      )}
+
       {/* ── Filters ───────────────────────────────────────────────────────────── */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.25rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -264,7 +271,7 @@ export default function SessionsPage() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="input-group">
                 <div className="form-group">
                   <label className="label">Faculty</label>
                   <select className="input" value={form.facultyId} onChange={(e) => setForm({ ...form, facultyId: e.target.value })}>
@@ -339,7 +346,7 @@ export default function SessionsPage() {
             </div>
             <div style={{ padding: '1.5rem' }}>
               {editError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{editError}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+              <div className="input-group-3">
                 <div className="form-group">
                   <label className="label">Faculty</label>
                   <select className="input" value={editForm.facultyId} onChange={(e) => setEditForm({ ...editForm, facultyId: e.target.value })}>
@@ -434,7 +441,7 @@ export default function SessionsPage() {
                           )}
                           {s.status === 'SCHEDULED' && (
                             <>
-                              <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)} title="Mark Complete">✓</button>
+                              <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)} disabled={cancelling === s._id} title="Mark Complete">✓</button>
                               <select className="input" style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: 105 }}
                                 value={cancelInitiator[s._id] ?? ''} onChange={(e) => setCancelInitiator({ ...cancelInitiator, [s._id]: e.target.value })}>
                                 <option value="">initiator</option>

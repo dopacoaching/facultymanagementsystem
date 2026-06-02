@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   description: 'Internal FMS for DOPA Coaching',
   manifest: '/manifest.json',
   icons: {
-    icon: '/DOPA-Logo.png',
-    apple: '/DOPA-Logo.png',
-    shortcut: '/DOPA-Logo.png',
+    icon: '/logo.png',
+    apple: '/logo.png',
+    shortcut: '/logo.png',
   },
   appleWebApp: {
     capable: true,

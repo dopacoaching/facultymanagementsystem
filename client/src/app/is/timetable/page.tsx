@@ -303,6 +303,13 @@ export default function ISTimetablePage() {
         )}
       </div>
 
+      {/* Page-level error (status/delete actions outside modals) */}
+      {error && !showAssign && !showSpecial && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setError('')}>
+          <span className="alert-icon">⚠</span>{error}
+        </div>
+      )}
+
       {/* ── Date + campus filter bar ────────────────────────────────────────── */}
       <div className="card" style={{ marginBottom: '1rem', padding: '0.875rem 1.25rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -451,7 +458,7 @@ export default function ISTimetablePage() {
             </div>
             <div style={{ padding: '1.5rem' }}>
               {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
+              <div className="input-group">
                 <div className="form-group">
                   <label className="label">IS Batch</label>
                   <select className="input" value={form.batchId}

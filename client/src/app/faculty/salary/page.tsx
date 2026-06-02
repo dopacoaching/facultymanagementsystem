@@ -177,6 +177,7 @@ export default function FacultySalaryPage() {
               {/* Final payable */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                flexWrap: 'wrap', gap: '0.75rem',
                 padding: '1.25rem 1.5rem',
                 background: 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
                 color: '#fff', borderRadius: 'var(--radius-lg)',

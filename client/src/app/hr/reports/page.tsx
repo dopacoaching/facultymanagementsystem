@@ -47,18 +47,20 @@ export default function ReportsPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function load() {
     if (!accessToken) return
-    setLoading(true)
+    setLoading(true); setError('')
     try {
       const data = await getReports(month, year, accessToken)
       setRows(data)
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load reports')
+    } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [accessToken, month, year])
+  useEffect(() => { load() }, [accessToken, month, year]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const total = rows.reduce((sum, r) => sum + (r.finalPayable ?? 0), 0)
 
@@ -77,6 +79,12 @@ export default function ReportsPage() {
           </button>
         )}
       </div>
+
+      {error && (
+        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
+          <span className="alert-icon">⚠</span>{error}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>

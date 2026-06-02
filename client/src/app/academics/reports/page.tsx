@@ -120,6 +120,7 @@ export default function AcademicsReportsPage() {
   const facultyActivity = useMemo(() => {
     const map: Record<string, { name: string; sessions: number; hours: number; completed: number; cancelled: number }> = {}
     for (const s of sessions) {
+      if (!s.facultyId) continue
       const fid = typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId
       const fname = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
       if (!map[fid]) map[fid] = { name: fname, sessions: 0, hours: 0, completed: 0, cancelled: 0 }

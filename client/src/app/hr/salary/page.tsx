@@ -182,13 +182,13 @@ export default function SalaryPage() {
           </div>
           <div className="form-group">
             <label className="label">Month</label>
-            <select className="input" value={month} onChange={(e) => setMonth(+e.target.value)} style={{ minWidth: 100 }}>
+            <select className="input" value={month} onChange={(e) => { setMonth(+e.target.value); setResult(null); setApproved(false) }} style={{ minWidth: 100 }}>
               {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label className="label">Year</label>
-            <input type="number" className="input" value={year} onChange={(e) => setYear(+e.target.value)} style={{ width: 100 }} />
+            <input type="number" className="input" value={year} onChange={(e) => { setYear(+e.target.value); setResult(null); setApproved(false) }} style={{ width: 100 }} />
           </div>
           <button
             className="btn btn-primary"
@@ -257,7 +257,7 @@ export default function SalaryPage() {
           {result.carryForward && (
             <div style={{ marginBottom: '1.5rem' }}>
               <p className="section-label">Hour Carry-Forward</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+              <div className="carry-grid">
                 {[
                   { label: 'Prev Month Balance',  value: `${result.carryForward.previousMonthBalance.toFixed(1)} hrs`, bg: '#fff7ed', border: '#fed7aa', color: '#b45309' },
                   { label: 'This Month Balance',  value: `${result.carryForward.currentMonthBalance.toFixed(1)} hrs`,  bg: '#fef2f2', border: '#fecaca', color: '#b91c1c' },
@@ -330,6 +330,7 @@ export default function SalaryPage() {
               {/* Final payable banner */}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                flexWrap: 'wrap', gap: '0.75rem',
                 padding: '1.25rem 1.5rem',
                 background: result.status === 'HR_REVIEW'
                   ? 'linear-gradient(135deg, #92400e, #b45309)'
@@ -360,7 +361,7 @@ export default function SalaryPage() {
               </div>
 
               {/* Approve + Print row */}
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 {approved ? (
                   <div className="alert alert-success" style={{ flex: 1, margin: 0 }}>
                     <span className="alert-icon">✅</span>

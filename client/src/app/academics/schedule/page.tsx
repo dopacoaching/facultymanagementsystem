@@ -294,7 +294,7 @@ export default function SchedulePage() {
           {error   && <div className="alert alert-error"   style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✅</span>{success}</div>}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="input-group" style={{ marginBottom: '1.5rem' }}>
             <div className="form-group">
               <label className="label">Batch</label>
               <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
@@ -313,7 +313,7 @@ export default function SchedulePage() {
             <h3 style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.875rem', color: 'var(--color-primary)' }}>
               📝 Exam Topics (Monday &amp; Friday)
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: '0.75rem', alignItems: 'flex-end' }}>
+            <div className="exam-topic-grid">
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="label">Monday Exam Topic</label>
                 <input className="input" value={mondayTopic}
@@ -390,7 +390,7 @@ export default function SchedulePage() {
               <button className="btn btn-outline btn-sm" onClick={addEntry}>+ Add Row</button>
             </div>
             {entries.map((entry, idx) => (
-              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr auto', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'flex-end' }}>
+              <div key={idx} className="schedule-entry-row">
                 <div className="form-group" style={{ margin: 0 }}>
                   {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Day</label>}
                   <select className="input" value={entry.day} onChange={(e) => updateEntry(idx, 'day', e.target.value as ClassEntry['day'])} style={{ fontSize: '0.8125rem' }}>
@@ -500,7 +500,7 @@ export default function SchedulePage() {
                 {/* Inline topic editor */}
                 {editingTopicId === s._id ? (
                   <div style={{ background: 'rgba(79,70,229,.04)', border: '1px solid rgba(79,70,229,.12)', borderRadius: 'var(--radius-md)', padding: '1rem', marginBottom: '0.875rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div className="input-group" style={{ marginBottom: '0.75rem' }}>
                       <div className="form-group" style={{ margin: 0 }}>
                         <label className="label">Monday Exam Topic</label>
                         <input className="input" value={topicDraft.monday} onChange={(e) => setTopicDraft({ ...topicDraft, monday: e.target.value })} />
@@ -519,7 +519,7 @@ export default function SchedulePage() {
                   </div>
                 ) : (
                   /* Exam topic display */
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: s.classEntries.length > 0 ? '0.875rem' : 0 }}>
+                  <div className="input-group" style={{ marginBottom: s.classEntries.length > 0 ? '0.875rem' : 0 }}>
                     {[
                       { label: 'Monday Exam', value: s.mondayExamTopic, color: '#7c3aed' },
                       { label: 'Friday Exam', value: s.fridayExamTopic, color: '#0891b2' },

@@ -196,7 +196,7 @@ export default function HRDashboard() {
       )}
 
       {/* ── Two-column row: Payroll Status + Cancellation Log ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div className="panel-grid-2">
 
         {/* Panel 6: Payroll Status */}
         <div className="card" style={{ minWidth: 0 }}>
@@ -323,7 +323,7 @@ export default function HRDashboard() {
               textDecoration: 'none',
               transition: 'background 0.15s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-3)')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-border)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--color-surface-2)')}
           >
             {label}

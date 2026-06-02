@@ -187,7 +187,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
               border: '1px solid rgba(255,255,255,.25)',
               overflow: 'hidden',
             }}>
-              <Image src="/DOPA-Logo.png" alt="DOPA" width={34} height={34} style={{ objectFit: 'contain' }} />
+              <Image src="/logo.png" alt="DOPA" width={34} height={34} style={{ objectFit: 'contain' }} />
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '1.0625rem', letterSpacing: '-0.01em', color: '#fff' }}>
