@@ -9,8 +9,6 @@ import type { Faculty, AuditLog } from '@/types'
 import type { Session } from '@/types'
 import Link from 'next/link'
 
-const COORDINATOR_TOKEN = process.env.NEXT_PUBLIC_COORDINATOR_TOKEN ?? ''
-
 interface ISession {
   _id: string
   facultyId: { name: string } | string | null
@@ -70,84 +68,6 @@ function QuickLink({ href, icon, label, desc }: { href: string; icon: string; la
   )
 }
 
-// ─── Coordinator Access Link card ─────────────────────────────────────────────
-function CoordinatorAccessSection() {
-  const [origin, setOrigin] = useState('')
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    setOrigin(window.location.origin)
-  }, [])
-
-  const fullUrl = origin ? `${origin}/c/${COORDINATOR_TOKEN}` : `/c/${COORDINATOR_TOKEN}`
-
-  function handleCopy() {
-    navigator.clipboard.writeText(fullUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <section>
-      <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-        Class Teacher Access
-      </h2>
-      <div style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '1.25rem 1.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        flexWrap: 'wrap',
-      }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--color-text)', marginBottom: '0.25rem' }}>
-            📝 Session Log Form (Secret Link)
-          </div>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>
-            Share this link with class teachers only — it is not linked anywhere on the website.
-          </div>
-          <code style={{
-            display: 'block',
-            fontSize: '0.8125rem',
-            padding: '0.4rem 0.75rem',
-            background: 'var(--color-surface-2)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--color-text)',
-            wordBreak: 'break-all',
-            fontFamily: 'monospace',
-          }}>
-            {fullUrl}
-          </code>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-          <button
-            className="btn btn-ghost"
-            style={{ fontSize: '0.8125rem', padding: '0.475rem 1rem' }}
-            onClick={handleCopy}
-          >
-            {copied ? '✅ Copied!' : '📋 Copy Link'}
-          </button>
-          <a
-            href={fullUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost"
-            style={{ fontSize: '0.8125rem', padding: '0.475rem 1rem', textDecoration: 'none' }}
-          >
-            ↗ Open
-          </a>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const { accessToken } = useAppSelector((s) => s.auth)
@@ -201,9 +121,6 @@ export default function AdminDashboard() {
           <QuickLink href="/is/timetable"        icon="⏱" label="IS Timetable"   desc="Integrated School timetable" />
         </div>
       </section>
-
-      {/* ── Coordinator Access ───────────────────────────────────────────────── */}
-      <CoordinatorAccessSection />
 
       {/* ── HR Stats ─────────────────────────────────────────────────────────── */}
       <section>

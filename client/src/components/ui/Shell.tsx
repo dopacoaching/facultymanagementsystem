@@ -8,8 +8,8 @@ import Sidebar from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
 
 function getPageTitle(pathname: string): string {
-  if (pathname.startsWith('/c/')) return 'Log Session'
   const map: Record<string, string> = {
+    '/coordinator':         'Log Session',
     '/admin':               'Admin Dashboard',
     '/admin/audit-log':     'Audit Log',
     '/admin/users':         'User Management',

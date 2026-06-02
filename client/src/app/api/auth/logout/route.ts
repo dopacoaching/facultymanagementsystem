@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { connectDB } from '@/lib/db'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
+import { isSameOrigin } from '@/lib/auth'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
+    if (!isSameOrigin(req)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const cookieStore = await cookies()
     const raw = cookieStore.get('refreshToken')?.value
 

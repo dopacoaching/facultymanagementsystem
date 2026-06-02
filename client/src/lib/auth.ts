@@ -78,3 +78,15 @@ export function withToken(res: NextResponse, token: string): NextResponse {
   res.headers.set('X-Refreshed-Token', token)
   return res
 }
+
+/**
+ * CSRF check: verify the request Origin matches the server host.
+ * Prevents cross-site requests from triggering cookie-bearing mutations.
+ * Absent Origin (curl, server-to-server) is allowed.
+ */
+export function isSameOrigin(req: Request): boolean {
+  const origin = req.headers.get('origin')
+  if (!origin) return true
+  const host = req.headers.get('host')
+  try { return new URL(origin).host === host } catch { return false }
+}

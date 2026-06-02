@@ -75,9 +75,8 @@ const IS_ACADEMICS_NAV: NavItem[] = [
 ]
 
 // COORDINATOR: Session logging + Chapter progress view
-const _coordToken = process.env.NEXT_PUBLIC_COORDINATOR_TOKEN ?? ''
 const COORDINATOR_NAV: NavItem[] = [
-  { label: 'Log Session', href: `/c/${_coordToken}`,    icon: '📝' },
+  { label: 'Log Session', href: '/coordinator',         icon: '📝' },
   { label: 'Chapters',    href: '/academics/chapters',  icon: '📚' },
 ]
 

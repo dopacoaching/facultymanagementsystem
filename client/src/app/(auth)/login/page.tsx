@@ -16,13 +16,12 @@ const schema = z.object({
 type Form = z.infer<typeof schema>
 
 // ADMIN is intentionally excluded — admins use /admin/login
-const _coordinatorToken = process.env.NEXT_PUBLIC_COORDINATOR_TOKEN ?? ''
 const roleHome: Record<string, string> = {
   HR_MANAGER:           '/hr',
   ACADEMICS_MANAGER:    '/academics',
   IS_ACADEMICS_MANAGER: '/is',
-  COORDINATOR:          `/c/${_coordinatorToken}`,
-  IS_COORDINATOR:       '/is',       // legacy — kept for backward-compat
+  COORDINATOR:          '/coordinator',
+  IS_COORDINATOR:       '/is',
   FACULTY:              '/faculty',
 }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
-import { signAccessToken, signRefreshToken } from '@/lib/auth'
+import { signAccessToken, signRefreshToken, isSameOrigin } from '@/lib/auth'
 import { User } from '@/lib/models/User'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 
@@ -13,6 +13,10 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isSameOrigin(req)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     if (loginLimiter) {
       const ip = getIP(req)
       const { success, limit, remaining, reset } = await loginLimiter.limit(ip)

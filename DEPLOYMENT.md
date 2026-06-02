@@ -95,7 +95,6 @@ git ls-files | grep ".env"     # should show ONLY *.env.example files
    | Key | Value |
    |-----|-------|
    | `NEXT_PUBLIC_API_URL` | `https://dopa-fms-api.onrender.com` *(your Render URL, no trailing slash)* |
-   | `NEXT_PUBLIC_COORDINATOR_TOKEN` | *(long random string — `openssl rand -hex 24`)* |
 
 4. Deploy. Note your site URL, e.g. `https://dopa-fms.netlify.app`.
 

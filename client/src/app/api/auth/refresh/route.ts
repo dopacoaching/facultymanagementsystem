@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { connectDB } from '@/lib/db'
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@/lib/auth'
+import { signAccessToken, signRefreshToken, verifyRefreshToken, isSameOrigin } from '@/lib/auth'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 import { refreshLimiter, getIP } from '@/lib/ratelimit'
 
@@ -10,6 +10,10 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isSameOrigin(req)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     if (refreshLimiter) {
       const ip = getIP(req)
       const { success } = await refreshLimiter.limit(ip)
@@ -27,7 +31,9 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    const stored = await RefreshToken.findOne({ tokenHash: hashToken(raw) })
+    const rawHash = hashToken(raw)
+
+    const stored = await RefreshToken.findOne({ tokenHash: rawHash })
     if (!stored) {
       return NextResponse.json({ error: 'Refresh token revoked or expired' }, { status: 401 })
     }
@@ -35,12 +41,19 @@ export async function POST(req: NextRequest) {
     const payload = verifyRefreshToken(raw)
     if (!payload) {
       // JWT verify failed — delete the stored token
-      await RefreshToken.deleteOne({ tokenHash: hashToken(raw) }).catch(() => null)
+      await RefreshToken.deleteOne({ tokenHash: rawHash }).catch(() => null)
       return NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
     }
 
-    // Token rotation: delete old token, issue new one
-    await RefreshToken.deleteOne({ tokenHash: hashToken(raw) })
+    // Token rotation: expire old token after a 30-second grace period instead of
+    // deleting it immediately. This prevents concurrent requests from multiple
+    // browser tabs racing on the same refresh token — the second tab arrives
+    // within the grace window, finds the old token, and gets a fresh access token.
+    // The TTL index cleans up the old document automatically.
+    await RefreshToken.findOneAndUpdate(
+      { tokenHash: rawHash },
+      { expiresAt: new Date(Date.now() + 30_000) },
+    )
 
     const newPayload = {
       userId:    payload.userId,
