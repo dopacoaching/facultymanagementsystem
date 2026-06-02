@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export type ISChapterStatus = 'NOT_YET_SCHEDULED' | 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
 
@@ -35,4 +35,4 @@ ISBatchChapterSchema.index({ batchId: 1, subject: 1, chapterOrder: 1 })
 // For searching by chapter name within a batch
 ISBatchChapterSchema.index({ batchId: 1, chapterName: 1 })
 
-export const ISBatchChapter = model<IISBatchChapter>('ISBatchChapter', ISBatchChapterSchema)
+export const ISBatchChapter = (models.ISBatchChapter as Model<IISBatchChapter>) ?? model<IISBatchChapter>('ISBatchChapter', ISBatchChapterSchema)

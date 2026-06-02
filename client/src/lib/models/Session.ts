@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { SessionStatus, CancellationInitiator } from '@/lib/types'
 
 export interface ISession extends Document {
@@ -37,4 +37,4 @@ SessionSchema.index({ batchId: 1, sessionDate: 1 })
 SessionSchema.index({ facultyId: 1, batchId: 1, sessionDate: 1 })
 SessionSchema.index({ status: 1, sessionDate: 1 })
 
-export const Session = model<ISession>('Session', SessionSchema)
+export const Session = (models.Session as Model<ISession>) ?? model<ISession>('Session', SessionSchema)

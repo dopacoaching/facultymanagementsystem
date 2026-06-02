@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import type { ContractType } from '@/lib/types'
 
 // Re-export so callers that already import from this file don't need to change.
@@ -91,7 +91,6 @@ const PermanentFacultyContractSchema = new Schema<IPermanentFacultyContract>(
   { timestamps: true }
 )
 
-export const PermanentFacultyContract = model<IPermanentFacultyContract>(
-  'PermanentFacultyContract',
-  PermanentFacultyContractSchema
-)
+export const PermanentFacultyContract =
+  (models.PermanentFacultyContract as Model<IPermanentFacultyContract>) ??
+  model<IPermanentFacultyContract>('PermanentFacultyContract', PermanentFacultyContractSchema)

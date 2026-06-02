@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export interface ICarryForwardBalance extends Document {
   facultyId: Types.ObjectId
@@ -19,4 +19,4 @@ const CarryForwardBalanceSchema = new Schema<ICarryForwardBalance>(
 
 CarryForwardBalanceSchema.index({ facultyId: 1, month: 1, year: 1 }, { unique: true })
 
-export const CarryForwardBalance = model<ICarryForwardBalance>('CarryForwardBalance', CarryForwardBalanceSchema)
+export const CarryForwardBalance = (models.CarryForwardBalance as Model<ICarryForwardBalance>) ?? model<ICarryForwardBalance>('CarryForwardBalance', CarryForwardBalanceSchema)

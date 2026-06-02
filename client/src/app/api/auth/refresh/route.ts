@@ -63,11 +63,17 @@ export async function POST(req: NextRequest) {
     }
 
     const newRefreshToken = signRefreshToken(newPayload)
-    await RefreshToken.create({
-      tokenHash: hashToken(newRefreshToken),
-      userId:    stored.userId,
-      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
-    })
+    try {
+      await RefreshToken.create({
+        tokenHash: hashToken(newRefreshToken),
+        userId:    stored.userId,
+        expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+      })
+    } catch (e: unknown) {
+      // E11000: a concurrent refresh (same second, same payload) already created this token.
+      // Both requests get the same new access token — safe to continue.
+      if ((e as { code?: number }).code !== 11000) throw e
+    }
 
     // Re-stamp lastActive so the session inactivity clock resets on refresh
     const accessToken = signAccessToken(newPayload)

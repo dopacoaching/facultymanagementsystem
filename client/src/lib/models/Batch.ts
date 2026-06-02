@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { BatchType } from '@/lib/types'
 
 export interface IBatch extends Document {
@@ -20,4 +20,4 @@ const BatchSchema = new Schema<IBatch>(
   { timestamps: true }
 )
 
-export const Batch = model<IBatch>('Batch', BatchSchema)
+export const Batch = (models.Batch as Model<IBatch>) ?? model<IBatch>('Batch', BatchSchema)

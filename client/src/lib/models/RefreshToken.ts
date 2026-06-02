@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { createHash } from 'crypto'
 
 export interface IRefreshToken extends Document {
@@ -17,7 +17,7 @@ const RefreshTokenSchema = new Schema<IRefreshToken>({
 RefreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
 RefreshTokenSchema.index({ userId: 1 })
 
-export const RefreshToken = model<IRefreshToken>('RefreshToken', RefreshTokenSchema)
+export const RefreshToken = (models.RefreshToken as Model<IRefreshToken>) ?? model<IRefreshToken>('RefreshToken', RefreshTokenSchema)
 
 /** Hash a raw JWT string before storing or looking up. */
 export function hashToken(raw: string): string {

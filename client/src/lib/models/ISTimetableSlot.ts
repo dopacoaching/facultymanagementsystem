@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export type ISSlotStatus = 'PLANNED' | 'COMPLETED' | 'CANCELLED'
 export type ISTimeSlot   = 'MORNING' | 'AFTERNOON'
@@ -41,4 +41,4 @@ ISTimetableSlotSchema.index({ campusId: 1, date: 1, timeSlot: 1 })
 // Faculty schedule lookup
 ISTimetableSlotSchema.index({ facultyId: 1, date: 1 })
 
-export const ISTimetableSlot = model<IISTimetableSlot>('ISTimetableSlot', ISTimetableSlotSchema)
+export const ISTimetableSlot = (models.ISTimetableSlot as Model<IISTimetableSlot>) ?? model<IISTimetableSlot>('ISTimetableSlot', ISTimetableSlotSchema)

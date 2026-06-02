@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { UserRole } from '@/lib/types'
 
 export interface IUser extends Document {
@@ -26,4 +26,4 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 )
 
-export const User = model<IUser>('User', UserSchema)
+export const User = (models.User as Model<IUser>) ?? model<IUser>('User', UserSchema)

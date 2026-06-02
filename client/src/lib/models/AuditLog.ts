@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { AuditEventType } from '@/lib/types'
 import { randomBytes } from 'crypto'
 
@@ -69,4 +69,4 @@ AuditLogSchema.index({ facultyId: 1, timestamp: -1 })
 AuditLogSchema.index({ eventType: 1, timestamp: -1 })
 AuditLogSchema.index({ loggedByUserId: 1, timestamp: -1 })
 
-export const AuditLog = model<IAuditLog>('AuditLog', AuditLogSchema)
+export const AuditLog = (models.AuditLog as Model<IAuditLog>) ?? model<IAuditLog>('AuditLog', AuditLogSchema)

@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export type SpecialDayType =
   | 'MONDAY_EXAM'
@@ -34,4 +34,4 @@ const SpecialDaySchema = new Schema<ISpecialDay>(
 SpecialDaySchema.index({ date: 1, campusId: 1, type: 1 }, { unique: true })
 SpecialDaySchema.index({ date: 1, campusId: 1 })
 
-export const SpecialDay = model<ISpecialDay>('SpecialDay', SpecialDaySchema)
+export const SpecialDay = (models.SpecialDay as Model<ISpecialDay>) ?? model<ISpecialDay>('SpecialDay', SpecialDaySchema)

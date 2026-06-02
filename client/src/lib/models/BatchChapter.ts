@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export interface IBatchChapter extends Document {
   batchId: Types.ObjectId
@@ -30,4 +30,4 @@ const BatchChapterSchema = new Schema<IBatchChapter>(
 BatchChapterSchema.index({ batchId: 1, subject: 1 })
 BatchChapterSchema.index({ batchId: 1, subject: 1, chapterName: 1 }, { unique: true })
 
-export const BatchChapter = model<IBatchChapter>('BatchChapter', BatchChapterSchema)
+export const BatchChapter = (models.BatchChapter as Model<IBatchChapter>) ?? model<IBatchChapter>('BatchChapter', BatchChapterSchema)

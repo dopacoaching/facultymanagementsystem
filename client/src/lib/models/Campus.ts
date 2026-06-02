@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose'
+import { Schema, model, models, Model, Document } from 'mongoose'
 
 export interface ICampus extends Document {
   name: string
@@ -15,4 +15,4 @@ const CampusSchema = new Schema<ICampus>(
   { timestamps: true }
 )
 
-export const Campus = model<ICampus>('Campus', CampusSchema)
+export const Campus = (models.Campus as Model<ICampus>) ?? model<ICampus>('Campus', CampusSchema)

@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { PayrollStatus } from '@/lib/types'
 
 export interface ISalaryRecord extends Document {
@@ -45,4 +45,4 @@ const SalaryRecordSchema = new Schema<ISalaryRecord>(
 SalaryRecordSchema.index({ facultyId: 1, month: 1, year: 1 }, { unique: true })
 SalaryRecordSchema.index({ month: 1, year: 1 })
 
-export const SalaryRecord = model<ISalaryRecord>('SalaryRecord', SalaryRecordSchema)
+export const SalaryRecord = (models.SalaryRecord as Model<ISalaryRecord>) ?? model<ISalaryRecord>('SalaryRecord', SalaryRecordSchema)

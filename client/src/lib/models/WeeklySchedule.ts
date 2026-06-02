@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose'
+import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 /** A single class entry for a non-exam day (Tue / Wed / Thu) */
 export interface IClassEntry {
@@ -60,4 +60,4 @@ const WeeklyScheduleSchema = new Schema<IWeeklySchedule>(
 // Uniqueness is enforced at the (batchId, weekStartDate, isRevised) level.
 WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1, isRevised: 1 }, { unique: true })
 
-export const WeeklySchedule = model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)
+export const WeeklySchedule = (models.WeeklySchedule as Model<IWeeklySchedule>) ?? model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)

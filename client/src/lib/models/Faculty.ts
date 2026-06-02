@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose'
+import { Schema, model, models, Model, Document } from 'mongoose'
 import { FacultyType, SalaryModel } from '@/lib/types'
 
 export interface IFaculty extends Document {
@@ -55,4 +55,4 @@ const FacultySchema = new Schema<IFaculty>(
 FacultySchema.index({ name: 1 })
 FacultySchema.index({ isActive: 1, name: 1 })
 
-export const Faculty = model<IFaculty>('Faculty', FacultySchema)
+export const Faculty = (models.Faculty as Model<IFaculty>) ?? model<IFaculty>('Faculty', FacultySchema)
