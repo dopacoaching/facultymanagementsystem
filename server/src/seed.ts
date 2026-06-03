@@ -73,8 +73,8 @@ async function seed() {
     batchPVTGirls, batchNarGirls, batchThrGirls, batchOnline,
     // 6 Offline
     batchCalOff1, batchCalOff2, batchKotOff1, batchKotOff2, batchTamil, batchThrOff,
-    // IS batches
-    resCalicut, r1, r2, r3, s1, s2, s3, r4, s4, s5,
+    // IG batches
+    r1, r2, r3, s1, s2, s3, r4, s4, s5,
   ] = await Batch.insertMany([
     // ── Residential ──────────────────────────────────────────────────────────
     { name: 'Feroke Girls',    type: 'RESIDENTIAL', campusId: campusFeroke._id },
@@ -108,7 +108,7 @@ async function seed() {
   void batchKotGirls; void batchKotBoys; void batchCalBoys
   void batchPVTGirls; void batchNarGirls; void batchThrGirls; void batchOnline
   void batchCalOff1;  void batchCalOff2;  void batchKotOff1;  void batchKotOff2
-  void batchTamil;    void batchThrOff;   void resCalicut
+  void batchTamil;    void batchThrOff
   void r2; void r3; void s1; void s2; void s3; void s4; void s5
 
   // ── Faculty ───────────────────────────────────────────────────────────────
