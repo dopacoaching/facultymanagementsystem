@@ -424,7 +424,7 @@ export default function IGSessionsPage() {
           <div className="empty-state">
             <div className="empty-state-icon">🏫</div>
             <h3>{sessions.length === 0 ? 'No IG Sessions yet' : 'No sessions match your filters'}</h3>
-            <p>{sessions.length === 0 ? 'Click "New Session" to log an IS class' : 'Try adjusting the search or filters'}</p>
+            <p>{sessions.length === 0 ? 'Click "New Session" to log an IG class' : 'Try adjusting the search or filters'}</p>
           </div>
         ) : (
           <div className="table-wrapper">

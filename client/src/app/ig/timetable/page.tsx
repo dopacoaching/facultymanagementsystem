@@ -313,7 +313,7 @@ export default function ISTimetablePage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="page-header">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>IS Daily Timetable</h1>
+          <h1 style={{ marginBottom: '0.125rem' }}>IG Daily Timetable</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
             {fmtDate(selectedDate)}
           </p>
@@ -344,7 +344,7 @@ export default function ISTimetablePage() {
           <div className="form-group" style={{ margin: 0 }}>
             <label className="label" style={{ marginBottom: '0.25rem' }}>Campus</label>
             <select className="input" value={filterCampusId} onChange={(e) => setFilterCampusId(e.target.value)} style={{ minWidth: 200 }}>
-              <option value="">All IS Campuses</option>
+              <option value="">All IG Campuses</option>
               {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
             </select>
           </div>
@@ -369,7 +369,7 @@ export default function ISTimetablePage() {
             }}>
               <span className={`badge ${SPECIAL_TYPE_BADGE[sd.type] ?? 'badge-gray'}`}>{sd.type.replace(/_/g, ' ')}</span>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-                {typeof sd.campusId === 'object' && sd.campusId ? sd.campusId.name : 'All IS Campuses'}
+                {typeof sd.campusId === 'object' && sd.campusId ? sd.campusId.name : 'All IG Campuses'}
                 {sd.notes ? ` — ${sd.notes}` : ''}
               </span>
               {canManage && (
@@ -480,7 +480,7 @@ export default function ISTimetablePage() {
                 <h2 style={{ fontWeight: 700, margin: 0 }}>Assign IG Class</h2>
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{fmtDate(selectedDate)}</p>
               </div>
-              <button onClick={() => { setShowAssign(false); setError('') }}
+              <button onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0 })) }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -572,7 +572,7 @@ export default function ISTimetablePage() {
               </div>
             </div>
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn btn-ghost" onClick={() => { setShowAssign(false); setError('') }}>Cancel</button>
+              <button className="btn btn-ghost" onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0 })) }}>Cancel</button>
               <button className="btn btn-primary" onClick={handleAssign} disabled={saving}>
                 {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Assign Class'}
               </button>
@@ -603,10 +603,10 @@ export default function ISTimetablePage() {
                 </select>
               </div>
               <div className="form-group">
-                <label className="label">Campus (leave blank for all IS campuses)</label>
+                <label className="label">Campus (leave blank for All IG Campuses)</label>
                 <select className="input" value={specialForm.campusId}
                   onChange={(e) => setSpecialForm({ ...specialForm, campusId: e.target.value })}>
-                  <option value="">All IS Campuses</option>
+                  <option value="">All IG Campuses</option>
                   {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               </div>

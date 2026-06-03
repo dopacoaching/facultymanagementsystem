@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
       durationHours: Number(durationHours),
       sessionDate:   date,
       timeSlot:      timeSlot    ?? undefined,
-      status:        'COMPLETED',
+      status:        'SCHEDULED',
       loggedByUserId: new Types.ObjectId(payload.userId),
     })
 

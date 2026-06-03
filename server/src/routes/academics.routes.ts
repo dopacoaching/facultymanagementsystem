@@ -14,18 +14,18 @@ import type { Request, Response, NextFunction } from 'express'
 const router = Router()
 router.use(authenticate)
 
-// Middleware: when no batchId is given, exclude IS-type batches so only
+// Middleware: when no batchId is given, exclude IG batches so only
 // Academics (residential/offline/online) sessions are returned.
-function excludeISBatches(req: Request, _res: Response, next: NextFunction) {
+function excludeIGBatches(req: Request, _res: Response, next: NextFunction) {
   if (!req.query.batchId && !req.query.batchType) {
-    req.query.excludeBatchType = 'INTEGRATED_SCHOOL'
+    req.query.excludeBatchType = 'IG'
   }
   next()
 }
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
-// GET: exclude IS batches when no explicit batchId given
-router.get('/sessions', excludeISBatches, getSessions)
+// GET: exclude IG batches when no explicit batchId given
+router.get('/sessions', excludeIGBatches, getSessions)
 router.post('/sessions', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), createSession)
 router.post('/sessions/cancel', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), cancelSession)
 router.patch('/sessions/:id/status', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
@@ -56,7 +56,7 @@ router.get('/exams/suggest', suggestTopic)
 router.get('/chapters/summary', getChapterSummary)
 router.get('/chapters', getChapters)
 // Coordinators mark video-complete; managers can also set facultyClassDone manually
-router.patch('/chapters/:id', authorize('COORDINATOR', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'), updateChapter)
+router.patch('/chapters/:id', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'), updateChapter)
 
 // ── Syllabus (Annual Chapter Plan) ───────────────────────────────────────────
 // Order matters: specific paths before parameterized

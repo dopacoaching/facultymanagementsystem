@@ -5,6 +5,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
+import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return forbidden
 
-    const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, startTime } = await req.json()
+    const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime } = await req.json()
 
     if (!facultyId || !batchId || !subject || !chapter || !durationHours || !sessionDate) {
       return withToken(json({
@@ -203,6 +204,36 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // SPLIT-CHAPTER ORDERING GATE
+    type PopulatedSyllabus = { _id: Types.ObjectId; chapterName: string; isSplitPart: boolean; splitPartNumber?: number; scheduledMonth: number; parentChapterId: { _id: Types.ObjectId; chapterName: string } | null }
+    let resolvedSyllabus: PopulatedSyllabus | null = null
+    let resolvedSyllabusOid: Types.ObjectId | undefined
+
+    if (syllabusChapterId) {
+      try { resolvedSyllabusOid = new Types.ObjectId(syllabusChapterId) } catch {
+        return withToken(json({ error: 'Invalid syllabusChapterId' }, 400), refreshedToken)
+      }
+      resolvedSyllabus = (await SyllabusChapter.findById(resolvedSyllabusOid)
+        .populate<{ parentChapterId: { _id: Types.ObjectId; chapterName: string } }>('parentChapterId', 'chapterName')
+        .lean()) as PopulatedSyllabus | null
+      if (!resolvedSyllabus) {
+        return withToken(json({ error: 'syllabusChapterId not found' }, 400), refreshedToken)
+      }
+      if (resolvedSyllabus.isSplitPart && resolvedSyllabus.splitPartNumber === 2 && resolvedSyllabus.parentChapterId) {
+        const part1Done = await BatchChapter.findOne({
+          batchId:           batchOid,
+          syllabusChapterId: resolvedSyllabus.parentChapterId._id,
+          facultyClassDone:  true,
+        })
+        if (!part1Done) {
+          return withToken(json({
+            error: `Cannot log "${resolvedSyllabus.chapterName}" — "${resolvedSyllabus.parentChapterId.chapterName}" must be completed first for this batch.`,
+            code:  'SPLIT_PART_ORDER_VIOLATION',
+          }, 422), refreshedToken)
+        }
+      }
+    }
+
     // All checks passed — create session
     const session = await Session.create({
       facultyId:     facultyOid,
@@ -213,19 +244,24 @@ export async function POST(req: NextRequest) {
       durationHours: Number(durationHours),
       sessionDate:   date,
       timeSlot:      timeSlot   ?? undefined,
-      status:        'COMPLETED',
+      status:        'SCHEDULED',
       loggedByUserId: new Types.ObjectId(payload.userId),
     })
 
-    // Auto-mark chapter as facultyClassDone
+    // Auto-mark chapter as facultyClassDone; attach syllabus link if provided
+    const normSubject = subject.toUpperCase()
+    const bcSet: Record<string, unknown> = {
+      facultyClassDone:   true,
+      facultyClassDoneAt: date,
+      sessionId:          session._id,
+    }
+    if (resolvedSyllabusOid)  bcSet.syllabusChapterId = resolvedSyllabusOid
+    if (resolvedSyllabus)     bcSet.scheduledMonth    = resolvedSyllabus.scheduledMonth
+
     await BatchChapter.findOneAndUpdate(
-      { batchId: batchOid, subject, chapterName: chapter },
+      { batchId: batchOid, subject: normSubject, chapterName: chapter },
       {
-        $set: {
-          facultyClassDone:   true,
-          facultyClassDoneAt: date,
-          sessionId:          session._id,
-        },
+        $set: bcSet,
         $setOnInsert: { chapterOrder: 0, videoComplete: false },
       },
       { upsert: true }

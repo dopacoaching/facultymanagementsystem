@@ -34,5 +34,6 @@ const BatchChapterSchema = new Schema<IBatchChapter>(
 BatchChapterSchema.index({ batchId: 1, subject: 1 })
 BatchChapterSchema.index({ batchId: 1, subject: 1, chapterName: 1 }, { unique: true })
 BatchChapterSchema.index({ batchId: 1, syllabusChapterId: 1 }, { sparse: true })
+BatchChapterSchema.index({ batchId: 1, scheduledMonth: 1 })
 
 export const BatchChapter = (models.BatchChapter as Model<IBatchChapter>) ?? model<IBatchChapter>('BatchChapter', BatchChapterSchema)

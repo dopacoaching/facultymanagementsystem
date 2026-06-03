@@ -70,7 +70,7 @@ async function seed() {
     batchFerGirls, batchKotGirls, batchKotBoys, batchCalBoys,
     batchPVTGirls, batchNarGirls, batchThrGirls, batchOnline,
     batchCalOff1, batchCalOff2, batchKotOff1, batchKotOff2, batchTamil, batchThrOff,
-    resCalicut, r1, r2, r3, s1, s2, s3, r4, s4, s5,
+    r1, r2, r3, s1, s2, s3, r4, s4, s5,
   ] = await Batch.insertMany([
     { name: 'Feroke Girls',    type: 'RESIDENTIAL', campusId: campusFeroke._id },
     { name: 'Kottakkal Girls', type: 'RESIDENTIAL', campusId: campusKottakkal._id },
@@ -86,20 +86,20 @@ async function seed() {
     { name: 'Kottakkal Offline Batch 2',  type: 'OFFLINE', campusId: campusKottakkalOffline._id },
     { name: 'Tamil Batch',                type: 'OFFLINE', campusId: campusTamilNadu._id },
     { name: 'Thrissur Offline',           type: 'OFFLINE', campusId: campusThrissurOffline._id },
-    { name: 'R1', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
-    { name: 'R2', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
-    { name: 'R3', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
-    { name: 'S1', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
-    { name: 'S2', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
-    { name: 'S3', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
-    { name: 'R4', type: 'INTEGRATED_SCHOOL', campusId: ayikk._id },
-    { name: 'S4', type: 'INTEGRATED_SCHOOL', campusId: ayikk._id },
-    { name: 'S5', type: 'INTEGRATED_SCHOOL', campusId: ayikk._id },
+    { name: 'R1', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
+    { name: 'R2', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
+    { name: 'R3', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
+    { name: 'S1', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
+    { name: 'S2', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
+    { name: 'S3', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
+    { name: 'R4', type: 'IG', campusId: ayikk._id },
+    { name: 'S4', type: 'IG', campusId: ayikk._id },
+    { name: 'S5', type: 'IG', campusId: ayikk._id },
   ])
   void batchKotGirls; void batchKotBoys; void batchCalBoys
   void batchPVTGirls; void batchNarGirls; void batchThrGirls; void batchOnline
   void batchCalOff1;  void batchCalOff2;  void batchKotOff1;  void batchKotOff2
-  void batchTamil;    void batchThrOff;   void resCalicut
+  void batchTamil;    void batchThrOff
   void r2; void r3; void s1; void s2; void s3; void s4; void s5
 
   // ── Faculty ───────────────────────────────────────────────────────────────
