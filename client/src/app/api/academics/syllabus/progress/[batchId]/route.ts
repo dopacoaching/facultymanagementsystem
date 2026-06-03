@@ -15,15 +15,16 @@ const MONTH_NAMES: Record<number, string> = {
 /** GET /api/academics/syllabus/progress/:batchId */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { batchId: string } }
+  { params }: { params: Promise<{ batchId: string }> }
 ) {
   try {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { refreshedToken } = auth
 
+    const { batchId } = await params
     let batchOid: Types.ObjectId
-    try { batchOid = new Types.ObjectId(params.batchId) } catch {
+    try { batchOid = new Types.ObjectId(batchId) } catch {
       return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
     }
 
@@ -88,7 +89,7 @@ export async function GET(
       }
     }
 
-    return withToken(json({ batchId: params.batchId, batchName: batch.name, progress }), refreshedToken)
+    return withToken(json({ batchId: batchId, batchName: batch.name, progress }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/academics/syllabus/progress]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
