@@ -17,7 +17,7 @@ interface Slot {
   subject:   string
   chapter:   string
   timeSlot:  'MORNING' | 'AFTERNOON'
-  /** Planned duration in hours — entered by IS Academics Manager */
+  /** Planned duration in hours — entered by IG Academics Manager */
   durationHours?: number
   status:    'PLANNED' | 'COMPLETED' | 'CANCELLED'
   notes?:    string
@@ -477,7 +477,7 @@ export default function ISTimetablePage() {
           <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 600, border: '1px solid var(--color-border)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ fontWeight: 700, margin: 0 }}>Assign IS Class</h2>
+                <h2 style={{ fontWeight: 700, margin: 0 }}>Assign IG Class</h2>
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{fmtDate(selectedDate)}</p>
               </div>
               <button onClick={() => { setShowAssign(false); setError('') }}
