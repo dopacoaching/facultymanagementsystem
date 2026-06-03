@@ -21,7 +21,6 @@ function getPageTitle(pathname: string): string {
     '/academics/sessions':  'Sessions',
     '/academics/chapters':  'Chapter Progress',
     '/academics/schedule':  'Weekly Schedule',
-    '/academics/exams':     'Exam Topics',
     '/academics/reports':   'Academics Reports',
     '/ig':                  'IG Dashboard',
     '/ig/timetable':        'IG Daily Timetable',

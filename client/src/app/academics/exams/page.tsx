@@ -1,36 +1,28 @@
-﻿'use client'
+'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Batch } from '@/services/faculty.service'
 
-interface SuggestResponse {
-  suggestion: {
-    topic: string
-    isPending: boolean
-    case: number
-    excluded: { chapterName: string; subject: string; reason: string }[]
-    usedFallback?: boolean
-  }
-  bySubject: { subject: string; chapters: string[] }[]
+interface Schedule {
+  _id: string
+  weekStartDate: string
+  weekEndDate: string
+  mondayExamTopic?: string
+  fridayExamTopic?: string
+  isPublished: boolean
 }
 
-const CASE_LABELS: Record<number, string> = {
-  1: 'Case 1 — 2+ chapters, same subject',
-  2: 'Case 2 — chapters from 2 subjects',
-  3: 'Case 3 — single chapter',
-  4: 'Case 4 — no eligible chapters',
-}
+const fmt = (d: string) =>
+  new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
 export default function ExamTopicsPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
-  const [batches, setBatches]  = useState<Batch[]>([])
-  const [batchId, setBatchId]  = useState('')
-  const [examDate, setExamDate] = useState('')
-  const [result, setResult]    = useState<SuggestResponse | null>(null)
-  const [loading, setLoading]  = useState(false)
-  const [error, setError]      = useState('')
+  const [batches,   setBatches]   = useState<Batch[]>([])
+  const [batchId,   setBatchId]   = useState('')
+  const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [loading,   setLoading]   = useState(false)
 
   useEffect(() => {
     if (!accessToken) return
@@ -41,136 +33,76 @@ export default function ExamTopicsPage() {
     }).catch(console.error)
   }, [accessToken])
 
-  async function handleFetch() {
-    if (!accessToken || !batchId || !examDate) return
-    setLoading(true); setError(''); setResult(null)
-    try {
-      const data = await apiFetch<SuggestResponse>(
-        `/academics/exams/suggest?batchId=${batchId}&examDate=${examDate}`,
-        { token: accessToken }
-      )
-      setResult(data)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch suggestion')
-    } finally { setLoading(false) }
-  }
+  useEffect(() => {
+    if (!accessToken || !batchId) return
+    setLoading(true)
+    apiFetch<Schedule[]>(`/academics/schedules?batchId=${batchId}`, { token: accessToken })
+      .then((data) => setSchedules(data.filter((s) => s.mondayExamTopic || s.fridayExamTopic)))
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [accessToken, batchId])
+
+  const withTopics = schedules
+    .slice()
+    .sort((a, b) => new Date(b.weekStartDate).getTime() - new Date(a.weekStartDate).getTime())
 
   return (
     <div>
       <div className="page-header">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Exam Topic Suggestion</h1>
+          <h1 style={{ marginBottom: '0.125rem' }}>Exam Topics</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Auto-suggests exam topics based on completed chapters with a mandatory 1-day buffer.
+            Scheduled exam topics from published weekly schedules.
           </p>
         </div>
+        <select
+          className="input"
+          value={batchId}
+          onChange={(e) => setBatchId(e.target.value)}
+          style={{ minWidth: 200 }}
+        >
+          {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
+        </select>
       </div>
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div>
-            <label className="label">Batch</label>
-            <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)} style={{ minWidth: 200 }}>
-              {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Exam Date</label>
-            <input type="date" className="input" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
-          </div>
-          <button className="btn btn-primary" onClick={handleFetch} disabled={loading || !batchId || !examDate}>
-            {loading ? 'Fetching…' : '✨ Get Suggestion'}
-          </button>
-        </div>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: '0.75rem', marginBottom: 0 }}>
-          Buffer rules: <strong>Monday exams</strong> — chapters must be done before the preceding Saturday (Sat–Sun work is excluded).
-          <strong> All other days</strong> — chapters must be done before midnight of the day before the exam.
-          Residential &amp; Online batches also require video to be marked complete.
-          Friday exams prefer chapters completed <em>this week</em>; falls back to all eligible if none exist.
-        </p>
-      </div>
+      {loading && <div style={{ color: 'var(--color-muted)', padding: '2rem 0' }}>Loading…</div>}
 
-      {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-          <span className="alert-icon">⚠</span>{error}
+      {!loading && withTopics.length === 0 && (
+        <div className="card" style={{ color: 'var(--color-muted)', textAlign: 'center', padding: '3rem' }}>
+          No exam topics scheduled yet for this batch.
         </div>
       )}
 
-      {result && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Main suggestion */}
-          <div className="card" style={{
-            borderLeft: `4px solid ${result.suggestion.isPending ? 'var(--color-warning)' : 'var(--color-success)'}`,
-          }}>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: 700, fontSize: '1rem' }}>Suggested Topic</span>
-              <span className={`badge ${result.suggestion.isPending ? 'badge-yellow' : 'badge-green'}`}>
-                {result.suggestion.isPending ? '⏳ Pending' : '✓ Ready'}
-              </span>
-              <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
-                {CASE_LABELS[result.suggestion.case] ?? `Case ${result.suggestion.case}`}
-              </span>
-            </div>
-            <div style={{
-              fontSize: '1.0625rem',
-              fontWeight: 600,
-              color: result.suggestion.isPending ? 'var(--color-warning)' : 'var(--color-text)',
-              padding: '0.75rem 1rem',
-              background: result.suggestion.isPending ? 'rgba(245,158,11,.06)' : 'rgba(16,185,129,.06)',
-              borderRadius: 'var(--radius-md)',
-              border: `1px solid ${result.suggestion.isPending ? 'rgba(245,158,11,.2)' : 'rgba(16,185,129,.2)'}`,
-            }}>
-              {result.suggestion.topic}
-            </div>
-          </div>
+      {!loading && withTopics.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {withTopics.map((s) => (
+            <div key={s._id} className="card" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 160, flexShrink: 0 }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Week</div>
+                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>
+                  {fmt(s.weekStartDate)} – {fmt(s.weekEndDate)}
+                </div>
+                {!s.isPublished && (
+                  <span className="badge badge-yellow" style={{ marginTop: '0.25rem', fontSize: '0.7rem' }}>Draft</span>
+                )}
+              </div>
 
-          {/* Friday fallback notice */}
-          {result.suggestion.usedFallback && (
-            <div className="alert" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', color: 'var(--color-warning)', padding: '0.75rem 1rem' }}>
-              <span style={{ marginRight: '0.5rem' }}>⚠</span>
-              <strong>Fallback used.</strong> No chapters were completed <em>this week</em>, so the suggestion is drawn from all eligible chapters across all weeks.
-              Consider logging more sessions this week before the Friday exam.
-            </div>
-          )}
-
-          {/* Eligible chapters by subject */}
-          {result.bySubject.length > 0 && (
-            <div className="card">
-              <h3 style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem' }}>Eligible Chapters</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {result.bySubject.map((s) => (
-                  <div key={s.subject} style={{ padding: '0.625rem 0.875rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{s.subject}: </span>
-                    {s.chapters.length === 0 ? (
-                      <span style={{ color: 'var(--color-muted)', fontStyle: 'italic' }}>no eligible chapters</span>
-                    ) : (
-                      <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-                        {s.chapters.join(' · ')}
-                      </span>
-                    )}
+              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', flex: 1 }}>
+                {s.mondayExamTopic && (
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Monday Exam</div>
+                    <div style={{ fontWeight: 500 }}>{s.mondayExamTopic}</div>
                   </div>
-                ))}
+                )}
+                {s.fridayExamTopic && (
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Friday Exam</div>
+                    <div style={{ fontWeight: 500 }}>{s.fridayExamTopic}</div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-
-          {/* Buffer-excluded chapters */}
-          {result.suggestion.excluded.length > 0 && (
-            <div className="card" style={{ borderLeft: '4px solid var(--color-danger)' }}>
-              <h3 style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.75rem', color: 'var(--color-danger)' }}>
-                🚫 Excluded by 1-Day Buffer
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                {result.suggestion.excluded.map((ex, i) => (
-                  <div key={i} style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', padding: '0.375rem 0' }}>
-                    <span style={{ fontWeight: 500 }}>{ex.subject} — {ex.chapterName}</span>
-                    <br />
-                    <span style={{ color: 'var(--color-muted)', fontSize: '0.75rem' }}>{ex.reason}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          ))}
         </div>
       )}
     </div>
