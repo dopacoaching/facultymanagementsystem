@@ -62,14 +62,7 @@ export async function POST(req: NextRequest) {
 
     const startDate = midnight(weekStartDate)
 
-    // Validate: weekStartDate must be a Saturday (getDay() === 6)
-    if (startDate.getDay() !== 6) {
-      return withToken(json({
-        error: `weekStartDate must be a Saturday. Received: ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][startDate.getDay()]}`,
-      }, 400), refreshedToken)
-    }
-
-    // End date = Saturday + 6 = Friday
+    // End date = start + 6 days
     const endDate = new Date(startDate)
     endDate.setDate(endDate.getDate() + 6)
 

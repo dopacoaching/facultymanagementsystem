@@ -51,15 +51,7 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
 
   const startDate = midnight(weekStartDate)
 
-  // Validate: weekStartDate must be a Saturday (getDay() === 6)
-  if (startDate.getDay() !== 6) {
-    res.status(400).json({
-      error: `weekStartDate must be a Saturday. Received: ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][startDate.getDay()]}`,
-    })
-    return
-  }
-
-  // End date = Saturday + 6 = Friday
+  // End date = start + 6 days
   const endDate = new Date(startDate)
   endDate.setDate(endDate.getDate() + 6)
 

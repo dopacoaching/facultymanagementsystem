@@ -8,10 +8,15 @@ import type { Batch } from '@/services/faculty.service'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type ClassEntryDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
+type ClassSessionType = 'LIVE_SESSION' | 'RECORDED_VIDEO'
+
 interface ClassEntry {
-  day: 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY'
+  day: ClassEntryDay
   subject: string
   chapter: string
+  /** LIVE_SESSION = in-person/live class; RECORDED_VIDEO = recorded video lesson */
+  sessionType: ClassSessionType
   /** Planned duration in hours — entered by Academics Manager */
   durationHours?: number
   facultyId?: string | { _id: string; name: string; subject: string }
@@ -46,24 +51,34 @@ interface SuggestResponse {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DAYS: { value: ClassEntry['day']; label: string }[] = [
+const DAYS: { value: ClassEntryDay; label: string }[] = [
+  { value: 'MONDAY',    label: 'Monday' },
   { value: 'TUESDAY',   label: 'Tuesday' },
   { value: 'WEDNESDAY', label: 'Wednesday' },
   { value: 'THURSDAY',  label: 'Thursday' },
+  { value: 'FRIDAY',    label: 'Friday' },
+  { value: 'SATURDAY',  label: 'Saturday' },
+  { value: 'SUNDAY',    label: 'Sunday' },
 ]
 
-const DAY_LABELS: Record<ClassEntry['day'], string> = {
+const DAY_LABELS: Record<ClassEntryDay, string> = {
+  MONDAY:    'Monday',
   TUESDAY:   'Tuesday',
   WEDNESDAY: 'Wednesday',
   THURSDAY:  'Thursday',
+  FRIDAY:    'Friday',
+  SATURDAY:  'Saturday',
+  SUNDAY:    'Sunday',
 }
 
-/** Return the most recent Saturday on or before today as YYYY-MM-DD */
-function lastSaturday(): string {
-  const d = new Date()
-  const diff = (d.getDay() + 1) % 7  // days since last Saturday (Sun=1,Mon=2,...Sat=0)
-  d.setDate(d.getDate() - diff)
-  return d.toISOString().slice(0, 10)
+const SESSION_TYPE_LABELS: Record<ClassSessionType, string> = {
+  LIVE_SESSION:   'Live Session',
+  RECORDED_VIDEO: 'Recorded Video',
+}
+
+/** Return today's date as YYYY-MM-DD (default week start) */
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
 }
 
 function fmtDate(d: string | Date) {
@@ -82,7 +97,7 @@ function getFacultyName(f: string | { _id: string; name: string } | undefined): 
   return f
 }
 
-const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '', durationHours: undefined, facultyId: '', notes: '' })
+const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '', sessionType: 'LIVE_SESSION', durationHours: undefined, facultyId: '', notes: '' })
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -94,7 +109,7 @@ export default function SchedulePage() {
   const [batches,   setBatches]       = useState<Batch[]>([])
   const [faculty,   setFaculty]       = useState<Faculty[]>([])
   const [batchId,   setBatchId]       = useState('')
-  const [weekStart, setWeekStart]     = useState(lastSaturday)
+  const [weekStart, setWeekStart]     = useState(todayStr)
   const [saving,    setSaving]        = useState(false)
   const [publishing, setPublishing]   = useState('')
   const [revising,  setRevising]      = useState('')
@@ -190,7 +205,7 @@ export default function SchedulePage() {
   async function handleSave() {
     if (!accessToken) return
     if (!batchId)     { setError('Select a batch'); return }
-    if (!weekStart)   { setError('Select a week start date (Saturday)'); return }
+    if (!weekStart)   { setError('Select a week start date'); return }
     setSaving(true); setError(''); setSuccess('')
     try {
       const validEntries = entries.filter((e) => e.subject.trim() && e.chapter.trim())
@@ -206,6 +221,7 @@ export default function SchedulePage() {
             day:          e.day,
             subject:      e.subject.trim(),
             chapter:      e.chapter.trim(),
+            sessionType:  e.sessionType,
             durationHours: e.durationHours ? Number(e.durationHours) : undefined,
             facultyId:    typeof e.facultyId === 'object' ? (e.facultyId as {_id:string})._id : (e.facultyId || undefined),
             notes:        e.notes?.trim() || undefined,
@@ -286,7 +302,7 @@ export default function SchedulePage() {
         <div>
           <h1 style={{ marginBottom: '0.125rem' }}>Weekly Schedule</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Saturday → Friday academic week — Exams on Monday &amp; Friday
+            Exams on Monday &amp; Friday — Live Sessions &amp; Recorded Videos on other days
           </p>
         </div>
       </div>
@@ -311,7 +327,7 @@ export default function SchedulePage() {
               </select>
             </div>
             <div className="form-group">
-              <label className="label">Week Start Date <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(must be Saturday)</span></label>
+              <label className="label">Week Start Date</label>
               <input type="date" className="input" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
             </div>
           </div>
@@ -393,7 +409,7 @@ export default function SchedulePage() {
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h3 style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                📚 Class Entries (Tue / Wed / Thu)
+                📚 Class Entries — Live Sessions &amp; Recorded Videos
               </h3>
               <button className="btn btn-outline btn-sm" onClick={addEntry}>+ Add Row</button>
             </div>
@@ -412,6 +428,14 @@ export default function SchedulePage() {
                 <div className="form-group" style={{ margin: 0 }}>
                   {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Chapter / Topic</label>}
                   <input className="input" placeholder="Chapter" value={entry.chapter} onChange={(e) => updateEntry(idx, 'chapter', e.target.value)} style={{ fontSize: '0.8125rem' }} />
+                </div>
+                <div className="form-group" style={{ margin: 0, minWidth: 130 }}>
+                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Type</label>}
+                  <select className="input" value={entry.sessionType} onChange={(e) => updateEntry(idx, 'sessionType', e.target.value as ClassSessionType)} style={{ fontSize: '0.8125rem' }}>
+                    {(Object.keys(SESSION_TYPE_LABELS) as ClassSessionType[]).map((t) => (
+                      <option key={t} value={t}>{SESSION_TYPE_LABELS[t]}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group" style={{ margin: 0, maxWidth: 90 }}>
                   {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Hrs (planned)</label>}
@@ -561,7 +585,10 @@ export default function SchedulePage() {
                       {s.classEntries.map((entry, i) => (
                         <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.875rem', padding: '0.5rem 0.75rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
                           <span style={{ fontWeight: 600, minWidth: 80, color: 'var(--color-primary)', fontSize: '0.8125rem' }}>
-                            {DAY_LABELS[entry.day as ClassEntry['day']]}
+                            {DAY_LABELS[entry.day as ClassEntryDay] ?? entry.day}
+                          </span>
+                          <span className={`badge ${(entry as ClassEntry).sessionType === 'RECORDED_VIDEO' ? 'badge-purple' : 'badge-blue'}`} style={{ fontSize: '0.7rem' }}>
+                            {(entry as ClassEntry).sessionType === 'RECORDED_VIDEO' ? '🎬 Video' : '🎓 Live'}
                           </span>
                           <span style={{ fontWeight: 500 }}>{entry.subject}</span>
                           <span style={{ color: 'var(--color-text-secondary)' }}>— {entry.chapter}</span>

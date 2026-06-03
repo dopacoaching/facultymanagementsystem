@@ -35,8 +35,8 @@ export const assignSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     })
     return
   }
-  if (!['MORNING', 'AFTERNOON'].includes(timeSlot)) {
-    res.status(400).json({ error: 'timeSlot must be MORNING or AFTERNOON' })
+  if (!['SESSION_1', 'SESSION_2', 'SESSION_3'].includes(timeSlot)) {
+    res.status(400).json({ error: 'timeSlot must be SESSION_1, SESSION_2, or SESSION_3' })
     return
   }
 

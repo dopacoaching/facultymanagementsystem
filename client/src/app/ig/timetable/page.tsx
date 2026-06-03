@@ -8,19 +8,24 @@ import type { Batch } from '@/services/faculty.service'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type IGSessionSlot = 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
+type IGSessionType = 'LIVE_SESSION' | 'WEEKLY_EXAM' | 'MONTHLY_EXAM'
+
 interface Slot {
-  _id:       string
-  date:      string
-  campusId:  { _id: string; name: string } | string
-  batchId:   { _id: string; name: string; type: string; ig1Subgroup?: string } | string
-  facultyId?: { _id: string; name: string } | string
-  subject:   string
-  chapter:   string
-  timeSlot:  'MORNING' | 'AFTERNOON'
-  /** Planned duration in hours — entered by IG Academics Manager */
+  _id:         string
+  date:        string
+  campusId:    { _id: string; name: string } | string
+  batchId:     { _id: string; name: string; type: string; ig1Subgroup?: string } | string
+  facultyId?:  { _id: string; name: string } | string
+  subject:     string
+  chapter:     string
+  timeSlot:    IGSessionSlot
+  sessionType: IGSessionType
+  /** Planned duration in hours */
   durationHours?: number
-  status:    'PLANNED' | 'COMPLETED' | 'CANCELLED'
-  notes?:    string
+  startTime?:  string
+  status:      'PLANNED' | 'COMPLETED' | 'CANCELLED'
+  notes?:      string
   isUnplanned: boolean
 }
 
@@ -50,6 +55,30 @@ interface ISChapter {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SPECIAL_DAY_TYPES = ['MONDAY_EXAM', 'FRIDAY_EXAM', 'WEEKLY_EXAM', 'TOUR', 'BUFFER_DAY', 'HOLIDAY']
+
+const SESSION_SLOTS: { value: IGSessionSlot; label: string }[] = [
+  { value: 'SESSION_1', label: 'Session 1' },
+  { value: 'SESSION_2', label: 'Session 2' },
+  { value: 'SESSION_3', label: 'Session 3' },
+]
+
+const SESSION_TYPES: { value: IGSessionType; label: string }[] = [
+  { value: 'LIVE_SESSION',  label: '🎓 Live Session' },
+  { value: 'WEEKLY_EXAM',   label: '📝 Weekly Exam (Mon / Fri)' },
+  { value: 'MONTHLY_EXAM',  label: '📋 Monthly Exam' },
+]
+
+const SESSION_TYPE_BADGE: Record<IGSessionType, string> = {
+  LIVE_SESSION:  'badge-blue',
+  WEEKLY_EXAM:   'badge-indigo',
+  MONTHLY_EXAM:  'badge-purple',
+}
+
+const SESSION_TYPE_LABEL: Record<IGSessionType, string> = {
+  LIVE_SESSION:  'Live',
+  WEEKLY_EXAM:   'Weekly Exam',
+  MONTHLY_EXAM:  'Monthly Exam',
+}
 
 const SLOT_STATUS_BADGE: Record<string, string> = {
   PLANNED:   'badge-blue',
@@ -107,17 +136,19 @@ export default function ISTimetablePage() {
 
   // Assign form
   const [form, setForm] = useState({
-    batchId:      '',
-    campusId:     '',
-    facultyId:    '',
-    subject:      '',
-    chapter:      '',
-    startTime:    '',
-    timeSlot:     'MORNING' as 'MORNING' | 'AFTERNOON',
-    durationHours: '' as string | number,
+    batchId:         '',
+    campusId:        '',
+    facultyId:       '',
+    subject:         '',
+    chapter:         '',
+    examTopic:       '',
+    startTime:       '',
+    timeSlot:        'SESSION_1' as IGSessionSlot,
+    sessionType:     'LIVE_SESSION' as IGSessionType,
+    durationHours:   '' as string | number,
     durationMinutes: 0,
-    notes:        '',
-    isUnplanned:  false,
+    notes:           '',
+    isUnplanned:     false,
   })
 
   // Special day form
@@ -185,8 +216,15 @@ export default function ISTimetablePage() {
   // ── Assign slot ─────────────────────────────────────────────────────────────
   async function handleAssign() {
     if (!accessToken) return
-    if (!form.batchId || !form.subject || !form.chapter || !form.timeSlot) {
-      setError('Batch, subject, chapter and time slot are required'); return
+    const isExam = form.sessionType === 'WEEKLY_EXAM' || form.sessionType === 'MONTHLY_EXAM'
+    if (!form.batchId || !form.timeSlot) {
+      setError('Batch and session slot are required'); return
+    }
+    if (!isExam && (!form.subject || !form.chapter)) {
+      setError('Subject and chapter are required for live sessions'); return
+    }
+    if (isExam && !form.subject) {
+      setError('Subject is required for exams'); return
     }
     const totalDuration = (form.durationHours !== '' ? Number(form.durationHours) : 0) + form.durationMinutes / 60
     if (totalDuration > 0 && totalDuration < 0.25) {
@@ -213,8 +251,10 @@ export default function ISTimetablePage() {
           campusId,
           facultyId:     form.facultyId || undefined,
           subject:       form.subject,
-          chapter:       form.chapter,
+          // For exams the examTopic is stored in the chapter field
+          chapter:       isExam ? (form.examTopic || form.subject + ' Exam') : form.chapter,
           timeSlot:      form.timeSlot,
+          sessionType:   form.sessionType,
           notes:         form.notes || undefined,
           isUnplanned:   form.isUnplanned,
           date:          selectedDate,
@@ -225,7 +265,7 @@ export default function ISTimetablePage() {
         },
       })
       setShowAssign(false)
-      setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0 }))
+      setForm((f) => ({ ...f, subject: '', chapter: '', examTopic: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0, sessionType: 'LIVE_SESSION' }))
       loadDaily()
     } catch (e: unknown) {
       const err = e as { violations?: string[] }
@@ -285,9 +325,13 @@ export default function ISTimetablePage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Delete failed') }
   }
 
-  // ── Group slots by time slot ────────────────────────────────────────────────
-  const morningSlots   = daily?.slots.filter((s) => s.timeSlot === 'MORNING')   ?? []
-  const afternoonSlots = daily?.slots.filter((s) => s.timeSlot === 'AFTERNOON') ?? []
+  // ── Group slots by session number ───────────────────────────────────────────
+  const session1Slots = daily?.slots.filter((s) => s.timeSlot === 'SESSION_1') ?? []
+  const session2Slots = daily?.slots.filter((s) => s.timeSlot === 'SESSION_2') ?? []
+  const session3Slots = daily?.slots.filter((s) => s.timeSlot === 'SESSION_3') ?? []
+  // Legacy support for old MORNING/AFTERNOON data
+  const morningSlots   = daily?.slots.filter((s) => (s.timeSlot as string) === 'MORNING')   ?? []
+  const afternoonSlots = daily?.slots.filter((s) => (s.timeSlot as string) === 'AFTERNOON') ?? []
 
   const getBatchName = (bid: Slot['batchId']) =>
     typeof bid === 'object' ? bid.name : (isIsBatches.find((b) => b._id === bid)?.name ?? String(bid).slice(-6))
@@ -388,22 +432,27 @@ export default function ISTimetablePage() {
         </div>
       ) : (
         <>
-          {[{ label: '🌅 Morning', slots: morningSlots }, { label: '☀️ Afternoon', slots: afternoonSlots }].map(({ label, slots }) => (
+          {[
+            { label: 'Session 1', slots: [...session1Slots, ...morningSlots] },
+            { label: 'Session 2', slots: session2Slots },
+            { label: 'Session 3', slots: [...session3Slots, ...afternoonSlots] },
+          ].map(({ label, slots }) => (
             <div key={label} className="card" style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <h2 style={{ fontWeight: 700, fontSize: '1rem', margin: 0, color: 'var(--color-primary)' }}>{label}</h2>
                 <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{slots.length} class{slots.length !== 1 ? 'es' : ''}</span>
               </div>
               {slots.length === 0 ? (
-                <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', margin: 0 }}>No classes scheduled</p>
+                <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', margin: 0 }}>No session assigned</p>
               ) : (
                 <div className="table-wrapper">
                   <table>
                     <thead>
                       <tr>
                         <th>Batch</th>
+                        <th>Type</th>
                         <th>Subject</th>
-                        <th>Chapter</th>
+                        <th>Chapter / Topic</th>
                         <th>Faculty</th>
                         <th>Planned</th>
                         <th>Status</th>
@@ -418,6 +467,11 @@ export default function ISTimetablePage() {
                             {slot.isUnplanned && (
                               <span className="badge badge-yellow" style={{ marginLeft: '0.375rem', fontSize: '0.65rem' }}>unplanned</span>
                             )}
+                          </td>
+                          <td>
+                            <span className={`badge ${SESSION_TYPE_BADGE[slot.sessionType] ?? 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>
+                              {SESSION_TYPE_LABEL[slot.sessionType] ?? slot.sessionType ?? 'Live'}
+                            </span>
                           </td>
                           <td>{slot.subject}</td>
                           <td style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -459,7 +513,7 @@ export default function ISTimetablePage() {
             </div>
           ))}
 
-          {morningSlots.length === 0 && afternoonSlots.length === 0 && (
+          {session1Slots.length === 0 && session2Slots.length === 0 && session3Slots.length === 0 && morningSlots.length === 0 && afternoonSlots.length === 0 && (
             <div className="card">
               <div className="empty-state">
                 <div className="empty-state-icon">🏫</div>
@@ -480,7 +534,7 @@ export default function ISTimetablePage() {
                 <h2 style={{ fontWeight: 700, margin: 0 }}>Assign IG Class</h2>
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{fmtDate(selectedDate)}</p>
               </div>
-              <button onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0 })) }}
+              <button onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', examTopic: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0, sessionType: 'LIVE_SESSION' })) }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -495,39 +549,57 @@ export default function ISTimetablePage() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="label">Time Slot</label>
+                  <label className="label">Session Slot</label>
                   <select className="input" value={form.timeSlot}
-                    onChange={(e) => setForm({ ...form, timeSlot: e.target.value as 'MORNING' | 'AFTERNOON' })}>
-                    <option value="MORNING">Morning</option>
-                    <option value="AFTERNOON">Afternoon</option>
+                    onChange={(e) => setForm({ ...form, timeSlot: e.target.value as IGSessionSlot })}>
+                    {SESSION_SLOTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="label">Session Type</label>
+                  <select className="input" value={form.sessionType}
+                    onChange={(e) => setForm({ ...form, sessionType: e.target.value as IGSessionType, chapter: '', examTopic: '' })}>
+                    {SESSION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label className="label">Subject</label>
                   {availableSubjects.length > 0 ? (
                     <select className="input" value={form.subject}
-                      onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '' })}>
+                      onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '', examTopic: '' })}>
                       <option value="">— select subject —</option>
                       {availableSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   ) : (
                     <input className="input" value={form.subject} placeholder="e.g. Physics"
-                      onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '' })} />
+                      onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '', examTopic: '' })} />
                   )}
                 </div>
-                <div className="form-group">
-                  <label className="label">Chapter</label>
-                  {availableChapters.length > 0 ? (
-                    <select className="input" value={form.chapter}
-                      onChange={(e) => setForm({ ...form, chapter: e.target.value })}>
-                      <option value="">— select chapter —</option>
-                      {availableChapters.map((c) => <option key={c._id} value={c.chapterName}>{c.chapterName}</option>)}
-                    </select>
-                  ) : (
-                    <input className="input" value={form.chapter} placeholder="Chapter name"
-                      onChange={(e) => setForm({ ...form, chapter: e.target.value })} />
-                  )}
-                </div>
+                {/* Chapter — only for live sessions */}
+                {(form.sessionType === 'LIVE_SESSION') && (
+                  <div className="form-group">
+                    <label className="label">Chapter</label>
+                    {availableChapters.length > 0 ? (
+                      <select className="input" value={form.chapter}
+                        onChange={(e) => setForm({ ...form, chapter: e.target.value })}>
+                        <option value="">— select chapter —</option>
+                        {availableChapters.map((c) => <option key={c._id} value={c.chapterName}>{c.chapterName}</option>)}
+                      </select>
+                    ) : (
+                      <input className="input" value={form.chapter} placeholder="Chapter name"
+                        onChange={(e) => setForm({ ...form, chapter: e.target.value })} />
+                    )}
+                  </div>
+                )}
+                {/* Exam topic — for exams */}
+                {(form.sessionType === 'WEEKLY_EXAM' || form.sessionType === 'MONTHLY_EXAM') && (
+                  <div className="form-group">
+                    <label className="label">Exam Topic (optional)</label>
+                    <input className="input" value={form.examTopic}
+                      placeholder={`e.g. ${form.subject || 'Physics'} — Chapters 1–3`}
+                      onChange={(e) => setForm({ ...form, examTopic: e.target.value })} />
+                  </div>
+                )}
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="label">Faculty (optional)</label>
                   <select className="input" value={form.facultyId}
@@ -572,7 +644,7 @@ export default function ISTimetablePage() {
               </div>
             </div>
             <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn btn-ghost" onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0 })) }}>Cancel</button>
+              <button className="btn btn-ghost" onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', examTopic: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0, sessionType: 'LIVE_SESSION' })) }}>Cancel</button>
               <button className="btn btn-primary" onClick={handleAssign} disabled={saving}>
                 {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Assign Class'}
               </button>

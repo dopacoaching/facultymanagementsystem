@@ -28,7 +28,7 @@ function printSalarySlip(faculty: Faculty, month: number, year: number, result: 
   const breakdown = (result.breakdown ?? []).map((row) => `
     <tr class="${row.isDeduction ? 'ded' : ''}">
       <td>${row.isDeduction ? '&minus; ' : ''}${escapeHtml(row.label)}</td>
-      <td>${Number.isInteger(row.amount) || row.amount > 100 ? '&#8377;' + escapeHtml(row.amount.toLocaleString('en-IN')) : escapeHtml(row.amount.toFixed(1))}</td>
+      <td>${/hour|hrs|quota/i.test(row.label) ? escapeHtml(row.amount % 1 === 0 ? row.amount : row.amount.toFixed(1)) + ' hrs' : (Number.isInteger(row.amount) || row.amount > 100 ? '&#8377;' + escapeHtml(row.amount.toLocaleString('en-IN')) : escapeHtml(row.amount.toFixed(1)))}</td>
     </tr>`).join('')
 
   const carryHtml = result.carryForward ? `
@@ -291,9 +291,11 @@ export default function SalaryPage() {
                           {row.isDeduction ? '− ' : ''}{row.label}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 600, color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
-                          {Number.isInteger(row.amount) || row.amount > 100
-                            ? `₹${row.amount.toLocaleString('en-IN')}`
-                            : row.amount.toFixed(1)}
+                          {/hour|hrs|quota/i.test(row.label)
+                            ? `${row.amount % 1 === 0 ? row.amount : row.amount.toFixed(1)} hrs`
+                            : (Number.isInteger(row.amount) || row.amount > 100
+                                ? `₹${row.amount.toLocaleString('en-IN')}`
+                                : row.amount.toFixed(1))}
                         </td>
                       </tr>
                     ))}

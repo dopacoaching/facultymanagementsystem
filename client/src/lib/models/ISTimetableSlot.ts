@@ -1,40 +1,40 @@
 import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
-export type ISSlotStatus = 'PLANNED' | 'COMPLETED' | 'CANCELLED'
-export type ISTimeSlot   = 'MORNING' | 'AFTERNOON'
+export type ISSlotStatus  = 'PLANNED' | 'COMPLETED' | 'CANCELLED'
+export type IGSessionSlot = 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
+export type IGSessionType = 'LIVE_SESSION' | 'WEEKLY_EXAM' | 'MONTHLY_EXAM'
 
 export interface IISTimetableSlot extends Document {
-  /** Specific calendar date for this class */
-  date:        Date
-  campusId:    Types.ObjectId
-  batchId:     Types.ObjectId
-  facultyId?:  Types.ObjectId
+  date:          Date
+  campusId:      Types.ObjectId
+  batchId:       Types.ObjectId
+  facultyId?:    Types.ObjectId
   subject:       string
   chapter:       string
-  startTime?:    string       // "HH:MM" 24-hour format
-  timeSlot:      ISTimeSlot
-  /** Planned duration in decimal hours — entered at scheduling */
+  startTime?:    string
   durationHours?: number
-  status:      ISSlotStatus
-  notes?:      string
-  /** True when this was logged after-the-fact (not pre-planned) */
-  isUnplanned: boolean
+  timeSlot:      IGSessionSlot
+  sessionType:   IGSessionType
+  status:        ISSlotStatus
+  notes?:        string
+  isUnplanned:   boolean
 }
 
 const ISTimetableSlotSchema = new Schema<IISTimetableSlot>(
   {
-    date:       { type: Date,                                  required: true },
-    campusId:   { type: Schema.Types.ObjectId, ref: 'Campus', required: true },
-    batchId:    { type: Schema.Types.ObjectId, ref: 'Batch',  required: true },
-    facultyId:  { type: Schema.Types.ObjectId, ref: 'Faculty' },
+    date:          { type: Date,                                  required: true },
+    campusId:      { type: Schema.Types.ObjectId, ref: 'Campus', required: true },
+    batchId:       { type: Schema.Types.ObjectId, ref: 'Batch',  required: true },
+    facultyId:     { type: Schema.Types.ObjectId, ref: 'Faculty' },
     subject:       { type: String, required: true },
     chapter:       { type: String, required: true },
     startTime:     { type: String, match: /^\d{2}:\d{2}$/ },
-    timeSlot:      { type: String, enum: ['MORNING', 'AFTERNOON'], required: true },
     durationHours: { type: Number },
-    status:       { type: String, enum: ['PLANNED', 'COMPLETED', 'CANCELLED'], default: 'PLANNED' },
-    notes:      String,
-    isUnplanned: { type: Boolean, default: false },
+    timeSlot:      { type: String, enum: ['SESSION_1', 'SESSION_2', 'SESSION_3'], required: true },
+    sessionType:   { type: String, enum: ['LIVE_SESSION', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
+    status:        { type: String, enum: ['PLANNED', 'COMPLETED', 'CANCELLED'], default: 'PLANNED' },
+    notes:         String,
+    isUnplanned:   { type: Boolean, default: false },
   },
   { timestamps: true }
 )

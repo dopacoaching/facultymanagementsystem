@@ -1,7 +1,8 @@
 import { Schema, model, Document, Types } from 'mongoose'
 
-export type ISSlotStatus = 'PLANNED' | 'COMPLETED' | 'CANCELLED'
-export type ISTimeSlot   = 'MORNING' | 'AFTERNOON'
+export type ISSlotStatus   = 'PLANNED' | 'COMPLETED' | 'CANCELLED'
+export type IGSessionSlot  = 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
+export type IGSessionType  = 'LIVE_SESSION' | 'WEEKLY_EXAM' | 'MONTHLY_EXAM'
 
 export interface IISTimetableSlot extends Document {
   /** Specific calendar date for this class */
@@ -11,9 +12,12 @@ export interface IISTimetableSlot extends Document {
   facultyId?:    Types.ObjectId
   subject:       string
   chapter:       string
-  startTime?:    string       // "HH:MM" 24-hour format, e.g. "09:30"
-  durationHours?: number      // planned duration in decimal hours
-  timeSlot:      ISTimeSlot
+  startTime?:    string         // "HH:MM" 24-hour format
+  durationHours?: number        // planned duration in decimal hours
+  /** Which of the 3 daily sessions this is */
+  timeSlot:      IGSessionSlot
+  /** Type of session: live class, weekly exam, or monthly exam */
+  sessionType:   IGSessionType
   status:        ISSlotStatus
   notes?:        string
   /** True when this was logged after-the-fact (not pre-planned) */
@@ -30,7 +34,8 @@ const ISTimetableSlotSchema = new Schema<IISTimetableSlot>(
     chapter:       { type: String, required: true },
     startTime:     { type: String, match: /^\d{2}:\d{2}$/ },
     durationHours: { type: Number, min: 0 },
-    timeSlot:      { type: String, enum: ['MORNING', 'AFTERNOON'], required: true },
+    timeSlot:      { type: String, enum: ['SESSION_1', 'SESSION_2', 'SESSION_3'], required: true },
+    sessionType:   { type: String, enum: ['LIVE_SESSION', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
     status:        { type: String, enum: ['PLANNED', 'COMPLETED', 'CANCELLED'], default: 'PLANNED' },
     notes:         String,
     isUnplanned:   { type: Boolean, default: false },

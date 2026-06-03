@@ -1,4 +1,4 @@
-import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
+﻿import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { SpecialDay }     from '@/lib/models/SpecialDay'
 import { Types }          from 'mongoose'
 
@@ -7,7 +7,7 @@ export interface ConflictCheckInput {
   campusId:   Types.ObjectId
   batchId:    Types.ObjectId
   facultyId?: Types.ObjectId
-  timeSlot:   'MORNING' | 'AFTERNOON'
+  timeSlot:   'SESSION_1' | 'SESSION_2' | 'SESSION_3'
   /** When updating an existing slot — exclude it from conflict checks */
   excludeId?: Types.ObjectId
 }
@@ -61,7 +61,7 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
   })
   if (batchSlotConflict) {
     violations.push(
-      `Batch already has a ${timeSlot.toLowerCase()} class on this date`
+      `Batch already has a ${timeSlot} class on this date`
     )
   }
 
@@ -77,7 +77,7 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
     })
     if (sameTimeConflict) {
       violations.push(
-        `Faculty is already assigned at this campus in the ${timeSlot.toLowerCase()} slot`
+        `Faculty is already assigned at this campus in the ${timeSlot} slot`
       )
     }
 
@@ -92,7 +92,7 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
     })
     if (crossCampusConflict) {
       violations.push(
-        `Faculty is already assigned at a different IS campus in the ${timeSlot.toLowerCase()} slot (IG1/IG2 overlap not allowed)`
+        `Faculty is already assigned at a different IS campus in the ${timeSlot} slot (IG1/IG2 overlap not allowed)`
       )
     }
 
@@ -103,9 +103,9 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
       date:   { $gte: dayStart, $lte: dayEnd },
       status: { $ne: 'CANCELLED' },
     })
-    if (dailyCount >= 2) {
+    if (dailyCount >= 3) {
       violations.push(
-        `Faculty already has ${dailyCount} IS class${dailyCount > 1 ? 'es' : ''} today (max 2 per day)`
+        `Faculty already has ${dailyCount} IS class${dailyCount > 1 ? 'es' : ''} today (max 3 per day)`
       )
     }
   }
