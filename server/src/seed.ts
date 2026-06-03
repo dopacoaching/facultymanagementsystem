@@ -62,8 +62,8 @@ async function seed() {
     { name: 'Tamil Nadu Campus',        location: 'Tamil Nadu' },
     { name: 'Thrissur Offline Center',  location: 'Thrissur' },
     // Integrated School
-    { name: 'IG1 — Melmuri-27',         location: 'Melmuri' },
-    { name: 'IG2 — Ayikkarapadi',        location: 'Ayikkarapadi' },
+    { name: 'IG-1',                      location: 'Melmuri' },
+    { name: 'IG-2',                      location: 'Ayikkarapadi' },
   ])
 
   // ── Batches ───────────────────────────────────────────────────────────────
@@ -94,15 +94,15 @@ async function seed() {
     { name: 'Tamil Batch',                type: 'OFFLINE', campusId: campusTamilNadu._id },
     { name: 'Thrissur Offline',           type: 'OFFLINE', campusId: campusThrissurOffline._id },
     // ── Integrated School (IS) ────────────────────────────────────────────────
-    { name: 'R1', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
-    { name: 'R2', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
-    { name: 'R3', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
-    { name: 'S1', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
-    { name: 'S2', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
-    { name: 'S3', type: 'INTEGRATED_SCHOOL', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
-    { name: 'R4', type: 'INTEGRATED_SCHOOL', campusId: ayikk._id },
-    { name: 'S4', type: 'INTEGRATED_SCHOOL', campusId: ayikk._id },
-    { name: 'S5', type: 'INTEGRATED_SCHOOL', campusId: ayikk._id },
+    { name: 'R1', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
+    { name: 'R2', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
+    { name: 'R3', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
+    { name: 'S1', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },
+    { name: 'S2', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
+    { name: 'S3', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_TWO' },
+    { name: 'R4', type: 'IG', campusId: ayikk._id },
+    { name: 'S4', type: 'IG', campusId: ayikk._id },
+    { name: 'S5', type: 'IG', campusId: ayikk._id },
   ])
   // suppress unused-variable warnings (batches used only for coordinator batchId assignment above)
   void batchKotGirls; void batchKotBoys; void batchCalBoys
@@ -148,8 +148,6 @@ async function seed() {
     { name: 'Dr. Dunoonul Shibli', subject: 'Biology', type: 'PERMANENT', salaryModel: 'SPLIT_FIXED_VARIABLE', fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000), variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000), monthlyDayQuota: e('SALARY_SHIBLI_MIN_DAYS', 16), monthlyHourQuota: e('SALARY_SHIBLI_MIN_HOURS', 96) },
     // 13 – Anoop K
     { name: 'Anoop K', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000), monthlyDayQuota: e('SALARY_ANOOP_MIN_DAYS', 16) },
-    // 14 – Dileep (TBD — configurable, pending setup)
-    { name: 'Dileep', subject: 'TBD', type: 'PERMANENT', salaryModel: 'CONFIGURABLE' },
   ])
 
   // Map names → ObjectIds for contract seeding
@@ -170,7 +168,6 @@ async function seed() {
     { facultyId: byName['Habid PP'],           contractType: 'HOURLY',                   hourlyRate: e('SALARY_HABID_RATE', 1100),                       notes: 'Chemistry. ₹' + es('SALARY_HABID_RATE', '1100') + '/hr' },
     { facultyId: byName['Dr. Dunoonul Shibli'],contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),           variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000),   cancellationPenaltyPerClass: e('SALARY_SHIBLI_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_SHIBLI_MIN_DAYS', 16), minHoursRequirement: e('SALARY_SHIBLI_MIN_HOURS', 96), notes: 'Biology. Variable reduced by penalty per faculty-cancelled class.' },
     { facultyId: byName['Anoop K'],            contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000),            minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16),             notes: 'Physics. Fixed monthly; HR_REVIEW if < min days.' },
-    { facultyId: byName['Dileep'],             contractType: 'CONFIGURABLE',             isConfigured: false,                                            notes: 'TBD. Pay structure to be configured by HR.' },
   ])
 
   // ── Users ─────────────────────────────────────────────────────────────────

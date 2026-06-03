@@ -9,10 +9,11 @@ export interface IISTimetableSlot extends Document {
   campusId:    Types.ObjectId
   batchId:     Types.ObjectId
   facultyId?:  Types.ObjectId
-  subject:     string
-  chapter:     string
-  timeSlot:    ISTimeSlot
-  /** Planned duration in hours — entered by IS Academics Manager when scheduling */
+  subject:       string
+  chapter:       string
+  startTime?:    string       // "HH:MM" 24-hour format
+  timeSlot:      ISTimeSlot
+  /** Planned duration in decimal hours — entered at scheduling */
   durationHours?: number
   status:      ISSlotStatus
   notes?:      string
@@ -26,10 +27,11 @@ const ISTimetableSlotSchema = new Schema<IISTimetableSlot>(
     campusId:   { type: Schema.Types.ObjectId, ref: 'Campus', required: true },
     batchId:    { type: Schema.Types.ObjectId, ref: 'Batch',  required: true },
     facultyId:  { type: Schema.Types.ObjectId, ref: 'Faculty' },
-    subject:    { type: String, required: true },
-    chapter:    { type: String, required: true },
-    timeSlot:     { type: String, enum: ['MORNING', 'AFTERNOON'], required: true },
-    durationHours:{ type: Number },
+    subject:       { type: String, required: true },
+    chapter:       { type: String, required: true },
+    startTime:     { type: String, match: /^\d{2}:\d{2}$/ },
+    timeSlot:      { type: String, enum: ['MORNING', 'AFTERNOON'], required: true },
+    durationHours: { type: Number },
     status:       { type: String, enum: ['PLANNED', 'COMPLETED', 'CANCELLED'], default: 'PLANNED' },
     notes:      String,
     isUnplanned: { type: Boolean, default: false },

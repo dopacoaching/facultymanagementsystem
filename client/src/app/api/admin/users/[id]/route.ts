@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -8,8 +8,8 @@ import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
 import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
-  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',
-  'COORDINATOR', 'IS_COORDINATOR', 'FACULTY',
+  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
 ]
 
 /** PATCH /api/admin/users/:id — update a user (password reset, activate/deactivate, role change) */

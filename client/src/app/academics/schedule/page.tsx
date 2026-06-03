@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
@@ -130,7 +130,7 @@ export default function SchedulePage() {
     load()
     getFaculty(accessToken).then(setFaculty).catch(console.error)
     getBatches(accessToken).then((list) => {
-      const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
+      const ac = list.filter((b) => b.type !== 'IG')
       const visible = isCoordinator && coordinatorBatchId
         ? ac.filter((b) => b._id === coordinatorBatchId)
         : ac

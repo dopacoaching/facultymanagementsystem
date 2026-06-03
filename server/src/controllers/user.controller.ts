@@ -13,8 +13,8 @@ import { UserRole } from '../types'
 export { validatePasswordComplexity }
 
 const VALID_ROLES: UserRole[] = [
-  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',
-  'COORDINATOR', 'IS_COORDINATOR', 'FACULTY',
+  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
 ]
 
 /** GET /admin/users — list all users (password hash excluded) */

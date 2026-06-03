@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -10,7 +10,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IS_COORDINATOR'
+  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
 }
 
 /** GET /api/academics/sessions — exclude IS batches when no explicit batchId given */
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const limitParam     = searchParams.get('limit')       ?? undefined
 
     // Academics: exclude IS batches when no explicit batchId/batchType given
-    const excludeBatchType = (!batchId && !batchType) ? 'INTEGRATED_SCHOOL' : undefined
+    const excludeBatchType = (!batchId && !batchType) ? 'IG' : undefined
 
     const filter: Record<string, unknown> = {}
 
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
         return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
       }
     } else if (batchType) {
-      const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE', 'INTEGRATED_SCHOOL']
+      const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE', 'IG']
       if (!VALID_BATCH_TYPES.includes(batchType)) {
         return withToken(json({ error: 'Invalid batchType' }, 400), refreshedToken)
       }
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return forbidden
 
-    const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot } = await req.json()
+    const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, startTime } = await req.json()
 
     if (!facultyId || !batchId || !subject || !chapter || !durationHours || !sessionDate) {
       return withToken(json({
@@ -209,9 +209,10 @@ export async function POST(req: NextRequest) {
       batchId:       batchOid,
       subject,
       chapter,
+      startTime:     startTime  ?? undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,
-      timeSlot:      timeSlot ?? undefined,
+      timeSlot:      timeSlot   ?? undefined,
       status:        'COMPLETED',
       loggedByUserId: new Types.ObjectId(payload.userId),
     })

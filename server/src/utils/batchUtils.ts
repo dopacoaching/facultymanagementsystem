@@ -8,7 +8,7 @@ import { BatchType } from '../types'
  *  - ONLINE:      remote students watch online — same delivery model
  *
  * Only OFFLINE batches use direct in-person instruction without prior video.
- * INTEGRATED_SCHOOL follows its own academic calendar and is excluded here.
+ * IG (Integrated Grades) follows its own academic calendar and is excluded here.
  */
 export function isVideoFirstBatch(type: BatchType | string): boolean {
   return type === 'RESIDENTIAL' || type === 'ONLINE'

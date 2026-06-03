@@ -407,7 +407,7 @@ async function calcSplitFixedVariable(
   }
 }
 
-/** CONFIGURABLE — Dileep (TBD) */
+/** CONFIGURABLE — fully custom salary structure configured by HR per faculty */
 async function calcConfigurable(
   contract: IPermanentFacultyContract,
   hoursLogged: number,

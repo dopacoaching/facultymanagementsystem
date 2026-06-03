@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
@@ -35,7 +35,7 @@ export default function ExamTopicsPage() {
   useEffect(() => {
     if (!accessToken) return
     getBatches(accessToken).then((list) => {
-      const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
+      const ac = list.filter((b) => b.type !== 'IG')
       setBatches(ac)
       if (ac.length) setBatchId(ac[0]._id)
     }).catch(console.error)

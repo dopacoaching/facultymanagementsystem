@@ -45,10 +45,10 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Syllabus',     href: '/academics/syllabus',          icon: '📋' },
   { label: 'Progress',     href: '/academics/syllabus/progress', icon: '📈' },
   { label: 'AC Reports',   href: '/academics/reports',           icon: '📊' },
-  // Integrated School
-  { label: 'IS Sessions',  href: '/is/sessions',  icon: '🏫' },
-  { label: 'IS Timetable', href: '/is/timetable', icon: '⏱' },
-  { label: 'IS Chapters',  href: '/is/chapters',  icon: '📖' },
+  // IG (Integrated Grades)
+  { label: 'IG Sessions',  href: '/ig/sessions',  icon: '🏫' },
+  { label: 'IG Timetable', href: '/ig/timetable', icon: '⏱' },
+  { label: 'IG Chapters',  href: '/ig/chapters',  icon: '📖' },
 ]
 
 const HR_NAV: NavItem[] = [
@@ -70,12 +70,12 @@ const ACADEMICS_NAV: NavItem[] = [
   { label: 'Reports',     href: '/academics/reports',            icon: '📊' },
 ]
 
-// IS_ACADEMICS_MANAGER: Integrated School only — no Repeaters sections
+// IG_ACADEMICS_MANAGER: IG (Integrated Grades) only — no Repeaters sections
 const IS_ACADEMICS_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/is',           icon: '◈' },
-  { label: 'IS Sessions', href: '/is/sessions',  icon: '📅' },
-  { label: 'IS Timetable',href: '/is/timetable', icon: '⏱' },
-  { label: 'IS Chapters', href: '/is/chapters',  icon: '📖' },
+  { label: 'Dashboard',   href: '/ig',           icon: '◈' },
+  { label: 'IG Sessions', href: '/ig/sessions',  icon: '📅' },
+  { label: 'IG Timetable',href: '/ig/timetable', icon: '⏱' },
+  { label: 'IG Chapters', href: '/ig/chapters',  icon: '📖' },
 ]
 
 // COORDINATOR: Session logging + Chapter progress view
@@ -96,8 +96,8 @@ function navForRole(role: string | null): NavItem[] {
   if (role === 'ADMIN')               return ADMIN_NAV
   if (role === 'HR_MANAGER')          return HR_NAV
   if (role === 'ACADEMICS_MANAGER')   return ACADEMICS_NAV
-  if (role === 'IS_ACADEMICS_MANAGER') return IS_ACADEMICS_NAV
-  if (role === 'IS_COORDINATOR')      return IS_ACADEMICS_NAV   // same view, RBAC enforced at API
+  if (role === 'IG_ACADEMICS_MANAGER') return IS_ACADEMICS_NAV
+  if (role === 'IG_COORDINATOR')      return IS_ACADEMICS_NAV   // same view, RBAC enforced at API
   if (role === 'COORDINATOR')         return COORDINATOR_NAV
   if (role === 'FACULTY')             return FACULTY_NAV
   return []
@@ -109,9 +109,9 @@ function roleLabel(role: string | null): string {
     ADMIN:                'Admin',
     HR_MANAGER:           'HR Manager',
     ACADEMICS_MANAGER:    'Academics',
-    IS_ACADEMICS_MANAGER: 'IS Academics',
+    IG_ACADEMICS_MANAGER: 'IS Academics',
     COORDINATOR:          'Class Teacher',
-    IS_COORDINATOR:       'IS Class Teacher',
+    IG_COORDINATOR:       'IS Class Teacher',
     FACULTY:              'Faculty',
   }
   return map[role] ?? role.replace(/_/g, ' ')

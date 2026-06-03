@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty } from '@/services/faculty.service'
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     if (!accessToken) return
     getFaculty(accessToken, true).then(setFaculty).catch(console.error)  // include inactive for accurate stats
     getSessions({}, accessToken).then(setAcSessions).catch(console.error)
-    apiFetch<ISession[]>('/integrated-school/sessions', { token: accessToken }).then(setIsSessions).catch(console.error)
+    apiFetch<ISession[]>('/ig/sessions', { token: accessToken }).then(setIsSessions).catch(console.error)
     getAuditLog(accessToken, 1, 8).then((r) => setAuditLogs(r.logs)).catch(console.error)
   }, [accessToken])
 
@@ -117,8 +117,8 @@ export default function AdminDashboard() {
           <QuickLink href="/academics/sessions"  icon="📅" label="AC Sessions"    desc="Repeaters class sessions" />
           <QuickLink href="/academics/schedule"  icon="🗓" label="AC Schedule"    desc="Weekly schedule" />
           <QuickLink href="/academics/exams"     icon="📝" label="Exam Topics"    desc="Chapters & exam topics" />
-          <QuickLink href="/is/sessions"         icon="🏫" label="IS Sessions"    desc="Integrated School sessions" />
-          <QuickLink href="/is/timetable"        icon="⏱" label="IS Timetable"   desc="Integrated School timetable" />
+          <QuickLink href="/ig/sessions"         icon="🏫" label="IG Sessions"    desc="IG sessions" />
+          <QuickLink href="/ig/timetable"        icon="⏱" label="IG Timetable"   desc="IG timetable" />
         </div>
       </section>
 
@@ -175,12 +175,12 @@ export default function AdminDashboard() {
       {/* ── IS Stats ─────────────────────────────────────────────────────────── */}
       <section>
         <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-          Integrated School
+          IG
         </h2>
         <div className="stats-grid">
           {[
-            { label: 'Total IS Sessions', value: isSessions.length, icon: '🏫', color: 'var(--color-primary)' },
-            { label: "Today's IS",        value: todayIS,           icon: '📅', color: 'var(--color-accent)'  },
+            { label: 'Total IG Sessions', value: isSessions.length, icon: '🏫', color: 'var(--color-primary)' },
+            { label: "Today's IG",        value: todayIS,           icon: '📅', color: 'var(--color-accent)'  },
             { label: 'IS Completed',      value: isCompleted,       icon: '✅', color: 'var(--color-success)' },
             { label: 'IS Scheduled',      value: isScheduled,       icon: '⏳', color: 'var(--color-info)'    },
             { label: 'IS Cancelled',      value: isCancelled,       icon: '❌', color: 'var(--color-danger)'  },
@@ -289,18 +289,18 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Recent IS Sessions */}
+        {/* Recent IG Sessions */}
         <div className="card">
           <div className="card-header">
-            <h2>Recent IS Sessions</h2>
-            <Link href="/is/sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+            <h2>Recent IG Sessions</h2>
+            <Link href="/ig/sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               View all →
             </Link>
           </div>
           {isSessions.length === 0 ? (
             <div className="empty-state" style={{ padding: '2rem' }}>
               <div className="empty-state-icon">🏫</div>
-              <p>No IS sessions yet</p>
+              <p>No IG Sessions yet</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>

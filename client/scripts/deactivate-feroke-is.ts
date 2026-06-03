@@ -1,4 +1,4 @@
-/**
+﻿/**
  * One-time migration: deactivate the "Feroke Girls IS" batch in MongoDB Atlas.
  *
  * Run from the client/ directory:
@@ -21,7 +21,7 @@ async function run() {
   console.log('MongoDB connected ✓')
 
   const result = await Batch.updateOne(
-    { name: 'Feroke Girls IS', type: 'INTEGRATED_SCHOOL' },
+    { name: 'Feroke Girls IS', type: 'IG' },
     { $set: { isActive: false } },
   )
 

@@ -7,13 +7,17 @@ import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 
+const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+
 interface FormState {
   batchId: string
   facultyId: string
   subject: string
   chapter: string
   syllabusChapterId?: string
+  startTime: string
   durationHours: number
+  durationMinutes: number
   sessionDate: string
 }
 
@@ -32,7 +36,9 @@ const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
   subject:           '',
   chapter:           '',
   syllabusChapterId: undefined,
+  startTime:         '',
   durationHours:     1,
+  durationMinutes:   0,
   sessionDate:       new Date().toISOString().slice(0, 10),
 })
 
@@ -131,7 +137,8 @@ export default function LogSessionPage() {
           subject:           form.subject.trim(),
           chapter:           form.chapter.trim(),
           syllabusChapterId: form.syllabusChapterId ?? undefined,
-          durationHours:     Number(form.durationHours),
+          startTime:         form.startTime || undefined,
+          durationHours:     form.durationHours + form.durationMinutes / 60,
           sessionDate:       form.sessionDate,
         },
       })
@@ -305,19 +312,41 @@ export default function LogSessionPage() {
             )}
           </div>
 
-          {/* Hours + Date */}
+          {/* Start Time + Duration + Date */}
           <div className="input-group">
             <div className="form-group">
-              <label className="label">Hours Taught</label>
+              <label className="label">Start Time</label>
               <input
-                type="number"
+                type="time"
                 className="input"
-                min={0.5}
-                step={0.5}
-                max={12}
-                value={form.durationHours}
-                onChange={(e) => setField('durationHours', +e.target.value)}
+                value={form.startTime}
+                onChange={(e) => setField('startTime', e.target.value)}
               />
+            </div>
+            <div className="form-group">
+              <label className="label">Duration</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="number"
+                  className="input"
+                  min={0}
+                  max={12}
+                  style={{ width: '5rem' }}
+                  value={form.durationHours}
+                  onChange={(e) => setField('durationHours', +e.target.value)}
+                  placeholder="hrs"
+                />
+                <select
+                  className="input"
+                  style={{ width: '5rem' }}
+                  value={form.durationMinutes}
+                  onChange={(e) => setField('durationMinutes', +e.target.value)}
+                >
+                  {MINUTE_OPTIONS.map((m) => (
+                    <option key={m} value={m}>{m}m</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="form-group">
               <label className="label">Session Date</label>

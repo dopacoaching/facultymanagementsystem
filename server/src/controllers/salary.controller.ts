@@ -331,7 +331,7 @@ export const getContract = asyncHandler(async (req: AuthRequest, res: Response) 
 
 /**
  * PATCH /hr/contract/:facultyId
- * Updates contract fields — primarily used for CONFIGURABLE faculty (Dileep).
+ * Updates contract fields — used for CONFIGURABLE salary contracts.
  * Only HR_MANAGER and ADMIN may update contracts.
  * Whitelists allowed fields to prevent mass assignment (e.g. of facultyId, _id).
  */

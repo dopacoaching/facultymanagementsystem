@@ -89,7 +89,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/api/auth', authRoutes)
 app.use('/api/hr', hrRoutes)
 app.use('/api/academics', academicsRoutes)
-app.use('/api/integrated-school', isRoutes)
+app.use('/api/ig', isRoutes)
 app.use('/api/admin', adminRoutes)
 
 // ── Global error handler ──────────────────────────────────────────────────────

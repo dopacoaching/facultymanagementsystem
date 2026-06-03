@@ -41,7 +41,7 @@ export interface IPermanentFacultyContract extends Document {
   cancellationPenaltyPerClass?: number
   minHoursRequirement?: number   // combined min-hours gate alongside minDaysNormal
 
-  // CONFIGURABLE (Dileep — TBD)
+  // CONFIGURABLE — pay structure configured by HR per faculty
   isConfigured: boolean
   configurablePayJson?: Record<string, unknown>
 

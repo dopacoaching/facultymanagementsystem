@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/seed.ts",
-    "seed:syllabus": "tsx src/scripts/seed-syllabus.ts"
+    "seed:syllabus": "tsx --env-file=../.env src/scripts/seed-syllabus.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

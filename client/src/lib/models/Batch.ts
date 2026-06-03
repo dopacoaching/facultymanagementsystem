@@ -1,4 +1,4 @@
-import { Schema, model, models, Model, Document, Types } from 'mongoose'
+﻿import { Schema, model, models, Model, Document, Types } from 'mongoose'
 import { BatchType } from '@/lib/types'
 
 export interface IBatch extends Document {
@@ -12,7 +12,7 @@ export interface IBatch extends Document {
 const BatchSchema = new Schema<IBatch>(
   {
     name: { type: String, required: true },
-    type: { type: String, enum: ['RESIDENTIAL', 'OFFLINE', 'ONLINE', 'INTEGRATED_SCHOOL'], required: true },
+    type: { type: String, enum: ['RESIDENTIAL', 'OFFLINE', 'ONLINE', 'IG'], required: true },
     campusId: { type: Schema.Types.ObjectId, ref: 'Campus', required: true },
     ig1Subgroup: { type: String, enum: ['PLUS_ONE', 'PLUS_TWO'] },
     isActive: { type: Boolean, default: true },

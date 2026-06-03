@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json } from '@/lib/auth'
 import { Batch } from '@/lib/models/Batch'
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   await connectDB()
 
   const result = await Batch.updateOne(
-    { name: 'Feroke Girls IS', type: 'INTEGRATED_SCHOOL' },
+    { name: 'Feroke Girls IS', type: 'IG' },
     { $set: { isActive: false } },
   )
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -8,7 +8,7 @@ import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IS_COORDINATOR'
+  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
 }
 
 /** POST /api/academics/sessions/cancel */

@@ -15,7 +15,7 @@ router.use(authenticate)
 // Middleware: scope getSessions to IS batches only (unless batchId is explicit)
 function injectISBatchType(req: Request, _res: Response, next: NextFunction) {
   if (!req.query.batchId) {
-    req.query.batchType = 'INTEGRATED_SCHOOL'
+    req.query.batchType = 'IG'
   }
   next()
 }
@@ -25,17 +25,17 @@ router.get ('/timetable/daily',  getDailyTimetable)
 router.get ('/timetable/weekly', getWeeklyTimetable)
 router.post(
   '/timetable/assign',
-  authorize('IS_ACADEMICS_MANAGER', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
+  authorize('IG_ACADEMICS_MANAGER', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
   assignSlot,
 )
 router.patch(
   '/timetable/:id',
-  authorize('IS_ACADEMICS_MANAGER', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
+  authorize('IG_ACADEMICS_MANAGER', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
   updateSlot,
 )
 router.delete(
   '/timetable/:id',
-  authorize('IS_ACADEMICS_MANAGER', 'ADMIN'),
+  authorize('IG_ACADEMICS_MANAGER', 'ADMIN'),
   deleteSlot,
 )
 
@@ -44,33 +44,33 @@ router.get('/timings', getTimings)
 
 // ─── Special Days ─────────────────────────────────────────────────────────────
 router.get   ('/special-days',     getSpecialDays)
-router.post  ('/special-days',     authorize('IS_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), createSpecialDay)
-router.delete('/special-days/:id', authorize('IS_ACADEMICS_MANAGER', 'ADMIN'), deleteSpecialDay)
+router.post  ('/special-days',     authorize('IG_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), createSpecialDay)
+router.delete('/special-days/:id', authorize('IG_ACADEMICS_MANAGER', 'ADMIN'), deleteSpecialDay)
 
 // ─── IS Batch Chapters ────────────────────────────────────────────────────────
 router.get  ('/chapters',     getISChapters)
-router.patch('/chapters/:id', authorize('IS_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), updateISChapter)
+router.patch('/chapters/:id', authorize('IG_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), updateISChapter)
 
 // ─── IS Sessions (reuse shared session controller, scoped to IS) ──────────────
 router.get ('/sessions', injectISBatchType, getSessions)
 router.post(
   '/sessions',
-  authorize('IS_COORDINATOR', 'IS_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'),
+  authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'),
   createSession,
 )
 router.post(
   '/sessions/cancel',
-  authorize('IS_COORDINATOR', 'IS_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
+  authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
   cancelSession,
 )
 router.patch(
   '/sessions/:id/status',
-  authorize('IS_COORDINATOR', 'IS_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
+  authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
   updateSessionStatus,
 )
 router.patch(
   '/sessions/:id',
-  authorize('IS_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
+  authorize('IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
   updateSession,
 )
 

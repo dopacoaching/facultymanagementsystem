@@ -6,10 +6,10 @@ export type UserRole =
   | 'ADMIN'
   | 'HR_MANAGER'
   | 'ACADEMICS_MANAGER'
-  | 'IS_ACADEMICS_MANAGER'
+  | 'IG_ACADEMICS_MANAGER'
   | 'COORDINATOR'
   | 'FACULTY'
-  | 'IS_COORDINATOR'   // legacy — kept for JWT backward-compat
+  | 'IG_COORDINATOR'
 
 export type FacultyType = 'PERMANENT' | 'TEMPORARY' | 'REGULAR' | 'VISITING' | 'CONTRACTUAL'
 
@@ -31,7 +31,7 @@ export type ContractType =
   | 'SPLIT_FIXED_VARIABLE'
   | 'CONFIGURABLE'
 
-export type BatchType = 'RESIDENTIAL' | 'OFFLINE' | 'ONLINE' | 'INTEGRATED_SCHOOL'
+export type BatchType = 'RESIDENTIAL' | 'OFFLINE' | 'ONLINE' | 'IG'
 
 export type SessionStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NOT_COMPLETED'
 

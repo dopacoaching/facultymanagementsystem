@@ -23,6 +23,7 @@ export async function create(
     subject: string
     chapter: string
     syllabusChapterId?: string
+    startTime?: string
     durationHours: number
     sessionDate: string
     facultyId?: string

@@ -27,7 +27,7 @@ function midnight(d: string | Date): Date {
  * Runs all 5 conflict checks before saving.
  */
 export const assignSlot = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { date, campusId, batchId, facultyId, subject, chapter, timeSlot, notes, isUnplanned } = req.body
+  const { date, campusId, batchId, facultyId, subject, chapter, startTime, durationHours, timeSlot, notes, isUnplanned } = req.body
 
   if (!date || !campusId || !batchId || !subject || !chapter || !timeSlot) {
     res.status(400).json({
@@ -70,15 +70,17 @@ export const assignSlot = asyncHandler(async (req: AuthRequest, res: Response) =
   }
 
   const slot = await ISTimetableSlot.create({
-    date:       slotDate,
-    campusId:   campusOid,
-    batchId:    batchOid,
-    facultyId:  facultyOid ?? null,
+    date:          slotDate,
+    campusId:      campusOid,
+    batchId:       batchOid,
+    facultyId:     facultyOid ?? null,
     subject,
     chapter,
+    startTime:     startTime    ?? undefined,
+    durationHours: durationHours != null ? Number(durationHours) : undefined,
     timeSlot,
-    notes:      notes ?? undefined,
-    isUnplanned: Boolean(isUnplanned),
+    notes:         notes        ?? undefined,
+    isUnplanned:   Boolean(isUnplanned),
   })
 
   // Auto-mark the ISBatchChapter as SCHEDULED
@@ -204,7 +206,7 @@ export const getWeeklyTimetable = asyncHandler(async (req: AuthRequest, res: Res
  */
 export const updateSlot = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params
-  const { status, facultyId, notes, chapter, subject } = req.body
+  const { status, facultyId, notes, chapter, subject, startTime, durationHours } = req.body
 
   const slot = await ISTimetableSlot.findById(id)
   if (!slot) { res.status(404).json({ error: 'Timetable slot not found' }); return }
@@ -221,9 +223,11 @@ export const updateSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     }
     update.status = status
   }
-  if (notes   !== undefined) update.notes   = notes
-  if (chapter !== undefined) update.chapter = chapter
-  if (subject !== undefined) update.subject = subject
+  if (notes         !== undefined) update.notes         = notes
+  if (chapter       !== undefined) update.chapter       = chapter
+  if (subject       !== undefined) update.subject       = subject
+  if (startTime     !== undefined) update.startTime     = startTime
+  if (durationHours !== undefined) update.durationHours = Number(durationHours)
 
   // Updating facultyId requires re-running conflict check
   if (facultyId !== undefined) {

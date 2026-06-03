@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, create, cancel } from '@/services/session.service'
@@ -18,6 +18,7 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_OPTIONS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPLETED']
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
 interface BatchChapter {
   _id: string
@@ -42,7 +43,9 @@ export default function SessionsPage() {
   const [form, setForm] = useState({
     facultyId: '', batchId: '', subject: '', chapter: '',
     syllabusChapterId: undefined as string | undefined,
-    durationHours: 1, sessionDate: new Date().toISOString().slice(0, 10),
+    startTime: '',
+    durationHours: 1, durationMinutes: 0,
+    sessionDate: new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]           = useState(false)
   const [cancelInitiator, setCancelInitiator] = useState<Record<string, string>>({})
@@ -80,7 +83,7 @@ export default function SessionsPage() {
     load()
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
     getBatches(accessToken).then((list) => {
-      const acBatches = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
+      const acBatches = list.filter((b) => b.type !== 'IG')
       setBatches(acBatches)
       if (acBatches.length) setForm((f) => ({ ...f, batchId: acBatches[0]._id }))
     }).catch(console.error)
@@ -138,7 +141,8 @@ export default function SessionsPage() {
     try {
       await create({
         ...form,
-        durationHours:     Number(form.durationHours),
+        startTime:         form.startTime || undefined,
+        durationHours:     form.durationHours + form.durationMinutes / 60,
         syllabusChapterId: form.syllabusChapterId ?? undefined,
       }, accessToken)
       setShowForm(false); load()
@@ -330,8 +334,19 @@ export default function SessionsPage() {
                   )}
                 </div>
                 <div className="form-group">
-                  <label className="label">Duration (hrs)</label>
-                  <input type="number" className="input" min={0.5} step={0.5} value={form.durationHours} onChange={(e) => setForm({ ...form, durationHours: +e.target.value })} />
+                  <label className="label">Start Time</label>
+                  <input type="time" className="input" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Duration</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="number" className="input" min={0} max={12} step={1} style={{ width: '5rem' }} placeholder="hrs"
+                      value={form.durationHours} onChange={(e) => setForm({ ...form, durationHours: +e.target.value })} />
+                    <select className="input" style={{ width: '5rem' }} value={form.durationMinutes}
+                      onChange={(e) => setForm({ ...form, durationMinutes: +e.target.value, syllabusChapterId: form.syllabusChapterId })}>
+                      {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}m</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>

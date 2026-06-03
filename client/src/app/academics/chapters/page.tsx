@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
@@ -42,7 +42,7 @@ export default function ChaptersPage() {
   useEffect(() => {
     if (!accessToken) return
     getBatches(accessToken).then((list) => {
-      const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
+      const ac = list.filter((b) => b.type !== 'IG')
       // Coordinators can only see and act on their assigned batch
       const visible = isCoordinator && coordinatorBatchId
         ? ac.filter((b) => b._id === coordinatorBatchId)

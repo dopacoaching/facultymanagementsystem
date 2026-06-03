@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -32,7 +32,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await connectDB()
 
     // Coordinator batch ownership guard — must match assigned batch
-    if (payload.role === 'COORDINATOR' || payload.role === 'IS_COORDINATOR') {
+    if (payload.role === 'COORDINATOR' || payload.role === 'IG_COORDINATOR') {
       const target = await Session.findById(oid).lean()
       if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
       if (!payload.batchId || target.batchId.toString() !== payload.batchId) {

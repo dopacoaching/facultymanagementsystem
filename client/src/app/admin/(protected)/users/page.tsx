@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getUsers, createUser, updateUser } from '@/services/user.service'
@@ -23,17 +23,17 @@ function validatePasswordComplexity(pw: string): string | null {
 }
 
 const ALL_ROLES: UserRole[] = [
-  'ADMIN', 'HR_MANAGER', 'ACADEMICS_MANAGER', 'IS_ACADEMICS_MANAGER',
-  'COORDINATOR', 'IS_COORDINATOR', 'FACULTY',
+  'ADMIN', 'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
 ]
 
 const ROLE_BADGE: Record<string, string> = {
   ADMIN:                'badge-red',
   HR_MANAGER:           'badge-yellow',
   ACADEMICS_MANAGER:    'badge-blue',
-  IS_ACADEMICS_MANAGER: 'badge-blue',
+  IG_ACADEMICS_MANAGER: 'badge-blue',
   COORDINATOR:          'badge-green',
-  IS_COORDINATOR:       'badge-green',
+  IG_COORDINATOR:       'badge-green',
   FACULTY:              'badge-gray',
 }
 
@@ -41,9 +41,9 @@ const ROLE_DISPLAY: Record<string, string> = {
   ADMIN:                'Admin',
   HR_MANAGER:           'HR Manager',
   ACADEMICS_MANAGER:    'Academics Manager',
-  IS_ACADEMICS_MANAGER: 'IS Academics Manager',
+  IG_ACADEMICS_MANAGER: 'IG Academics Manager',
   COORDINATOR:          'Class Teacher',
-  IS_COORDINATOR:       'IS Class Teacher',
+  IG_COORDINATOR:       'IG Class Teacher',
   FACULTY:              'Faculty',
 }
 function getRoleLabel(role: string) {

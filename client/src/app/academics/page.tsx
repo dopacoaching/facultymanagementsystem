@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getSessions } from '@/services/session.service'
@@ -48,7 +48,7 @@ export default function AcademicsDashboard() {
     getSessions({}, accessToken).then(setSessions).catch(console.error)
     apiFetch<Schedule[]>('/academics/schedules', { token: accessToken }).then(setSchedules).catch(console.error)
     getBatches(accessToken).then((list) => {
-      const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
+      const ac = list.filter((b) => b.type !== 'IG')
       setBatches(ac)
 
       // Load chapter stats for Residential + Online batches using a single

@@ -6,6 +6,7 @@ export interface ISession extends Document {
   batchId: Types.ObjectId
   subject: string
   chapter: string
+  startTime?: string          // "HH:MM" 24-hour format, e.g. "09:30"
   durationHours: number
   sessionDate: Date
   timeSlot?: 'MORNING' | 'AFTERNOON'
@@ -21,6 +22,7 @@ const SessionSchema = new Schema<ISession>(
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
     subject: { type: String, required: true },
     chapter: { type: String, required: true },
+    startTime: { type: String, match: /^\d{2}:\d{2}$/ },
     durationHours: { type: Number, required: true, min: 0.5 },
     sessionDate: { type: Date, required: true },
     timeSlot: { type: String, enum: ['MORNING', 'AFTERNOON'] },

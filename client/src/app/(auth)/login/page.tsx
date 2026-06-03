@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -19,9 +19,9 @@ type Form = z.infer<typeof schema>
 const roleHome: Record<string, string> = {
   HR_MANAGER:           '/hr',
   ACADEMICS_MANAGER:    '/academics',
-  IS_ACADEMICS_MANAGER: '/is',
+  IG_ACADEMICS_MANAGER: '/ig',
   COORDINATOR:          '/coordinator',
-  IS_COORDINATOR:       '/is',
+  IG_COORDINATOR:       '/ig',
   FACULTY:              '/faculty',
 }
 

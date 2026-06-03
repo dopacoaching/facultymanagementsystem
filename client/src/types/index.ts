@@ -2,10 +2,10 @@ export type UserRole =
   | 'ADMIN'
   | 'HR_MANAGER'
   | 'ACADEMICS_MANAGER'
-  | 'IS_ACADEMICS_MANAGER'
+  | 'IG_ACADEMICS_MANAGER'
   | 'COORDINATOR'
   | 'FACULTY'
-  | 'IS_COORDINATOR'
+  | 'IG_COORDINATOR'
 
 export interface Faculty {
   _id: string

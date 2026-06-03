@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
@@ -61,7 +61,7 @@ export default function SyllabusProgressPage() {
     if (!accessToken) { setLoading(false); return }
     getBatches(accessToken)
       .then((list) => {
-        const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
+        const ac = list.filter((b) => b.type !== 'IG')
         const visible = isCoordinator && coordinatorBatchId
           ? ac.filter((b) => b._id.toString() === coordinatorBatchId?.toString())
           : ac

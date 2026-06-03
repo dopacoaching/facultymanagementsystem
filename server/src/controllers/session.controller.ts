@@ -13,7 +13,7 @@ import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IS_COORDINATOR'
+  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
 }
 
 export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -74,7 +74,7 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  *  6. Auto-mark BatchChapter.facultyClassDone = true on success
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot } = req.body
+  const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, durationHours, sessionDate, timeSlot } = req.body
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
   if (!facultyId || !batchId || !subject || !chapter || !durationHours || !sessionDate) {
@@ -219,14 +219,15 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
 
   // ── All checks passed — create session ────────────────────────────────────
   const session = await Session.create({
-    facultyId: facultyOid,
-    batchId: batchOid,
+    facultyId:     facultyOid,
+    batchId:       batchOid,
     subject,
     chapter,
+    startTime:     startTime ?? undefined,
     durationHours: Number(durationHours),
-    sessionDate: date,
-    timeSlot: timeSlot ?? undefined,
-    status: 'SCHEDULED',
+    sessionDate:   date,
+    timeSlot:      timeSlot ?? undefined,
+    status:        'SCHEDULED',
     loggedByUserId: new Types.ObjectId(req.user!.userId),
   })
 
@@ -286,7 +287,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
   const oid = validateObjectId(req.params.id, 'sessionId', res)
   if (!oid) return
   const { id } = req.params
-  const allowed = ['facultyId', 'batchId', 'subject', 'chapter', 'durationHours', 'sessionDate', 'timeSlot']
+  const allowed = ['facultyId', 'batchId', 'subject', 'chapter', 'startTime', 'durationHours', 'sessionDate', 'timeSlot']
   const update: Record<string, unknown> = {}
 
   for (const key of allowed) {
