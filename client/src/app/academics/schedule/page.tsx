@@ -85,7 +85,8 @@ const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
-  const { accessToken, role } = useAppSelector((s) => s.auth)
+  const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
+  const isCoordinator = role === 'COORDINATOR'
 
   const [schedules, setSchedules]     = useState<Schedule[]>([])
   const [batches,   setBatches]       = useState<Batch[]>([])
@@ -128,8 +129,11 @@ export default function SchedulePage() {
     getFaculty(accessToken).then(setFaculty).catch(console.error)
     getBatches(accessToken).then((list) => {
       const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
-      setBatches(ac)
-      if (ac.length && !batchId) setBatchId(ac[0]._id)
+      const visible = isCoordinator && coordinatorBatchId
+        ? ac.filter((b) => b._id === coordinatorBatchId)
+        : ac
+      setBatches(visible)
+      if (visible.length && !batchId) setBatchId(visible[0]._id)
     }).catch(console.error)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken])
@@ -297,7 +301,8 @@ export default function SchedulePage() {
           <div className="input-group" style={{ marginBottom: '1.5rem' }}>
             <div className="form-group">
               <label className="label">Batch</label>
-              <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}>
+              <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}
+                disabled={isCoordinator}>
                 <option value="">— select batch —</option>
                 {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
               </select>
@@ -429,7 +434,8 @@ export default function SchedulePage() {
       <div className="card" style={{ marginBottom: '1rem', padding: '0.875rem 1.25rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>Filter by batch:</span>
-          <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)} style={{ minWidth: 200 }}>
+          <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}
+            style={{ minWidth: 200 }} disabled={isCoordinator}>
             <option value="">All Batches</option>
             {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
           </select>

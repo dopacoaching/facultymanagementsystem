@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { BatchChapter } from '@/lib/models/BatchChapter'
 
 /** PATCH /api/academics/sessions/:id/status */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +51,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({
         error: exists ? 'Cannot change the status of a cancelled session.' : 'Session not found',
       }, exists ? 409 : 404), refreshedToken)
+    }
+
+    // When a class is marked NOT_COMPLETED the faculty didn't actually take it —
+    // reset the chapter so it can be re-scheduled and re-logged.
+    if (status === 'NOT_COMPLETED') {
+      await BatchChapter.findOneAndUpdate(
+        { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, sessionId: session._id },
+        { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
+      ).catch(() => null)
     }
 
     return withToken(json(session), refreshedToken)

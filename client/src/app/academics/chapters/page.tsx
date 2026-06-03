@@ -21,7 +21,7 @@ const fmt = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
 export default function ChaptersPage() {
-  const { accessToken, role } = useAppSelector((s) => s.auth)
+  const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
 
   const [chapters, setChapters]     = useState<BatchChapter[]>([])
   const [batches, setBatches]       = useState<Batch[]>([])
@@ -31,18 +31,26 @@ export default function ChaptersPage() {
   const [toggling, setToggling]     = useState<Record<string, boolean>>({})
   const [toggleError, setToggleError] = useState('')
 
-  // Roles that can mark video-complete
-  const canMarkVideo = role === 'COORDINATOR' || role === 'ACADEMICS_MANAGER' || role === 'ADMIN' || role === 'HR_MANAGER'
-  // Roles that can manually toggle facultyClassDone (manager override)
+  // COORDINATOR marks video-complete; managers can also do it as override. HR_MANAGER excluded
+  // because the API (PATCH /academics/chapters/[id]) does not allow HR_MANAGER.
+  const canMarkVideo = role === 'COORDINATOR' || role === 'ACADEMICS_MANAGER' || role === 'ADMIN'
+  // Only managers can manually override the facultyClassDone flag (auto-set by session logging)
   const canMarkClass = role === 'ACADEMICS_MANAGER' || role === 'ADMIN' || role === 'HR_MANAGER'
+
+  const isCoordinator = role === 'COORDINATOR'
 
   useEffect(() => {
     if (!accessToken) return
     getBatches(accessToken).then((list) => {
       const ac = list.filter((b) => b.type !== 'INTEGRATED_SCHOOL')
-      setBatches(ac)
-      if (ac.length) setBatchId(ac[0]._id)
+      // Coordinators can only see and act on their assigned batch
+      const visible = isCoordinator && coordinatorBatchId
+        ? ac.filter((b) => b._id === coordinatorBatchId)
+        : ac
+      setBatches(visible)
+      if (visible.length) setBatchId(visible[0]._id)
     }).catch(console.error)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken])
 
   useEffect(() => {
@@ -105,7 +113,10 @@ export default function ChaptersPage() {
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
             <label className="label" style={{ marginBottom: '0.25rem', display: 'block' }}>Batch</label>
-            <select className="input" value={batchId} onChange={(e) => { setBatchId(e.target.value); setSubject('') }} style={{ minWidth: 200 }}>
+            <select className="input" value={batchId}
+              onChange={(e) => { setBatchId(e.target.value); setSubject('') }}
+              style={{ minWidth: 200 }}
+              disabled={isCoordinator}>
               {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
             </select>
           </div>

@@ -439,9 +439,13 @@ export default function SessionsPage() {
                           {canEdit && s.status !== 'CANCELLED' && (
                             <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)} title="Edit session">✎</button>
                           )}
+                          {/* Mark Complete only makes sense for legacy SCHEDULED sessions */}
                           {s.status === 'SCHEDULED' && (
+                            <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)} disabled={cancelling === s._id} title="Mark Completed">✓</button>
+                          )}
+                          {/* Cancel is available for any non-cancelled session */}
+                          {(s.status === 'SCHEDULED' || s.status === 'COMPLETED' || s.status === 'NOT_COMPLETED') && (
                             <>
-                              <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)} disabled={cancelling === s._id} title="Mark Complete">✓</button>
                               <select className="input" style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: 105 }}
                                 value={cancelInitiator[s._id] ?? ''} onChange={(e) => setCancelInitiator({ ...cancelInitiator, [s._id]: e.target.value })}>
                                 <option value="">initiator</option>
@@ -449,7 +453,7 @@ export default function SessionsPage() {
                                 <option value="STUDENT">Student</option>
                                 <option value="MANAGEMENT">Management</option>
                               </select>
-                              <button className="btn btn-danger btn-sm" disabled={cancelling === s._id} onClick={() => handleCancel(s._id)}>
+                              <button className="btn btn-danger btn-sm" disabled={cancelling === s._id} onClick={() => handleCancel(s._id)} title="Cancel session">
                                 {cancelling === s._id ? '…' : '✕'}
                               </button>
                             </>
