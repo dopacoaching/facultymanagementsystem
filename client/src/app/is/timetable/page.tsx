@@ -17,6 +17,8 @@ interface Slot {
   subject:   string
   chapter:   string
   timeSlot:  'MORNING' | 'AFTERNOON'
+  /** Planned duration in hours — entered by IS Academics Manager */
+  durationHours?: number
   status:    'PLANNED' | 'COMPLETED' | 'CANCELLED'
   notes?:    string
   isUnplanned: boolean
@@ -105,14 +107,15 @@ export default function ISTimetablePage() {
 
   // Assign form
   const [form, setForm] = useState({
-    batchId:    '',
-    campusId:   '',
-    facultyId:  '',
-    subject:    '',
-    chapter:    '',
-    timeSlot:   'MORNING' as 'MORNING' | 'AFTERNOON',
-    notes:      '',
-    isUnplanned: false,
+    batchId:      '',
+    campusId:     '',
+    facultyId:    '',
+    subject:      '',
+    chapter:      '',
+    timeSlot:     'MORNING' as 'MORNING' | 'AFTERNOON',
+    durationHours: '' as string | number,
+    notes:        '',
+    isUnplanned:  false,
   })
 
   // Special day form
@@ -202,7 +205,7 @@ export default function ISTimetablePage() {
         body: { ...form, campusId, date: selectedDate },
       })
       setShowAssign(false)
-      setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '' }))
+      setForm((f) => ({ ...f, subject: '', chapter: '', notes: '', facultyId: '', durationHours: '' }))
       loadDaily()
     } catch (e: unknown) {
       const err = e as { violations?: string[] }
@@ -382,6 +385,7 @@ export default function ISTimetablePage() {
                         <th>Subject</th>
                         <th>Chapter</th>
                         <th>Faculty</th>
+                        <th>Planned</th>
                         <th>Status</th>
                         {canManage && <th style={{ width: 140 }}>Actions</th>}
                       </tr>
@@ -400,6 +404,9 @@ export default function ISTimetablePage() {
                             {slot.chapter}
                           </td>
                           <td>{getFacultyName(slot.facultyId)}</td>
+                          <td style={{ whiteSpace: 'nowrap', color: 'var(--color-muted)', fontSize: '0.8125rem' }}>
+                            {slot.durationHours ? `${slot.durationHours}h` : '—'}
+                          </td>
                           <td>
                             <span className={`badge ${SLOT_STATUS_BADGE[slot.status] ?? 'badge-gray'}`}>
                               {slot.status}
@@ -509,7 +516,14 @@ export default function ISTimetablePage() {
                     {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name} ({f.subject})</option>)}
                   </select>
                 </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <div className="form-group">
+                  <label className="label">Planned Hours</label>
+                  <input type="number" className="input" min={0.5} max={12} step={0.5}
+                    placeholder="e.g. 1.5"
+                    value={form.durationHours}
+                    onChange={(e) => setForm({ ...form, durationHours: e.target.value })} />
+                </div>
+                <div className="form-group">
                   <label className="label">Notes (optional)</label>
                   <input className="input" value={form.notes} placeholder="Any notes…"
                     onChange={(e) => setForm({ ...form, notes: e.target.value })} />

@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { BatchChapter } from '@/lib/models/BatchChapter'
 
 /** PATCH /api/integrated-school/sessions/:id/status */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await connectDB()
 
+    // Coordinator batch ownership guard
+    if (payload.role === 'IS_COORDINATOR' || payload.role === 'COORDINATOR') {
+      const target = await Session.findById(oid).lean()
+      if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+      if (!payload.batchId || target.batchId.toString() !== payload.batchId) {
+        return withToken(json({ error: 'You can only update sessions for your assigned batch.' }, 403), refreshedToken)
+      }
+    }
+
     const session = await Session.findOneAndUpdate(
       { _id: oid, status: { $ne: 'CANCELLED' } },
       { status },
@@ -41,6 +51,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({
         error: exists ? 'Cannot change the status of a cancelled session.' : 'Session not found',
       }, exists ? 409 : 404), refreshedToken)
+    }
+
+    if (status === 'NOT_COMPLETED') {
+      await BatchChapter.findOneAndUpdate(
+        { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, sessionId: session._id },
+        { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
+      ).catch(() => null)
     }
 
     return withToken(json(session), refreshedToken)

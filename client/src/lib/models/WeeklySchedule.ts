@@ -5,6 +5,8 @@ export interface IClassEntry {
   day: 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY'
   subject: string
   chapter: string
+  /** Planned duration in hours — set by Academics Manager when building the schedule */
+  durationHours?: number
   facultyId?: Types.ObjectId
   notes?: string
 }
@@ -31,11 +33,12 @@ export interface IWeeklySchedule extends Document {
 
 const ClassEntrySchema = new Schema<IClassEntry>(
   {
-    day:      { type: String, enum: ['TUESDAY', 'WEDNESDAY', 'THURSDAY'], required: true },
-    subject:  { type: String, required: true },
-    chapter:  { type: String, required: true },
-    facultyId:{ type: Schema.Types.ObjectId, ref: 'Faculty' },
-    notes:    String,
+    day:          { type: String, enum: ['TUESDAY', 'WEDNESDAY', 'THURSDAY'], required: true },
+    subject:      { type: String, required: true },
+    chapter:      { type: String, required: true },
+    durationHours:{ type: Number },
+    facultyId:    { type: Schema.Types.ObjectId, ref: 'Faculty' },
+    notes:        String,
   },
   { _id: false }
 )

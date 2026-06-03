@@ -12,6 +12,8 @@ interface ClassEntry {
   day: 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY'
   subject: string
   chapter: string
+  /** Planned duration in hours — entered by Academics Manager */
+  durationHours?: number
   facultyId?: string | { _id: string; name: string; subject: string }
   notes?: string
 }
@@ -80,7 +82,7 @@ function getFacultyName(f: string | { _id: string; name: string } | undefined): 
   return f
 }
 
-const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '', facultyId: '', notes: '' })
+const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '', durationHours: undefined, facultyId: '', notes: '' })
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -201,11 +203,12 @@ export default function SchedulePage() {
           mondayExamTopic: mondayTopic || undefined,
           fridayExamTopic: fridayTopic || undefined,
           classEntries: validEntries.map((e) => ({
-            day:       e.day,
-            subject:   e.subject.trim(),
-            chapter:   e.chapter.trim(),
-            facultyId: typeof e.facultyId === 'object' ? (e.facultyId as {_id:string})._id : (e.facultyId || undefined),
-            notes:     e.notes?.trim() || undefined,
+            day:          e.day,
+            subject:      e.subject.trim(),
+            chapter:      e.chapter.trim(),
+            durationHours: e.durationHours ? Number(e.durationHours) : undefined,
+            facultyId:    typeof e.facultyId === 'object' ? (e.facultyId as {_id:string})._id : (e.facultyId || undefined),
+            notes:        e.notes?.trim() || undefined,
           })),
         },
       })
@@ -410,6 +413,14 @@ export default function SchedulePage() {
                   {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Chapter / Topic</label>}
                   <input className="input" placeholder="Chapter" value={entry.chapter} onChange={(e) => updateEntry(idx, 'chapter', e.target.value)} style={{ fontSize: '0.8125rem' }} />
                 </div>
+                <div className="form-group" style={{ margin: 0, maxWidth: 90 }}>
+                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Hrs (planned)</label>}
+                  <input type="number" className="input" min={0.5} max={12} step={0.5}
+                    placeholder="hrs"
+                    value={entry.durationHours ?? ''}
+                    onChange={(e) => updateEntry(idx, 'durationHours', e.target.value)}
+                    style={{ fontSize: '0.8125rem' }} />
+                </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Faculty (optional)</label>}
                   <select className="input" value={typeof entry.facultyId === 'object' ? (entry.facultyId as {_id:string})._id : (entry.facultyId ?? '')} onChange={(e) => updateEntry(idx, 'facultyId', e.target.value)} style={{ fontSize: '0.8125rem' }}>
@@ -554,6 +565,11 @@ export default function SchedulePage() {
                           </span>
                           <span style={{ fontWeight: 500 }}>{entry.subject}</span>
                           <span style={{ color: 'var(--color-text-secondary)' }}>— {entry.chapter}</span>
+                          {(entry as ClassEntry).durationHours && (
+                            <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
+                              {(entry as ClassEntry).durationHours}h
+                            </span>
+                          )}
                           {entry.facultyId && (
                             <span style={{ color: 'var(--color-muted)', marginLeft: 'auto', fontSize: '0.8125rem' }}>
                               👤 {getFacultyName(entry.facultyId as string | { _id: string; name: string })}

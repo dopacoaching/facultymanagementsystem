@@ -44,7 +44,8 @@ const STATUS_OPTIONS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPL
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 export default function ISSessionsPage() {
-  const { accessToken, role } = useAppSelector((s) => s.auth)
+  const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
+  const isCoordinator = role === 'IS_COORDINATOR' || role === 'COORDINATOR'
   const [sessions, setSessions]       = useState<ISession[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
@@ -91,8 +92,11 @@ export default function ISSessionsPage() {
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
     getBatches(accessToken).then((list) => {
       const isBatches = list.filter((b) => b.type === 'INTEGRATED_SCHOOL')
-      setBatches(isBatches)
-      if (isBatches.length) setForm((f) => ({ ...f, batchId: isBatches[0]._id }))
+      const visible = isCoordinator && coordinatorBatchId
+        ? isBatches.filter((b) => b._id === coordinatorBatchId)
+        : isBatches
+      setBatches(visible)
+      if (visible.length) setForm((f) => ({ ...f, batchId: visible[0]._id }))
     }).catch(console.error)
   }, [accessToken])
 
@@ -288,7 +292,9 @@ export default function ISSessionsPage() {
                 </div>
                 <div className="form-group">
                   <label className="label">IS Batch</label>
-                  <select className="input" value={form.batchId} onChange={(e) => setForm({ ...form, batchId: e.target.value })}>
+                  <select className="input" value={form.batchId}
+                    onChange={(e) => setForm({ ...form, batchId: e.target.value })}
+                    disabled={isCoordinator}>
                     <option value="">— select —</option>
                     {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
                   </select>
@@ -450,30 +456,21 @@ export default function ISSessionsPage() {
                           <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)} title="Edit session">✎</button>
                         )}
                         {s.status === 'SCHEDULED' && (
+                          <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)}
+                            disabled={cancelling === s._id} title="Mark Completed">✓</button>
+                        )}
+                        {(s.status === 'SCHEDULED' || s.status === 'COMPLETED' || s.status === 'NOT_COMPLETED') && (
                           <>
-                            <button
-                              className="btn btn-success btn-sm"
-                              onClick={() => handleMarkComplete(s._id)}
-                              disabled={cancelling === s._id}
-                              title="Mark Complete"
-                            >✓</button>
-                            <select
-                              className="input"
-                              style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: 105 }}
+                            <select className="input" style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: 105 }}
                               value={cancelInitiator[s._id] ?? ''}
-                              onChange={(e) => setCancelInitiator({ ...cancelInitiator, [s._id]: e.target.value })}
-                            >
+                              onChange={(e) => setCancelInitiator({ ...cancelInitiator, [s._id]: e.target.value })}>
                               <option value="">initiator</option>
                               <option value="FACULTY">Faculty</option>
                               <option value="STUDENT">Student</option>
                               <option value="MANAGEMENT">Management</option>
                             </select>
-                            <button
-                              className="btn btn-danger btn-sm"
-                              disabled={cancelling === s._id}
-                              onClick={() => handleCancel(s._id)}
-                              title="Cancel Session"
-                            >
+                            <button className="btn btn-danger btn-sm" disabled={cancelling === s._id}
+                              onClick={() => handleCancel(s._id)} title="Cancel Session">
                               {cancelling === s._id ? '…' : '✕'}
                             </button>
                           </>

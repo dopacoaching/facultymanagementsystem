@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { BatchChapter } from '@/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
@@ -93,6 +94,12 @@ export async function POST(req: NextRequest) {
         loggedByUserId: payload.userId,
       })
     }
+
+    // Reset the chapter's class-done status so the class can be re-logged correctly.
+    await BatchChapter.findOneAndUpdate(
+      { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, sessionId: session._id },
+      { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
+    ).catch(() => null)
 
     return withToken(json({ success: true, session }), refreshedToken)
   } catch (err) {

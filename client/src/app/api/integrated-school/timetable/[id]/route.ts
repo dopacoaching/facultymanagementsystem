@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (forbidden) return forbidden
 
     const { id } = await params
-    const { status, facultyId, notes, chapter, subject } = await req.json()
+    const { status, facultyId, notes, chapter, subject, durationHours } = await req.json()
 
     await connectDB()
 
@@ -36,9 +36,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       update.status = status
     }
-    if (notes   !== undefined) update.notes   = notes
-    if (chapter !== undefined) update.chapter = chapter
-    if (subject !== undefined) update.subject = subject
+    if (notes         !== undefined) update.notes         = notes
+    if (chapter       !== undefined) update.chapter       = chapter
+    if (subject       !== undefined) update.subject       = subject
+    if (durationHours !== undefined) update.durationHours = durationHours ? Number(durationHours) : undefined
 
     // Updating facultyId requires re-running conflict check
     if (facultyId !== undefined) {

@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'IS_ACADEMICS_MANAGER', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return forbidden
 
-    const { date, campusId, batchId, facultyId, subject, chapter, timeSlot, notes, isUnplanned } = await req.json()
+    const { date, campusId, batchId, facultyId, subject, chapter, timeSlot, durationHours, notes, isUnplanned } = await req.json()
 
     if (!date || !campusId || !batchId || !subject || !chapter || !timeSlot) {
       return withToken(json({
@@ -64,15 +64,16 @@ export async function POST(req: NextRequest) {
     }
 
     const slot = await ISTimetableSlot.create({
-      date:        slotDate,
-      campusId:    campusOid,
-      batchId:     batchOid,
-      facultyId:   facultyOid,
+      date:          slotDate,
+      campusId:      campusOid,
+      batchId:       batchOid,
+      facultyId:     facultyOid,
       subject,
       chapter,
       timeSlot,
-      notes:       notes ?? undefined,
-      isUnplanned: Boolean(isUnplanned),
+      durationHours: durationHours ? Number(durationHours) : undefined,
+      notes:         notes ?? undefined,
+      isUnplanned:   Boolean(isUnplanned),
     })
 
     // Auto-mark the ISBatchChapter as SCHEDULED
