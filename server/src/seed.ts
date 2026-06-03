@@ -11,6 +11,7 @@ import { PermanentFacultyContract } from './models/PermanentFacultyContract'
 import { ISTimetableSlot } from './models/ISTimetableSlot'
 import { ISBatchChapter } from './models/ISBatchChapter'
 import { SpecialDay } from './models/SpecialDay'
+import { SyllabusChapter } from './models/SyllabusChapter'
 import { validatePasswordComplexity } from './utils/passwordUtils'
 
 /** Read an integer from env, fall back to a default. */
@@ -30,6 +31,7 @@ async function seed() {
     Campus.deleteMany({}),
     Batch.deleteMany({}),
     BatchChapter.deleteMany({}),
+    SyllabusChapter.deleteMany({}),
     PermanentFacultyContract.deleteMany({}),
     ISBatchChapter.deleteMany({}),
     SpecialDay.deleteMany({}),

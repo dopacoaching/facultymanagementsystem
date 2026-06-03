@@ -6,7 +6,8 @@
     "dev": "nodemon --exec tsx src/server.ts --ext ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "seed:syllabus": "tsx src/scripts/seed-syllabus.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

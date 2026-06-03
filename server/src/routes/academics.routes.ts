@@ -5,6 +5,10 @@ import {
   getSchedules, createOrUpdateSchedule, publishSchedule, reviseSchedule,
   updateExamTopic, suggestTopic, getChapters, updateChapter, getChapterSummary,
 } from '../controllers/schedule.controller'
+import {
+  getAnnualSyllabus, getSyllabusChapters, getBatchProgress,
+  getBehindScheduleBatches, getSplitChapters,
+} from '../controllers/syllabus.controller'
 import type { Request, Response, NextFunction } from 'express'
 
 const router = Router()
@@ -53,5 +57,13 @@ router.get('/chapters/summary', getChapterSummary)
 router.get('/chapters', getChapters)
 // Coordinators mark video-complete; managers can also set facultyClassDone manually
 router.patch('/chapters/:id', authorize('COORDINATOR', 'IS_COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'), updateChapter)
+
+// ── Syllabus (Annual Chapter Plan) ───────────────────────────────────────────
+// Order matters: specific paths before parameterized
+router.get('/syllabus/chapters',             getSyllabusChapters)
+router.get('/syllabus/split-chapters',       getSplitChapters)
+router.get('/syllabus/behind',               getBehindScheduleBatches)
+router.get('/syllabus/progress/:batchId',    getBatchProgress)
+router.get('/syllabus',                      getAnnualSyllabus)
 
 export default router

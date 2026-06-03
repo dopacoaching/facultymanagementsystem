@@ -38,11 +38,13 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Salary',       href: '/hr/salary',          icon: '₹' },
   { label: 'Reports',      href: '/hr/reports',         icon: '📊' },
   // Academics (Repeaters)
-  { label: 'AC Sessions',  href: '/academics/sessions',  icon: '📅' },
-  { label: 'Chapters',     href: '/academics/chapters',  icon: '📚' },
-  { label: 'Schedule',     href: '/academics/schedule',  icon: '🗓' },
-  { label: 'Exam Topics',  href: '/academics/exams',     icon: '📝' },
-  { label: 'AC Reports',   href: '/academics/reports',   icon: '📊' },
+  { label: 'AC Sessions',  href: '/academics/sessions',          icon: '📅' },
+  { label: 'Chapters',     href: '/academics/chapters',          icon: '📚' },
+  { label: 'Schedule',     href: '/academics/schedule',          icon: '🗓' },
+  { label: 'Exam Topics',  href: '/academics/exams',             icon: '📝' },
+  { label: 'Syllabus',     href: '/academics/syllabus',          icon: '📋' },
+  { label: 'Progress',     href: '/academics/syllabus/progress', icon: '📈' },
+  { label: 'AC Reports',   href: '/academics/reports',           icon: '📊' },
   // Integrated School
   { label: 'IS Sessions',  href: '/is/sessions',  icon: '🏫' },
   { label: 'IS Timetable', href: '/is/timetable', icon: '⏱' },
@@ -58,12 +60,14 @@ const HR_NAV: NavItem[] = [
 
 // ACADEMICS_MANAGER: Repeaters/DOPA sessions only — no IS sections
 const ACADEMICS_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/academics',           icon: '◈' },
-  { label: 'Sessions',    href: '/academics/sessions',  icon: '📅' },
-  { label: 'Chapters',    href: '/academics/chapters',  icon: '📚' },
-  { label: 'Schedule',    href: '/academics/schedule',  icon: '🗓' },
-  { label: 'Exam Topics', href: '/academics/exams',     icon: '📝' },
-  { label: 'Reports',     href: '/academics/reports',   icon: '📊' },
+  { label: 'Dashboard',   href: '/academics',                    icon: '◈' },
+  { label: 'Sessions',    href: '/academics/sessions',           icon: '📅' },
+  { label: 'Chapters',    href: '/academics/chapters',           icon: '📚' },
+  { label: 'Schedule',    href: '/academics/schedule',           icon: '🗓' },
+  { label: 'Exam Topics', href: '/academics/exams',              icon: '📝' },
+  { label: 'Syllabus',    href: '/academics/syllabus',           icon: '📋' },
+  { label: 'Progress',    href: '/academics/syllabus/progress',  icon: '📈' },
+  { label: 'Reports',     href: '/academics/reports',            icon: '📊' },
 ]
 
 // IS_ACADEMICS_MANAGER: Integrated School only — no Repeaters sections
@@ -76,8 +80,10 @@ const IS_ACADEMICS_NAV: NavItem[] = [
 
 // COORDINATOR: Session logging + Chapter progress view
 const COORDINATOR_NAV: NavItem[] = [
-  { label: 'Log Session', href: '/coordinator',         icon: '📝' },
-  { label: 'Chapters',    href: '/academics/chapters',  icon: '📚' },
+  { label: 'Log Session', href: '/coordinator',                  icon: '📝' },
+  { label: 'Chapters',    href: '/academics/chapters',           icon: '📚' },
+  { label: 'Syllabus',    href: '/academics/syllabus',           icon: '📋' },
+  { label: 'Progress',    href: '/academics/syllabus/progress',  icon: '📈' },
 ]
 
 const FACULTY_NAV: NavItem[] = [
@@ -209,7 +215,10 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
         {/* Navigation */}
         <nav style={{ flex: 1, padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.125rem', overflowY: 'auto' }}>
           {nav.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            // Use exact match if another nav item is a child of this one,
+            // to prevent a parent link staying active when a child page is open.
+            const hasChild = nav.some((other) => other.href !== item.href && other.href.startsWith(item.href + '/'))
+            const isActive = pathname === item.href || (!hasChild && pathname.startsWith(item.href + '/'))
             return (
               <Link key={item.href} href={item.href} style={{
                 display: 'flex',

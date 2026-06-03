@@ -12,6 +12,7 @@ interface FormState {
   facultyId: string
   subject: string
   chapter: string
+  syllabusChapterId?: string
   durationHours: number
   sessionDate: string
 }
@@ -20,17 +21,19 @@ interface BatchChapter {
   _id: string
   subject: string
   chapterName: string
+  syllabusChapterId?: string
   videoComplete: boolean
   facultyClassDone: boolean
 }
 
 const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
-  batchId:       defaultBatchId,
-  facultyId:     '',
-  subject:       '',
-  chapter:       '',
-  durationHours: 1,
-  sessionDate:   new Date().toISOString().slice(0, 10),
+  batchId:           defaultBatchId,
+  facultyId:         '',
+  subject:           '',
+  chapter:           '',
+  syllabusChapterId: undefined,
+  durationHours:     1,
+  sessionDate:       new Date().toISOString().slice(0, 10),
 })
 
 export default function LogSessionPage() {
@@ -82,9 +85,18 @@ export default function LogSessionPage() {
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
       const updated = { ...prev, [key]: value }
-      if (key === 'subject') updated.chapter = ''
+      if (key === 'subject') { updated.chapter = ''; updated.syllabusChapterId = undefined }
       return updated
     })
+  }
+
+  function selectChapter(chapterName: string) {
+    const ch = availableChapters.find((c) => c.chapterName === chapterName)
+    setForm((prev) => ({
+      ...prev,
+      chapter:           chapterName,
+      syllabusChapterId: ch?.syllabusChapterId ?? undefined,
+    }))
   }
 
   async function handleSubmit() {
@@ -114,12 +126,13 @@ export default function LogSessionPage() {
         method: 'POST',
         token: accessToken!,
         body: {
-          batchId:       form.batchId,
-          facultyId:     form.facultyId,
-          subject:       form.subject.trim(),
-          chapter:       form.chapter.trim(),
-          durationHours: Number(form.durationHours),
-          sessionDate:   form.sessionDate,
+          batchId:           form.batchId,
+          facultyId:         form.facultyId,
+          subject:           form.subject.trim(),
+          chapter:           form.chapter.trim(),
+          syllabusChapterId: form.syllabusChapterId ?? undefined,
+          durationHours:     Number(form.durationHours),
+          sessionDate:       form.sessionDate,
         },
       })
       setSuccess(true)
@@ -261,7 +274,7 @@ export default function LogSessionPage() {
                 {loadingCh ? (
                   <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
                 ) : availableChapters.length > 0 ? (
-                  <select className="input" value={form.chapter} onChange={(e) => setField('chapter', e.target.value)}>
+                  <select className="input" value={form.chapter} onChange={(e) => selectChapter(e.target.value)}>
                     <option value="">— select chapter —</option>
                     {availableChapters.map((c) => (
                       <option key={c._id} value={c.chapterName}>{c.chapterName}</option>

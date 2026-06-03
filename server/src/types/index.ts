@@ -1,3 +1,7 @@
+export type Subject = 'PHYSICS' | 'CHEMISTRY' | 'BOTANY' | 'ZOOLOGY'
+
+export const SUBJECTS: Subject[] = ['PHYSICS', 'CHEMISTRY', 'BOTANY', 'ZOOLOGY']
+
 export type UserRole =
   | 'ADMIN'
   | 'HR_MANAGER'

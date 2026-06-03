@@ -22,6 +22,7 @@ export async function create(
     batchId: string
     subject: string
     chapter: string
+    syllabusChapterId?: string
     durationHours: number
     sessionDate: string
     facultyId?: string

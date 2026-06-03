@@ -5,6 +5,9 @@ export interface IBatchChapter extends Document {
   subject: string
   chapterName: string
   chapterOrder: number
+  // optional link to master syllabus (present for chapters seeded from SyllabusChapter)
+  syllabusChapterId?: Types.ObjectId
+  scheduledMonth?: number   // expected month from the annual plan (6–12)
   videoComplete: boolean
   videoCompletedAt?: Date
   facultyClassDone: boolean
@@ -14,20 +17,24 @@ export interface IBatchChapter extends Document {
 
 const BatchChapterSchema = new Schema<IBatchChapter>(
   {
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
-    subject: { type: String, required: true },
-    chapterName: { type: String, required: true },
-    chapterOrder: { type: Number, required: true },
-    videoComplete: { type: Boolean, default: false },
-    videoCompletedAt: Date,
-    facultyClassDone: { type: Boolean, default: false },
+    batchId:            { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
+    subject:            { type: String, required: true },
+    chapterName:        { type: String, required: true },
+    chapterOrder:       { type: Number, required: true },
+    syllabusChapterId:  { type: Schema.Types.ObjectId, ref: 'SyllabusChapter' },
+    scheduledMonth:     { type: Number, min: 6, max: 12 },
+    videoComplete:      { type: Boolean, default: false },
+    videoCompletedAt:   Date,
+    facultyClassDone:   { type: Boolean, default: false },
     facultyClassDoneAt: Date,
-    sessionId: { type: Schema.Types.ObjectId, ref: 'Session' },
+    sessionId:          { type: Schema.Types.ObjectId, ref: 'Session' },
   },
   { timestamps: true }
 )
 
 BatchChapterSchema.index({ batchId: 1, subject: 1 })
 BatchChapterSchema.index({ batchId: 1, subject: 1, chapterName: 1 }, { unique: true })
+BatchChapterSchema.index({ batchId: 1, syllabusChapterId: 1 }, { sparse: true })
+BatchChapterSchema.index({ batchId: 1, scheduledMonth: 1 })
 
 export const BatchChapter = model<IBatchChapter>('BatchChapter', BatchChapterSchema)

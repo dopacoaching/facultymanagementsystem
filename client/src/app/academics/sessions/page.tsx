@@ -23,6 +23,7 @@ interface BatchChapter {
   _id: string
   subject: string
   chapterName: string
+  syllabusChapterId?: string
   videoComplete: boolean
   facultyClassDone: boolean
 }
@@ -40,6 +41,7 @@ export default function SessionsPage() {
   const [cancelling, setCancelling]   = useState('')
   const [form, setForm] = useState({
     facultyId: '', batchId: '', subject: '', chapter: '',
+    syllabusChapterId: undefined as string | undefined,
     durationHours: 1, sessionDate: new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]           = useState(false)
@@ -134,7 +136,11 @@ export default function SessionsPage() {
     }
     setSaving(true); setError('')
     try {
-      await create({ ...form, durationHours: Number(form.durationHours) }, accessToken)
+      await create({
+        ...form,
+        durationHours:     Number(form.durationHours),
+        syllabusChapterId: form.syllabusChapterId ?? undefined,
+      }, accessToken)
       setShowForm(false); load()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to create session'
@@ -281,7 +287,7 @@ export default function SessionsPage() {
                 </div>
                 <div className="form-group">
                   <label className="label">Batch</label>
-                  <select className="input" value={form.batchId} onChange={(e) => setForm({ ...form, batchId: e.target.value, subject: '', chapter: '' })}>
+                  <select className="input" value={form.batchId} onChange={(e) => setForm({ ...form, batchId: e.target.value, subject: '', chapter: '', syllabusChapterId: undefined })}>
                     <option value="">— select —</option>
                     {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
                   </select>
@@ -289,7 +295,7 @@ export default function SessionsPage() {
                 <div className="form-group">
                   <label className="label">Subject</label>
                   {needsVideoFirst && chapterSubjects.length > 0 ? (
-                    <select className="input" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '' })}>
+                    <select className="input" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '', syllabusChapterId: undefined })}>
                       <option value="">— select —</option>
                       {chapterSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -303,7 +309,14 @@ export default function SessionsPage() {
                     loadingCh ? (
                       <div className="input" style={{ color: 'var(--color-muted)' }}>Loading…</div>
                     ) : availableChapters.length > 0 ? (
-                      <select className="input" value={form.chapter} onChange={(e) => setForm({ ...form, chapter: e.target.value })}>
+                      <select
+                        className="input"
+                        value={form.chapter}
+                        onChange={(e) => {
+                          const ch = availableChapters.find((c) => c.chapterName === e.target.value)
+                          setForm({ ...form, chapter: e.target.value, syllabusChapterId: ch?.syllabusChapterId ?? undefined })
+                        }}
+                      >
                         <option value="">— select —</option>
                         {availableChapters.map((c) => <option key={c._id} value={c.chapterName}>{c.chapterName}</option>)}
                       </select>
