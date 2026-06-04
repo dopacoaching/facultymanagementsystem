@@ -244,17 +244,18 @@ export default function SchedulePage() {
     } finally { setPublishing('') }
   }
 
-  // ── Revise ──────────────────────────────────────────────────────────────────
-
   async function handleRevise(scheduleId: string) {
     if (!accessToken) return
     setRevising(scheduleId); setError('')
     try {
-      await apiFetch<{ revision: Schedule }>(`/academics/schedules/${scheduleId}/revise`, {
+      const res = await apiFetch<{ revision: Schedule }>(`/academics/schedules/${scheduleId}/revise`, {
         token: accessToken, method: 'POST',
       })
       setSuccess('Revision draft created. Edit and publish the draft to replace the current schedule.')
       load()
+      if (res && res.revision) {
+        handleLoadDraft(res.revision)
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Revise failed')
     } finally { setRevising('') }

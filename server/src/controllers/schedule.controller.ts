@@ -177,18 +177,17 @@ export const reviseSchedule = asyncHandler(async (req: AuthRequest, res: Respons
     res.status(400).json({ error: 'Only published schedules can be revised. Edit the draft directly instead.' }); return
   }
 
-  // Check no revision already exists for this week / batch
+  // Check if a revision already exists for this week / batch, and return it if so
   const existing = await WeeklySchedule.findOne({
     batchId: original.batchId,
     weekStartDate: original.weekStartDate,
     isRevised: true,
     isPublished: false,
-  })
+  }).populate('classEntries.facultyId', 'name subject')
+
   if (existing) {
-    res.status(409).json({
-      error: 'An unpublished revision already exists for this week.',
-      revisionId: existing._id,
-    }); return
+    res.status(200).json({ success: true, revision: existing })
+    return
   }
 
   const revision = await WeeklySchedule.create({
