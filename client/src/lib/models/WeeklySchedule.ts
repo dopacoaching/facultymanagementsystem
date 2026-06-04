@@ -1,7 +1,7 @@
 import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export type ClassEntryDay     = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
-export type ClassSessionType  = 'LIVE_SESSION' | 'RECORDED_VIDEO'
+export type ClassSessionType  = 'LIVE_SESSION' | 'RECORDED_VIDEO' | 'WEEKLY_EXAM' | 'MONTHLY_EXAM'
 
 export interface IClassEntry {
   day: ClassEntryDay
@@ -12,6 +12,10 @@ export interface IClassEntry {
   durationHours?: number
   facultyId?: Types.ObjectId
   notes?: string
+  /** For WEEKLY_EXAM: which day the exam falls on */
+  examDay?: 'MONDAY' | 'FRIDAY'
+  /** For WEEKLY_EXAM / MONTHLY_EXAM: the specific exam date */
+  examDate?: Date
 }
 
 export interface IWeeklySchedule extends Document {
@@ -36,10 +40,12 @@ const ClassEntrySchema = new Schema<IClassEntry>(
     day:         { type: String, enum: ALL_DAYS, required: true },
     subject:     { type: String, required: true },
     chapter:     { type: String, required: true },
-    sessionType: { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO'], default: 'LIVE_SESSION' },
+    sessionType: { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
     durationHours: { type: Number },
     facultyId:   { type: Schema.Types.ObjectId, ref: 'Faculty' },
     notes:       String,
+    examDay:     { type: String, enum: ['MONDAY', 'FRIDAY'] },
+    examDate:    Date,
   },
   { _id: false }
 )

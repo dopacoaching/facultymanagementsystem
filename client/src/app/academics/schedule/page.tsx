@@ -9,17 +9,20 @@ import type { Batch } from '@/services/faculty.service'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ClassEntryDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
-type ClassSessionType = 'LIVE_SESSION' | 'RECORDED_VIDEO'
+type ClassSessionType = 'LIVE_SESSION' | 'RECORDED_VIDEO' | 'WEEKLY_EXAM' | 'MONTHLY_EXAM'
 
 interface ClassEntry {
   day: ClassEntryDay
   subject: string
   chapter: string
-  /** LIVE_SESSION = in-person/live class; RECORDED_VIDEO = recorded video lesson */
   sessionType: ClassSessionType
   durationHours?: number
   facultyId?: string | { _id: string; name: string; subject: string }
   notes?: string
+  /** WEEKLY_EXAM only — which day the exam sits on */
+  examDay?: 'MONDAY' | 'FRIDAY'
+  /** WEEKLY_EXAM / MONTHLY_EXAM — specific exam date (YYYY-MM-DD) */
+  examDate?: string
 }
 
 interface Schedule {
@@ -61,6 +64,20 @@ const DAY_LABELS: Record<ClassEntryDay, string> = {
 const SESSION_TYPE_LABELS: Record<ClassSessionType, string> = {
   LIVE_SESSION:   'Live Session',
   RECORDED_VIDEO: 'Recorded Video',
+  WEEKLY_EXAM:    'Weekly Exam',
+  MONTHLY_EXAM:   'Monthly Exam',
+}
+
+const SESSION_TYPE_BADGE: Record<ClassSessionType, { cls: string; icon: string }> = {
+  LIVE_SESSION:   { cls: 'badge-blue',   icon: '🎓' },
+  RECORDED_VIDEO: { cls: 'badge-purple', icon: '🎬' },
+  WEEKLY_EXAM:    { cls: 'badge-orange', icon: '📝' },
+  MONTHLY_EXAM:   { cls: 'badge-red',    icon: '📋' },
+}
+
+function dayFromDateStr(dateStr: string): ClassEntryDay {
+  const days: ClassEntryDay[] = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY']
+  return days[new Date(dateStr + 'T12:00:00').getDay()]
 }
 
 /** Return today's date as YYYY-MM-DD (default week start) */
@@ -136,7 +153,22 @@ export default function SchedulePage() {
   // ── Entry helpers ───────────────────────────────────────────────────────────
 
   function updateEntry(idx: number, key: keyof ClassEntry, val: string) {
-    setEntries((prev) => prev.map((e, i) => i === idx ? { ...e, [key]: val } : e))
+    setEntries((prev) => prev.map((e, i) => {
+      if (i !== idx) return e
+      const updated: ClassEntry = { ...e, [key]: val }
+      // When exam day changes, sync the row's day too
+      if (key === 'examDay' && val) updated.day = val as ClassEntryDay
+      // When exam date changes on a monthly exam, derive the day of week
+      if (key === 'examDate' && val && e.sessionType === 'MONTHLY_EXAM') updated.day = dayFromDateStr(val)
+      // Switching type — clear exam fields when going back to class sessions
+      if (key === 'sessionType') {
+        if (val === 'LIVE_SESSION' || val === 'RECORDED_VIDEO') {
+          updated.examDay = undefined
+          updated.examDate = undefined
+        }
+      }
+      return updated
+    }))
   }
 
   function addEntry() { setEntries((prev) => [...prev, EMPTY_ENTRY()]) }
@@ -165,6 +197,8 @@ export default function SchedulePage() {
             sessionType:  e.sessionType,
             durationHours: e.durationHours ? Number(e.durationHours) : undefined,
             facultyId:    typeof e.facultyId === 'object' ? (e.facultyId as {_id:string})._id : (e.facultyId || undefined),
+            examDay:      e.examDay || undefined,
+            examDate:     e.examDate || undefined,
             notes:        e.notes?.trim() || undefined,
           })),
         },
@@ -251,40 +285,93 @@ export default function SchedulePage() {
               </h3>
               <button className="btn btn-outline btn-sm" onClick={addEntry}>+ Add Row</button>
             </div>
-            {entries.map((entry, idx) => (
-              <div key={idx} className="schedule-entry-row">
-                <div className="form-group" style={{ margin: 0 }}>
-                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Day</label>}
-                  <select className="input" value={entry.day} onChange={(e) => updateEntry(idx, 'day', e.target.value as ClassEntry['day'])} style={{ fontSize: '0.8125rem' }}>
-                    {DAYS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-                  </select>
+            {entries.map((entry, idx) => {
+              const isExam = entry.sessionType === 'WEEKLY_EXAM' || entry.sessionType === 'MONTHLY_EXAM'
+              return (
+                <div key={idx} className="schedule-entry-row">
+                  {/* Type — always first */}
+                  <div className="form-group" style={{ margin: 0, minWidth: 140 }}>
+                    {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Type</label>}
+                    <select className="input" value={entry.sessionType}
+                      onChange={(e) => updateEntry(idx, 'sessionType', e.target.value as ClassSessionType)}
+                      style={{ fontSize: '0.8125rem' }}>
+                      {(Object.keys(SESSION_TYPE_LABELS) as ClassSessionType[]).map((t) => (
+                        <option key={t} value={t}>{SESSION_TYPE_LABELS[t]}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Day — class sessions only */}
+                  {!isExam && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Day</label>}
+                      <select className="input" value={entry.day}
+                        onChange={(e) => updateEntry(idx, 'day', e.target.value as ClassEntryDay)}
+                        style={{ fontSize: '0.8125rem' }}>
+                        {DAYS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Weekly exam day (Mon/Fri) */}
+                  {entry.sessionType === 'WEEKLY_EXAM' && (
+                    <div className="form-group" style={{ margin: 0, minWidth: 120 }}>
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Exam Day</label>}
+                      <select className="input" value={entry.examDay ?? ''}
+                        onChange={(e) => updateEntry(idx, 'examDay', e.target.value)}
+                        style={{ fontSize: '0.8125rem' }}>
+                        <option value="">— day —</option>
+                        <option value="MONDAY">Monday</option>
+                        <option value="FRIDAY">Friday</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Exam date — both exam types */}
+                  {isExam && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Exam Date</label>}
+                      <input type="date" className="input" value={entry.examDate ?? ''}
+                        onChange={(e) => updateEntry(idx, 'examDate', e.target.value)}
+                        style={{ fontSize: '0.8125rem' }} />
+                    </div>
+                  )}
+
+                  {/* Subject */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Subject</label>}
+                    <input className="input" placeholder="Subject" value={entry.subject}
+                      onChange={(e) => updateEntry(idx, 'subject', e.target.value)}
+                      style={{ fontSize: '0.8125rem' }} />
+                  </div>
+
+                  {/* Chapter */}
+                  <div className="form-group" style={{ margin: 0 }}>
+                    {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Chapter / Topic</label>}
+                    <input className="input" placeholder="Chapter" value={entry.chapter}
+                      onChange={(e) => updateEntry(idx, 'chapter', e.target.value)}
+                      style={{ fontSize: '0.8125rem' }} />
+                  </div>
+
+                  {/* Faculty — class sessions only */}
+                  {!isExam && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Faculty (optional)</label>}
+                      <select className="input"
+                        value={typeof entry.facultyId === 'object' ? (entry.facultyId as {_id:string})._id : (entry.facultyId ?? '')}
+                        onChange={(e) => updateEntry(idx, 'facultyId', e.target.value)}
+                        style={{ fontSize: '0.8125rem' }}>
+                        <option value="">— any —</option>
+                        {faculty.filter((f) => f.isActive).map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  <button className="btn btn-ghost btn-sm" onClick={() => removeEntry(idx)}
+                    style={{ alignSelf: 'flex-end', color: 'var(--color-danger)', paddingBottom: idx === 0 ? '0' : undefined }}>✕</button>
                 </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Subject</label>}
-                  <input className="input" placeholder="Subject" value={entry.subject} onChange={(e) => updateEntry(idx, 'subject', e.target.value)} style={{ fontSize: '0.8125rem' }} />
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Chapter / Topic</label>}
-                  <input className="input" placeholder="Chapter" value={entry.chapter} onChange={(e) => updateEntry(idx, 'chapter', e.target.value)} style={{ fontSize: '0.8125rem' }} />
-                </div>
-                <div className="form-group" style={{ margin: 0, minWidth: 130 }}>
-                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Type</label>}
-                  <select className="input" value={entry.sessionType} onChange={(e) => updateEntry(idx, 'sessionType', e.target.value as ClassSessionType)} style={{ fontSize: '0.8125rem' }}>
-                    {(Object.keys(SESSION_TYPE_LABELS) as ClassSessionType[]).map((t) => (
-                      <option key={t} value={t}>{SESSION_TYPE_LABELS[t]}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group" style={{ margin: 0 }}>
-                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Faculty (optional)</label>}
-                  <select className="input" value={typeof entry.facultyId === 'object' ? (entry.facultyId as {_id:string})._id : (entry.facultyId ?? '')} onChange={(e) => updateEntry(idx, 'facultyId', e.target.value)} style={{ fontSize: '0.8125rem' }}>
-                    <option value="">— any —</option>
-                    {faculty.filter((f) => f.isActive).map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
-                  </select>
-                </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => removeEntry(idx)} style={{ alignSelf: 'flex-end', color: 'var(--color-danger)', paddingBottom: idx === 0 ? '0' : undefined }}>✕</button>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -372,23 +459,36 @@ export default function SchedulePage() {
                       Class Entries
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                      {s.classEntries.map((entry, i) => (
-                        <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.875rem', padding: '0.5rem 0.75rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
-                          <span style={{ fontWeight: 600, minWidth: 80, color: 'var(--color-primary)', fontSize: '0.8125rem' }}>
-                            {DAY_LABELS[entry.day as ClassEntryDay] ?? entry.day}
-                          </span>
-                          <span className={`badge ${(entry as ClassEntry).sessionType === 'RECORDED_VIDEO' ? 'badge-purple' : 'badge-blue'}`} style={{ fontSize: '0.7rem' }}>
-                            {(entry as ClassEntry).sessionType === 'RECORDED_VIDEO' ? '🎬 Video' : '🎓 Live'}
-                          </span>
-                          <span style={{ fontWeight: 500 }}>{entry.subject}</span>
-                          <span style={{ color: 'var(--color-text-secondary)' }}>— {entry.chapter}</span>
-                          {entry.facultyId && (
-                            <span style={{ color: 'var(--color-muted)', marginLeft: 'auto', fontSize: '0.8125rem' }}>
-                              👤 {getFacultyName(entry.facultyId as string | { _id: string; name: string })}
+                      {s.classEntries.map((entry, i) => {
+                        const t = (entry as ClassEntry).sessionType
+                        const badge = SESSION_TYPE_BADGE[t] ?? { cls: 'badge-gray', icon: '📌' }
+                        const isExam = t === 'WEEKLY_EXAM' || t === 'MONTHLY_EXAM'
+                        const ce = entry as ClassEntry
+                        return (
+                          <div key={i} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.875rem', padding: '0.5rem 0.75rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-sm)' }}>
+                            <span style={{ fontWeight: 600, minWidth: 80, color: 'var(--color-primary)', fontSize: '0.8125rem' }}>
+                              {isExam && ce.examDate
+                                ? fmtDate(ce.examDate)
+                                : (DAY_LABELS[entry.day as ClassEntryDay] ?? entry.day)}
                             </span>
-                          )}
-                        </div>
-                      ))}
+                            <span className={`badge ${badge.cls}`} style={{ fontSize: '0.7rem' }}>
+                              {badge.icon} {SESSION_TYPE_LABELS[t]}
+                            </span>
+                            {isExam && ce.examDay && (
+                              <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
+                                {DAY_LABELS[ce.examDay]}
+                              </span>
+                            )}
+                            <span style={{ fontWeight: 500 }}>{entry.subject}</span>
+                            <span style={{ color: 'var(--color-text-secondary)' }}>— {entry.chapter}</span>
+                            {!isExam && entry.facultyId && (
+                              <span style={{ color: 'var(--color-muted)', marginLeft: 'auto', fontSize: '0.8125rem' }}>
+                                👤 {getFacultyName(entry.facultyId as string | { _id: string; name: string })}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
