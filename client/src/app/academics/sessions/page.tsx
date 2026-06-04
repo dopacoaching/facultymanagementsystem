@@ -18,8 +18,6 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_OPTIONS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPLETED']
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
-
 interface BatchChapter {
   _id: string
   subject: string
@@ -44,7 +42,6 @@ export default function SessionsPage() {
     facultyId: '', batchId: '', subject: '', chapter: '',
     syllabusChapterId: undefined as string | undefined,
     startTime: '',
-    durationHours: 1, durationMinutes: 0,
     sessionDate: new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]           = useState(false)
@@ -64,7 +61,7 @@ export default function SessionsPage() {
 
   // Edit modal
   const [editing, setEditing]         = useState<Session | null>(null)
-  const [editForm, setEditForm]       = useState({ facultyId: '', batchId: '', subject: '', chapter: '', durationHours: 1, sessionDate: '' })
+  const [editForm, setEditForm]       = useState({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '' })
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
 
@@ -142,7 +139,6 @@ export default function SessionsPage() {
       await create({
         ...form,
         startTime:         form.startTime || undefined,
-        durationHours:     form.durationHours + form.durationMinutes / 60,
         syllabusChapterId: form.syllabusChapterId ?? undefined,
       }, accessToken)
       setShowForm(false); load()
@@ -180,12 +176,11 @@ export default function SessionsPage() {
   function openEdit(s: Session) {
     setEditing(s)
     setEditForm({
-      facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId ?? '',
-      batchId:       s.batchId ?? '',
-      subject:       s.subject,
-      chapter:       s.chapter,
-      durationHours: s.durationHours,
-      sessionDate:   s.sessionDate.slice(0, 10),
+      facultyId:   typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId ?? '',
+      batchId:     s.batchId ?? '',
+      subject:     s.subject,
+      chapter:     s.chapter,
+      sessionDate: s.sessionDate.slice(0, 10),
     })
     setEditError('')
   }
@@ -196,7 +191,7 @@ export default function SessionsPage() {
     try {
       await apiFetch(`/academics/sessions/${editing._id}`, {
         method: 'PATCH',
-        body: { ...editForm, durationHours: Number(editForm.durationHours) },
+        body: { ...editForm },
         token: accessToken,
       })
       setEditing(null); load()
@@ -338,17 +333,6 @@ export default function SessionsPage() {
                   <input type="time" className="input" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="label">Duration</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input type="number" className="input" min={0} max={12} step={1} style={{ width: '5rem' }} placeholder="hrs"
-                      value={form.durationHours} onChange={(e) => setForm({ ...form, durationHours: +e.target.value })} />
-                    <select className="input" style={{ width: '5rem' }} value={form.durationMinutes}
-                      onChange={(e) => setForm({ ...form, durationMinutes: +e.target.value, syllabusChapterId: form.syllabusChapterId })}>
-                      {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}m</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
                   <label className="label">Session Date</label>
                   <input type="date" className="input" value={form.sessionDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setForm({ ...form, sessionDate: e.target.value })} />
                 </div>
@@ -396,10 +380,6 @@ export default function SessionsPage() {
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="label">Chapter</label>
                   <input className="input" value={editForm.chapter} onChange={(e) => setEditForm({ ...editForm, chapter: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="label">Duration (hrs)</label>
-                  <input type="number" className="input" min={0.5} step={0.5} value={editForm.durationHours} onChange={(e) => setEditForm({ ...editForm, durationHours: +e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>

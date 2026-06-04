@@ -90,9 +90,9 @@ export async function POST(req: NextRequest) {
 
     const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, startTime } = await req.json()
 
-    if (!facultyId || !batchId || !subject || !chapter || !durationHours || !sessionDate) {
+    if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
       return withToken(json({
-        error: 'All fields are required: facultyId, batchId, subject, chapter, durationHours, sessionDate',
+        error: 'All fields are required: facultyId, batchId, subject, chapter, sessionDate',
       }, 400), refreshedToken)
     }
 

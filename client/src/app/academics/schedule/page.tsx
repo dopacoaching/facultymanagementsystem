@@ -17,7 +17,6 @@ interface ClassEntry {
   chapter: string
   /** LIVE_SESSION = in-person/live class; RECORDED_VIDEO = recorded video lesson */
   sessionType: ClassSessionType
-  /** Planned duration in hours — entered by Academics Manager */
   durationHours?: number
   facultyId?: string | { _id: string; name: string; subject: string }
   notes?: string
@@ -276,14 +275,6 @@ export default function SchedulePage() {
                     ))}
                   </select>
                 </div>
-                <div className="form-group" style={{ margin: 0, maxWidth: 90 }}>
-                  {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Hrs (planned)</label>}
-                  <input type="number" className="input" min={0.5} max={12} step={0.5}
-                    placeholder="hrs"
-                    value={entry.durationHours ?? ''}
-                    onChange={(e) => updateEntry(idx, 'durationHours', e.target.value)}
-                    style={{ fontSize: '0.8125rem' }} />
-                </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Faculty (optional)</label>}
                   <select className="input" value={typeof entry.facultyId === 'object' ? (entry.facultyId as {_id:string})._id : (entry.facultyId ?? '')} onChange={(e) => updateEntry(idx, 'facultyId', e.target.value)} style={{ fontSize: '0.8125rem' }}>
@@ -391,11 +382,6 @@ export default function SchedulePage() {
                           </span>
                           <span style={{ fontWeight: 500 }}>{entry.subject}</span>
                           <span style={{ color: 'var(--color-text-secondary)' }}>— {entry.chapter}</span>
-                          {(entry as ClassEntry).durationHours && (
-                            <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
-                              {(entry as ClassEntry).durationHours}h
-                            </span>
-                          )}
                           {entry.facultyId && (
                             <span style={{ color: 'var(--color-muted)', marginLeft: 'auto', fontSize: '0.8125rem' }}>
                               👤 {getFacultyName(entry.facultyId as string | { _id: string; name: string })}

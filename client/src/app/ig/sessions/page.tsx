@@ -17,20 +17,12 @@ interface ISession {
   status: string
 }
 
-const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
-
 function formatDuration(decimalHours: number): string {
   const h = Math.floor(decimalHours)
   const m = Math.round((decimalHours - h) * 60)
   if (h === 0) return `${m}m`
   if (m === 0) return `${h}h`
   return `${h}h ${m}m`
-}
-
-function splitDuration(decimalHours: number): { h: number; m: number } {
-  const h = Math.floor(decimalHours)
-  const m = Math.round((decimalHours - h) * 60)
-  return { h, m }
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -52,14 +44,12 @@ export default function IGSessionsPage() {
   const [showForm, setShowForm]       = useState(false)
   const [cancelling, setCancelling]   = useState('')
   const [form, setForm] = useState({
-    facultyId:       '',
-    batchId:         '',
-    subject:         '',
-    chapter:         '',
-    startTime:       '',
-    durationHours:   1,
-    durationMinutes: 0,
-    sessionDate:     new Date().toISOString().slice(0, 10),
+    facultyId:   '',
+    batchId:     '',
+    subject:     '',
+    chapter:     '',
+    startTime:   '',
+    sessionDate: new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]                     = useState(false)
   const [cancelInitiator, setCancelInitiator]   = useState<Record<string, string>>({})
@@ -73,7 +63,7 @@ export default function IGSessionsPage() {
 
   // Edit modal
   const [editing, setEditing]       = useState<ISession | null>(null)
-  const [editForm, setEditForm]     = useState({ facultyId: '', batchId: '', subject: '', chapter: '', durationHours: 1, durationMinutes: 0, sessionDate: '' })
+  const [editForm, setEditForm]     = useState({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError]   = useState('')
 
@@ -137,13 +127,12 @@ export default function IGSessionsPage() {
         token: accessToken,
         method: 'POST',
         body: {
-          facultyId:    form.facultyId,
-          batchId:      form.batchId,
-          subject:      form.subject,
-          chapter:      form.chapter,
-          startTime:    form.startTime || undefined,
-          sessionDate:  form.sessionDate,
-          durationHours: form.durationHours + form.durationMinutes / 60,
+          facultyId:   form.facultyId,
+          batchId:     form.batchId,
+          subject:     form.subject,
+          chapter:     form.chapter,
+          startTime:   form.startTime || undefined,
+          sessionDate: form.sessionDate,
         },
       })
       setShowForm(false); load()
@@ -183,15 +172,12 @@ export default function IGSessionsPage() {
 
   function openEdit(s: ISession) {
     setEditing(s)
-    const { h, m } = splitDuration(s.durationHours)
     setEditForm({
-      facultyId:       typeof s.facultyId === 'object' ? (s.facultyId?._id ?? '') : (s.facultyId ?? ''),
-      batchId:         s.batchId ?? '',
-      subject:         s.subject,
-      chapter:         s.chapter,
-      durationHours:   h,
-      durationMinutes: m,
-      sessionDate:     s.sessionDate.slice(0, 10),
+      facultyId:   typeof s.facultyId === 'object' ? (s.facultyId?._id ?? '') : (s.facultyId ?? ''),
+      batchId:     s.batchId ?? '',
+      subject:     s.subject,
+      chapter:     s.chapter,
+      sessionDate: s.sessionDate.slice(0, 10),
     })
     setEditError('')
   }
@@ -203,12 +189,11 @@ export default function IGSessionsPage() {
       await apiFetch(`/ig/sessions/${editing._id}`, {
         method: 'PATCH',
         body: {
-          facultyId:    editForm.facultyId,
-          batchId:      editForm.batchId,
-          subject:      editForm.subject,
-          chapter:      editForm.chapter,
-          sessionDate:  editForm.sessionDate,
-          durationHours: editForm.durationHours + editForm.durationMinutes / 60,
+          facultyId:   editForm.facultyId,
+          batchId:     editForm.batchId,
+          subject:     editForm.subject,
+          chapter:     editForm.chapter,
+          sessionDate: editForm.sessionDate,
         },
         token: accessToken,
       })
@@ -319,20 +304,6 @@ export default function IGSessionsPage() {
                     onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="label">Duration</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input type="number" className="input" min={0} max={12} step={1}
-                      value={form.durationHours}
-                      onChange={(e) => setForm({ ...form, durationHours: Math.max(0, Math.floor(+e.target.value)) })}
-                      placeholder="Hrs" style={{ flex: 1 }} />
-                    <select className="input" value={form.durationMinutes}
-                      onChange={(e) => setForm({ ...form, durationMinutes: +e.target.value })}
-                      style={{ flex: 1 }}>
-                      {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}m</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
                   <label className="label">Session Date</label>
                   <input type="date" className="input" value={form.sessionDate}
                     max={new Date().toISOString().slice(0, 10)}
@@ -385,20 +356,6 @@ export default function IGSessionsPage() {
                   <label className="label">Chapter</label>
                   <input className="input" value={editForm.chapter}
                     onChange={(e) => setEditForm({ ...editForm, chapter: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="label">Duration</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input type="number" className="input" min={0} max={12} step={1}
-                      value={editForm.durationHours}
-                      onChange={(e) => setEditForm({ ...editForm, durationHours: Math.max(0, Math.floor(+e.target.value)) })}
-                      placeholder="Hrs" style={{ flex: 1 }} />
-                    <select className="input" value={editForm.durationMinutes}
-                      onChange={(e) => setEditForm({ ...editForm, durationMinutes: +e.target.value })}
-                      style={{ flex: 1 }}>
-                      {MINUTE_OPTIONS.map((m) => <option key={m} value={m}>{m}m</option>)}
-                    </select>
-                  </div>
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>
