@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
@@ -6,7 +6,7 @@ import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { Batch } from '@/lib/models/Batch'
 
-const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BOTANY', 'ZOOLOGY'] as const
+const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'] as const
 const MONTH_NAMES: Record<number, string> = {
   6: 'June', 7: 'July', 8: 'August', 9: 'September',
   10: 'October', 11: 'November', 12: 'December',

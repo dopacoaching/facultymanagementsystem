@@ -5,7 +5,7 @@ import { apiFetch } from '@/services/api'
 import { getBatches } from '@/services/faculty.service'
 import type { Batch } from '@/services/faculty.service'
 
-const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BOTANY', 'ZOOLOGY'] as const
+const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'] as const
 type Subject = (typeof SUBJECTS)[number]
 
 type MonthStatus = 'ON_TRACK' | 'SLIGHTLY_BEHIND' | 'BEHIND' | 'NOT_STARTED' | 'COMPLETED'
@@ -37,8 +37,7 @@ const STATUS_CONFIG: Record<MonthStatus, { label: string; icon: string; cls: str
 const SUBJECT_LABEL: Record<Subject, string> = {
   PHYSICS:   'Physics',
   CHEMISTRY: 'Chemistry',
-  BOTANY:    'Botany',
-  ZOOLOGY:   'Zoology',
+  BIOLOGY:   'Biology',
 }
 
 const MONTHS = [6, 7, 8, 9, 10, 11, 12]

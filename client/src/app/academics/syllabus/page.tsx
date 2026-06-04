@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 
-const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BOTANY', 'ZOOLOGY'] as const
+const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'] as const
 type Subject = (typeof SUBJECTS)[number]
 
 interface SyllabusChapter {
@@ -26,15 +26,13 @@ type AnnualSyllabus = Record<string, MonthData>
 const SUBJECT_LABEL: Record<Subject, string> = {
   PHYSICS:   'Physics',
   CHEMISTRY: 'Chemistry',
-  BOTANY:    'Botany',
-  ZOOLOGY:   'Zoology',
+  BIOLOGY:   'Biology',
 }
 
 const SUBJECT_COLOR: Record<Subject, string> = {
-  PHYSICS:   'border-blue-400   bg-blue-50   text-blue-800',
-  CHEMISTRY: 'border-green-400  bg-green-50  text-green-800',
-  BOTANY:    'border-emerald-400 bg-emerald-50 text-emerald-800',
-  ZOOLOGY:   'border-purple-400 bg-purple-50 text-purple-800',
+  PHYSICS:   'border-blue-400  bg-blue-50  text-blue-800',
+  CHEMISTRY: 'border-green-400 bg-green-50 text-green-800',
+  BIOLOGY:   'border-emerald-400 bg-emerald-50 text-emerald-800',
 }
 
 export default function AnnualSyllabusPage() {
@@ -55,7 +53,7 @@ export default function AnnualSyllabusPage() {
   const months = Object.keys(syllabus).map(Number).sort((a, b) => a - b)  // keys are strings in JSON; map to numbers for sorting
 
   // Total chapters per subject across the year
-  const totals: Record<Subject, number> = { PHYSICS: 0, CHEMISTRY: 0, BOTANY: 0, ZOOLOGY: 0 }
+  const totals: Record<Subject, number> = { PHYSICS: 0, CHEMISTRY: 0, BIOLOGY: 0 }
   for (const m of months) {
     const md = syllabus[String(m)]
     for (const subj of SUBJECTS) {
@@ -149,8 +147,8 @@ export default function AnnualSyllabusPage() {
         </p>
         <div className="flex flex-wrap gap-4 text-xs text-gray-600">
           <span><strong>GOC</strong> — Chemistry: Part 1 (August) → Part 2 (September)</span>
-          <span><strong>Biotechnology</strong> — Botany: Part 1 (September) → Part 2 (October)</span>
-          <span><strong>Genetics</strong> — Zoology: Part 1 (September) → Part 2 (October)</span>
+          <span><strong>Biotechnology</strong> — Biology: Part 1 (September) → Part 2 (October)</span>
+          <span><strong>Genetics</strong> — Biology: Part 1 (September) → Part 2 (October)</span>
         </div>
       </div>
     </div>

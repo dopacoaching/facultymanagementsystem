@@ -34,10 +34,11 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'Structure of Atom',                    scheduledMonth: 6,  chapterOrder: 1, globalOrder: 1  },
   { subject: 'CHEMISTRY', chapterName: 'Classification of Elements',           scheduledMonth: 6,  chapterOrder: 2, globalOrder: 2  },
   { subject: 'CHEMISTRY', chapterName: 'Chemical Bonding',                     scheduledMonth: 6,  chapterOrder: 3, globalOrder: 3  },
-  { subject: 'BOTANY',    chapterName: 'Biological Classification',            scheduledMonth: 6,  chapterOrder: 1, globalOrder: 1  },
-  { subject: 'BOTANY',    chapterName: 'Plant Kingdom',                        scheduledMonth: 6,  chapterOrder: 2, globalOrder: 2  },
-  { subject: 'ZOOLOGY',   chapterName: 'Structural Organization in Animals',   scheduledMonth: 6,  chapterOrder: 1, globalOrder: 1  },
-  { subject: 'ZOOLOGY',   chapterName: 'Animal Kingdom',                       scheduledMonth: 6,  chapterOrder: 2, globalOrder: 2  },
+  // Biology (Botany chapters 1-2, Zoology chapters 3-4)
+  { subject: 'BIOLOGY',   chapterName: 'Biological Classification',            scheduledMonth: 6,  chapterOrder: 1, globalOrder: 1  },
+  { subject: 'BIOLOGY',   chapterName: 'Plant Kingdom',                        scheduledMonth: 6,  chapterOrder: 2, globalOrder: 2  },
+  { subject: 'BIOLOGY',   chapterName: 'Structural Organization in Animals',   scheduledMonth: 6,  chapterOrder: 3, globalOrder: 3  },
+  { subject: 'BIOLOGY',   chapterName: 'Animal Kingdom',                       scheduledMonth: 6,  chapterOrder: 4, globalOrder: 4  },
 
   // ── JULY ──────────────────────────────────────────────────────────────────────
   { subject: 'PHYSICS',   chapterName: 'Waves',                                scheduledMonth: 7,  chapterOrder: 1, globalOrder: 5  },
@@ -46,10 +47,10 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'Redox Reactions',                      scheduledMonth: 7,  chapterOrder: 1, globalOrder: 4  },
   { subject: 'CHEMISTRY', chapterName: 'Electrochemistry',                     scheduledMonth: 7,  chapterOrder: 2, globalOrder: 5  },
   { subject: 'CHEMISTRY', chapterName: 'Solutions',                            scheduledMonth: 7,  chapterOrder: 3, globalOrder: 6  },
-  { subject: 'BOTANY',    chapterName: 'Morphology',                           scheduledMonth: 7,  chapterOrder: 1, globalOrder: 3  },
-  { subject: 'BOTANY',    chapterName: 'Anatomy',                              scheduledMonth: 7,  chapterOrder: 2, globalOrder: 4  },
-  { subject: 'ZOOLOGY',   chapterName: 'Biomolecules',                         scheduledMonth: 7,  chapterOrder: 1, globalOrder: 3  },
-  { subject: 'ZOOLOGY',   chapterName: 'Evolution',                            scheduledMonth: 7,  chapterOrder: 2, globalOrder: 4  },
+  { subject: 'BIOLOGY',   chapterName: 'Morphology',                           scheduledMonth: 7,  chapterOrder: 1, globalOrder: 5  },
+  { subject: 'BIOLOGY',   chapterName: 'Anatomy',                              scheduledMonth: 7,  chapterOrder: 2, globalOrder: 6  },
+  { subject: 'BIOLOGY',   chapterName: 'Biomolecules',                         scheduledMonth: 7,  chapterOrder: 3, globalOrder: 7  },
+  { subject: 'BIOLOGY',   chapterName: 'Evolution',                            scheduledMonth: 7,  chapterOrder: 4, globalOrder: 8  },
 
   // ── AUGUST ────────────────────────────────────────────────────────────────────
   { subject: 'PHYSICS',   chapterName: '1D (with vectors)',                    scheduledMonth: 8,  chapterOrder: 1, globalOrder: 8  },
@@ -60,12 +61,12 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'GOC Part 1',                           scheduledMonth: 8,  chapterOrder: 2, globalOrder: 8,  isSplitPart: true, splitGroup: 'GOC', splitPartNumber: 1 },
   { subject: 'CHEMISTRY', chapterName: 'Chemical Kinetics',                    scheduledMonth: 8,  chapterOrder: 3, globalOrder: 9  },
   { subject: 'CHEMISTRY', chapterName: 'd and f Block Elements',               scheduledMonth: 8,  chapterOrder: 4, globalOrder: 10 },
-  { subject: 'BOTANY',    chapterName: 'Cell: The Unit of Life',               scheduledMonth: 8,  chapterOrder: 1, globalOrder: 5  },
-  { subject: 'BOTANY',    chapterName: 'Cell Cycle and Cell Division',         scheduledMonth: 8,  chapterOrder: 2, globalOrder: 6  },
-  { subject: 'BOTANY',    chapterName: 'Respiration in Plants',                scheduledMonth: 8,  chapterOrder: 3, globalOrder: 7  },
-  { subject: 'ZOOLOGY',   chapterName: 'Breathing and Exchange of Gases',      scheduledMonth: 8,  chapterOrder: 1, globalOrder: 5  },
-  { subject: 'ZOOLOGY',   chapterName: 'Body Fluids and Circulation',          scheduledMonth: 8,  chapterOrder: 2, globalOrder: 6  },
-  { subject: 'ZOOLOGY',   chapterName: 'Excretory Products and their Elimination', scheduledMonth: 8, chapterOrder: 3, globalOrder: 7 },
+  { subject: 'BIOLOGY',   chapterName: 'Cell: The Unit of Life',               scheduledMonth: 8,  chapterOrder: 1, globalOrder: 9  },
+  { subject: 'BIOLOGY',   chapterName: 'Cell Cycle and Cell Division',         scheduledMonth: 8,  chapterOrder: 2, globalOrder: 10 },
+  { subject: 'BIOLOGY',   chapterName: 'Respiration in Plants',                scheduledMonth: 8,  chapterOrder: 3, globalOrder: 11 },
+  { subject: 'BIOLOGY',   chapterName: 'Breathing and Exchange of Gases',      scheduledMonth: 8,  chapterOrder: 4, globalOrder: 12 },
+  { subject: 'BIOLOGY',   chapterName: 'Body Fluids and Circulation',          scheduledMonth: 8,  chapterOrder: 5, globalOrder: 13 },
+  { subject: 'BIOLOGY',   chapterName: 'Excretory Products and their Elimination', scheduledMonth: 8, chapterOrder: 6, globalOrder: 14 },
 
   // ── SEPTEMBER ─────────────────────────────────────────────────────────────────
   { subject: 'PHYSICS',   chapterName: 'Circular Motion',                       scheduledMonth: 9,  chapterOrder: 1, globalOrder: 12 },
@@ -75,12 +76,12 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'GOC Part 2',                            scheduledMonth: 9,  chapterOrder: 1, globalOrder: 11, isSplitPart: true, splitGroup: 'GOC', splitPartNumber: 2 },
   { subject: 'CHEMISTRY', chapterName: 'Thermodynamics',                        scheduledMonth: 9,  chapterOrder: 2, globalOrder: 12 },
   { subject: 'CHEMISTRY', chapterName: 'Chemical Equilibrium',                  scheduledMonth: 9,  chapterOrder: 3, globalOrder: 13 },
-  { subject: 'BOTANY',    chapterName: 'Sexual Reproduction in Flowering Plants', scheduledMonth: 9, chapterOrder: 1, globalOrder: 8  },
-  { subject: 'BOTANY',    chapterName: 'Plant Growth and Development',           scheduledMonth: 9,  chapterOrder: 2, globalOrder: 9  },
-  { subject: 'BOTANY',    chapterName: 'Biotechnology 1',                        scheduledMonth: 9,  chapterOrder: 3, globalOrder: 10, isSplitPart: true, splitGroup: 'Biotechnology', splitPartNumber: 1 },
-  { subject: 'ZOOLOGY',   chapterName: 'Locomotion and Movements',              scheduledMonth: 9,  chapterOrder: 1, globalOrder: 8  },
-  { subject: 'ZOOLOGY',   chapterName: 'Neural Control and Coordination',       scheduledMonth: 9,  chapterOrder: 2, globalOrder: 9  },
-  { subject: 'ZOOLOGY',   chapterName: 'Genetics 1',                            scheduledMonth: 9,  chapterOrder: 3, globalOrder: 10, isSplitPart: true, splitGroup: 'Genetics', splitPartNumber: 1 },
+  { subject: 'BIOLOGY',   chapterName: 'Sexual Reproduction in Flowering Plants', scheduledMonth: 9, chapterOrder: 1, globalOrder: 15 },
+  { subject: 'BIOLOGY',   chapterName: 'Plant Growth and Development',           scheduledMonth: 9,  chapterOrder: 2, globalOrder: 16 },
+  { subject: 'BIOLOGY',   chapterName: 'Biotechnology 1',                        scheduledMonth: 9,  chapterOrder: 3, globalOrder: 17, isSplitPart: true, splitGroup: 'Biotechnology', splitPartNumber: 1 },
+  { subject: 'BIOLOGY',   chapterName: 'Locomotion and Movements',              scheduledMonth: 9,  chapterOrder: 4, globalOrder: 18 },
+  { subject: 'BIOLOGY',   chapterName: 'Neural Control and Coordination',       scheduledMonth: 9,  chapterOrder: 5, globalOrder: 19 },
+  { subject: 'BIOLOGY',   chapterName: 'Genetics 1',                            scheduledMonth: 9,  chapterOrder: 6, globalOrder: 20, isSplitPart: true, splitGroup: 'Genetics', splitPartNumber: 1 },
 
   // ── OCTOBER ───────────────────────────────────────────────────────────────────
   { subject: 'PHYSICS',   chapterName: 'Mechanical Properties of Solids',       scheduledMonth: 10, chapterOrder: 1, globalOrder: 16 },
@@ -92,11 +93,11 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'Ionic Equilibrium',                     scheduledMonth: 10, chapterOrder: 2, globalOrder: 15 },
   { subject: 'CHEMISTRY', chapterName: 'p-Block Elements (Group 13 to 15)',     scheduledMonth: 10, chapterOrder: 3, globalOrder: 16 },
   { subject: 'CHEMISTRY', chapterName: 'Biomolecules',                          scheduledMonth: 10, chapterOrder: 4, globalOrder: 17 },
-  { subject: 'BOTANY',    chapterName: 'Biotechnology 2',                       scheduledMonth: 10, chapterOrder: 1, globalOrder: 11, isSplitPart: true, splitGroup: 'Biotechnology', splitPartNumber: 2 },
-  { subject: 'BOTANY',    chapterName: 'Photosynthesis in Higher Plants',       scheduledMonth: 10, chapterOrder: 2, globalOrder: 12 },
-  { subject: 'BOTANY',    chapterName: 'Biodiversity and Conservation',         scheduledMonth: 10, chapterOrder: 3, globalOrder: 13 },
-  { subject: 'ZOOLOGY',   chapterName: 'Chemical Coordination and Integration', scheduledMonth: 10, chapterOrder: 1, globalOrder: 11 },
-  { subject: 'ZOOLOGY',   chapterName: 'Genetics 2',                            scheduledMonth: 10, chapterOrder: 2, globalOrder: 12, isSplitPart: true, splitGroup: 'Genetics', splitPartNumber: 2 },
+  { subject: 'BIOLOGY',   chapterName: 'Biotechnology 2',                       scheduledMonth: 10, chapterOrder: 1, globalOrder: 21, isSplitPart: true, splitGroup: 'Biotechnology', splitPartNumber: 2 },
+  { subject: 'BIOLOGY',   chapterName: 'Photosynthesis in Higher Plants',       scheduledMonth: 10, chapterOrder: 2, globalOrder: 22 },
+  { subject: 'BIOLOGY',   chapterName: 'Biodiversity and Conservation',         scheduledMonth: 10, chapterOrder: 3, globalOrder: 23 },
+  { subject: 'BIOLOGY',   chapterName: 'Chemical Coordination and Integration', scheduledMonth: 10, chapterOrder: 4, globalOrder: 24 },
+  { subject: 'BIOLOGY',   chapterName: 'Genetics 2',                            scheduledMonth: 10, chapterOrder: 5, globalOrder: 25, isSplitPart: true, splitGroup: 'Genetics', splitPartNumber: 2 },
 
   // ── NOVEMBER ──────────────────────────────────────────────────────────────────
   { subject: 'PHYSICS',   chapterName: 'Electric Charges and Fields',           scheduledMonth: 11, chapterOrder: 1, globalOrder: 21 },
@@ -106,11 +107,11 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'Haloalkanes and Haloarenes',            scheduledMonth: 11, chapterOrder: 1, globalOrder: 18 },
   { subject: 'CHEMISTRY', chapterName: 'Alcohols, Phenols and Ethers',          scheduledMonth: 11, chapterOrder: 2, globalOrder: 19 },
   { subject: 'CHEMISTRY', chapterName: 'p-Block Elements (Group 16 to 18)',     scheduledMonth: 11, chapterOrder: 3, globalOrder: 20 },
-  { subject: 'BOTANY',    chapterName: 'Organism and Population',               scheduledMonth: 11, chapterOrder: 1, globalOrder: 14 },
-  { subject: 'BOTANY',    chapterName: 'Ecosystem',                             scheduledMonth: 11, chapterOrder: 2, globalOrder: 15 },
-  { subject: 'ZOOLOGY',   chapterName: 'Human Reproduction',                    scheduledMonth: 11, chapterOrder: 1, globalOrder: 13 },
-  { subject: 'ZOOLOGY',   chapterName: 'Reproductive Health',                   scheduledMonth: 11, chapterOrder: 2, globalOrder: 14 },
-  { subject: 'ZOOLOGY',   chapterName: 'Human Health and Diseases',             scheduledMonth: 11, chapterOrder: 3, globalOrder: 15 },
+  { subject: 'BIOLOGY',   chapterName: 'Organism and Population',               scheduledMonth: 11, chapterOrder: 1, globalOrder: 26 },
+  { subject: 'BIOLOGY',   chapterName: 'Ecosystem',                             scheduledMonth: 11, chapterOrder: 2, globalOrder: 27 },
+  { subject: 'BIOLOGY',   chapterName: 'Human Reproduction',                    scheduledMonth: 11, chapterOrder: 3, globalOrder: 28 },
+  { subject: 'BIOLOGY',   chapterName: 'Reproductive Health',                   scheduledMonth: 11, chapterOrder: 4, globalOrder: 29 },
+  { subject: 'BIOLOGY',   chapterName: 'Human Health and Diseases',             scheduledMonth: 11, chapterOrder: 5, globalOrder: 30 },
 
   // ── DECEMBER ──────────────────────────────────────────────────────────────────
   { subject: 'PHYSICS',   chapterName: 'EMI',                                   scheduledMonth: 12, chapterOrder: 1, globalOrder: 25 },
@@ -122,8 +123,8 @@ const syllabus: ChapterEntry[] = [
   { subject: 'CHEMISTRY', chapterName: 'Aldehyde, Ketones and Carboxylic Acids', scheduledMonth: 12, chapterOrder: 2, globalOrder: 22 },
   { subject: 'CHEMISTRY', chapterName: 'Amines',                                scheduledMonth: 12, chapterOrder: 3, globalOrder: 23 },
   { subject: 'CHEMISTRY', chapterName: 'Practical Chemistry',                   scheduledMonth: 12, chapterOrder: 4, globalOrder: 24 },
-  { subject: 'BOTANY',    chapterName: 'Living World',                          scheduledMonth: 12, chapterOrder: 1, globalOrder: 16 },
-  { subject: 'ZOOLOGY',   chapterName: 'Microbes in Human Welfare',             scheduledMonth: 12, chapterOrder: 1, globalOrder: 16 },
+  { subject: 'BIOLOGY',   chapterName: 'Living World',                          scheduledMonth: 12, chapterOrder: 1, globalOrder: 31 },
+  { subject: 'BIOLOGY',   chapterName: 'Microbes in Human Welfare',             scheduledMonth: 12, chapterOrder: 2, globalOrder: 32 },
 ]
 
 async function seedSyllabus() {
@@ -155,8 +156,8 @@ async function seedSyllabus() {
   // Include subject in the query to avoid false matches if a splitGroup name is ever shared.
   const splitDefs: { group: string; subject: Subject }[] = [
     { group: 'GOC',           subject: 'CHEMISTRY' },
-    { group: 'Biotechnology', subject: 'BOTANY'    },
-    { group: 'Genetics',      subject: 'ZOOLOGY'   },
+    { group: 'Biotechnology', subject: 'BIOLOGY' },
+    { group: 'Genetics',      subject: 'BIOLOGY' },
   ]
   for (const { group, subject } of splitDefs) {
     const part1 = await SyllabusChapter.findOne({ subject, splitGroup: group, splitPartNumber: 1 })

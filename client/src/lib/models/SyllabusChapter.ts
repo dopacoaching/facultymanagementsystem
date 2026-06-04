@@ -1,4 +1,4 @@
-import { Schema, model, models, Model, Document, Types } from 'mongoose'
+﻿import { Schema, model, models, Model, Document, Types } from 'mongoose'
 
 export interface ISyllabusChapter extends Document {
   subject: string
@@ -14,7 +14,7 @@ export interface ISyllabusChapter extends Document {
 
 const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
   {
-    subject:         { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BOTANY', 'ZOOLOGY'], required: true },
+    subject:         { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'], required: true },
     chapterName:     { type: String, required: true, trim: true },
     scheduledMonth:  { type: Number, required: true, min: 6, max: 12 },
     chapterOrder:    { type: Number, required: true },
