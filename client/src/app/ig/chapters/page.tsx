@@ -38,6 +38,16 @@ const STATUS_LABEL: Record<ChapterStatus, string> = {
 
 const ALL_STATUSES: ChapterStatus[] = ['NOT_YET_SCHEDULED', 'SCHEDULED', 'COMPLETED', 'CANCELLED']
 
+const SUBGROUP_LABEL: Record<string, string> = {
+  PLUS_ONE: 'Plus 1',
+  PLUS_TWO: 'Plus 2',
+}
+
+const fmt = (d?: string) =>
+  d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
+const todayISO = () => new Date().toISOString()
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ISChaptersPage() {
@@ -113,8 +123,18 @@ export default function ISChaptersPage() {
     if (!accessToken) return
     setUpdating(id); setError('')
     try {
+      const chapter = chapters.find((c) => c._id === id)
+      const body: Record<string, unknown> = { status }
+      // Auto-stamp today when entering SCHEDULED or COMPLETED for the first time
+      if (status === 'SCHEDULED' && !chapter?.scheduledDate) body.scheduledDate = todayISO()
+      if (status === 'COMPLETED' && !chapter?.completedDate) body.completedDate = todayISO()
+      // Clear dates when reverting to unscheduled/cancelled
+      if (status === 'NOT_YET_SCHEDULED' || status === 'CANCELLED') {
+        body.scheduledDate = null
+        body.completedDate = null
+      }
       const updated = await apiFetch<ISChapter>(`/ig/chapters/${id}`, {
-        method: 'PATCH', token: accessToken, body: { status },
+        method: 'PATCH', token: accessToken, body,
       })
       setChapters((prev) => prev.map((c) => c._id === id ? updated : c))
     } catch (e: unknown) {
@@ -149,7 +169,11 @@ export default function ISChaptersPage() {
             <label className="label" style={{ marginBottom: '0.25rem' }}>IG Batch</label>
             <select className="input" value={selectedBatch}
               onChange={(e) => { setSelectedBatch(e.target.value); setFilterSubject('') }}>
-              {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
+              {batches.map((b) => (
+                <option key={b._id} value={b._id}>
+                  {b.name}{b.ig1Subgroup ? ` (${SUBGROUP_LABEL[b.ig1Subgroup] ?? b.ig1Subgroup})` : ''}
+                </option>
+              ))}
             </select>
           </div>
           <div className="form-group" style={{ margin: 0, minWidth: 150 }}>
@@ -219,6 +243,8 @@ export default function ISChaptersPage() {
                     <th style={{ width: 40 }}>#</th>
                     <th>Chapter</th>
                     <th style={{ width: 140 }}>Status</th>
+                    <th style={{ width: 110, fontSize: '0.75rem' }}>Scheduled</th>
+                    <th style={{ width: 110, fontSize: '0.75rem' }}>Completed</th>
                     {canEdit && <th style={{ width: 180 }}>Change Status</th>}
                   </tr>
                 </thead>
@@ -239,6 +265,12 @@ export default function ISChaptersPage() {
                       </td>
                       <td>
                         <span className={`badge ${STATUS_BADGE[ch.status]}`}>{STATUS_LABEL[ch.status]}</span>
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+                        {fmt(ch.scheduledDate)}
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: ch.completedDate ? 'var(--color-success)' : 'var(--color-muted)', whiteSpace: 'nowrap' }}>
+                        {fmt(ch.completedDate)}
                       </td>
                       {canEdit && (
                         <td>
