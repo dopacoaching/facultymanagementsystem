@@ -190,6 +190,17 @@ export default function SchedulePage() {
     setSaving(true); setError(''); setSuccess('')
     try {
       const validEntries = entries.filter((e) => e.subject.trim() && e.chapter.trim())
+      
+      // Enforce that sessionDate is required for all class sessions (non-exams)
+      const missingDateEntry = validEntries.find(
+        (e) => (e.sessionType === 'LIVE_SESSION' || e.sessionType === 'RECORDED_VIDEO') && !e.sessionDate
+      )
+      if (missingDateEntry) {
+        setError(`Date is required for class session: ${missingDateEntry.subject} - ${missingDateEntry.chapter}`)
+        setSaving(false)
+        return
+      }
+
       await apiFetch('/academics/schedules', {
         token: accessToken,
         method: 'POST',
@@ -321,13 +332,13 @@ export default function SchedulePage() {
                     </div>
                   )}
 
-                  {/* Date picker — class sessions: optional, auto-derives day */}
+                  {/* Date picker — class sessions: required, auto-derives day */}
                   {!isExam && (
                     <div className="form-group" style={{ margin: 0 }}>
-                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Date (optional)</label>}
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Date</label>}
                       <input type="date" className="input" value={entry.sessionDate ?? ''}
                         onChange={(e) => updateEntry(idx, 'sessionDate', e.target.value)}
-                        style={{ fontSize: '0.8125rem' }} />
+                        style={{ fontSize: '0.8125rem' }} required />
                     </div>
                   )}
 

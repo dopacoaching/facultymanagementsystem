@@ -52,7 +52,12 @@ const ClassEntrySchema = new Schema<IClassEntry>(
     durationHours: { type: Number },
     facultyId:     { type: Schema.Types.ObjectId, ref: 'Faculty' },
     notes:         String,
-    sessionDate:   Date,
+    sessionDate:   {
+      type: Date,
+      required: function(this: any) {
+        return this.sessionType === 'LIVE_SESSION' || this.sessionType === 'RECORDED_VIDEO';
+      }
+    },
     startTime:     String,
     examDay:       { type: String, enum: ['MONDAY', 'FRIDAY'] },
     examDate:      Date,

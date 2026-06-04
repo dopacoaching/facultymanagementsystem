@@ -44,6 +44,18 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
     res.status(400).json({ error: 'batchId and weekStartDate required' }); return
   }
 
+  // Validate that all class sessions have a sessionDate
+  if (classEntries && Array.isArray(classEntries)) {
+    for (const entry of classEntries) {
+      if ((entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') && !entry.sessionDate) {
+        res.status(400).json({
+          error: `Date is required for class session: ${entry.subject || 'unnamed'} - ${entry.chapter || 'unnamed'}`
+        });
+        return
+      }
+    }
+  }
+
   let batchOid: Types.ObjectId
   try { batchOid = new Types.ObjectId(batchId) } catch {
     res.status(400).json({ error: 'Invalid batchId' }); return
