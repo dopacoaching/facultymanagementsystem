@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { authenticate, authorize } from '../middleware/auth'
 import { getSessions, createSession, cancelSession, updateSessionStatus, updateSession } from '../controllers/session.controller'
 import {
-  getSchedules, createOrUpdateSchedule, publishSchedule, reviseSchedule,
+  getSchedules, createOrUpdateSchedule, publishSchedule, reviseSchedule, deleteSchedule,
   updateExamTopic, suggestTopic, getChapters, updateChapter, getChapterSummary,
 } from '../controllers/schedule.controller'
 import {
@@ -47,6 +47,9 @@ router.post('/schedule/publish', authorize('ACADEMICS_MANAGER', 'COORDINATOR', '
 
 // Revise (create revised draft from a published schedule)
 router.post('/schedules/:id/revise', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), reviseSchedule)
+
+// Delete (unpublished drafts/revisions only)
+router.delete('/schedules/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), deleteSchedule)
 
 // ── Exam topic suggestion ─────────────────────────────────────────────────────
 router.get('/exams/suggest', suggestTopic)

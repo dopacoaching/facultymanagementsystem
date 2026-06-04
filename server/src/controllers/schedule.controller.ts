@@ -72,13 +72,38 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
   if (fridayExamTopic !== undefined) updateDoc.fridayExamTopic = fridayExamTopic
   if (classEntries   !== undefined) updateDoc.classEntries    = classEntries
 
-  // Only match the original (non-revised) draft — not any pending revision
-  const isNew = !(await WeeklySchedule.exists({ batchId: batchOid, weekStartDate: startDate, isRevised: false }))
-  const schedule = await WeeklySchedule.findOneAndUpdate(
-    { batchId: batchOid, weekStartDate: startDate, isRevised: false },
-    updateDoc,
-    { upsert: true, new: true }
-  ).populate('classEntries.facultyId', 'name subject')
+  // Check if there is an unpublished draft (could be original or revised)
+  let schedule = await WeeklySchedule.findOne({
+    batchId: batchOid,
+    weekStartDate: startDate,
+    isPublished: false
+  })
+
+  let isNew = false
+  if (schedule) {
+    // Update existing draft
+    if (classEntries   !== undefined) schedule.classEntries   = classEntries
+    if (mondayExamTopic !== undefined) schedule.mondayExamTopic = mondayExamTopic
+    if (fridayExamTopic !== undefined) schedule.fridayExamTopic = fridayExamTopic
+    schedule.weekEndDate = endDate
+    await schedule.save()
+    // Populate facultyId
+    await schedule.populate('classEntries.facultyId', 'name subject')
+  } else {
+    isNew = true
+    // Create new original draft
+    schedule = await WeeklySchedule.create({
+      batchId:            batchOid,
+      weekStartDate:      startDate,
+      weekEndDate:        endDate,
+      mondayExamTopic,
+      fridayExamTopic,
+      classEntries:       classEntries ?? [],
+      isRevised:          false,
+      isPublished:        false,
+    })
+    await schedule.populate('classEntries.facultyId', 'name subject')
+  }
 
   res.status(isNew ? 201 : 200).json(schedule)
 })
@@ -178,6 +203,23 @@ export const reviseSchedule = asyncHandler(async (req: AuthRequest, res: Respons
   })
 
   res.status(201).json({ success: true, revision })
+})
+
+/**
+ * DELETE /schedules/:id
+ * Deletes an unpublished schedule draft or revision.
+ */
+export const deleteSchedule = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params
+  const schedule = await WeeklySchedule.findById(id)
+  if (!schedule) { res.status(404).json({ error: 'Schedule not found' }); return }
+
+  if (schedule.isPublished) {
+    res.status(400).json({ error: 'Published schedules cannot be deleted.' }); return
+  }
+
+  await WeeklySchedule.findByIdAndDelete(id)
+  res.json({ success: true, message: 'Draft deleted successfully' })
 })
 
 // ─── Exam topic auto-suggestion (full Cases 1–4) ──────────────────────────────

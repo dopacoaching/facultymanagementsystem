@@ -121,6 +121,7 @@ export default function SchedulePage() {
   const [saving,    setSaving]        = useState(false)
   const [publishing, setPublishing]   = useState('')
   const [revising,  setRevising]      = useState('')
+  const [deleting,  setDeleting]      = useState('')
   const [error,     setError]         = useState('')
   const [success,   setSuccess]       = useState('')
 
@@ -259,6 +260,44 @@ export default function SchedulePage() {
     } finally { setRevising('') }
   }
 
+  // ── Delete Draft ────────────────────────────────────────────────────────────
+
+  async function handleDeleteDraft(scheduleId: string) {
+    if (!accessToken) return
+    if (!confirm('Are you sure you want to discard this draft?')) return
+    setDeleting(scheduleId); setError(''); setSuccess('')
+    try {
+      await apiFetch(`/academics/schedules/${scheduleId}`, { token: accessToken, method: 'DELETE' })
+      setSuccess('Draft discarded successfully.')
+      load()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to discard draft')
+    } finally { setDeleting('') }
+  }
+
+  // ── Edit/Load Draft ──────────────────────────────────────────────────────────
+
+  function handleLoadDraft(s: Schedule) {
+    setError(''); setSuccess('')
+    const bId = typeof s.batchId === 'object' ? s.batchId._id : s.batchId
+    setBatchId(bId)
+    setWeekStart(s.weekStartDate.slice(0, 10))
+    setEntries(s.classEntries.map((e) => ({
+      day:           e.day,
+      subject:       e.subject,
+      chapter:       e.chapter,
+      sessionType:   e.sessionType,
+      durationHours: e.durationHours,
+      facultyId:     typeof e.facultyId === 'object' ? e.facultyId._id : (e.facultyId || ''),
+      notes:         e.notes || '',
+      sessionDate:   e.sessionDate ? e.sessionDate.slice(0, 10) : undefined,
+      startTime:     e.startTime || '',
+      examDay:       e.examDay,
+      examDate:      e.examDate ? e.examDate.slice(0, 10) : undefined,
+    })))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   // ── Sorted schedules ────────────────────────────────────────────────────────
 
   const sorted = useMemo(() =>
@@ -287,13 +326,19 @@ export default function SchedulePage() {
           {error   && <div className="alert alert-error"   style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✅</span>{success}</div>}
 
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label className="label">Batch</label>
-            <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}
-              disabled={isCoordinator} style={{ maxWidth: 320 }}>
-              <option value="">— select batch —</option>
-              {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
-            </select>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            <div className="form-group" style={{ flex: 1, minWidth: 200, maxWidth: 320 }}>
+              <label className="label">Batch</label>
+              <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}
+                disabled={isCoordinator}>
+                <option value="">— select batch —</option>
+                {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: 1, minWidth: 200, maxWidth: 320 }}>
+              <label className="label">Week Start Date (Saturday)</label>
+              <input type="date" className="input" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
+            </div>
           </div>
 
           {/* Class entries */}
@@ -468,15 +513,38 @@ export default function SchedulePage() {
                       {s.publishedAt && <span style={{ marginLeft: '0.75rem' }}>Published {fmtDate(s.publishedAt)}</span>}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                    {isDraft && canPublish && (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        disabled={publishing === s._id}
-                        onClick={() => handlePublish(s._id)}
-                      >
-                        {publishing === s._id ? 'Publishing…' : '📢 Publish'}
-                      </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center' }}>
+                    {isDraft && (
+                      <>
+                        {canEdit && (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => handleLoadDraft(s)}
+                            style={{ color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}
+                          >
+                            ✏ Edit Draft
+                          </button>
+                        )}
+                        {canPublish && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            disabled={publishing === s._id}
+                            onClick={() => handlePublish(s._id)}
+                          >
+                            {publishing === s._id ? 'Publishing…' : '📢 Publish'}
+                          </button>
+                        )}
+                        {canEdit && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            disabled={deleting === s._id}
+                            onClick={() => handleDeleteDraft(s._id)}
+                            style={{ color: 'var(--color-danger)' }}
+                          >
+                            {deleting === s._id ? 'Discarding…' : '✕ Discard'}
+                          </button>
+                        )}
+                      </>
                     )}
                     {s.isPublished && canRevise && (
                       <button
