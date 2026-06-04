@@ -44,14 +44,22 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
     res.status(400).json({ error: 'batchId and weekStartDate required' }); return
   }
 
-  // Validate that all class sessions have a sessionDate
+  // Validate that all class sessions have a sessionDate and facultyId
   if (classEntries && Array.isArray(classEntries)) {
     for (const entry of classEntries) {
-      if ((entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') && !entry.sessionDate) {
-        res.status(400).json({
-          error: `Date is required for class session: ${entry.subject || 'unnamed'} - ${entry.chapter || 'unnamed'}`
-        });
-        return
+      if (entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') {
+        if (!entry.sessionDate) {
+          res.status(400).json({
+            error: `Date is required for class session: ${entry.subject || 'unnamed'} - ${entry.chapter || 'unnamed'}`
+          });
+          return
+        }
+        if (!entry.facultyId) {
+          res.status(400).json({
+            error: `Faculty is required for class session: ${entry.subject || 'unnamed'} - ${entry.chapter || 'unnamed'}`
+          });
+          return
+        }
       }
     }
   }

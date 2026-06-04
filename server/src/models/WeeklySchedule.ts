@@ -50,7 +50,13 @@ const ClassEntrySchema = new Schema<IClassEntry>(
     chapter:       { type: String, required: true },
     sessionType:   { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
     durationHours: { type: Number },
-    facultyId:     { type: Schema.Types.ObjectId, ref: 'Faculty' },
+    facultyId:     {
+      type: Schema.Types.ObjectId,
+      ref: 'Faculty',
+      required: function(this: any) {
+        return this.sessionType === 'LIVE_SESSION' || this.sessionType === 'RECORDED_VIDEO';
+      }
+    },
     notes:         String,
     sessionDate:   {
       type: Date,

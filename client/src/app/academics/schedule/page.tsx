@@ -192,12 +192,21 @@ export default function SchedulePage() {
     try {
       const validEntries = entries.filter((e) => e.subject.trim() && e.chapter.trim())
       
-      // Enforce that sessionDate is required for all class sessions (non-exams)
+      // Enforce that sessionDate and facultyId are required for all class sessions (non-exams)
       const missingDateEntry = validEntries.find(
         (e) => (e.sessionType === 'LIVE_SESSION' || e.sessionType === 'RECORDED_VIDEO') && !e.sessionDate
       )
       if (missingDateEntry) {
         setError(`Date is required for class session: ${missingDateEntry.subject} - ${missingDateEntry.chapter}`)
+        setSaving(false)
+        return
+      }
+
+      const missingFacultyEntry = validEntries.find(
+        (e) => (e.sessionType === 'LIVE_SESSION' || e.sessionType === 'RECORDED_VIDEO') && !e.facultyId
+      )
+      if (missingFacultyEntry) {
+        setError(`Faculty is required for class session: ${missingFacultyEntry.subject} - ${missingFacultyEntry.chapter}`)
         setSaving(false)
         return
       }
@@ -438,15 +447,15 @@ export default function SchedulePage() {
                       style={{ fontSize: '0.8125rem' }} />
                   </div>
 
-                  {/* Faculty — class sessions only */}
+                  {/* Faculty — class sessions only: required */}
                   {!isExam && (
                     <div className="form-group" style={{ margin: 0 }}>
-                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Faculty (optional)</label>}
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Faculty</label>}
                       <select className="input"
                         value={typeof entry.facultyId === 'object' ? (entry.facultyId as {_id:string})._id : (entry.facultyId ?? '')}
                         onChange={(e) => updateEntry(idx, 'facultyId', e.target.value)}
-                        style={{ fontSize: '0.8125rem' }}>
-                        <option value="">— any —</option>
+                        style={{ fontSize: '0.8125rem' }} required>
+                        <option value="">— select faculty —</option>
                         {faculty.filter((f) => f.isActive).map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
                       </select>
                     </div>
