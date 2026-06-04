@@ -161,6 +161,21 @@ export default function SchedulePage() {
 
   useEffect(() => { if (batchId) load() }, [batchId, load])
 
+  // Auto-derive weekStart from the earliest session date in the entries.
+  // Falls back to the current week's Saturday when there are no dated entries
+  // (e.g. exam-only rows, or a just-loaded draft with no changes yet).
+  useEffect(() => {
+    const dated = entries
+      .filter((e) => e.sessionDate)
+      .map((e) => new Date(e.sessionDate! + 'T12:00:00'))
+      .sort((a, b) => a.getTime() - b.getTime())
+    if (dated.length === 0) return   // keep whatever weekStart was set (draft or default)
+    const d = new Date(dated[0])
+    const daysBack = (d.getDay() - 6 + 7) % 7
+    d.setDate(d.getDate() - daysBack)
+    setWeekStart(d.toISOString().slice(0, 10))
+  }, [entries])
+
   // ── Entry helpers ───────────────────────────────────────────────────────────
 
   function updateEntry(idx: number, key: keyof ClassEntry, val: string) {
@@ -192,8 +207,7 @@ export default function SchedulePage() {
 
   async function handleSave() {
     if (!accessToken) return
-    if (!batchId)     { setError('Select a batch'); return }
-    if (!weekStart)   { setError('Select a week start date'); return }
+    if (!batchId) { setError('Select a batch'); return }
     setSaving(true); setError(''); setSuccess('')
     try {
       const validEntries = entries.filter((e) => e.subject.trim() && e.chapter.trim())
@@ -342,18 +356,14 @@ export default function SchedulePage() {
           {error   && <div className="alert alert-error"   style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✅</span>{success}</div>}
 
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-            <div className="form-group" style={{ flex: 1, minWidth: 200, maxWidth: 320 }}>
+          <div style={{ marginBottom: '1.5rem', maxWidth: 320 }}>
+            <div className="form-group">
               <label className="label">Batch</label>
               <select className="input" value={batchId} onChange={(e) => setBatchId(e.target.value)}
                 disabled={isCoordinator}>
                 <option value="">— select batch —</option>
                 {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
               </select>
-            </div>
-            <div className="form-group" style={{ flex: 1, minWidth: 200, maxWidth: 320 }}>
-              <label className="label">Week Start Date (Saturday)</label>
-              <input type="date" className="input" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
             </div>
           </div>
 
