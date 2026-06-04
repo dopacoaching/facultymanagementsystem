@@ -81,9 +81,29 @@ const WeeklyScheduleSchema = new Schema<IWeeklySchedule>(
   { timestamps: true }
 )
 
-// NOTE: Unique index removed — uniqueness on unpublished revisions is enforced
-// at the application level in the revise controller (returns 409 if one exists).
-// The previous unique index on { batchId, weekStartDate, isRevised } prevented
-// more than one revision chain per week (e.g. revise → publish → revise again → 500).
+const DAY_OFFSETS: Record<string, number> = {
+  SATURDAY: 0,
+  SUNDAY: 1,
+  MONDAY: 2,
+  TUESDAY: 3,
+  WEDNESDAY: 4,
+  THURSDAY: 5,
+  FRIDAY: 6,
+}
+
+WeeklyScheduleSchema.pre('validate', function (this: any, next: any) {
+  const doc = this
+  if (doc.classEntries && Array.isArray(doc.classEntries)) {
+    for (const entry of doc.classEntries) {
+      if ((entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') && !entry.sessionDate && doc.weekStartDate) {
+        const date = new Date(doc.weekStartDate)
+        const offset = DAY_OFFSETS[entry.day] ?? 0
+        date.setDate(date.getDate() + offset)
+        entry.sessionDate = date
+      }
+    }
+  }
+  next()
+})
 
 export const WeeklySchedule = model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)
