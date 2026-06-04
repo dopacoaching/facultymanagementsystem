@@ -101,8 +101,8 @@ export const updateExamTopic = asyncHandler(async (req: AuthRequest, res: Respon
 
 /**
  * POST /schedules/:id/publish
- * Hard gate: both exam topics must be non-empty strings.
- * Once published, the schedule is locked.
+ * Publishes the schedule. Exam topics are managed independently and are
+ * not required before publishing.
  */
 export const publishSchedule = asyncHandler(async (req: AuthRequest, res: Response) => {
   const scheduleId = req.params.id ?? req.body.scheduleId
@@ -114,18 +114,6 @@ export const publishSchedule = asyncHandler(async (req: AuthRequest, res: Respon
   if (schedule.isPublished) {
     res.status(409).json({
       error: 'Schedule already published. Create a revised version to make changes.',
-    }); return
-  }
-
-  // HARD GATE
-  const missing: string[] = []
-  if (!schedule.mondayExamTopic?.trim()) missing.push('Monday')
-  if (!schedule.fridayExamTopic?.trim()) missing.push('Friday')
-  if (missing.length > 0) {
-    res.status(422).json({
-      error: `Cannot publish — exam topics missing for: ${missing.join(', ')}`,
-      blocked: true,
-      missingTopics: missing,
     }); return
   }
 

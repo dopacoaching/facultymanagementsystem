@@ -119,9 +119,6 @@ export default function SchedulePage() {
   const [revising,  setRevising]      = useState('')
   const [error,     setError]         = useState('')
   const [success,   setSuccess]       = useState('')
-  // Per-schedule inline exam topic editing
-  const [examTopics, setExamTopics]   = useState<Record<string, { monday: string; friday: string }>>({})
-  const [savingTopics, setSavingTopics] = useState('')
 
   // Form state
   const [entries, setEntries] = useState<ClassEntry[]>([EMPTY_ENTRY()])
@@ -211,37 +208,6 @@ export default function SchedulePage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save')
     } finally { setSaving(false) }
-  }
-
-  // ── Exam topics (inline per-card) ────────────────────────────────────────────
-
-  function getTopics(s: Schedule) {
-    if (examTopics[s._id]) return examTopics[s._id]
-    return { monday: s.mondayExamTopic ?? '', friday: s.fridayExamTopic ?? '' }
-  }
-
-  function setTopic(scheduleId: string, field: 'monday' | 'friday', val: string) {
-    setExamTopics((prev) => ({
-      ...prev,
-      [scheduleId]: { ...(prev[scheduleId] ?? { monday: '', friday: '' }), [field]: val },
-    }))
-  }
-
-  async function handleSaveTopics(s: Schedule) {
-    if (!accessToken) return
-    const t = getTopics(s)
-    setSavingTopics(s._id); setError('')
-    try {
-      await apiFetch(`/academics/schedules/${s._id}/exam-topic`, {
-        token: accessToken,
-        method: 'PATCH',
-        body: { mondayExamTopic: t.monday.trim(), fridayExamTopic: t.friday.trim() },
-      })
-      setSuccess('Exam topics saved.')
-      load()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to save exam topics')
-    } finally { setSavingTopics('') }
   }
 
   // ── Publish ─────────────────────────────────────────────────────────────────
@@ -485,52 +451,6 @@ export default function SchedulePage() {
                     )}
                   </div>
                 </div>
-
-                {/* ── Exam Topics (required before publish) ──────────────── */}
-                {isDraft && canPublish && (
-                  <div style={{
-                    display: 'flex', flexDirection: 'column', gap: '0.625rem',
-                    padding: '0.875rem 1rem',
-                    marginBottom: '0.875rem',
-                    background: 'var(--color-surface-2)',
-                    borderRadius: 'var(--radius)',
-                    border: '1px solid var(--color-border)',
-                  }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.125rem' }}>
-                      📝 Exam Topics <span style={{ color: 'var(--color-danger)', fontWeight: 400 }}>(required to publish)</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                      <div className="form-group" style={{ margin: 0, flex: '1 1 200px' }}>
-                        <label className="label" style={{ fontSize: '0.75rem' }}>Monday Exam Topic</label>
-                        <input
-                          className="input"
-                          style={{ fontSize: '0.8125rem' }}
-                          placeholder="e.g. Exam: Kinematics + Laws of Motion"
-                          value={getTopics(s).monday}
-                          onChange={(e) => setTopic(s._id, 'monday', e.target.value)}
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0, flex: '1 1 200px' }}>
-                        <label className="label" style={{ fontSize: '0.75rem' }}>Friday Exam Topic</label>
-                        <input
-                          className="input"
-                          style={{ fontSize: '0.8125rem' }}
-                          placeholder="e.g. Exam: Thermodynamics + Waves"
-                          value={getTopics(s).friday}
-                          onChange={(e) => setTopic(s._id, 'friday', e.target.value)}
-                        />
-                      </div>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        disabled={savingTopics === s._id}
-                        onClick={() => handleSaveTopics(s)}
-                        style={{ alignSelf: 'flex-end', flexShrink: 0 }}
-                      >
-                        {savingTopics === s._id ? <><span className="spinner" style={{ width: '0.8rem', height: '0.8rem' }} /> Saving…</> : '💾 Save Topics'}
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Class entries */}
                 {s.classEntries.length > 0 && (

@@ -3,7 +3,10 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
 
-/** POST /api/academics/schedules/:id/publish */
+/** POST /api/academics/schedules/:id/publish
+ * Publishes the schedule. Exam topics are managed independently via
+ * PATCH /exam-topic and are not required before publishing.
+ */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = authenticate(req)
@@ -24,18 +27,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return withToken(json({
         error: 'Schedule already published. Create a revised version to make changes.',
       }, 409), refreshedToken)
-    }
-
-    // HARD GATE: both exam topics must be non-empty
-    const missing: string[] = []
-    if (!schedule.mondayExamTopic?.trim()) missing.push('Monday')
-    if (!schedule.fridayExamTopic?.trim()) missing.push('Friday')
-    if (missing.length > 0) {
-      return withToken(json({
-        error:         `Cannot publish — exam topics missing for: ${missing.join(', ')}`,
-        blocked:       true,
-        missingTopics: missing,
-      }, 422), refreshedToken)
     }
 
     schedule.isPublished = true
