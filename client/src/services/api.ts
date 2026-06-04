@@ -57,6 +57,19 @@ store.subscribe(() => {
   if (!accessToken) latestToken = null
 })
 
+// ── Proactive expiry check ────────────────────────────────────────────────────
+// Decode the JWT payload without signature verification just to read `exp`.
+// Returns true when the token has already expired or expires within 30 seconds.
+function isTokenExpired(token: string): boolean {
+  try {
+    const part = token.split('.')[1]
+    const decoded = JSON.parse(atob(part)) as { exp?: number }
+    return !decoded.exp || decoded.exp * 1000 < Date.now() + 30_000
+  } catch {
+    return true
+  }
+}
+
 // ── Shared refresh promise ────────────────────────────────────────────────────
 let refreshInFlight: Promise<string | null> | null = null
 
@@ -120,7 +133,17 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
   // Prefer the sliding-window latestToken over the caller's (possibly stale)
   // closure token.  Only upgrade if the caller supplied a token at all — an
   // unauthenticated call should stay unauthenticated.
-  const effectiveToken = token ? (latestToken ?? token) : undefined
+  let effectiveToken = token ? (latestToken ?? token) : undefined
+
+  // Proactively refresh before the request if the token is already expired or
+  // expires within 30 s. This prevents the visible 401 → retry round-trip that
+  // appears in the browser console when a stale token is restored from storage.
+  if (effectiveToken && isTokenExpired(effectiveToken)) {
+    const refreshed = await tryRefreshToken()
+    if (refreshed) effectiveToken = refreshed
+    // If refresh failed, clearCredentials was already dispatched; carry on and
+    // let the request fail naturally so the Shell can redirect.
+  }
 
   const fetchInit: RequestInit = {
     method,

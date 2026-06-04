@@ -13,13 +13,13 @@ export interface JWTPayload {
 
 export const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 
-export function verifyAccessToken(authHeader: string | null): JWTPayload | null {
+export function verifyAccessToken(authHeader: string | null): JWTPayload | 'SESSION_EXPIRED' | null {
   if (!authHeader?.startsWith('Bearer ')) return null
   try {
     const token = authHeader.slice(7)
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload
     if (payload.lastActive !== undefined && Date.now() - payload.lastActive > SESSION_TIMEOUT_MS) {
-      return null
+      return 'SESSION_EXPIRED'
     }
     return payload
   } catch {
@@ -51,8 +51,10 @@ export function verifyRefreshToken(token: string): JWTPayload | null {
 
 /** Authenticate a Next.js API route. Returns payload or a 401 Response. */
 export function authenticate(req: Request): { payload: JWTPayload; refreshedToken: string } | NextResponse {
-  const payload = verifyAccessToken(req.headers.get('authorization'))
-  if (!payload) return json({ error: 'Unauthorized' }, 401)
+  const result = verifyAccessToken(req.headers.get('authorization'))
+  if (result === 'SESSION_EXPIRED') return json({ error: 'SESSION_EXPIRED' }, 401)
+  if (!result) return json({ error: 'Unauthorized' }, 401)
+  const payload = result
   const refreshedToken = signAccessToken({
     userId: payload.userId,
     role: payload.role,
