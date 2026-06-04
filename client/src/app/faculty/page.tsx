@@ -176,14 +176,9 @@ export default function FacultyDashboard() {
       <div className="card">
         <div className="card-header">
           <h2>Recent Sessions</h2>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <Link href="/faculty/schedule" style={{ fontSize: '0.8125rem', color: 'var(--color-accent)', fontWeight: 600, textDecoration: 'none' }}>
-              🗓 View Schedule →
-            </Link>
-            <Link href="/faculty/sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
-              View all →
-            </Link>
-          </div>
+          <Link href="/faculty/sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+            View all →
+          </Link>
         </div>
 
         {sessions.length === 0 ? (

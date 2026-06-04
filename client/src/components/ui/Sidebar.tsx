@@ -85,10 +85,9 @@ const COORDINATOR_NAV: NavItem[] = [
 ]
 
 const FACULTY_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/faculty',           icon: '◈' },
-  { label: 'Schedule',    href: '/faculty/schedule',  icon: '🗓' },
-  { label: 'My Sessions', href: '/faculty/sessions',  icon: '📅' },
-  { label: 'My Salary',   href: '/faculty/salary',    icon: '₹' },
+  { label: 'Dashboard',   href: '/faculty',          icon: '◈' },
+  { label: 'My Sessions', href: '/faculty/sessions', icon: '📅' },
+  { label: 'My Salary',   href: '/faculty/salary',   icon: '₹' },
 ]
 
 function navForRole(role: string | null): NavItem[] {
