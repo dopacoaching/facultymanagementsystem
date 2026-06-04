@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const facultyId = searchParams.get('facultyId')
 
     if (!facultyId) {
-      return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
+      return withToken(json({ error: 'facultyId required' }, 400), refreshedToken)
     }
 
     let fid: Types.ObjectId

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
           totalChapters:    { $sum: 1 },
           videoComplete:    { $sum: { $cond: ['$videoComplete', 1, 0] } },
           facultyClassDone: { $sum: { $cond: ['$facultyClassDone', 1, 0] } },
-          pendingVideo:     { $sum: { $cond: [{ $and: ['$facultyClassDone', { $not: '$videoComplete' }] }, 1, 0] } },
+          pendingVideo:     { $sum: { $cond: [{ $and: ['$facultyClassDone', { $not: ['$videoComplete'] }] }, 1, 0] } },
         },
       },
       {

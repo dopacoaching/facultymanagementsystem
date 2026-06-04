@@ -68,13 +68,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .populate('facultyId', 'name subject')
       .populate('batchId',   'name type')
 
+    if (!user) return withToken(json({ error: 'User not found' }, 404), refreshedToken)
+
     // Revoke all refresh tokens when account is deactivated or role changes
     // so the user cannot silently regain access via a stored cookie
     if (update.isActive === false || update.role) {
       await (await import('@/lib/models/RefreshToken')).RefreshToken.deleteMany({ userId: id })
     }
-
-    if (!user) return withToken(json({ error: 'User not found' }, 404), refreshedToken)
 
     // Audit: user account changed
     await writeAuditLog({

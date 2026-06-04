@@ -84,9 +84,15 @@ function dayFromDateStr(dateStr: string): ClassEntryDay {
   return days[new Date(dateStr + 'T12:00:00').getDay()]
 }
 
-/** Return today's date as YYYY-MM-DD (default week start) */
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10)
+/** Return the most recent Saturday as YYYY-MM-DD (current week start).
+ *  The schedule week runs Sat→Fri per the DAY_OFFSETS in WeeklySchedule.
+ *  Formula: (getDay() - 6 + 7) % 7 gives days-since-last-Saturday.
+ */
+function currentWeekSaturday(): string {
+  const d = new Date()
+  const daysBack = (d.getDay() - 6 + 7) % 7   // 0 if today is Sat, 1 if Sun, …
+  d.setDate(d.getDate() - daysBack)
+  return d.toISOString().slice(0, 10)
 }
 
 function fmtDate(d: string | Date) {
@@ -117,7 +123,7 @@ export default function SchedulePage() {
   const [batches,   setBatches]       = useState<Batch[]>([])
   const [faculty,   setFaculty]       = useState<Faculty[]>([])
   const [batchId,   setBatchId]       = useState('')
-  const [weekStart, setWeekStart]     = useState(todayStr)
+  const [weekStart, setWeekStart]     = useState(currentWeekSaturday)
   const [saving,    setSaving]        = useState(false)
   const [publishing, setPublishing]   = useState('')
   const [revising,  setRevising]      = useState('')
@@ -126,7 +132,7 @@ export default function SchedulePage() {
   const [success,   setSuccess]       = useState('')
 
   // Form state
-  const [entries, setEntries] = useState<ClassEntry[]>([EMPTY_ENTRY()])
+  const [entries, setEntries] = useState<ClassEntry[]>([])
 
   const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'COORDINATOR'
   const canPublish = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'COORDINATOR'

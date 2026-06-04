@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     // Auto-mark the ISBatchChapter as SCHEDULED
     await ISBatchChapter.findOneAndUpdate(
-      { batchId: batchOid, chapterName: chapter, subject },
+      { batchId: batchOid, chapterName: resolvedChapter, subject },
       {
         $set: {
           status:          'SCHEDULED',

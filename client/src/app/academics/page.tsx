@@ -130,9 +130,15 @@ export default function AcademicsDashboard() {
                   <div key={cs.batchId} style={{ padding: '0.625rem 0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-surface-2)', border: cs.pendingVideo > 0 ? '1px solid rgba(245,158,11,.3)' : '1px solid var(--color-border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{batch.name}</span>
-                      <span className={`badge ${cs.pendingVideo > 0 ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.7rem' }}>
-                        {cs.pendingVideo > 0 ? `${cs.pendingVideo} pending video` : 'All videos done'}
-                      </span>
+                      {cs.pendingVideo > 0 ? (
+                        <span className="badge badge-yellow" style={{ fontSize: '0.7rem' }}>
+                          {cs.pendingVideo} pending video
+                        </span>
+                      ) : cs.totalChapters > 0 && cs.videoComplete === cs.totalChapters ? (
+                        <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>All videos done</span>
+                      ) : cs.videoComplete > 0 ? (
+                        <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>{cs.videoComplete}/{cs.totalChapters} videos done</span>
+                      ) : null}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
                       {cs.videoComplete}/{cs.totalChapters} video complete · {cs.facultyClassDone}/{cs.totalChapters} class done

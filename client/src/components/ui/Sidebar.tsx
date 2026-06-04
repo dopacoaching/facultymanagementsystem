@@ -20,34 +20,32 @@ function validatePasswordComplexity(pw: string): string | null {
   return null
 }
 
-interface NavItem {
-  label: string
-  href: string
-  icon: string
-}
+type NavItem =
+  | { type?: 'link'; label: string; href: string; icon: string }
+  | { type: 'section'; label: string }
 
 // ─── Role navs ────────────────────────────────────────────────────────────────
 
 const ADMIN_NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/admin',              icon: '◈' },
-  // System
-  { label: 'Users',        href: '/admin/users',        icon: '🔐' },
-  { label: 'Audit Log',    href: '/admin/audit-log',    icon: '📋' },
-  // HR section
-  { label: 'Faculty',      href: '/hr/faculty',         icon: '👥' },
-  { label: 'Salary',       href: '/hr/salary',          icon: '₹' },
-  { label: 'Reports',      href: '/hr/reports',         icon: '📊' },
-  // Academics (Repeaters)
-  { label: 'AC Sessions',  href: '/academics/sessions',          icon: '📅' },
-  { label: 'Chapters',     href: '/academics/chapters',          icon: '📚' },
-  { label: 'Schedule',     href: '/academics/schedule',          icon: '🗓' },
-  { label: 'Syllabus',     href: '/academics/syllabus',          icon: '📋' },
-  { label: 'Progress',     href: '/academics/syllabus/progress', icon: '📈' },
-  { label: 'AC Reports',   href: '/academics/reports',           icon: '📊' },
-  // IG (Integrated Grades)
-  { label: 'IG Sessions',  href: '/ig/sessions',  icon: '🏫' },
-  { label: 'IG Timetable', href: '/ig/timetable', icon: '⏱' },
-  { label: 'IG Chapters',  href: '/ig/chapters',  icon: '📖' },
+  { label: 'Dashboard',   href: '/admin',           icon: '◈' },
+  { type: 'section', label: 'System' },
+  { label: 'Users',       href: '/admin/users',     icon: '🔐' },
+  { label: 'Audit Log',   href: '/admin/audit-log', icon: '📋' },
+  { type: 'section', label: 'HR' },
+  { label: 'Faculty',     href: '/hr/faculty',      icon: '👥' },
+  { label: 'Salary',      href: '/hr/salary',       icon: '₹'  },
+  { label: 'Reports',     href: '/hr/reports',      icon: '📊' },
+  { type: 'section', label: 'Academics' },
+  { label: 'Sessions',    href: '/academics/sessions',          icon: '📅' },
+  { label: 'Chapters',    href: '/academics/chapters',          icon: '📚' },
+  { label: 'Schedule',    href: '/academics/schedule',          icon: '🗓' },
+  { label: 'Syllabus',    href: '/academics/syllabus',          icon: '📋' },
+  { label: 'Progress',    href: '/academics/syllabus/progress', icon: '📈' },
+  { label: 'Reports',     href: '/academics/reports',           icon: '📊' },
+  { type: 'section', label: 'Integrated School' },
+  { label: 'Sessions',    href: '/ig/sessions',  icon: '🏫' },
+  { label: 'Timetable',   href: '/ig/timetable', icon: '⏱'  },
+  { label: 'Chapters',    href: '/ig/chapters',  icon: '📖' },
 ]
 
 const HR_NAV: NavItem[] = [
@@ -212,13 +210,28 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav style={{ flex: 1, padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.125rem', overflowY: 'auto' }}>
-          {nav.map((item) => {
-            // Use exact match if another nav item is a child of this one,
-            // to prevent a parent link staying active when a child page is open.
-            const hasChild = nav.some((other) => other.href !== item.href && other.href.startsWith(item.href + '/'))
-            const isActive = pathname === item.href || (!hasChild && pathname.startsWith(item.href + '/'))
+          {nav.map((item, idx) => {
+            if (item.type === 'section') {
+              return (
+                <div key={`section-${idx}`} style={{
+                  padding: '0.875rem 0.875rem 0.25rem',
+                  fontSize: '0.6rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,.35)',
+                }}>
+                  {item.label}
+                </div>
+              )
+            }
+            // Type-narrowed link item
+            const linkItem = item as { label: string; href: string; icon: string }
+            const links = nav.filter((n): n is { label: string; href: string; icon: string } => n.type !== 'section')
+            const hasChild = links.some((other) => other.href !== linkItem.href && other.href.startsWith(linkItem.href + '/'))
+            const isActive = pathname === linkItem.href || (!hasChild && pathname.startsWith(linkItem.href + '/'))
             return (
-              <Link key={item.href} href={item.href} style={{
+              <Link key={linkItem.href} href={linkItem.href} style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.625rem',
@@ -240,9 +253,9 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                   }} />
                 )}
                 <span style={{ fontSize: '1rem', width: '1.25rem', textAlign: 'center', flexShrink: 0 }}>
-                  {item.icon}
+                  {linkItem.icon}
                 </span>
-                {item.label}
+                {linkItem.label}
               </Link>
             )
           })}

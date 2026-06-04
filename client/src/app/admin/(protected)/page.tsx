@@ -106,97 +106,129 @@ export default function AdminDashboard() {
 
       {/* ── Quick links ──────────────────────────────────────────────────────── */}
       <section>
-        <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-          Sections
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-          <QuickLink href="/hr/faculty"         icon="👥" label="Faculty"        desc="Manage faculty profiles" />
-          <QuickLink href="/hr/salary"           icon="₹"  label="Salary"         desc="Calculate & approve pay" />
-          <QuickLink href="/admin/audit-log"     icon="📋" label="Audit Log"      desc="View all system events" />
-          <QuickLink href="/hr/reports"          icon="📊" label="Reports"        desc="Salary history & exports" />
-          <QuickLink href="/academics/sessions"  icon="📅" label="AC Sessions"    desc="Repeaters class sessions" />
-          <QuickLink href="/academics/schedule"  icon="🗓" label="AC Schedule"    desc="Weekly schedule" />
-          <QuickLink href="/academics/exams"     icon="📝" label="Exam Topics"    desc="Chapters & exam topics" />
-          <QuickLink href="/ig/sessions"         icon="🏫" label="IG Sessions"    desc="IG sessions" />
-          <QuickLink href="/ig/timetable"        icon="⏱" label="IG Timetable"   desc="IG timetable" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          {/* HR */}
+          <div>
+            <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: '0.625rem' }}>
+              HR &amp; Payroll
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.625rem' }}>
+              <QuickLink href="/hr/faculty"     icon="👥" label="Faculty"    desc="Manage faculty profiles" />
+              <QuickLink href="/hr/salary"       icon="₹"  label="Salary"     desc="Calculate &amp; approve pay" />
+              <QuickLink href="/hr/reports"      icon="📊" label="Reports"    desc="Salary history &amp; exports" />
+              <QuickLink href="/admin/audit-log" icon="📋" label="Audit Log"  desc="View all system events" />
+            </div>
+          </div>
+
+          {/* Academics */}
+          <div>
+            <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: '0.625rem' }}>
+              Academics (Repeaters)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.625rem' }}>
+              <QuickLink href="/academics/sessions" icon="📅" label="Sessions"   desc="Log &amp; view class sessions" />
+              <QuickLink href="/academics/schedule" icon="🗓" label="Schedule"   desc="Weekly class schedule" />
+              <QuickLink href="/academics/exams"    icon="📝" label="Exam Topics" desc="Monday &amp; Friday exam topics" />
+              <QuickLink href="/academics/syllabus" icon="📋" label="Syllabus"   desc="Annual syllabus plan" />
+            </div>
+          </div>
+
+          {/* Integrated School */}
+          <div>
+            <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: '0.625rem' }}>
+              Integrated School
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.625rem' }}>
+              <QuickLink href="/ig/sessions"  icon="🏫" label="IG Sessions"  desc="Log &amp; view IG sessions" />
+              <QuickLink href="/ig/timetable" icon="⏱"  label="IG Timetable" desc="Daily class assignments" />
+              <QuickLink href="/ig/chapters"  icon="📖" label="IG Chapters"  desc="Chapter scheduling progress" />
+            </div>
+          </div>
+
         </div>
       </section>
 
-      {/* ── HR Stats ─────────────────────────────────────────────────────────── */}
-      <section>
-        <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-          HR Overview
-        </h2>
-        <div className="stats-grid">
-          {[
-            { label: 'Total Faculty',    value: faculty.length,   icon: '👥', color: 'var(--color-primary)' },
-            { label: 'Active',           value: activeFaculty,    icon: '✅', color: 'var(--color-success)' },
-            { label: 'Inactive',         value: inactiveFaculty,  icon: '⏸',  color: 'var(--color-muted)'   },
-          ].map(({ label, value, icon, color }) => (
-            <div key={label} className="stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div className="stat-label">{label}</div>
-                  <div className="stat-value" style={{ color }}>{value}</div>
-                </div>
-                <span style={{ fontSize: '1.5rem', opacity: 0.7 }}>{icon}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ── Stats row: HR + Academics + IG side by side ──────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
 
-      {/* ── Academics Stats ───────────────────────────────────────────────────── */}
-      <section>
-        <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-          Academics (Repeaters)
-        </h2>
-        <div className="stats-grid">
-          {[
-            { label: 'Total Sessions', value: acSessions.length, icon: '📚', color: 'var(--color-primary)' },
-            { label: "Today's",        value: todayAC,           icon: '📅', color: 'var(--color-accent)'  },
-            { label: 'Completed',      value: acCompleted,       icon: '✅', color: 'var(--color-success)' },
-            { label: 'Scheduled',      value: acScheduled,       icon: '⏳', color: 'var(--color-info)'    },
-            { label: 'Cancelled',      value: acCancelled,       icon: '❌', color: 'var(--color-danger)'  },
-          ].map(({ label, value, icon, color }) => (
-            <div key={label} className="stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div className="stat-label">{label}</div>
-                  <div className="stat-value" style={{ color }}>{value}</div>
+        {/* HR Stats */}
+        <section>
+          <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+            HR Overview
+          </h2>
+          <div className="stats-grid">
+            {[
+              { label: 'Total Faculty', value: faculty.length,   icon: '👥', color: 'var(--color-primary)' },
+              { label: 'Active',        value: activeFaculty,    icon: '✅', color: 'var(--color-success)' },
+              { label: 'Inactive',      value: inactiveFaculty,  icon: '⏸',  color: 'var(--color-muted)'   },
+            ].map(({ label, value, icon, color }) => (
+              <div key={label} className="stat-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div className="stat-label">{label}</div>
+                    <div className="stat-value" style={{ color }}>{value}</div>
+                  </div>
+                  <span style={{ fontSize: '1.5rem', opacity: 0.7 }}>{icon}</span>
                 </div>
-                <span style={{ fontSize: '1.5rem', opacity: 0.7 }}>{icon}</span>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
 
-      {/* ── IS Stats ─────────────────────────────────────────────────────────── */}
-      <section>
-        <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.875rem' }}>
-          IG
-        </h2>
-        <div className="stats-grid">
-          {[
-            { label: 'Total IG Sessions', value: isSessions.length, icon: '🏫', color: 'var(--color-primary)' },
-            { label: "Today's IG",        value: todayIS,           icon: '📅', color: 'var(--color-accent)'  },
-            { label: 'IS Completed',      value: isCompleted,       icon: '✅', color: 'var(--color-success)' },
-            { label: 'IS Scheduled',      value: isScheduled,       icon: '⏳', color: 'var(--color-info)'    },
-            { label: 'IS Cancelled',      value: isCancelled,       icon: '❌', color: 'var(--color-danger)'  },
-          ].map(({ label, value, icon, color }) => (
-            <div key={label} className="stat-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div className="stat-label">{label}</div>
-                  <div className="stat-value" style={{ color }}>{value}</div>
+        {/* Academics Stats */}
+        <section>
+          <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+            Academics (Repeaters)
+          </h2>
+          <div className="stats-grid">
+            {[
+              { label: 'Total',     value: acSessions.length, icon: '📚', color: 'var(--color-primary)' },
+              { label: "Today",     value: todayAC,           icon: '📅', color: 'var(--color-accent)'  },
+              { label: 'Done',      value: acCompleted,       icon: '✅', color: 'var(--color-success)' },
+              { label: 'Scheduled', value: acScheduled,       icon: '⏳', color: 'var(--color-info)'    },
+              { label: 'Cancelled', value: acCancelled,       icon: '❌', color: 'var(--color-danger)'  },
+            ].map(({ label, value, icon, color }) => (
+              <div key={label} className="stat-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div className="stat-label">{label}</div>
+                    <div className="stat-value" style={{ color }}>{value}</div>
+                  </div>
+                  <span style={{ fontSize: '1.5rem', opacity: 0.7 }}>{icon}</span>
                 </div>
-                <span style={{ fontSize: '1.5rem', opacity: 0.7 }}>{icon}</span>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+
+        {/* IG Stats */}
+        <section>
+          <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.75rem' }}>
+            Integrated School
+          </h2>
+          <div className="stats-grid">
+            {[
+              { label: 'Total',     value: isSessions.length, icon: '🏫', color: 'var(--color-primary)' },
+              { label: 'Today',     value: todayIS,           icon: '📅', color: 'var(--color-accent)'  },
+              { label: 'Done',      value: isCompleted,       icon: '✅', color: 'var(--color-success)' },
+              { label: 'Scheduled', value: isScheduled,       icon: '⏳', color: 'var(--color-info)'    },
+              { label: 'Cancelled', value: isCancelled,       icon: '❌', color: 'var(--color-danger)'  },
+            ].map(({ label, value, icon, color }) => (
+              <div key={label} className="stat-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div className="stat-label">{label}</div>
+                    <div className="stat-value" style={{ color }}>{value}</div>
+                  </div>
+                  <span style={{ fontSize: '1.5rem', opacity: 0.7 }}>{icon}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+      </div>
 
       {/* ── Details grid ─────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
