@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
@@ -21,6 +21,13 @@ interface FormState {
   sessionDate: string
 }
 
+const MONTH_NAMES: Record<number, string> = {
+  6: 'June', 7: 'July', 8: 'August', 9: 'September',
+  10: 'October', 11: 'November', 12: 'December',
+}
+
+const NEET_SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY']
+
 interface BatchChapter {
   _id: string
   subject: string
@@ -28,6 +35,16 @@ interface BatchChapter {
   syllabusChapterId?: string
   videoComplete: boolean
   facultyClassDone: boolean
+}
+
+interface SyllabusChapter {
+  _id: string
+  subject: string
+  chapterName: string
+  scheduledMonth: number
+  chapterOrder: number
+  isSplitPart: boolean
+  splitPartNumber?: number
 }
 
 const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
@@ -52,8 +69,10 @@ export default function LogSessionPage() {
   const [error,       setError]       = useState('')
   const [success,     setSuccess]     = useState(false)
 
-  const [chapters,  setChapters]  = useState<BatchChapter[]>([])
-  const [loadingCh, setLoadingCh] = useState(false)
+  const [chapters,         setChapters]         = useState<BatchChapter[]>([])
+  const [loadingCh,        setLoadingCh]        = useState(false)
+  const [syllabusChapters, setSyllabusChapters] = useState<SyllabusChapter[]>([])
+  const [loadingSyllabus,  setLoadingSyllabus]  = useState(false)
 
   const batchLocked     = Boolean(assignedBatchId)
   const selectedBatch   = batches.find((b) => b._id === form.batchId)
@@ -70,38 +89,61 @@ export default function LogSessionPage() {
     if (assignedBatchId) setForm((prev) => ({ ...prev, batchId: assignedBatchId }))
   }, [assignedBatchId])
 
+  // Load per-batch chapter status for all batch types
   useEffect(() => {
-    if (!accessToken || !form.batchId || !needsVideoFirst) {
-      setChapters([])
-      return
-    }
+    if (!accessToken || !form.batchId || !form.subject) { setChapters([]); return }
     let cancelled = false
     setLoadingCh(true)
-    const url = `/academics/chapters?batchId=${form.batchId}${form.subject ? `&subject=${encodeURIComponent(form.subject)}` : ''}`
+    const url = `/academics/chapters?batchId=${form.batchId}&subject=${encodeURIComponent(form.subject.toUpperCase())}`
     apiFetch<BatchChapter[]>(url, { token: accessToken })
       .then((data) => { if (!cancelled) setChapters(data) })
-      .catch((err)  => { if (!cancelled) console.error(err) })
-      .finally(()   => { if (!cancelled) setLoadingCh(false) })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setLoadingCh(false) })
     return () => { cancelled = true }
-  }, [accessToken, form.batchId, form.subject, needsVideoFirst])
+  }, [accessToken, form.batchId, form.subject])
 
-  const subjects          = [...new Set(chapters.map((c) => c.subject))].sort()
-  const availableChapters = chapters.filter((c) => c.subject === form.subject && c.videoComplete && !c.facultyClassDone)
+  // Load syllabus chapters (monthly plan) when subject is a NEET subject
+  useEffect(() => {
+    const subjUp = form.subject.toUpperCase()
+    if (!accessToken || !NEET_SUBJECTS.includes(subjUp)) { setSyllabusChapters([]); return }
+    setLoadingSyllabus(true)
+    apiFetch<SyllabusChapter[]>(`/academics/syllabus/chapters?subject=${subjUp}`, { token: accessToken })
+      .then(setSyllabusChapters).catch(console.error).finally(() => setLoadingSyllabus(false))
+  }, [accessToken, form.subject])
+
+  // Syllabus chapters grouped by month
+  const syllabusChaptersByMonth = useMemo(() => {
+    const map: Record<number, SyllabusChapter[]> = {}
+    for (const ch of syllabusChapters) {
+      if (!map[ch.scheduledMonth]) map[ch.scheduledMonth] = []
+      map[ch.scheduledMonth].push(ch)
+    }
+    return map
+  }, [syllabusChapters])
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
       const updated = { ...prev, [key]: value }
       if (key === 'subject') { updated.chapter = ''; updated.syllabusChapterId = undefined }
+      // Auto-fill subject from the selected faculty's profile
+      if (key === 'facultyId') {
+        const fac = facultyList.find((f) => f._id === (value as string))
+        if (fac?.subject) {
+          updated.subject = fac.subject.toUpperCase()
+          updated.chapter = ''
+          updated.syllabusChapterId = undefined
+        }
+      }
       return updated
     })
   }
 
   function selectChapter(chapterName: string) {
-    const ch = availableChapters.find((c) => c.chapterName === chapterName)
+    const ch = syllabusChapters.find((c) => c.chapterName === chapterName)
     setForm((prev) => ({
       ...prev,
       chapter:           chapterName,
-      syllabusChapterId: ch?.syllabusChapterId ?? undefined,
+      syllabusChapterId: ch?._id ?? undefined,
     }))
   }
 
@@ -258,57 +300,55 @@ export default function LogSessionPage() {
           {/* Subject */}
           <div className="form-group">
             <label className="label">Subject</label>
-            {needsVideoFirst && subjects.length > 0 ? (
-              <select className="input" value={form.subject} onChange={(e) => setField('subject', e.target.value)}>
-                <option value="">— select subject —</option>
-                {subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            ) : (
-              <input
-                className="input"
-                value={form.subject}
-                onChange={(e) => setField('subject', e.target.value)}
-                placeholder="e.g. Chemistry"
-              />
-            )}
+            <select className="input" value={form.subject} onChange={(e) => setField('subject', e.target.value as FormState['subject'])}>
+              <option value="">— select subject —</option>
+              <option value="PHYSICS">Physics</option>
+              <option value="CHEMISTRY">Chemistry</option>
+              <option value="BIOLOGY">Biology</option>
+            </select>
           </div>
 
           {/* Chapter / Topic */}
           <div className="form-group">
             <label className="label">Chapter / Topic</label>
-            {needsVideoFirst ? (
+            {(loadingCh || loadingSyllabus) ? (
+              <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
+            ) : syllabusChapters.length > 0 ? (
               <>
-                {loadingCh ? (
-                  <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
-                ) : availableChapters.length > 0 ? (
-                  <select className="input" value={form.chapter} onChange={(e) => selectChapter(e.target.value)}>
-                    <option value="">— select chapter —</option>
-                    {availableChapters.map((c) => (
-                      <option key={c._id} value={c.chapterName}>{c.chapterName}</option>
+                <select className="input" value={form.chapter} onChange={(e) => selectChapter(e.target.value)}>
+                  <option value="">— select chapter —</option>
+                  {Object.entries(syllabusChaptersByMonth)
+                    .sort(([a], [b]) => +a - +b)
+                    .map(([month, chs]) => (
+                      <optgroup key={month} label={MONTH_NAMES[+month] ?? `Month ${month}`}>
+                        {chs.map((ch) => {
+                          const bc = chapters.find((b) =>
+                            (b.syllabusChapterId && b.syllabusChapterId === ch._id) ||
+                            b.chapterName === ch.chapterName
+                          )
+                          const done     = bc?.facultyClassDone
+                          const videoOk  = !needsVideoFirst || bc?.videoComplete
+                          const disabled = Boolean(done) || (needsVideoFirst && !videoOk)
+                          const suffix   = done ? ' ✓' : needsVideoFirst && !videoOk ? ' 🔒' : ''
+                          return (
+                            <option key={ch._id} value={ch.chapterName} disabled={disabled}>
+                              {ch.chapterName}{suffix}
+                            </option>
+                          )
+                        })}
+                      </optgroup>
                     ))}
-                  </select>
-                ) : (
-                  <div style={{
-                    padding: '0.75rem 1rem',
-                    background: 'rgba(239,68,68,.06)',
-                    border: '1px solid rgba(239,68,68,.2)',
-                    borderRadius: 'var(--radius-md)',
-                    fontSize: '0.875rem',
-                    color: 'var(--color-danger)',
-                  }}>
-                    {form.subject
-                      ? `No video-complete chapters available for "${form.subject}". Ask your Academics Manager to mark the video as complete in Chapter Progress.`
-                      : 'Select a subject to see available chapters.'}
-                  </div>
+                </select>
+                {needsVideoFirst && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: '0.25rem 0 0' }}>
+                    🔒 Video not yet complete &nbsp;·&nbsp; ✓ Already logged
+                  </p>
                 )}
               </>
             ) : (
-              <input
-                className="input"
-                value={form.chapter}
-                onChange={(e) => setField('chapter', e.target.value)}
-                placeholder="e.g. Organic Chemistry – Ch 4"
-              />
+              <div style={{ padding: '0.75rem 1rem', background: 'rgba(59,130,246,.06)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--color-muted)' }}>
+                {form.subject ? 'No syllabus chapters found for this subject.' : 'Select a subject to load chapters.'}
+              </div>
             )}
           </div>
 
