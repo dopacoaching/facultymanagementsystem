@@ -22,7 +22,7 @@ export interface ConflictResult {
  *
  * Rule 1: No double-booking — faculty can't teach at the same campus at the same slot.
  * Rule 2: No cross-campus overlap — faculty can't be at IG1 and IG2 in the same slot.
- * Rule 3: Max 2 IS sessions per faculty per day.
+ * Rule 3: Max 3 IG sessions per faculty per day.
  * Rule 4: One class per batch per time slot.
  * Rule 5: No assignments on Buffer Days, Tours, or Holidays for the campus.
  */
@@ -92,11 +92,11 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
     })
     if (crossCampusConflict) {
       violations.push(
-        `Faculty is already assigned at a different IS campus in the ${timeSlot} slot (IG1/IG2 overlap not allowed)`
+        `Faculty is already assigned at a different IG campus in the ${timeSlot} slot (IG1/IG2 overlap not allowed)`
       )
     }
 
-    // ── Rule 3: Max 2 IS sessions per faculty per day ────────────────────────
+    // ── Rule 3: Max 3 IG sessions per faculty per day ────────────────────────
     const dailyCount = await ISTimetableSlot.countDocuments({
       ...baseFilter,
       facultyId,

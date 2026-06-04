@@ -10,6 +10,7 @@ export interface IClassEntry {
   chapter: string
   /** LIVE_SESSION = in-person/live class; RECORDED_VIDEO = video lesson (Repeaters only) */
   sessionType: ClassSessionType
+  durationHours?: number
   facultyId?: Types.ObjectId
   notes?: string
 }
@@ -40,8 +41,9 @@ const ClassEntrySchema = new Schema<IClassEntry>(
     day:         { type: String, enum: ALL_DAYS, required: true },
     subject:     { type: String, required: true },
     chapter:     { type: String, required: true },
-    sessionType: { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO'], default: 'LIVE_SESSION' },
-    facultyId:   { type: Schema.Types.ObjectId, ref: 'Faculty' },
+    sessionType:   { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO'], default: 'LIVE_SESSION' },
+    durationHours: { type: Number },
+    facultyId:     { type: Schema.Types.ObjectId, ref: 'Faculty' },
     notes:       String,
   },
   { _id: false }

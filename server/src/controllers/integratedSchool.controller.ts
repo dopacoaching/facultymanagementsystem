@@ -27,7 +27,7 @@ function midnight(d: string | Date): Date {
  * Runs all 5 conflict checks before saving.
  */
 export const assignSlot = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { date, campusId, batchId, facultyId, subject, chapter, startTime, durationHours, timeSlot, notes, isUnplanned } = req.body
+  const { date, campusId, batchId, facultyId, subject, chapter, startTime, durationHours, timeSlot, sessionType, notes, isUnplanned } = req.body
 
   if (!date || !campusId || !batchId || !subject || !chapter || !timeSlot) {
     res.status(400).json({
@@ -79,6 +79,7 @@ export const assignSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     startTime:     startTime    ?? undefined,
     durationHours: durationHours != null ? Number(durationHours) : undefined,
     timeSlot,
+    sessionType:   sessionType  ?? 'LIVE_SESSION',
     notes:         notes        ?? undefined,
     isUnplanned:   Boolean(isUnplanned),
   })

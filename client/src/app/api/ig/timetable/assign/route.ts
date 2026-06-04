@@ -22,15 +22,20 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'IG_ACADEMICS_MANAGER', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return forbidden
 
-    const { date, campusId, batchId, facultyId, subject, chapter, timeSlot, durationHours, startTime, notes, isUnplanned } = await req.json()
+    const { date, campusId, batchId, facultyId, subject, chapter, sessionType, timeSlot, durationHours, startTime, notes, isUnplanned } = await req.json()
 
-    if (!date || !campusId || !batchId || !subject || !chapter || !timeSlot) {
+    if (!date || !campusId || !batchId || !subject || !timeSlot) {
       return withToken(json({
-        error: 'date, campusId, batchId, subject, chapter, timeSlot are required',
+        error: 'date, campusId, batchId, subject, timeSlot are required',
       }, 400), refreshedToken)
     }
-    if (!['MORNING', 'AFTERNOON'].includes(timeSlot)) {
-      return withToken(json({ error: 'timeSlot must be MORNING or AFTERNOON' }, 400), refreshedToken)
+    if (!['SESSION_1', 'SESSION_2', 'SESSION_3'].includes(timeSlot)) {
+      return withToken(json({ error: 'timeSlot must be SESSION_1, SESSION_2, or SESSION_3' }, 400), refreshedToken)
+    }
+    // chapter is required for LIVE_SESSION only; exams use the chapter field for the exam topic
+    const resolvedChapter = chapter || (sessionType !== 'LIVE_SESSION' ? subject + ' Exam' : '')
+    if (!resolvedChapter) {
+      return withToken(json({ error: 'chapter is required' }, 400), refreshedToken)
     }
 
     let campusOid: Types.ObjectId, batchOid: Types.ObjectId
@@ -69,9 +74,10 @@ export async function POST(req: NextRequest) {
       batchId:       batchOid,
       facultyId:     facultyOid,
       subject,
-      chapter,
+      chapter:       resolvedChapter,
       startTime:     startTime    ?? undefined,
       timeSlot,
+      sessionType:   sessionType  ?? 'LIVE_SESSION',
       durationHours: durationHours ? Number(durationHours) : undefined,
       notes:         notes        ?? undefined,
       isUnplanned:   Boolean(isUnplanned),
