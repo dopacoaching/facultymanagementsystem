@@ -18,6 +18,8 @@ interface ClassEntry {
   durationHours?: number
   facultyId?: string | { _id: string; name: string; subject: string }
   notes?: string
+  sessionDate?: string
+  startTime?: string
   examDay?: 'MONDAY' | 'FRIDAY'
   examDate?: string
 }
@@ -271,6 +273,16 @@ export default function FacultySessionsPage() {
                                   </span>
                                   {isExam && e.examDate && (
                                     <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>{fmt(e.examDate)}</span>
+                                  )}
+                                  {!isExam && e.sessionDate && (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', fontWeight: 500 }}>
+                                      📅 {new Date(e.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                  )}
+                                  {!isExam && e.startTime && (
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                                      🕒 {e.startTime}
+                                    </span>
                                   )}
                                   <span style={{ fontWeight: 600 }}>{e.subject}</span>
                                   <span style={{ color: 'var(--color-text-secondary)' }}>— {e.chapter}</span>

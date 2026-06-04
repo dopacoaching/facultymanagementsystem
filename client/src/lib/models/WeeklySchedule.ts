@@ -12,6 +12,10 @@ export interface IClassEntry {
   durationHours?: number
   facultyId?: Types.ObjectId
   notes?: string
+  /** Optional exact calendar date for this session (YYYY-MM-DD) */
+  sessionDate?: Date
+  /** Optional start time stored as HH:MM (e.g. "10:30") */
+  startTime?: string
   /** For WEEKLY_EXAM: which day the exam falls on */
   examDay?: 'MONDAY' | 'FRIDAY'
   /** For WEEKLY_EXAM / MONTHLY_EXAM: the specific exam date */
@@ -37,15 +41,17 @@ const ALL_DAYS: ClassEntryDay[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
 
 const ClassEntrySchema = new Schema<IClassEntry>(
   {
-    day:         { type: String, enum: ALL_DAYS, required: true },
-    subject:     { type: String, required: true },
-    chapter:     { type: String, required: true },
-    sessionType: { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
+    day:           { type: String, enum: ALL_DAYS, required: true },
+    subject:       { type: String, required: true },
+    chapter:       { type: String, required: true },
+    sessionType:   { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
     durationHours: { type: Number },
-    facultyId:   { type: Schema.Types.ObjectId, ref: 'Faculty' },
-    notes:       String,
-    examDay:     { type: String, enum: ['MONDAY', 'FRIDAY'] },
-    examDate:    Date,
+    facultyId:     { type: Schema.Types.ObjectId, ref: 'Faculty' },
+    notes:         String,
+    sessionDate:   Date,
+    startTime:     String,
+    examDay:       { type: String, enum: ['MONDAY', 'FRIDAY'] },
+    examDate:      Date,
   },
   { _id: false }
 )
@@ -66,7 +72,9 @@ const WeeklyScheduleSchema = new Schema<IWeeklySchedule>(
   { timestamps: true }
 )
 
-// One original + one revised draft per (batchId, weekStartDate).
-WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1, isRevised: 1 }, { unique: true })
+// NOTE: Unique index removed — uniqueness on unpublished revisions is enforced
+// at the application level in the revise route (returns 409 if one already exists).
+// The previous { batchId, weekStartDate, isRevised } unique index prevented
+// a second revision cycle (revise → publish → revise again) → E11000 → 500.
 
 export const WeeklySchedule = (models.WeeklySchedule as Model<IWeeklySchedule>) ?? model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)

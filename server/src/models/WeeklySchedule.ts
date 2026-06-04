@@ -1,18 +1,25 @@
 import { Schema, model, Document, Types } from 'mongoose'
 
 export type ClassEntryDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY'
-export type ClassSessionType = 'LIVE_SESSION' | 'RECORDED_VIDEO'
+export type ClassSessionType = 'LIVE_SESSION' | 'RECORDED_VIDEO' | 'WEEKLY_EXAM' | 'MONTHLY_EXAM'
 
 /** A single class entry for any day of the week */
 export interface IClassEntry {
   day: ClassEntryDay
   subject: string
   chapter: string
-  /** LIVE_SESSION = in-person/live class; RECORDED_VIDEO = video lesson (Repeaters only) */
   sessionType: ClassSessionType
   durationHours?: number
   facultyId?: Types.ObjectId
   notes?: string
+  /** Optional exact calendar date for this session (YYYY-MM-DD) */
+  sessionDate?: Date
+  /** Optional start time, stored as HH:MM (e.g. "10:30") */
+  startTime?: string
+  /** For WEEKLY_EXAM: which day the exam falls on */
+  examDay?: 'MONDAY' | 'FRIDAY'
+  /** For WEEKLY_EXAM / MONTHLY_EXAM: the specific exam date */
+  examDate?: Date
 }
 
 export interface IWeeklySchedule extends Document {
@@ -24,7 +31,7 @@ export interface IWeeklySchedule extends Document {
   mondayExamTopic?: string
   /** Friday exam topic */
   fridayExamTopic?: string
-  /** Class entries — any day of the week; may include live sessions and recorded videos */
+  /** Class entries — any day of the week */
   classEntries: IClassEntry[]
   isPublished: boolean
   publishedAt?: Date
@@ -38,13 +45,17 @@ const ALL_DAYS: ClassEntryDay[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
 
 const ClassEntrySchema = new Schema<IClassEntry>(
   {
-    day:         { type: String, enum: ALL_DAYS, required: true },
-    subject:     { type: String, required: true },
-    chapter:     { type: String, required: true },
-    sessionType:   { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO'], default: 'LIVE_SESSION' },
+    day:           { type: String, enum: ALL_DAYS, required: true },
+    subject:       { type: String, required: true },
+    chapter:       { type: String, required: true },
+    sessionType:   { type: String, enum: ['LIVE_SESSION', 'RECORDED_VIDEO', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
     durationHours: { type: Number },
     facultyId:     { type: Schema.Types.ObjectId, ref: 'Faculty' },
-    notes:       String,
+    notes:         String,
+    sessionDate:   Date,
+    startTime:     String,
+    examDay:       { type: String, enum: ['MONDAY', 'FRIDAY'] },
+    examDate:      Date,
   },
   { _id: false }
 )
@@ -65,8 +76,9 @@ const WeeklyScheduleSchema = new Schema<IWeeklySchedule>(
   { timestamps: true }
 )
 
-// Allow one non-revised (original) AND one revised draft per (batchId, weekStartDate).
-// Uniqueness is enforced at the (batchId, weekStartDate, isRevised) level.
-WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1, isRevised: 1 }, { unique: true })
+// NOTE: Unique index removed — uniqueness on unpublished revisions is enforced
+// at the application level in the revise controller (returns 409 if one exists).
+// The previous unique index on { batchId, weekStartDate, isRevised } prevented
+// more than one revision chain per week (e.g. revise → publish → revise again → 500).
 
 export const WeeklySchedule = model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)

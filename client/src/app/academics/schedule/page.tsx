@@ -19,6 +19,10 @@ interface ClassEntry {
   durationHours?: number
   facultyId?: string | { _id: string; name: string; subject: string }
   notes?: string
+  /** Optional exact date for this session — auto-derives the day dropdown */
+  sessionDate?: string
+  /** Optional start time as HH:MM */
+  startTime?: string
   /** WEEKLY_EXAM only — which day the exam sits on */
   examDay?: 'MONDAY' | 'FRIDAY'
   /** WEEKLY_EXAM / MONTHLY_EXAM — specific exam date (YYYY-MM-DD) */
@@ -160,6 +164,8 @@ export default function SchedulePage() {
       if (key === 'examDay' && val) updated.day = val as ClassEntryDay
       // When exam date changes on a monthly exam, derive the day of week
       if (key === 'examDate' && val && e.sessionType === 'MONTHLY_EXAM') updated.day = dayFromDateStr(val)
+      // When sessionDate is picked, auto-derive and lock the day dropdown
+      if (key === 'sessionDate' && val) updated.day = dayFromDateStr(val)
       // Switching type — clear exam fields when going back to class sessions
       if (key === 'sessionType') {
         if (val === 'LIVE_SESSION' || val === 'RECORDED_VIDEO') {
@@ -197,6 +203,8 @@ export default function SchedulePage() {
             sessionType:  e.sessionType,
             durationHours: e.durationHours ? Number(e.durationHours) : undefined,
             facultyId:    typeof e.facultyId === 'object' ? (e.facultyId as {_id:string})._id : (e.facultyId || undefined),
+            sessionDate:  e.sessionDate || undefined,
+            startTime:    e.startTime?.trim() || undefined,
             examDay:      e.examDay || undefined,
             examDate:     e.examDate || undefined,
             notes:        e.notes?.trim() || undefined,
@@ -301,7 +309,7 @@ export default function SchedulePage() {
                     </select>
                   </div>
 
-                  {/* Day — class sessions only */}
+                  {/* Day dropdown — class sessions only; auto-set when sessionDate is picked */}
                   {!isExam && (
                     <div className="form-group" style={{ margin: 0 }}>
                       {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Day</label>}
@@ -310,6 +318,26 @@ export default function SchedulePage() {
                         style={{ fontSize: '0.8125rem' }}>
                         {DAYS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                       </select>
+                    </div>
+                  )}
+
+                  {/* Date picker — class sessions: optional, auto-derives day */}
+                  {!isExam && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Date (optional)</label>}
+                      <input type="date" className="input" value={entry.sessionDate ?? ''}
+                        onChange={(e) => updateEntry(idx, 'sessionDate', e.target.value)}
+                        style={{ fontSize: '0.8125rem' }} />
+                    </div>
+                  )}
+
+                  {/* Start time — class sessions: optional */}
+                  {!isExam && (
+                    <div className="form-group" style={{ margin: 0, minWidth: 110 }}>
+                      {idx === 0 && <label className="label" style={{ fontSize: '0.75rem' }}>Start Time</label>}
+                      <input type="time" className="input" value={entry.startTime ?? ''}
+                        onChange={(e) => updateEntry(idx, 'startTime', e.target.value)}
+                        style={{ fontSize: '0.8125rem' }} />
                     </div>
                   )}
 
