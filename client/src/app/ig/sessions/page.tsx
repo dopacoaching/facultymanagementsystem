@@ -35,6 +35,14 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_OPTIONS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPLETED']
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
+interface ISBatchChapter {
+  _id: string
+  subject: string
+  chapterName: string
+  chapterOrder: number
+  status: 'NOT_YET_SCHEDULED' | 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
+}
+
 export default function IGSessionsPage() {
   const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
   const isCoordinator = role === 'IG_COORDINATOR' || role === 'COORDINATOR'
@@ -54,6 +62,10 @@ export default function IGSessionsPage() {
   const [saving, setSaving]                     = useState(false)
   const [cancelInitiator, setCancelInitiator]   = useState<Record<string, string>>({})
   const [error, setError]                       = useState('')
+
+  // IG batch chapters for subject + chapter dropdowns
+  const [igChapters,   setIgChapters]   = useState<ISBatchChapter[]>([])
+  const [loadingIgCh,  setLoadingIgCh]  = useState(false)
 
   // Filters
   const [search, setSearch]           = useState('')
@@ -90,6 +102,26 @@ export default function IGSessionsPage() {
       if (visible.length) setForm((f) => ({ ...f, batchId: visible[0]._id }))
     }).catch(console.error)
   }, [accessToken])
+
+  // Load ISBatchChapter list when batch changes (drives subject + chapter dropdowns)
+  useEffect(() => {
+    if (!accessToken || !form.batchId) { setIgChapters([]); return }
+    setLoadingIgCh(true)
+    apiFetch<ISBatchChapter[]>(`/ig/chapters?batchId=${form.batchId}`, { token: accessToken })
+      .then(setIgChapters).catch(console.error).finally(() => setLoadingIgCh(false))
+  }, [accessToken, form.batchId])
+
+  // Unique subjects for this batch's chapters
+  const igSubjects = useMemo(
+    () => [...new Set(igChapters.map((c) => c.subject))].sort(),
+    [igChapters],
+  )
+
+  // Chapters filtered by selected subject, sorted by order
+  const igFilteredChapters = useMemo(
+    () => igChapters.filter((c) => c.subject === form.subject).sort((a, b) => a.chapterOrder - b.chapterOrder),
+    [igChapters, form.subject],
+  )
 
   // ── Derived filter ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -272,7 +304,11 @@ export default function IGSessionsPage() {
               <div className="input-group-3">
                 <div className="form-group">
                   <label className="label">Faculty</label>
-                  <select className="input" value={form.facultyId} onChange={(e) => setForm({ ...form, facultyId: e.target.value })}>
+                  <select className="input" value={form.facultyId}
+                    onChange={(e) => {
+                      const fac = facultyList.find((f) => f._id === e.target.value)
+                      setForm({ ...form, facultyId: e.target.value, subject: fac?.subject ?? form.subject, chapter: '' })
+                    }}>
                     <option value="">— select —</option>
                     {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
                   </select>
@@ -280,7 +316,7 @@ export default function IGSessionsPage() {
                 <div className="form-group">
                   <label className="label">IG Batch</label>
                   <select className="input" value={form.batchId}
-                    onChange={(e) => setForm({ ...form, batchId: e.target.value })}
+                    onChange={(e) => setForm({ ...form, batchId: e.target.value, subject: '', chapter: '' })}
                     disabled={isCoordinator}>
                     <option value="">— select —</option>
                     {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
@@ -288,15 +324,44 @@ export default function IGSessionsPage() {
                 </div>
                 <div className="form-group">
                   <label className="label">Subject</label>
-                  <input className="input" value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                    placeholder="e.g. Physics" />
+                  {loadingIgCh ? (
+                    <div className="input" style={{ color: 'var(--color-muted)' }}>Loading…</div>
+                  ) : igSubjects.length > 0 ? (
+                    <select className="input" value={form.subject}
+                      onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '' })}>
+                      <option value="">— select subject —</option>
+                      {igSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  ) : (
+                    <input className="input" value={form.subject}
+                      onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '' })}
+                      placeholder="e.g. Physics" />
+                  )}
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="label">Chapter</label>
-                  <input className="input" value={form.chapter}
-                    onChange={(e) => setForm({ ...form, chapter: e.target.value })}
-                    placeholder="Chapter name or topic" />
+                  {loadingIgCh ? (
+                    <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
+                  ) : igFilteredChapters.length > 0 ? (
+                    <select className="input" value={form.chapter}
+                      onChange={(e) => setForm({ ...form, chapter: e.target.value })}>
+                      <option value="">— select chapter —</option>
+                      {igFilteredChapters.map((ch) => {
+                        const done      = ch.status === 'COMPLETED'
+                        const cancelled = ch.status === 'CANCELLED'
+                        const suffix    = done ? ' ✓' : cancelled ? ' ✗' : ''
+                        return (
+                          <option key={ch._id} value={ch.chapterName} disabled={cancelled}>
+                            {ch.chapterName}{suffix}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  ) : (
+                    <input className="input" value={form.chapter}
+                      onChange={(e) => setForm({ ...form, chapter: e.target.value })}
+                      placeholder={form.subject ? 'Enter chapter or topic' : 'Select a subject first'} />
+                  )}
                 </div>
                 <div className="form-group">
                   <label className="label">Start Time</label>
