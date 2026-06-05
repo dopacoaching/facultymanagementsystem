@@ -119,7 +119,7 @@ async function seed() {
     { name: 'Habid PP',                subject: 'Chemistry',    type: 'PERMANENT', salaryModel: 'HOURLY',                hourlyRate: e('SALARY_HABID_RATE', 1100) },
     { name: 'Dr. Dunoonul Shibli',     subject: 'Biology',      type: 'PERMANENT', salaryModel: 'SPLIT_FIXED_VARIABLE',  fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),  variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000), monthlyDayQuota: e('SALARY_SHIBLI_MIN_DAYS', 16), monthlyHourQuota: e('SALARY_SHIBLI_MIN_HOURS', 96) },
     { name: 'Anoop K',                 subject: 'Physics',      type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY',         fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000),    monthlyDayQuota: e('SALARY_ANOOP_MIN_DAYS', 16) },
-    { name: 'Dileep',                  subject: 'TBD',          type: 'PERMANENT', salaryModel: 'CONFIGURABLE' },
+    { name: 'Nihad',                   subject: 'Biology',      type: 'TEMPORARY', salaryModel: 'HOURLY',                hourlyRate: e('SALARY_NIHAD_RATE', 0) },
   ])
 
   const byName = Object.fromEntries(facultyDocs.map((f: { name: string; _id: mongoose.Types.ObjectId }) => [f.name, f._id]))
@@ -139,7 +139,7 @@ async function seed() {
     { facultyId: byName['Habid PP'],            contractType: 'HOURLY',                   hourlyRate: e('SALARY_HABID_RATE', 1100) },
     { facultyId: byName['Dr. Dunoonul Shibli'], contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),  variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000), cancellationPenaltyPerClass: e('SALARY_SHIBLI_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_SHIBLI_MIN_DAYS', 16), minHoursRequirement: e('SALARY_SHIBLI_MIN_HOURS', 96) },
     { facultyId: byName['Anoop K'],             contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000),    minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16) },
-    { facultyId: byName['Dileep'],              contractType: 'CONFIGURABLE',             isConfigured: false },
+    { facultyId: byName['Nihad'],              contractType: 'HOURLY',                   hourlyRate: e('SALARY_NIHAD_RATE', 0) },
   ])
 
   // ── Users ─────────────────────────────────────────────────────────────────
@@ -395,7 +395,7 @@ async function seed() {
   await ISBatchChapter.insertMany(isChapterDocs)
 
   console.log('\nSeed complete')
-  console.log(`Faculty records: ${facultyDocs.length} | Users: 1 (ADMIN only)`)
+  console.log(`Faculty records: ${facultyDocs.length} (${facultyDocs.map((f: {name:string}) => f.name).join(', ')}) | Users: 1 (ADMIN only)`)
   console.log(`Chapters: ${chapterDocs.length} NEET chapters seeded for Feroke Girls`)
   console.log(`IS Chapters: ${isChapterDocs.length} chapters seeded across 9 IS batches`)
   console.log('  R1, R2, R4 → Plus Two NEET (Physics/Chemistry/Botany/Zoology/Maths)')
