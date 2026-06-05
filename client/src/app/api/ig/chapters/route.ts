@@ -17,7 +17,11 @@ export async function GET(req: NextRequest) {
     const status  = searchParams.get('status')
 
     const filter: Record<string, unknown> = {}
-    if (batchId) { try { filter.batchId = new Types.ObjectId(batchId) } catch {} }
+    if (batchId) {
+      try { filter.batchId = new Types.ObjectId(batchId) } catch {
+        return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
+      }
+    }
     if (subject) { filter.subject = subject }
     if (status)  { filter.status  = status  }
 

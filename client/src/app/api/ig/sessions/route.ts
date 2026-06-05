@@ -95,6 +95,10 @@ export async function POST(req: NextRequest) {
         error: 'All fields are required: facultyId, batchId, subject, chapter, sessionDate',
       }, 400), refreshedToken)
     }
+    const parsedDuration = Number(durationHours)
+    if (!durationHours || isNaN(parsedDuration) || parsedDuration <= 0) {
+      return withToken(json({ error: 'durationHours must be a positive number' }, 400), refreshedToken)
+    }
 
     let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
     try { facultyOid = new Types.ObjectId(facultyId) } catch {

@@ -572,6 +572,7 @@ async function calcLegacyFallback(
   facultyId: string,
 ): Promise<Partial<SalaryResult>> {
   let baseSalary = 0, overtimePay = 0, overtimeHours = 0, penalties = 0, monthBalance = 0
+  let finalPayableOverride: number | undefined
   const alerts: SalaryAlert[] = []
   const breakdown: SalaryBreakdown[] = []
 
@@ -601,11 +602,13 @@ async function calcLegacyFallback(
       const variable = faculty.variableComponent ?? 0
       const penaltyPerClass = 9000
       penalties = facultyCancellations * penaltyPerClass
-      baseSalary = fixed + Math.max(0, variable - penalties)
+      baseSalary = fixed + variable
+      const effectiveVariable = Math.max(0, variable - penalties)
+      finalPayableOverride = fixed + effectiveVariable
       breakdown.push({ label: 'Fixed Component', amount: fixed })
-      breakdown.push({ label: 'Variable Component', amount: variable })
+      breakdown.push({ label: 'Variable Component (before penalty)', amount: variable })
       if (penalties > 0) breakdown.push({ label: 'Cancellation Penalty', amount: penalties, isDeduction: true })
-      breakdown.push({ label: 'Total Payable', amount: baseSalary })
+      breakdown.push({ label: 'Total Payable', amount: finalPayableOverride })
       break
     }
     case 'CONFIGURABLE': {
@@ -618,7 +621,7 @@ async function calcLegacyFallback(
 
   return {
     baseSalary, overtimeHours, overtimePay, penalties, monthBalance,
-    finalPayable: baseSalary + overtimePay - penalties,
+    finalPayable: finalPayableOverride ?? (baseSalary + overtimePay - penalties),
     alerts,
     breakdown,
   }

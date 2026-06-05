@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
 
     const filter: Record<string, unknown> = {}
     if (batchId) {
-      try { filter.batchId = new Types.ObjectId(batchId) } catch {}
+      try { filter.batchId = new Types.ObjectId(batchId) } catch {
+        return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
+      }
     }
     if (subject) filter.subject = subject
 

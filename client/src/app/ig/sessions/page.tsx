@@ -307,7 +307,10 @@ export default function IGSessionsPage() {
                   <select className="input" value={form.facultyId}
                     onChange={(e) => {
                       const fac = facultyList.find((f) => f._id === e.target.value)
-                      setForm({ ...form, facultyId: e.target.value, subject: fac?.subject ?? form.subject, chapter: '' })
+                      setForm((f) => {
+                        const newSubject = fac?.subject ?? f.subject
+                        return { ...f, facultyId: e.target.value, subject: newSubject, chapter: newSubject !== f.subject ? '' : f.chapter }
+                      })
                     }}>
                     <option value="">— select —</option>
                     {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
