@@ -44,3 +44,27 @@ export async function cancel(
     token,
   })
 }
+
+export interface FacultyHoursItem {
+  facultyId: string
+  name: string
+  subject: string
+  contractType: string
+  quota: number | null
+  logged: number
+  sessionCount: number
+  pct: number | null
+  deficit: number | null
+  surplus: number | null
+  status: 'MET' | 'ON_TRACK' | 'AT_RISK' | 'MISSED' | 'NO_QUOTA'
+}
+
+export interface FacultyHoursSummary {
+  month: number
+  year: number
+  faculty: FacultyHoursItem[]
+}
+
+export async function getFacultyHoursSummary(month: number, year: number, token: string): Promise<FacultyHoursSummary> {
+  return apiFetch<FacultyHoursSummary>(`/academics/faculty-hours?month=${month}&year=${year}`, { token })
+}

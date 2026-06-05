@@ -82,6 +82,17 @@ export async function getMyHistory(token: string): Promise<SalaryHistoryRecord[]
   return apiFetch<SalaryHistoryRecord[]>('/hr/salary/history', { token })
 }
 
+export interface MonthlyHoursSummary {
+  year: number
+  month: number
+  totalHours: number
+  sessionCount: number
+}
+
+export async function getMyHoursSummary(token: string): Promise<MonthlyHoursSummary[]> {
+  return apiFetch<MonthlyHoursSummary[]>('/hr/salary/my-hours-summary', { token })
+}
+
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface HoursProgressItem {

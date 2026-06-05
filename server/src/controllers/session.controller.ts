@@ -1,7 +1,9 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth'
 import { Session } from '../models/Session'
+import { Faculty } from '../models/Faculty'
 import { Batch, IBatch } from '../models/Batch'
+import { ISTimetableSlot } from '../models/ISTimetableSlot'
 import { BatchChapter } from '../models/BatchChapter'
 import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
@@ -217,6 +219,21 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
+  // ── 5b. CROSS-SYSTEM LOCK: IG slot blocks Repeaters scheduling ───────────
+  // If the faculty has any non-cancelled IG timetable slot on this date, block.
+  const igConflict = await ISTimetableSlot.findOne({
+    facultyId: facultyOid,
+    date:      { $gte: dayStart, $lte: dayEnd },
+    status:    { $ne: 'CANCELLED' },
+  })
+  if (igConflict) {
+    res.status(409).json({
+      error: 'Faculty has an Integrated School (IG) class on this date and cannot be scheduled for Repeaters on the same day.',
+      code:  'IG_SESSION_CONFLICT',
+    })
+    return
+  }
+
   // ── All checks passed — create session ────────────────────────────────────
   const session = await Session.create({
     facultyId:     facultyOid,
@@ -391,4 +408,76 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   res.json({ success: true, session })
+})
+
+/**
+ * GET /academics/faculty-hours?month=M&year=Y
+ * Returns all active faculty with their logged hours for the month,
+ * and their contract quota where applicable.
+ * No salary amounts are included — this is for ACADEMICS_MANAGER visibility only.
+ */
+export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const month = Number(req.query.month ?? new Date().getMonth() + 1)
+  const year  = Number(req.query.year  ?? new Date().getFullYear())
+
+  if (isNaN(month) || isNaN(year)) {
+    res.status(400).json({ error: 'month and year must be numbers' }); return
+  }
+
+  const startDate = new Date(year, month - 1, 1)
+  const endDate   = new Date(year, month,     1)
+
+  const [facultyList, contracts, hoursAgg] = await Promise.all([
+    Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
+    PermanentFacultyContract.find({}).lean(),
+    Session.aggregate([
+      {
+        $match: {
+          status: 'COMPLETED',
+          sessionDate: { $gte: startDate, $lt: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: '$facultyId',
+          totalHours:   { $sum: '$durationHours' },
+          sessionCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  const contractMap = new Map(contracts.map((c) => [c.facultyId.toString(), c]))
+  const hoursMap    = new Map(
+    (hoursAgg as { _id: Types.ObjectId; totalHours: number; sessionCount: number }[])
+      .map((h) => [h._id.toString(), h])
+  )
+
+  const result = facultyList.map((f) => {
+    const contract     = contractMap.get(f._id.toString())
+    const hours        = hoursMap.get(f._id.toString())
+    const logged       = hours?.totalHours  ?? 0
+    const sessionCount = hours?.sessionCount ?? 0
+    const contractType = contract?.contractType ?? 'UNKNOWN'
+
+    // Determine the relevant quota for this contract type
+    let quota: number | null = null
+    if (contract) {
+      quota = contract.monthlyHourQuota
+        ?? contract.overtimeThresholdHours
+        ?? contract.minHoursRequirement
+        ?? null
+    }
+
+    const pct     = quota != null && quota > 0 ? Math.round((logged / quota) * 100) : null
+    const deficit = quota != null ? Math.max(0, quota - logged) : null
+    const surplus = quota != null ? Math.max(0, logged - quota) : null
+    const status  = pct == null
+      ? 'NO_QUOTA'
+      : pct >= 100 ? 'MET' : pct >= 70 ? 'ON_TRACK' : pct >= 40 ? 'AT_RISK' : 'MISSED'
+
+    return { facultyId: f._id, name: f.name, subject: f.subject, contractType, quota, logged, sessionCount, pct, deficit, surplus, status }
+  })
+
+  res.json({ month, year, faculty: result })
 })

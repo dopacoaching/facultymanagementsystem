@@ -36,12 +36,13 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Salary',      href: '/hr/salary',       icon: '₹'  },
   { label: 'Reports',     href: '/hr/reports',      icon: '📊' },
   { type: 'section', label: 'Academics' },
-  { label: 'Sessions',    href: '/academics/sessions',          icon: '📅' },
-  { label: 'Chapters',    href: '/academics/chapters',          icon: '📚' },
-  { label: 'Schedule',    href: '/academics/schedule',          icon: '🗓' },
-  { label: 'Syllabus',    href: '/academics/syllabus',          icon: '📋' },
-  { label: 'Progress',    href: '/academics/syllabus/progress', icon: '📈' },
-  { label: 'Reports',     href: '/academics/reports',           icon: '📊' },
+  { label: 'Sessions',     href: '/academics/sessions',          icon: '📅' },
+  { label: 'Availability', href: '/academics/availability',      icon: '🗓' },
+  { label: 'Chapters',     href: '/academics/chapters',          icon: '📚' },
+  { label: 'Schedule',     href: '/academics/schedule',          icon: '📆' },
+  { label: 'Syllabus',     href: '/academics/syllabus',          icon: '📋' },
+  { label: 'Progress',     href: '/academics/syllabus/progress', icon: '📈' },
+  { label: 'Reports',      href: '/academics/reports',           icon: '📊' },
   { type: 'section', label: 'Integrated School' },
   { label: 'Sessions',    href: '/ig/sessions',  icon: '🏫' },
   { label: 'Timetable',   href: '/ig/timetable', icon: '⏱'  },
@@ -57,13 +58,14 @@ const HR_NAV: NavItem[] = [
 
 // ACADEMICS_MANAGER: Repeaters/DOPA sessions only — no IS sections
 const ACADEMICS_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/academics',                    icon: '◈' },
-  { label: 'Sessions',    href: '/academics/sessions',           icon: '📅' },
-  { label: 'Chapters',    href: '/academics/chapters',           icon: '📚' },
-  { label: 'Schedule',    href: '/academics/schedule',           icon: '🗓' },
-  { label: 'Syllabus',    href: '/academics/syllabus',           icon: '📋' },
-  { label: 'Progress',    href: '/academics/syllabus/progress',  icon: '📈' },
-  { label: 'Reports',     href: '/academics/reports',            icon: '📊' },
+  { label: 'Dashboard',    href: '/academics',                    icon: '◈' },
+  { label: 'Sessions',     href: '/academics/sessions',           icon: '📅' },
+  { label: 'Availability', href: '/academics/availability',       icon: '🗓' },
+  { label: 'Chapters',     href: '/academics/chapters',           icon: '📚' },
+  { label: 'Schedule',     href: '/academics/schedule',           icon: '📆' },
+  { label: 'Syllabus',     href: '/academics/syllabus',           icon: '📋' },
+  { label: 'Progress',     href: '/academics/syllabus/progress',  icon: '📈' },
+  { label: 'Reports',      href: '/academics/reports',            icon: '📊' },
 ]
 
 // IG_ACADEMICS_MANAGER: IG (Integrated Grades) only — no Repeaters sections

@@ -315,6 +315,48 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
   })
 })
 
+/**
+ * GET /hr/salary/my-hours-summary — faculty view their own hours per month.
+ * Aggregates completed sessions grouped by year+month for the last 12 months.
+ * FACULTY only.
+ */
+export const getMyHoursSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const facultyId = req.user!.facultyId
+  if (!facultyId) {
+    res.status(403).json({ error: 'Faculty account not linked to a faculty profile' }); return
+  }
+
+  const cutoff = new Date()
+  cutoff.setDate(1)
+  cutoff.setMonth(cutoff.getMonth() - 11)
+  cutoff.setHours(0, 0, 0, 0)
+
+  const agg = await Session.aggregate([
+    {
+      $match: {
+        facultyId: new Types.ObjectId(facultyId),
+        status: 'COMPLETED',
+        sessionDate: { $gte: cutoff },
+      },
+    },
+    {
+      $group: {
+        _id: { year: { $year: '$sessionDate' }, month: { $month: '$sessionDate' } },
+        totalHours: { $sum: '$durationHours' },
+        sessionCount: { $sum: 1 },
+      },
+    },
+    { $sort: { '_id.year': -1, '_id.month': -1 } },
+  ])
+
+  res.json(agg.map((item) => ({
+    year: item._id.year,
+    month: item._id.month,
+    totalHours: item.totalHours,
+    sessionCount: item.sessionCount,
+  })))
+})
+
 // ─── Contract CRUD ─────────────────────────────────────────────────────────────
 
 /**

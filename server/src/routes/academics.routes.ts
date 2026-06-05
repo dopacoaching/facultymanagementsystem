@@ -1,6 +1,10 @@
 import { Router } from 'express'
 import { authenticate, authorize } from '../middleware/auth'
-import { getSessions, createSession, cancelSession, updateSessionStatus, updateSession } from '../controllers/session.controller'
+import { getSessions, createSession, cancelSession, updateSessionStatus, updateSession, getFacultyHoursSummary } from '../controllers/session.controller'
+import {
+  getAvailability, getAllAvailabilityForMonth,
+  addAvailabilityDates, updateAvailabilityEntry, deleteAvailabilityEntry,
+} from '../controllers/availability.controller'
 import {
   getSchedules, createOrUpdateSchedule, publishSchedule, reviseSchedule, deleteSchedule,
   updateExamTopic, suggestTopic, getChapters, updateChapter, getChapterSummary,
@@ -22,6 +26,17 @@ function excludeIGBatches(req: Request, _res: Response, next: NextFunction) {
   }
   next()
 }
+
+// ── Faculty hours vs contract — academics view (no salary data) ───────────────
+router.get('/faculty-hours', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), getFacultyHoursSummary)
+
+// ── Faculty Availability ──────────────────────────────────────────────────────
+// Order: specific path (/all) before parameterized (/:id)
+router.get('/availability/all', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), getAllAvailabilityForMonth)
+router.get('/availability',     authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), getAvailability)
+router.post('/availability',    authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), addAvailabilityDates)
+router.patch('/availability/:id',  authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), updateAvailabilityEntry)
+router.delete('/availability/:id', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), deleteAvailabilityEntry)
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
 // GET: exclude IG batches when no explicit batchId given

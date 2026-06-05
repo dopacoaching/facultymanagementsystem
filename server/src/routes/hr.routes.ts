@@ -5,7 +5,7 @@ import {
 } from '../controllers/faculty.controller'
 import {
   calcSalary, approveSalary, getAuditLog, getCarryForward, getSalaryReports, getMyHistory,
-  getDashboard, getContract, updateContract,
+  getMyHoursSummary, getDashboard, getContract, updateContract,
 } from '../controllers/salary.controller'
 
 const router = Router()
@@ -29,6 +29,8 @@ router.get('/salary/reports', authorize('HR_MANAGER', 'ADMIN'), getSalaryReports
 router.get('/salary/carry-forward', authorize('HR_MANAGER', 'ADMIN'), getCarryForward)
 // Faculty-only: view own salary history
 router.get('/salary/history', authorize('FACULTY'), getMyHistory)
+// Faculty-only: monthly hours summary from completed sessions
+router.get('/salary/my-hours-summary', authorize('FACULTY'), getMyHoursSummary)
 
 // Audit log — ADMIN only
 router.get('/audit-log', authorize('ADMIN'), getAuditLog)

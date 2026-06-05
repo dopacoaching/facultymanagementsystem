@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getSessions } from '@/services/session.service'
 import { getById as getFacultyById } from '@/services/faculty.service'
-import { calculate } from '@/services/salary.service'
+import { calculate, getMyHoursSummary } from '@/services/salary.service'
+import type { MonthlyHoursSummary } from '@/services/salary.service'
 import type { Session } from '@/types'
 import type { Faculty } from '@/types'
 import type { SalaryResult } from '@/types'
@@ -25,26 +26,28 @@ export default function FacultyDashboard() {
   const month = now.getMonth() + 1
   const year  = now.getFullYear()
 
-  const [faculty,   setFaculty]   = useState<Faculty | null>(null)
-  const [sessions,  setSessions]  = useState<Session[]>([])
-  const [salary,    setSalary]    = useState<SalaryResult | null>(null)
-  const [loading,   setLoading]   = useState(true)
+  const [faculty,       setFaculty]       = useState<Faculty | null>(null)
+  const [sessions,      setSessions]      = useState<Session[]>([])
+  const [salary,        setSalary]        = useState<SalaryResult | null>(null)
+  const [hoursSummary,  setHoursSummary]  = useState<MonthlyHoursSummary[]>([])
+  const [loading,       setLoading]       = useState(true)
 
   useEffect(() => {
     if (!accessToken || !facultyId) return
 
     setLoading(true)
     Promise.all([
-      getFacultyById(facultyId, accessToken),
-      getSessions({ facultyId, limit: 10 } as Parameters<typeof getSessions>[0], accessToken),
-      calculate(facultyId, month, year, accessToken),
+      getFacultyById(facultyId, accessToken).catch(() => null),
+      getSessions({ facultyId, limit: 10 } as Parameters<typeof getSessions>[0], accessToken).catch(() => [] as Session[]),
+      calculate(facultyId, month, year, accessToken).catch(() => null),
+      getMyHoursSummary(accessToken).catch(() => [] as MonthlyHoursSummary[]),
     ])
-      .then(([fac, sess, sal]) => {
+      .then(([fac, sess, sal, hrs]) => {
         setFaculty(fac)
-        setSessions(sess)
+        setSessions(sess as Session[])
         setSalary(sal)
+        setHoursSummary(hrs as MonthlyHoursSummary[])
       })
-      .catch(console.error)
       .finally(() => setLoading(false))
   }, [accessToken, facultyId]) // eslint-disable-line
 
@@ -168,6 +171,42 @@ export default function FacultyDashboard() {
             <Link href="/faculty/salary" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               Full salary details →
             </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Monthly Hours ──────────────────────────────────────────────────── */}
+      {hoursSummary.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div className="card-header">
+            <h2>Monthly Class Hours</h2>
+            <Link href="/faculty/salary" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+              Full history →
+            </Link>
+          </div>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th style={{ textAlign: 'right' }}>Sessions</th>
+                  <th style={{ textAlign: 'right' }}>Total Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hoursSummary.slice(0, 6).map((row) => (
+                  <tr key={`${row.year}-${row.month}`}>
+                    <td style={{ fontWeight: 600 }}>{MONTHS[row.month - 1]} {row.year}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+                      {row.sessionCount}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                      {row.totalHours.toFixed(1)} hrs
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

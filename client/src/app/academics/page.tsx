@@ -1,7 +1,8 @@
 ﻿'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
-import { getAll as getSessions } from '@/services/session.service'
+import { getAll as getSessions, getFacultyHoursSummary } from '@/services/session.service'
+import type { FacultyHoursItem } from '@/services/session.service'
 import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import { isVideoFirstBatch } from '@/utils/batchUtils'
@@ -9,11 +10,21 @@ import type { Session } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import Link from 'next/link'
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
 const STATUS_BADGE: Record<string, string> = {
   COMPLETED:     'badge-green',
   CANCELLED:     'badge-red',
   SCHEDULED:     'badge-blue',
   NOT_COMPLETED: 'badge-yellow',
+}
+
+const HOURS_STATUS_BADGE: Record<string, string> = {
+  MET:      'badge-green',
+  ON_TRACK: 'badge-blue',
+  AT_RISK:  'badge-yellow',
+  MISSED:   'badge-red',
+  NO_QUOTA: 'badge-gray',
 }
 
 interface Schedule {
@@ -36,12 +47,32 @@ interface ChapterSummary {
 
 export default function AcademicsDashboard() {
   const { accessToken } = useAppSelector((s) => s.auth)
+  const now = new Date()
+  const [hoursMonth, setHoursMonth] = useState(now.getMonth() + 1)
+  const [hoursYear,  setHoursYear]  = useState(now.getFullYear())
+  const [facultyHours,        setFacultyHours]        = useState<FacultyHoursItem[]>([])
+  const [facultyHoursLoading, setFacultyHoursLoading] = useState(false)
+
   const [sessions,  setSessions]  = useState<Session[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [batches,   setBatches]   = useState<Batch[]>([])
 
   // Chapter summary per batch (aggregated on client side)
   const [chapterSummary, setChapterSummary] = useState<ChapterSummary[]>([])
+
+  useEffect(() => {
+    if (!accessToken) return
+    loadFacultyHours(hoursMonth, hoursYear)
+  }, [accessToken]) // eslint-disable-line
+
+  function loadFacultyHours(m: number, y: number) {
+    if (!accessToken) return
+    setFacultyHoursLoading(true)
+    getFacultyHoursSummary(m, y, accessToken)
+      .then((data) => setFacultyHours(data.faculty))
+      .catch(console.error)
+      .finally(() => setFacultyHoursLoading(false))
+  }
 
   useEffect(() => {
     if (!accessToken) return
@@ -75,6 +106,9 @@ export default function AcademicsDashboard() {
   // Batches with pending video (need attention)
   const pendingVideoBatches = chapterSummary.filter((cs) => cs.pendingVideo > 0)
 
+  // Quota warnings — faculty who are AT_RISK or MISSED
+  const quotaWarnings = facultyHours.filter((f) => f.status === 'AT_RISK' || f.status === 'MISSED')
+
   function getBatchName(b: string | { _id: string; name: string }): string {
     if (typeof b === 'object') return b.name
     return batches.find((bt) => bt._id === b)?.name ?? b
@@ -105,6 +139,132 @@ export default function AcademicsDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Quota Warnings ──────────────────────────────────────────────── */}
+      {quotaWarnings.length > 0 && (
+        <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          {quotaWarnings.map((f) => {
+            const isMissed = f.status === 'MISSED'
+            return (
+              <div
+                key={String(f.facultyId)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap',
+                  padding: '0.875rem 1.125rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: isMissed ? 'rgba(239,68,68,.08)' : 'rgba(245,158,11,.08)',
+                  border: `1px solid ${isMissed ? 'rgba(239,68,68,.25)' : 'rgba(245,158,11,.25)'}`,
+                }}
+              >
+                <span style={{ fontSize: '1.1rem' }}>{isMissed ? '🚨' : '⚠️'}</span>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontWeight: 700, color: isMissed ? 'var(--color-danger)' : '#92400e' }}>
+                    {f.name}
+                  </span>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', marginLeft: '0.375rem' }}>
+                    ({f.subject})
+                  </span>
+                  <span style={{ color: isMissed ? 'var(--color-danger)' : '#b45309', fontSize: '0.875rem', marginLeft: '0.5rem' }}>
+                    — {f.logged.toFixed(1)}h logged of {f.quota}h required
+                    {f.deficit != null && f.deficit > 0 && ` · ${f.deficit.toFixed(1)}h short`}
+                  </span>
+                </div>
+                <span className={`badge ${isMissed ? 'badge-red' : 'badge-yellow'}`} style={{ fontSize: '0.7rem', whiteSpace: 'nowrap' }}>
+                  {isMissed ? 'Quota Missed' : 'At Risk'}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ── Faculty Hours vs Contract ────────────────────────────────────── */}
+      <div className="card" style={{ marginBottom: '1.25rem' }}>
+        <div className="card-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+          <h2>Faculty Hours</h2>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <select
+              className="input"
+              value={hoursMonth}
+              onChange={(e) => { const m = +e.target.value; setHoursMonth(m); loadFacultyHours(m, hoursYear) }}
+              style={{ minWidth: 90, padding: '0.3rem 0.5rem', fontSize: '0.8125rem' }}
+            >
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+            <input
+              type="number"
+              className="input"
+              value={hoursYear}
+              onChange={(e) => { const y = +e.target.value; setHoursYear(y); loadFacultyHours(hoursMonth, y) }}
+              style={{ width: 80, padding: '0.3rem 0.5rem', fontSize: '0.8125rem' }}
+            />
+          </div>
+        </div>
+
+        {facultyHoursLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+            <span className="spinner" style={{ width: 24, height: 24 }} />
+          </div>
+        ) : facultyHours.length === 0 ? (
+          <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', padding: '0.5rem 0' }}>No faculty data.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Faculty</th>
+                  <th>Subject</th>
+                  <th>Contract</th>
+                  <th style={{ textAlign: 'right' }}>Logged</th>
+                  <th style={{ textAlign: 'right' }}>Quota</th>
+                  <th>Progress</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {facultyHours.map((f) => (
+                  <tr key={String(f.facultyId)}>
+                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.name}</td>
+                    <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>{f.subject}</td>
+                    <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                      {f.contractType.replace(/_/g, ' ')}
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-primary)' }}>
+                      {f.logged.toFixed(1)}h
+                    </td>
+                    <td style={{ textAlign: 'right', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums', fontSize: '0.8125rem' }}>
+                      {f.quota != null ? `${f.quota}h` : '—'}
+                    </td>
+                    <td style={{ minWidth: 100 }}>
+                      {f.quota != null && f.pct != null ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ flex: 1, height: 6, background: 'var(--color-border)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%',
+                              width: `${Math.min(f.pct, 100)}%`,
+                              background: f.pct >= 100 ? 'var(--color-success)' : f.pct >= 70 ? 'var(--color-primary)' : f.pct >= 40 ? 'var(--color-warning)' : 'var(--color-danger)',
+                              borderRadius: 3,
+                              transition: 'width 0.3s',
+                            }} />
+                          </div>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>{f.pct}%</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--color-muted)', fontSize: '0.8125rem' }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`badge ${HOURS_STATUS_BADGE[f.status] ?? 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>
+                        {f.status === 'NO_QUOTA' ? 'Hourly' : f.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="panel-grid-2" style={{ marginBottom: '1.25rem' }}>
