@@ -303,7 +303,13 @@ export const updateSessionStatus = asyncHandler(async (req: AuthRequest, res: Re
 export const updateSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const oid = validateObjectId(req.params.id, 'sessionId', res)
   if (!oid) return
-  const { id } = req.params
+
+  const existing = await Session.findById(oid)
+  if (!existing) { res.status(404).json({ error: 'Session not found' }); return }
+  if (existing.status === 'CANCELLED') {
+    res.status(409).json({ error: 'Cannot edit a cancelled session' }); return
+  }
+
   const allowed = ['facultyId', 'batchId', 'subject', 'chapter', 'startTime', 'durationHours', 'sessionDate', 'timeSlot']
   const update: Record<string, unknown> = {}
 
@@ -325,6 +331,28 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
 
   if (Object.keys(update).length === 0) {
     res.status(400).json({ error: 'No valid fields provided for update' }); return
+  }
+
+  // ── Cross-system lock: re-check if facultyId or sessionDate is changing ──
+  if ('facultyId' in update || 'sessionDate' in update) {
+    const effectiveFacultyId = (update.facultyId ?? existing.facultyId) as Types.ObjectId
+    const effectiveDate = new Date((update.sessionDate as Date | undefined) ?? existing.sessionDate)
+    effectiveDate.setHours(0, 0, 0, 0)
+    const dayStart = new Date(effectiveDate)
+    const dayEnd   = new Date(effectiveDate); dayEnd.setHours(23, 59, 59, 999)
+
+    const igConflict = await ISTimetableSlot.findOne({
+      facultyId: effectiveFacultyId,
+      date:      { $gte: dayStart, $lte: dayEnd },
+      status:    { $ne: 'CANCELLED' },
+    })
+    if (igConflict) {
+      res.status(409).json({
+        error: 'Faculty has an Integrated School (IG) class on this date and cannot be scheduled for Repeaters on the same day.',
+        code:  'IG_SESSION_CONFLICT',
+      })
+      return
+    }
   }
 
   const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
@@ -464,7 +492,6 @@ export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res:
     let quota: number | null = null
     if (contract) {
       quota = contract.monthlyHourQuota
-        ?? contract.overtimeThresholdHours
         ?? contract.minHoursRequirement
         ?? null
     }

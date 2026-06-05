@@ -135,6 +135,10 @@ export const updateAvailabilityEntry = asyncHandler(async (req: AuthRequest, res
     res.status(400).json({ error: 'status must be AVAILABLE, RESCHEDULED, or CANCELLED' }); return
   }
 
+  if (status !== 'AVAILABLE' && remark !== undefined && !remark.trim()) {
+    res.status(400).json({ error: 'A remark is required when status is RESCHEDULED or CANCELLED' }); return
+  }
+
   const update: Record<string, unknown> = { status }
   if (remark !== undefined) update.remark = remark
 

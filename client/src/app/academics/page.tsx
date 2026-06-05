@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getSessions, getFacultyHoursSummary } from '@/services/session.service'
 import type { FacultyHoursItem } from '@/services/session.service'
@@ -52,6 +52,7 @@ export default function AcademicsDashboard() {
   const [hoursYear,  setHoursYear]  = useState(now.getFullYear())
   const [facultyHours,        setFacultyHours]        = useState<FacultyHoursItem[]>([])
   const [facultyHoursLoading, setFacultyHoursLoading] = useState(false)
+  const hoursReqRef = useRef(0)
 
   const [sessions,  setSessions]  = useState<Session[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -67,11 +68,12 @@ export default function AcademicsDashboard() {
 
   function loadFacultyHours(m: number, y: number) {
     if (!accessToken) return
+    const reqId = ++hoursReqRef.current
     setFacultyHoursLoading(true)
     getFacultyHoursSummary(m, y, accessToken)
-      .then((data) => setFacultyHours(data.faculty))
+      .then((data) => { if (reqId === hoursReqRef.current) setFacultyHours(data.faculty) })
       .catch(console.error)
-      .finally(() => setFacultyHoursLoading(false))
+      .finally(() => { if (reqId === hoursReqRef.current) setFacultyHoursLoading(false) })
   }
 
   useEffect(() => {

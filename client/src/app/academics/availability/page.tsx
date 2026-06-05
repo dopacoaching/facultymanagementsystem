@@ -97,6 +97,10 @@ export default function AvailabilityPage() {
 
   async function saveEdit() {
     if (!accessToken || !editingId) return
+    if (editStatus !== 'AVAILABLE' && !editRemark.trim()) {
+      setEditError('A remark is required for Rescheduled or Cancelled status')
+      return
+    }
     setEditSaving(true); setEditError('')
     try {
       const updated = await updateAvailabilityEntry(editingId, editStatus, editRemark, accessToken)
@@ -145,13 +149,13 @@ export default function AvailabilityPage() {
           </div>
           <div className="form-group">
             <label className="label">Month</label>
-            <select className="input" value={month} onChange={(e) => setMonth(+e.target.value)} style={{ minWidth: 100 }}>
+            <select className="input" value={month} onChange={(e) => { setMonth(+e.target.value); setStagingDates([]) }} style={{ minWidth: 100 }}>
               {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label className="label">Year</label>
-            <input type="number" className="input" value={year} onChange={(e) => setYear(+e.target.value)} style={{ width: 90 }} />
+            <input type="number" className="input" value={year} onChange={(e) => { setYear(+e.target.value); setStagingDates([]) }} style={{ width: 90 }} />
           </div>
         </div>
       </div>
