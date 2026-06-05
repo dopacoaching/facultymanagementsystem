@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 import type { AuditEventType, AuditCategory } from '@/lib/types'
@@ -232,8 +232,8 @@ export default function AdminAuditLogPage() {
                   const isOpen = expanded === log._id
                   const icon = EVENT_ICON[log.eventType] ?? '📌'
                   return (
-                    <>
-                      <tr key={log._id}
+                    <Fragment key={log._id}>
+                      <tr
                         onClick={() => setExpanded(isOpen ? null : log._id)}
                         style={{ cursor: 'pointer', background: isOpen ? 'var(--color-surface-2)' : undefined }}>
                         <td style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--color-muted)' }}>
@@ -322,7 +322,7 @@ export default function AdminAuditLogPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   )
                 })}
               </tbody>

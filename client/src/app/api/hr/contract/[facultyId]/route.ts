@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ facu
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { facultyId } = await params
 
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ fa
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { facultyId } = await params
 

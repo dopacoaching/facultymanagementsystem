@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'IG_ACADEMICS_MANAGER', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { date, campusId, batchId, facultyId, subject, chapter, sessionType, timeSlot, durationHours, startTime, notes, isUnplanned } = await req.json()
 
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       category: 'IG', eventType: 'IG_TIMETABLE_ASSIGNED',
       actorUserId: payload.userId, actorRole: payload.role,
       targetType: 'Timetable', targetId: slot._id.toString(),
-      targetName: `${subject} — ${resolvedChapter}`,
+      targetName: `${subject} � ${resolvedChapter}`,
       description: `IG timetable slot assigned: ${subject} "${resolvedChapter}" on ${slotDate.toDateString()} (${timeSlot})`,
       metadata: { date, campusId, batchId, facultyId, subject, chapter: resolvedChapter, timeSlot, sessionType },
     }).catch(() => null)

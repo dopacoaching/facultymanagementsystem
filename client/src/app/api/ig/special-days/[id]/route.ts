@@ -12,7 +12,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'IG_ACADEMICS_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
 

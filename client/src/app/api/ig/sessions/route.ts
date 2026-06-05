@@ -1,4 +1,4 @@
-ï»¿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -13,7 +13,7 @@ function isCoordinator(role: string): boolean {
   return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
 }
 
-/** GET /api/ig/sessions â€” scoped to IS batches only */
+/** GET /api/ig/sessions — scoped to IS batches only */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, startTime } = await req.json()
 
@@ -125,12 +125,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // VIDEO-FIRST GATE (Residential + Online only â€” IS batches skip this)
+    // VIDEO-FIRST GATE (Residential + Online only — IS batches skip this)
     if (isVideoFirstBatch(batch.type)) {
       const chapterRecord = await BatchChapter.findOne({ batchId: batchOid, subject, chapterName: chapter })
       if (!chapterRecord || !chapterRecord.videoComplete) {
         return withToken(json({
-          error: `Cannot log faculty class for "${chapter}" â€” video lessons not yet marked complete for this batch.`,
+          error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
           code:  'VIDEO_NOT_COMPLETE',
         }, 422), refreshedToken)
       }
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
       category: 'IG', eventType: 'IG_SESSION_LOGGED',
       actorUserId: payload.userId, actorRole: payload.role,
       targetType: 'Session', targetId: session._id.toString(),
-      targetName: `${subject} â€” ${chapter}`,
+      targetName: `${subject} — ${chapter}`,
       description: `IG session logged: ${subject} "${chapter}" on ${date.toDateString()}`,
       metadata: { batchId, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
     }).catch(() => null)

@@ -1,4 +1,4 @@
-ï»¿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -14,7 +14,7 @@ const VALID_ROLES: UserRole[] = [
   'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
 ]
 
-/** GET /api/admin/users â€” list all users */
+/** GET /api/admin/users — list all users */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     await connectDB()
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** POST /api/admin/users â€” create a new user account */
+/** POST /api/admin/users — create a new user account */
 export async function POST(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { username, password, role, facultyId, batchId } = await req.json()
 
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const e = err as { name?: string; code?: number | string }
     if (e.name === 'MongoServerError' && e.code === 11000) {
-      return NextResponse.json({ error: 'Duplicate entry â€” a record with that value already exists.' }, { status: 409 })
+      return NextResponse.json({ error: 'Duplicate entry — a record with that value already exists.' }, { status: 409 })
     }
     console.error('[POST /api/admin/users]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

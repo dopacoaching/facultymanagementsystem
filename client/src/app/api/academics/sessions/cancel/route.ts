@@ -1,4 +1,4 @@
-ï»¿import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { sessionId, cancellationInitiator, cancellationReason } = await req.json()
 
@@ -73,10 +73,10 @@ export async function POST(req: NextRequest) {
         category: 'ACADEMICS', eventType: 'PENALTY_APPLIED',
         actorUserId: payload.userId, actorRole: payload.role,
         targetType: 'Session', targetId: session._id.toString(),
-        targetName: `${session.subject} â€” ${session.chapter}`,
+        targetName: `${session.subject} — ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: penaltyAmount,
         description: `Session cancelled by faculty on ${session.sessionDate.toDateString()}` +
-          (penaltyAmount > 0 ? ` â€” penalty â‚¹${penaltyAmount.toLocaleString('en-IN')}` : ' â€” no penalty'),
+          (penaltyAmount > 0 ? ` — penalty ?${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty'),
         cancellationInitiator: 'FACULTY',
         sessionId: session._id.toString(),
       })
@@ -86,10 +86,10 @@ export async function POST(req: NextRequest) {
         category: 'ACADEMICS', eventType: 'SESSION_CANCELLED',
         actorUserId: payload.userId, actorRole: payload.role,
         targetType: 'Session', targetId: session._id.toString(),
-        targetName: `${session.subject} â€” ${session.chapter}`,
+        targetName: `${session.subject} — ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: 0,
         description: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
-          (cancellationReason ? ` â€” ${cancellationReason}` : ''),
+          (cancellationReason ? ` — ${cancellationReason}` : ''),
         cancellationInitiator: effectiveInitiator,
         sessionId: session._id.toString(),
       })

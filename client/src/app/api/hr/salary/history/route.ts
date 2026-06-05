@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'FACULTY')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const facultyId = payload.facultyId
     if (!facultyId) {

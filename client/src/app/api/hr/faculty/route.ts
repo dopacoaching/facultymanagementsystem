@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const body = await req.json() as { name?: string; subject?: string; type?: FacultyType; salaryModel?: SalaryModel } & Record<string, unknown>
 

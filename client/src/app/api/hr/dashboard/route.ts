@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const { payload, refreshedToken } = auth
 
     const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
-    if (forbidden) return forbidden
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
     const month = Number(searchParams.get('month') ?? new Date().getMonth() + 1)
