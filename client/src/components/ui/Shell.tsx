@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useAppSelector, useAppDispatch } from '@/store/hooks'
 import { setCredentials } from '@/store/slices/authSlice'
 import { refresh } from '@/services/auth.service'
+import { useTheme } from '@/hooks/useTheme'
 import Sidebar from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
 
@@ -49,6 +50,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
   const pathname = usePathname()
   const [refreshing, setRefreshing] = useState(!accessToken)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { theme, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
     if (accessToken) { setRefreshing(false); return }
@@ -106,9 +108,28 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
               {pageTitle}
             </h1>
           </div>
-          <span className="role-chip">
-            {role?.replace(/_/g, ' ') ?? 'User'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <span className="role-chip">
+              {role?.replace(/_/g, ' ') ?? 'User'}
+            </span>
+            <button
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 34, height: 34,
+                borderRadius: '50%',
+                border: '1.5px solid var(--color-border)',
+                background: 'var(--color-surface-2)',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                transition: 'background 0.2s, border-color 0.2s',
+                flexShrink: 0,
+              }}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+          </div>
         </header>
 
         {/* Page content */}
