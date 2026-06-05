@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
     // ACADEMICS_MANAGER scope: restrict to their assigned batch type
     if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
-      const scopedIds = await Batch.find({ type: payload.batchType, isActive: true }).distinct('_id')
+      const scopedIds = await Batch.find({ type: payload.batchType as never, isActive: true }).distinct('_id')
       filter.batchId = { $in: scopedIds }
     }
 

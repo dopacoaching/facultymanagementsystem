@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
       if (batchType && batchType !== payload.batchType) {
         return withToken(json({ error: 'Access denied: outside your assigned batch type' }, 403), refreshedToken)
       }
-      const scopedIds = await Batch.find({ type: payload.batchType, isActive: true }).distinct('_id')
+      const scopedIds = await Batch.find({ type: payload.batchType as never, isActive: true }).distinct('_id')
       filter.batchId = { $in: scopedIds }
     }
 
