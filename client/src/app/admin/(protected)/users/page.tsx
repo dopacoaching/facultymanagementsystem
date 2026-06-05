@@ -61,15 +61,16 @@ export default function AdminUsersPage() {
   // Create modal
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState<CreateUserPayload>({
-    username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '',
+    username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '', batchType: '',
   })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
   // Edit modal
-  const [editTarget, setEditTarget]   = useState<AppUser | null>(null)
-  const [editRole, setEditRole]       = useState<UserRole>('COORDINATOR')
-  const [editBatchId, setEditBatchId] = useState('')
+  const [editTarget, setEditTarget]     = useState<AppUser | null>(null)
+  const [editRole, setEditRole]         = useState<UserRole>('COORDINATOR')
+  const [editBatchId, setEditBatchId]   = useState('')
+  const [editBatchType, setEditBatchType] = useState('')
   const [editPw, setEditPw]           = useState('')
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
@@ -104,10 +105,11 @@ export default function AdminUsersPage() {
     try {
       const payload = { ...createForm }
       if (!payload.facultyId) delete payload.facultyId
-      if (!payload.batchId) delete payload.batchId
+      if (!payload.batchId)   delete payload.batchId
+      if (!payload.batchType) delete payload.batchType
       await createUser(payload, accessToken)
       setShowCreate(false)
-      setCreateForm({ username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '' })
+      setCreateForm({ username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '', batchType: '' })
       load()
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : 'Create failed')
@@ -118,6 +120,7 @@ export default function AdminUsersPage() {
     setEditTarget(u)
     setEditRole(u.role)
     setEditBatchId(typeof u.batchId === 'object' ? (u.batchId?._id ?? '') : (u.batchId ?? ''))
+    setEditBatchType(u.batchType ?? '')
     setEditPw('')
     setEditError('')
   }
@@ -138,9 +141,10 @@ export default function AdminUsersPage() {
     if (!accessToken || !editTarget) return
     setEditSaving(true); setEditError('')
     try {
-      const payload: { role: UserRole; batchId?: string | null; password?: string } = {
-        role: editRole,
-        batchId: editBatchId || null,
+      const payload: { role: UserRole; batchId?: string | null; batchType?: string | null; password?: string } = {
+        role:      editRole,
+        batchId:   editBatchId   || null,
+        batchType: editRole === 'ACADEMICS_MANAGER' ? (editBatchType || null) : null,
       }
       if (editPw) {
         const pwErr = validatePasswordComplexity(editPw)
@@ -206,10 +210,22 @@ export default function AdminUsersPage() {
                 <div className="form-group">
                   <label className="label">Role</label>
                   <select className="input" value={createForm.role}
-                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole })}>
+                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole, batchType: '' })}>
                     {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
                   </select>
                 </div>
+                {createForm.role === 'ACADEMICS_MANAGER' && (
+                  <div className="form-group">
+                    <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>
+                    <select className="input" value={createForm.batchType}
+                      onChange={(e) => setCreateForm({ ...createForm, batchType: e.target.value })}>
+                      <option value="">— All batch types —</option>
+                      <option value="RESIDENTIAL">Residential</option>
+                      <option value="OFFLINE">Offline</option>
+                      <option value="ONLINE">Online</option>
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="label">Batch (optional)</label>
                   <select className="input" value={createForm.batchId}
@@ -258,10 +274,22 @@ export default function AdminUsersPage() {
                 <div className="form-group">
                   <label className="label">Role</label>
                   <select className="input" value={editRole}
-                    onChange={(e) => setEditRole(e.target.value as UserRole)}>
+                    onChange={(e) => { setEditRole(e.target.value as UserRole); setEditBatchType('') }}>
                     {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
                   </select>
                 </div>
+                {editRole === 'ACADEMICS_MANAGER' && (
+                  <div className="form-group">
+                    <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>
+                    <select className="input" value={editBatchType}
+                      onChange={(e) => setEditBatchType(e.target.value)}>
+                      <option value="">— All batch types —</option>
+                      <option value="RESIDENTIAL">Residential</option>
+                      <option value="OFFLINE">Offline</option>
+                      <option value="ONLINE">Online</option>
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="label">Batch (optional)</label>
                   <select className="input" value={editBatchId}

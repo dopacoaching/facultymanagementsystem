@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
+import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function midnight(d: Date | string): Date {
@@ -27,6 +28,12 @@ export async function GET(req: NextRequest) {
     }
 
     await connectDB()
+
+    // ACADEMICS_MANAGER scope: restrict to their assigned batch type
+    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
+      const scopedIds = await Batch.find({ type: payload.batchType, isActive: true }).distinct('_id')
+      filter.batchId = { $in: scopedIds }
+    }
 
     const schedules = await WeeklySchedule.find(filter)
       .populate('batchId', 'name type')
@@ -73,6 +80,14 @@ export async function POST(req: NextRequest) {
     if (classEntries   !== undefined) updateDoc.classEntries    = classEntries
 
     await connectDB()
+
+    // ACADEMICS_MANAGER batch type scope guard
+    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
+      const targetBatch = await Batch.findById(batchOid).lean()
+      if (!targetBatch || targetBatch.type !== payload.batchType) {
+        return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+      }
+    }
 
     const isNew = !(await WeeklySchedule.exists({ batchId: batchOid, weekStartDate: startDate, isRevised: false }))
     const schedule = await WeeklySchedule.findOneAndUpdate(

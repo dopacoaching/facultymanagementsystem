@@ -51,10 +51,11 @@ export default function LoginPage() {
 
       dispatch(setCredentials({
         accessToken: res.accessToken,
-        role: res.role,
-        userId: res.userId,
-        facultyId: res.facultyId ?? null,
-        batchId: res.batchId ?? null,
+        role:        res.role,
+        userId:      res.userId,
+        facultyId:   res.facultyId  ?? null,
+        batchId:     res.batchId    ?? null,
+        batchType:   res.batchType  ?? null,
       }))
       router.push(roleHome[res.role] ?? '/faculty')
     } catch (e: unknown) {

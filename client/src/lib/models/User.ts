@@ -7,6 +7,8 @@ export interface IUser extends Document {
   role: UserRole
   facultyId?: Types.ObjectId
   batchId?: Types.ObjectId
+  /** Restricts ACADEMICS_MANAGER to a single batch type (RESIDENTIAL | OFFLINE | ONLINE) */
+  batchType?: string
   isActive: boolean
 }
 
@@ -20,8 +22,9 @@ const UserSchema = new Schema<IUser>(
       required: true,
     },
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty' },
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
-    isActive: { type: Boolean, default: true },
+    batchId:   { type: Schema.Types.ObjectId, ref: 'Batch' },
+    batchType: { type: String, enum: ['RESIDENTIAL', 'OFFLINE', 'ONLINE'] },
+    isActive:  { type: Boolean, default: true },
   },
   { timestamps: true }
 )

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { username, password, role, facultyId, batchId } = await req.json()
+    const { username, password, role, facultyId, batchId, batchType } = await req.json()
 
     if (!username?.trim()) {
       return withToken(json({ error: 'username is required' }, 400), refreshedToken)
@@ -75,6 +75,11 @@ export async function POST(req: NextRequest) {
       if (!bat) return withToken(json({ error: 'batchId does not exist' }, 400), refreshedToken)
     }
 
+    const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE']
+    if (batchType && !VALID_BATCH_TYPES.includes(batchType)) {
+      return withToken(json({ error: 'batchType must be RESIDENTIAL, OFFLINE, or ONLINE' }, 400), refreshedToken)
+    }
+
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await User.create({
       username:     username.trim().toLowerCase(),
@@ -82,6 +87,7 @@ export async function POST(req: NextRequest) {
       role,
       facultyId:    facultyId || undefined,
       batchId:      batchId   || undefined,
+      batchType:    role === 'ACADEMICS_MANAGER' && batchType ? batchType : undefined,
     })
 
     // Audit: user account created

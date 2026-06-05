@@ -41,6 +41,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       update.batchId = body.batchId || undefined
       auditReasons.push('batchId updated')
     }
+    if ('batchType' in body) {
+      update.batchType = body.batchType || undefined
+      auditReasons.push(`batchType → ${body.batchType || 'none'}`)
+    }
 
     if (body.role) {
       if (![...VALID_ROLES, 'ADMIN'].includes(body.role as string)) {

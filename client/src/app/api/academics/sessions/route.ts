@@ -45,6 +45,15 @@ export async function GET(req: NextRequest) {
 
     await connectDB()
 
+    // ACADEMICS_MANAGER scope: restrict to their assigned batch type
+    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
+      if (batchType && batchType !== payload.batchType) {
+        return withToken(json({ error: 'Access denied: outside your assigned batch type' }, 403), refreshedToken)
+      }
+      const scopedIds = await Batch.find({ type: payload.batchType, isActive: true }).distinct('_id')
+      filter.batchId = { $in: scopedIds }
+    }
+
     if (facultyId) {
       try { filter.facultyId = new Types.ObjectId(facultyId) } catch {
         return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
@@ -128,6 +137,11 @@ export async function POST(req: NextRequest) {
 
     const batch = await Batch.findById(batchOid)
     if (!batch) return withToken(json({ error: 'Batch not found' }, 404), refreshedToken)
+
+    // ACADEMICS_MANAGER batch type scope guard
+    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType && batch.type !== payload.batchType) {
+      return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+    }
 
     // Coordinator batch ownership gate
     if (isCoordinator(payload.role)) {

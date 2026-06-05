@@ -50,7 +50,7 @@ function getBatchType(batchId: string, batches: Batch[]): string {
 }
 
 export default function SessionsPage() {
-  const { accessToken, role } = useAppSelector((s) => s.auth)
+  const { accessToken, role, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
   const [sessions, setSessions]       = useState<Session[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
@@ -101,7 +101,7 @@ export default function SessionsPage() {
     load()
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
     getBatches(accessToken).then((list) => {
-      const acBatches = list.filter((b) => b.type !== 'IG')
+      const acBatches = list.filter((b) => b.type !== 'IG' && (!scopedBatchType || b.type === scopedBatchType))
       setBatches(acBatches)
       if (acBatches.length) setForm((f) => ({ ...f, batchId: acBatches[0]._id }))
     }).catch(console.error)

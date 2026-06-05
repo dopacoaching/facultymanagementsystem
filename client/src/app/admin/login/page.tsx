@@ -52,8 +52,9 @@ export default function AdminLoginPage() {
         accessToken: res.accessToken,
         role:        res.role,
         userId:      res.userId,
-        facultyId:   res.facultyId ?? null,
-        batchId:     res.batchId  ?? null,
+        facultyId:   res.facultyId  ?? null,
+        batchId:     res.batchId    ?? null,
+        batchType:   res.batchType  ?? null,
       }))
       router.push('/admin')
     } catch (e: unknown) {

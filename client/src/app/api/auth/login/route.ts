@@ -54,10 +54,11 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = {
-      userId: user._id.toString(),
-      role: user.role,
+      userId:    user._id.toString(),
+      role:      user.role,
       facultyId: user.facultyId?.toString(),
-      batchId: user.batchId?.toString(),
+      batchId:   user.batchId?.toString(),
+      batchType: user.batchType,
     }
 
     const accessToken  = signAccessToken(payload)
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
       userId:    payload.userId,
       facultyId: payload.facultyId,
       batchId:   payload.batchId,
+      batchType: payload.batchType,
     })
 
     res.cookies.set('refreshToken', refreshToken, {

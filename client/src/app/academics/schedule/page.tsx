@@ -116,7 +116,7 @@ const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
-  const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
+  const { accessToken, role, batchId: coordinatorBatchId, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
   const isCoordinator = role === 'COORDINATOR'
 
   const [schedules, setSchedules]     = useState<Schedule[]>([])
@@ -149,7 +149,7 @@ export default function SchedulePage() {
     load()
     getFaculty(accessToken).then(setFaculty).catch(console.error)
     getBatches(accessToken).then((list) => {
-      const ac = list.filter((b) => b.type !== 'IG')
+      const ac = list.filter((b) => b.type !== 'IG' && (!scopedBatchType || b.type === scopedBatchType))
       const visible = isCoordinator && coordinatorBatchId
         ? ac.filter((b) => b._id === coordinatorBatchId)
         : ac

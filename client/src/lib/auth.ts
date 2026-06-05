@@ -6,6 +6,7 @@ export interface JWTPayload {
   role: string
   facultyId?: string
   batchId?: string
+  batchType?: string
   lastActive?: number
   iat?: number
   exp?: number
@@ -60,6 +61,7 @@ export function authenticate(req: Request): { payload: JWTPayload; refreshedToke
     role: payload.role,
     ...(payload.facultyId ? { facultyId: payload.facultyId } : {}),
     ...(payload.batchId   ? { batchId:   payload.batchId   } : {}),
+    ...(payload.batchType ? { batchType: payload.batchType } : {}),
   })
   return { payload, refreshedToken }
 }

@@ -6,6 +6,7 @@ export interface LoginResponse {
   userId: string
   facultyId?: string
   batchId?: string
+  batchType?: string
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {

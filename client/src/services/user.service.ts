@@ -8,6 +8,7 @@ export interface AppUser {
   isActive: boolean
   facultyId?: { _id: string; name: string } | null
   batchId?: { _id: string; name: string } | null
+  batchType?: string | null
   createdAt?: string
 }
 
@@ -17,12 +18,14 @@ export interface CreateUserPayload {
   role: UserRole
   facultyId?: string
   batchId?: string
+  batchType?: string
 }
 
 export interface UpdateUserPayload {
   isActive?: boolean
   role?: UserRole
   batchId?: string | null
+  batchType?: string | null
   password?: string
 }
 
