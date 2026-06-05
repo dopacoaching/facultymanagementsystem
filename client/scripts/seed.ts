@@ -4,16 +4,16 @@ config({ path: '.env.local' })
 
 import bcrypt from 'bcryptjs'
 import mongoose from 'mongoose'
-import { User } from '../../server/src/models/User'
-import { Faculty } from '../../server/src/models/Faculty'
-import { Campus } from '../../server/src/models/Campus'
-import { Batch } from '../../server/src/models/Batch'
-import { BatchChapter } from '../../server/src/models/BatchChapter'
-import { PermanentFacultyContract } from '../../server/src/models/PermanentFacultyContract'
-import { ISTimetableSlot } from '../../server/src/models/ISTimetableSlot'
-import { ISBatchChapter } from '../../server/src/models/ISBatchChapter'
-import { SpecialDay } from '../../server/src/models/SpecialDay'
-import { validatePasswordComplexity } from '../../server/src/utils/passwordUtils'
+import { User } from '../src/lib/models/User'
+import { Faculty } from '../src/lib/models/Faculty'
+import { Campus } from '../src/lib/models/Campus'
+import { Batch } from '../src/lib/models/Batch'
+import { BatchChapter } from '../src/lib/models/BatchChapter'
+import { PermanentFacultyContract } from '../src/lib/models/PermanentFacultyContract'
+import { ISTimetableSlot } from '../src/lib/models/ISTimetableSlot'
+import { ISBatchChapter } from '../src/lib/models/ISBatchChapter'
+import { SpecialDay } from '../src/lib/models/SpecialDay'
+import { validatePasswordComplexity } from '../src/lib/utils/passwordUtils'
 
 const uri = process.env.MONGODB_URI
 if (!uri) throw new Error('MONGODB_URI is required in .env.local')
