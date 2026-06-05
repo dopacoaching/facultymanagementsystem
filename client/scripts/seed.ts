@@ -119,7 +119,6 @@ async function seed() {
     { name: 'Habid PP',                subject: 'Chemistry',    type: 'PERMANENT', salaryModel: 'HOURLY',                hourlyRate: e('SALARY_HABID_RATE', 1100) },
     { name: 'Dr. Dunoonul Shibli',     subject: 'Biology',      type: 'PERMANENT', salaryModel: 'SPLIT_FIXED_VARIABLE',  fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),  variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000), monthlyDayQuota: e('SALARY_SHIBLI_MIN_DAYS', 16), monthlyHourQuota: e('SALARY_SHIBLI_MIN_HOURS', 96) },
     { name: 'Anoop K',                 subject: 'Physics',      type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY',         fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000),    monthlyDayQuota: e('SALARY_ANOOP_MIN_DAYS', 16) },
-    { name: 'Nihad',                   subject: 'Biology',      type: 'TEMPORARY', salaryModel: 'HOURLY',                hourlyRate: e('SALARY_NIHAD_RATE', 0) },
   ])
 
   const byName = Object.fromEntries(facultyDocs.map((f: { name: string; _id: mongoose.Types.ObjectId }) => [f.name, f._id]))
@@ -139,7 +138,6 @@ async function seed() {
     { facultyId: byName['Habid PP'],            contractType: 'HOURLY',                   hourlyRate: e('SALARY_HABID_RATE', 1100) },
     { facultyId: byName['Dr. Dunoonul Shibli'], contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),  variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000), cancellationPenaltyPerClass: e('SALARY_SHIBLI_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_SHIBLI_MIN_DAYS', 16), minHoursRequirement: e('SALARY_SHIBLI_MIN_HOURS', 96) },
     { facultyId: byName['Anoop K'],             contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000),    minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16) },
-    { facultyId: byName['Nihad'],              contractType: 'HOURLY',                   hourlyRate: e('SALARY_NIHAD_RATE', 0) },
   ])
 
   // ── Users ─────────────────────────────────────────────────────────────────
