@@ -73,10 +73,10 @@ export async function POST(req: NextRequest) {
         category: 'ACADEMICS', eventType: 'PENALTY_APPLIED',
         actorUserId: payload.userId, actorRole: payload.role,
         targetType: 'Session', targetId: session._id.toString(),
-        targetName: `${session.subject} — ${session.chapter}`,
+        targetName: `${session.subject} â€” ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: penaltyAmount,
         description: `Session cancelled by faculty on ${session.sessionDate.toDateString()}` +
-          (penaltyAmount > 0 ? ` — penalty ?${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty'),
+          (penaltyAmount > 0 ? ` â€” penalty ?${penaltyAmount.toLocaleString('en-IN')}` : ' â€” no penalty'),
         cancellationInitiator: 'FACULTY',
         sessionId: session._id.toString(),
       })
@@ -86,10 +86,10 @@ export async function POST(req: NextRequest) {
         category: 'ACADEMICS', eventType: 'SESSION_CANCELLED',
         actorUserId: payload.userId, actorRole: payload.role,
         targetType: 'Session', targetId: session._id.toString(),
-        targetName: `${session.subject} — ${session.chapter}`,
+        targetName: `${session.subject} â€” ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: 0,
         description: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
-          (cancellationReason ? ` — ${cancellationReason}` : ''),
+          (cancellationReason ? ` â€” ${cancellationReason}` : ''),
         cancellationInitiator: effectiveInitiator,
         sessionId: session._id.toString(),
       })

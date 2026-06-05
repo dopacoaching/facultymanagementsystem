@@ -14,7 +14,7 @@ function isCoordinator(role: string): boolean {
   return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
 }
 
-/** GET /api/academics/sessions — exclude IS batches when no explicit batchId given */
+/** GET /api/academics/sessions â€” exclude IS batches when no explicit batchId given */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       })
       if (!chapterRecord || !chapterRecord.videoComplete) {
         return withToken(json({
-          error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
+          error: `Cannot log faculty class for "${chapter}" â€” video lessons not yet marked complete for this batch.`,
           code:  'VIDEO_NOT_COMPLETE',
         }, 422), refreshedToken)
       }
@@ -227,14 +227,14 @@ export async function POST(req: NextRequest) {
         })
         if (!part1Done) {
           return withToken(json({
-            error: `Cannot log "${resolvedSyllabus.chapterName}" — "${resolvedSyllabus.parentChapterId.chapterName}" must be completed first for this batch.`,
+            error: `Cannot log "${resolvedSyllabus.chapterName}" â€” "${resolvedSyllabus.parentChapterId.chapterName}" must be completed first for this batch.`,
             code:  'SPLIT_PART_ORDER_VIOLATION',
           }, 422), refreshedToken)
         }
       }
     }
 
-    // All checks passed — create session
+    // All checks passed â€” create session
     const session = await Session.create({
       facultyId:     facultyOid,
       batchId:       batchOid,
@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
       category: 'ACADEMICS', eventType: 'SESSION_LOGGED',
       actorUserId: payload.userId, actorRole: payload.role,
       targetType: 'Session', targetId: session._id.toString(),
-      targetName: `${subject} — ${chapter}`,
+      targetName: `${subject} â€” ${chapter}`,
       description: `Session logged: ${subject} "${chapter}" for batch on ${date.toDateString()}`,
       metadata: { batchId: batchId, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
     }).catch(() => null)

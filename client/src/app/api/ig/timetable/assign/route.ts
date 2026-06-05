@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       category: 'IG', eventType: 'IG_TIMETABLE_ASSIGNED',
       actorUserId: payload.userId, actorRole: payload.role,
       targetType: 'Timetable', targetId: slot._id.toString(),
-      targetName: `${subject} — ${resolvedChapter}`,
+      targetName: `${subject} â€” ${resolvedChapter}`,
       description: `IG timetable slot assigned: ${subject} "${resolvedChapter}" on ${slotDate.toDateString()} (${timeSlot})`,
       metadata: { date, campusId, batchId, facultyId, subject, chapter: resolvedChapter, timeSlot, sessionType },
     }).catch(() => null)
