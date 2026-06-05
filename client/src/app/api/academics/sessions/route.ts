@@ -45,15 +45,6 @@ export async function GET(req: NextRequest) {
 
     await connectDB()
 
-    // ACADEMICS_MANAGER scope: restrict to their assigned batch type
-    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
-      if (batchType && batchType !== payload.batchType) {
-        return withToken(json({ error: 'Access denied: outside your assigned batch type' }, 403), refreshedToken)
-      }
-      const scopedIds = await Batch.find({ type: payload.batchType as never, isActive: true }).distinct('_id')
-      filter.batchId = { $in: scopedIds }
-    }
-
     if (facultyId) {
       try { filter.facultyId = new Types.ObjectId(facultyId) } catch {
         return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
@@ -74,6 +65,22 @@ export async function GET(req: NextRequest) {
     } else if (excludeBatchType) {
       const excludedIds = await Batch.find({ type: excludeBatchType as never, isActive: true }).distinct('_id')
       filter.batchId = { $nin: excludedIds }
+    }
+
+    // ACADEMICS_MANAGER scope — applied LAST so it always wins over the IG-exclusion filter above
+    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
+      const scopedIds = await Batch.find({ type: payload.batchType as never, isActive: true }).distinct('_id')
+      if (batchId) {
+        // Specific batch requested — verify it is within scope
+        const inScope = scopedIds.some((id) => id.toString() === batchId)
+        if (!inScope) {
+          return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+        }
+        // filter.batchId already set to this specific batch — leave it
+      } else {
+        // Replace whatever batchId filter was built above with the scope-restricted set
+        filter.batchId = { $in: scopedIds }
+      }
     }
 
     if (month && year) {
@@ -151,13 +158,16 @@ export async function POST(req: NextRequest) {
     }
 
     // VIDEO-FIRST GATE (Residential + Online only)
+    // Only blocks when the chapter record EXISTS with videoComplete=false.
+    // If no record exists yet, the session log creates it — coordinator can then
+    // mark videoComplete so future logs are gated correctly.
     if (isVideoFirstBatch(batch.type)) {
       const chapterRecord = await BatchChapter.findOne({
         batchId:     batchOid,
-        subject,
+        subject:     subject.toUpperCase(),
         chapterName: chapter,
       })
-      if (!chapterRecord || !chapterRecord.videoComplete) {
+      if (chapterRecord && !chapterRecord.videoComplete) {
         return withToken(json({
           error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
           code:  'VIDEO_NOT_COMPLETE',

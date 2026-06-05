@@ -93,19 +93,17 @@ const DAY_OFFSETS: Record<string, number> = {
   FRIDAY: 6,
 }
 
-WeeklyScheduleSchema.pre('validate', function (this: any, next: any) {
-  const doc = this
-  if (doc.classEntries && Array.isArray(doc.classEntries)) {
-    for (const entry of doc.classEntries) {
-      if ((entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') && !entry.sessionDate && doc.weekStartDate) {
-        const date = new Date(doc.weekStartDate)
+WeeklyScheduleSchema.pre('validate', function (this: any) {
+  if (this.classEntries && Array.isArray(this.classEntries)) {
+    for (const entry of this.classEntries) {
+      if ((entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') && !entry.sessionDate && this.weekStartDate) {
+        const date = new Date(this.weekStartDate)
         const offset = DAY_OFFSETS[entry.day] ?? 0
         date.setDate(date.getDate() + offset)
         entry.sessionDate = date
       }
     }
   }
-  next()
 })
 
 export const WeeklySchedule = (models.WeeklySchedule as Model<IWeeklySchedule>) ?? model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)

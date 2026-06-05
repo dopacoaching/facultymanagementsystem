@@ -29,10 +29,17 @@ export async function GET(req: NextRequest) {
 
     await connectDB()
 
-    // ACADEMICS_MANAGER scope: restrict to their assigned batch type
+    // ACADEMICS_MANAGER scope — applied after batchId filter so it always wins
     if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
       const scopedIds = await Batch.find({ type: payload.batchType as never, isActive: true }).distinct('_id')
-      filter.batchId = { $in: scopedIds }
+      if (batchId) {
+        const inScope = scopedIds.some((id) => id.toString() === batchId)
+        if (!inScope) {
+          return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+        }
+      } else {
+        filter.batchId = { $in: scopedIds }
+      }
     }
 
     const schedules = await WeeklySchedule.find(filter)

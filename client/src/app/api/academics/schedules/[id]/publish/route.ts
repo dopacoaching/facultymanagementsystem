@@ -32,7 +32,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     schedule.isPublished = true
     schedule.publishedAt = new Date()
-    await schedule.save()
+    try { await schedule.save() } catch (e: unknown) {
+      return withToken(json({ error: 'debug', detail: e instanceof Error ? e.message : String(e) }, 500), refreshedToken)
+    }
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SCHEDULE_PUBLISHED',
