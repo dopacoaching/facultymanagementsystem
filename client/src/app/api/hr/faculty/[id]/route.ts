@@ -101,21 +101,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (SALARY_FIELDS.some((f) => f in safeData)) {
       await writeAuditLog({
-        eventType: 'PAY_CONFIG_UPDATED',
-        facultyId: faculty._id.toString(),
-        facultyName: faculty.name,
-        amount: 0,
-        reason: `Pay config updated (${Object.keys(safeData).join(', ')})`,
-        loggedByUserId: payload.userId,
+        category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
+        actorUserId: payload.userId, actorRole: payload.role,
+        targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+        facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
+        description: `Pay config updated for ${faculty.name}: ${Object.keys(safeData).join(', ')}`,
+        metadata: { fields: Object.keys(safeData) },
       })
     } else {
       await writeAuditLog({
-        eventType: 'FACULTY_UPDATED',
-        facultyId: faculty._id.toString(),
-        facultyName: faculty.name,
-        amount: 0,
-        reason: `Profile updated (${Object.keys(safeData).join(', ')})`,
-        loggedByUserId: payload.userId,
+        category: 'HR', eventType: 'FACULTY_UPDATED',
+        actorUserId: payload.userId, actorRole: payload.role,
+        targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+        facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
+        description: `Faculty profile updated for ${faculty.name}: ${Object.keys(safeData).join(', ')}`,
+        metadata: { fields: Object.keys(safeData) },
       })
     }
 

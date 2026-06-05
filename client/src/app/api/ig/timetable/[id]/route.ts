@@ -5,6 +5,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { ISBatchChapter } from '@/lib/models/ISBatchChapter'
 import { checkISConflicts } from '@/lib/services/integratedSchool/conflictChecker'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** PATCH /api/ig/timetable/:id */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -114,6 +115,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       )
     }
 
+    writeAuditLog({
+      category: 'IG', eventType: 'IG_TIMETABLE_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Timetable', targetId: id,
+      targetName: `${slot.subject} — ${slot.chapter}`,
+      description: `IG timetable slot updated: ${slot.subject} "${slot.chapter}" on ${new Date(slot.date).toDateString()}`,
+      metadata: { updated: Object.keys(update) },
+    }).catch(() => null)
+
     return withToken(json(updated), refreshedToken)
   } catch (err) {
     console.error('[PATCH /api/ig/timetable/:id]', err)
@@ -154,6 +164,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         }
       ),
     ])
+
+    writeAuditLog({
+      category: 'IG', eventType: 'IG_TIMETABLE_DELETED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Timetable', targetId: id,
+      targetName: `${slot.subject} — ${slot.chapter}`,
+      description: `IG timetable slot deleted: ${slot.subject} "${slot.chapter}" on ${new Date(slot.date).toDateString()}`,
+    }).catch(() => null)
 
     return withToken(json({ success: true }), refreshedToken)
   } catch (err) {

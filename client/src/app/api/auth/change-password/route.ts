@@ -5,6 +5,7 @@ import { authenticate, json, withToken } from '@/lib/auth'
 import { User } from '@/lib/models/User'
 import { RefreshToken } from '@/lib/models/RefreshToken'
 import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,8 +50,16 @@ export async function POST(req: NextRequest) {
     user.passwordHash = await bcrypt.hash(newPassword, salt)
     await user.save()
 
-    // Invalidate all existing refresh tokens for this user so other devices are signed out
     await RefreshToken.deleteMany({ userId: user._id })
+
+    writeAuditLog({
+      category: 'AUTH', eventType: 'PASSWORD_CHANGED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'User', targetId: resolvedUserId, targetName: user.username,
+      description: resolvedUserId === payload.userId
+        ? `User "${user.username}" changed their own password`
+        : `Admin reset password for user "${user.username}"`,
+    }).catch(() => null)
 
     return withToken(json({ success: true, message: 'Password changed successfully' }), refreshedToken)
   } catch (err) {

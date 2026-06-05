@@ -216,6 +216,15 @@ export async function POST(req: NextRequest) {
       { upsert: true }
     )
 
+    writeAuditLog({
+      category: 'IG', eventType: 'IG_SESSION_LOGGED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Session', targetId: session._id.toString(),
+      targetName: `${subject} — ${chapter}`,
+      description: `IG session logged: ${subject} "${chapter}" on ${date.toDateString()}`,
+      metadata: { batchId, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
+    }).catch(() => null)
+
     return withToken(json(session, 201), refreshedToken)
   } catch (err) {
     console.error('[POST /api/ig/sessions]', err)

@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** PATCH /api/academics/sessions/:id — full edit (manager only) */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -52,6 +53,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
       .populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'SESSION_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Session', targetId: id,
+      targetName: `${session.subject} — ${session.chapter}`,
+      description: `Session updated: ${session.subject} "${session.chapter}"`,
+      metadata: { updated: Object.keys(update) },
+    }).catch(() => null)
 
     return withToken(json(session), refreshedToken)
   } catch (err) {

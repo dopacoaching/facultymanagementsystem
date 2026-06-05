@@ -70,28 +70,28 @@ export async function POST(req: NextRequest) {
       const penaltyAmount = contract?.cancellationPenaltyPerClass ?? 0
 
       await writeAuditLog({
-        eventType:   'PENALTY_APPLIED',
-        facultyId:   facultyOid.toString(),
-        facultyName,
-        amount:      penaltyAmount,
-        reason:      `Class cancelled by faculty on ${session.sessionDate.toDateString()}` +
-          (penaltyAmount > 0 ? ` — penalty ₹${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty contract'),
+        category: 'IG', eventType: 'PENALTY_APPLIED',
+        actorUserId: payload.userId, actorRole: payload.role,
+        targetType: 'Session', targetId: session._id.toString(),
+        targetName: `${session.subject} — ${session.chapter}`,
+        facultyId: facultyOid, facultyName, amount: penaltyAmount,
+        description: `IG session cancelled by faculty on ${session.sessionDate.toDateString()}` +
+          (penaltyAmount > 0 ? ` — penalty ₹${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty'),
         cancellationInitiator: 'FACULTY',
-        sessionId:   session._id.toString(),
-        loggedByUserId: payload.userId,
+        sessionId: session._id.toString(),
       })
     } else {
       const initiatorLabel = cancellationInitiator === 'STUDENT' ? 'student' : 'management'
       await writeAuditLog({
-        eventType:   'SESSION_CANCELLED',
-        facultyId:   facultyOid.toString(),
-        facultyName,
-        amount:      0,
-        reason:      `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
+        category: 'IG', eventType: 'IG_SESSION_CANCELLED',
+        actorUserId: payload.userId, actorRole: payload.role,
+        targetType: 'Session', targetId: session._id.toString(),
+        targetName: `${session.subject} — ${session.chapter}`,
+        facultyId: facultyOid, facultyName, amount: 0,
+        description: `IG session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
           (cancellationReason ? ` — ${cancellationReason}` : ''),
         cancellationInitiator: effectiveInitiator,
-        sessionId:   session._id.toString(),
-        loggedByUserId: payload.userId,
+        sessionId: session._id.toString(),
       })
     }
 

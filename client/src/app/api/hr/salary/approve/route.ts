@@ -79,12 +79,11 @@ export async function POST(req: NextRequest) {
     )
 
     await writeAuditLog({
-      eventType:   'SALARY_APPROVED',
-      facultyId,
-      facultyName: faculty.name,
-      amount:      result.finalPayable ?? 0,
-      reason:      `Salary approved for ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
-      loggedByUserId: payload.userId,
+      category: 'HR', eventType: 'SALARY_APPROVED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Faculty', targetId: facultyId, targetName: faculty.name,
+      facultyId, facultyName: faculty.name, amount: result.finalPayable ?? 0,
+      description: `Salary approved for ${faculty.name} — ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
     })
 
     return withToken(json({ success: true, record }), refreshedToken)

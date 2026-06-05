@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { BatchChapter } from '@/lib/models/BatchChapter'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** PATCH /api/academics/sessions/:id/status */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -61,6 +62,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
       ).catch(() => null)
     }
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'SESSION_STATUS_CHANGED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Session', targetId: id,
+      targetName: `${session.subject} — ${session.chapter}`,
+      description: `Session marked ${status}: ${session.subject} "${session.chapter}"`,
+      metadata: { newStatus: status },
+    }).catch(() => null)
 
     return withToken(json(session), refreshedToken)
   } catch (err) {

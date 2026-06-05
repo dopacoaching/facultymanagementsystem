@@ -119,12 +119,11 @@ async function calcFixedMonthlyLeave(
     breakdown.push({ label: 'Excess Leave Deduction', amount: penalties, isDeduction: true })
     if (persist) {
       await writeAuditLog({
-        eventType: 'PENALTY_APPLIED',
-        facultyId,
-        facultyName,
-        amount: penalties,
-        reason: `${excessLeaves} excess leave day(s) × ${fmt(perDayRate)}/day`,
-        loggedByUserId: 'SYSTEM',
+        category: 'HR', eventType: 'PENALTY_APPLIED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: penalties,
+        description: `Leave deduction: ${excessLeaves} excess leave day(s) × ${fmt(perDayRate)}/day`,
       })
     }
   }
@@ -216,12 +215,11 @@ async function calcFixedQuotaCarryForward(
       // Write audit log first — if it throws, the carry-forward record is not
       // committed and the next approval attempt will safely re-calculate.
       await writeAuditLog({
-        eventType: 'BALANCE_CARRY_FORWARD',
-        facultyId,
-        facultyName,
-        amount: 0,
-        reason: `Hour deficit: ${currentMonthBalance.toFixed(1)} hrs short of ${quota}h quota (previous carry: ${previousMonthBalance.toFixed(1)} hrs)`,
-        loggedByUserId: 'SYSTEM',
+        category: 'HR', eventType: 'BALANCE_CARRY_FORWARD',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: 0,
+        description: `Hour deficit carried forward: ${currentMonthBalance.toFixed(1)} hrs short of ${quota}h quota (previous: ${previousMonthBalance.toFixed(1)} hrs)`,
       })
     }
   }
@@ -324,12 +322,11 @@ async function calcBaseOvertime(
     })
     if (persist) {
       await writeAuditLog({
-        eventType: 'OVERTIME_ADDED',
-        facultyId,
-        facultyName,
-        amount: overtimePay,
-        reason: `${overtimeHours} hrs overtime at ${fmt(rate)}/hr`,
-        loggedByUserId: 'SYSTEM',
+        category: 'HR', eventType: 'OVERTIME_ADDED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: overtimePay,
+        description: `Overtime added: ${overtimeHours} hrs at ${fmt(rate)}/hr`,
       })
     }
   }
@@ -385,12 +382,11 @@ async function calcSplitFixedVariable(
     breakdown.push({ label: `Cancellation Penalty (${facultyCancellations} × ${fmt(penaltyPerClass)})`, amount: penaltyAmount, isDeduction: true })
     if (persist) {
       await writeAuditLog({
-        eventType: 'PENALTY_APPLIED',
-        facultyId,
-        facultyName,
-        amount: penaltyAmount,
-        reason: `${facultyCancellations} class(es) cancelled by faculty × ${fmt(penaltyPerClass)}`,
-        loggedByUserId: 'SYSTEM',
+        category: 'HR', eventType: 'PENALTY_APPLIED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: penaltyAmount,
+        description: `Cancellation penalty: ${facultyCancellations} class(es) cancelled × ${fmt(penaltyPerClass)}`,
       })
     }
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** POST /api/academics/schedules/:id/revise */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +51,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       isRevised:          true,
       replacesScheduleId: original._id,
     })
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'SCHEDULE_REVISED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Schedule', targetId: id,
+      description: `Revision draft created for week of ${new Date(original.weekStartDate).toDateString()}`,
+      metadata: { revisionId: revision._id.toString() },
+    }).catch(() => null)
 
     return withToken(json({ success: true, revision }, 201), refreshedToken)
   } catch (err) {

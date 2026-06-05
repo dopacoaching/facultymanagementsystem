@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { SpecialDay } from '@/lib/models/SpecialDay'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function midnight(d: string | Date): Date {
   const dt = new Date(d)
@@ -84,6 +85,15 @@ export async function POST(req: NextRequest) {
     try {
       const day       = await SpecialDay.create(dayData)
       const populated = await day.populate('campusId', 'name')
+      const campusName = (populated.campusId as unknown as { name?: string })?.name ?? 'All campuses'
+      writeAuditLog({
+        category: 'IG', eventType: 'SPECIAL_DAY_ADDED',
+        actorUserId: payload.userId, actorRole: payload.role,
+        targetType: 'SpecialDay', targetId: day._id.toString(),
+        targetName: `${type} on ${new Date(date).toDateString()}`,
+        description: `Special day added: ${type} on ${new Date(date).toDateString()} for ${campusName}`,
+        metadata: { date, type, notes, campusId },
+      }).catch(() => null)
       return withToken(json(populated, 201), refreshedToken)
     } catch (err: unknown) {
       const e = err as { code?: number }

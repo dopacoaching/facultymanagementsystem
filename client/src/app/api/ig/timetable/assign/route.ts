@@ -5,6 +5,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { ISBatchChapter } from '@/lib/models/ISBatchChapter'
 import { checkISConflicts } from '@/lib/services/integratedSchool/conflictChecker'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function midnight(d: string | Date): Date {
   const dt = new Date(d)
@@ -101,6 +102,15 @@ export async function POST(req: NextRequest) {
       { path: 'facultyId', select: 'name subject' },
       { path: 'campusId',  select: 'name location' },
     ])
+
+    writeAuditLog({
+      category: 'IG', eventType: 'IG_TIMETABLE_ASSIGNED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Timetable', targetId: slot._id.toString(),
+      targetName: `${subject} — ${resolvedChapter}`,
+      description: `IG timetable slot assigned: ${subject} "${resolvedChapter}" on ${slotDate.toDateString()} (${timeSlot})`,
+      metadata: { date, campusId, batchId, facultyId, subject, chapter: resolvedChapter, timeSlot, sessionType },
+    }).catch(() => null)
 
     return withToken(json(populated, 201), refreshedToken)
   } catch (err) {

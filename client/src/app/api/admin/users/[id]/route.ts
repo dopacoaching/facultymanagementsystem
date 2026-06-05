@@ -78,12 +78,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Audit: user account changed
     await writeAuditLog({
-      eventType:   'FACULTY_UPDATED',
-      facultyId:   String(id),
-      facultyName: `[User] ${user.username}`,
-      amount:      0,
-      reason:      `User account updated: ${auditReasons.join(', ')} — by admin ${payload.userId}`,
-      loggedByUserId: payload.userId,
+      category: 'ADMIN', eventType: 'USER_ACCOUNT_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'User', targetId: String(id), targetName: user.username,
+      description: `User account updated: "${user.username}" — ${auditReasons.join(', ')}`,
+      metadata: { changes: auditReasons },
     })
 
     return withToken(json(user), refreshedToken)

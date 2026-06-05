@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function midnight(d: Date | string): Date {
   const dt = new Date(d)
@@ -79,6 +80,14 @@ export async function POST(req: NextRequest) {
       updateDoc,
       { upsert: true, new: true }
     ).populate('classEntries.facultyId', 'name subject')
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: isNew ? 'SCHEDULE_CREATED' : 'SCHEDULE_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Schedule', targetId: schedule._id.toString(),
+      description: `Schedule ${isNew ? 'created' : 'updated'} for week of ${startDate.toDateString()}`,
+      metadata: { batchId, weekStartDate, entries: (classEntries ?? []).length },
+    }).catch(() => null)
 
     return withToken(json(schedule, isNew ? 201 : 200), refreshedToken)
   } catch (err) {

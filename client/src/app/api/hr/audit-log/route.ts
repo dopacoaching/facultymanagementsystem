@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { AuditLog } from '@/lib/models/AuditLog'
 
-/** GET /api/hr/audit-log?facultyId=&eventType=&page=&limit= */
+/** GET /api/hr/audit-log?category=&eventType=&actorRole=&targetType=&search=&from=&to=&page=&limit= */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -15,38 +14,49 @@ export async function GET(req: NextRequest) {
     if (forbidden) return forbidden
 
     const { searchParams } = new URL(req.url)
-    const facultyId = searchParams.get('facultyId')
-    const eventType = searchParams.get('eventType')
-    const page      = searchParams.get('page')  ?? '1'
-    const limit     = searchParams.get('limit') ?? '50'
+    const category   = searchParams.get('category')   ?? ''
+    const eventType  = searchParams.get('eventType')  ?? ''
+    const actorRole  = searchParams.get('actorRole')  ?? ''
+    const targetType = searchParams.get('targetType') ?? ''
+    const search     = searchParams.get('search')     ?? ''
+    const from       = searchParams.get('from')       ?? ''
+    const to         = searchParams.get('to')         ?? ''
+    const page       = Math.max(1, Number(searchParams.get('page')  ?? '1'))
+    const limit      = Math.min(100, Math.max(1, Number(searchParams.get('limit') ?? '50')))
 
     const filter: Record<string, unknown> = {}
 
-    if (facultyId) {
-      try { filter.facultyId = new Types.ObjectId(facultyId) } catch {
-        return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
-      }
-    }
-    const VALID_EVENTS = [
-      'PENALTY_APPLIED','OVERTIME_ADDED','BALANCE_CARRY_FORWARD',
-      'SALARY_APPROVED','PAY_CONFIG_UPDATED','SESSION_CANCELLED',
-      'FACULTY_CREATED','FACULTY_UPDATED',
-    ]
-    if (eventType && eventType !== 'ALL' && VALID_EVENTS.includes(eventType)) {
-      filter.eventType = eventType
+    if (category  && category  !== 'ALL') filter.category  = category
+    if (eventType && eventType !== 'ALL') filter.eventType = eventType
+    if (actorRole && actorRole !== 'ALL') filter.actorRole = actorRole
+    if (targetType && targetType !== 'ALL') filter.targetType = targetType
+
+    // Date range
+    if (from || to) {
+      const ts: Record<string, Date> = {}
+      if (from) ts.$gte = new Date(from)
+      if (to)   ts.$lte = new Date(to + 'T23:59:59.999Z')
+      filter.timestamp = ts
     }
 
-    const p = Math.max(1, Number(page))
-    const l = Math.min(100, Math.max(1, Number(limit)))
+    // Full-text search across description, targetName, actorUsername
+    if (search.trim()) {
+      filter.$or = [
+        { description:   { $regex: search.trim(), $options: 'i' } },
+        { targetName:    { $regex: search.trim(), $options: 'i' } },
+        { actorUsername: { $regex: search.trim(), $options: 'i' } },
+        { actorRole:     { $regex: search.trim(), $options: 'i' } },
+      ]
+    }
 
     await connectDB()
 
     const [logs, total] = await Promise.all([
-      AuditLog.find(filter).sort({ timestamp: -1 }).skip((p - 1) * l).limit(l),
+      AuditLog.find(filter).sort({ timestamp: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       AuditLog.countDocuments(filter),
     ])
 
-    return withToken(json({ logs, total, page: p, limit: l }), refreshedToken)
+    return withToken(json({ logs, total, page, limit }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/hr/audit-log]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

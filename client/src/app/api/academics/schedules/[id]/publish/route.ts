@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** POST /api/academics/schedules/:id/publish
  * Publishes the schedule. Exam topics are managed independently via
@@ -32,6 +33,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     schedule.isPublished = true
     schedule.publishedAt = new Date()
     await schedule.save()
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'SCHEDULE_PUBLISHED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Schedule', targetId: id,
+      description: `Schedule published for week of ${new Date(schedule.weekStartDate).toDateString()}`,
+    }).catch(() => null)
 
     return withToken(json({ success: true, schedule }), refreshedToken)
   } catch (err) {

@@ -75,12 +75,11 @@ export async function POST(req: NextRequest) {
     const faculty = await Faculty.create(safeData)
 
     await writeAuditLog({
-      eventType: 'FACULTY_CREATED',
-      facultyId: faculty._id.toString(),
-      facultyName: faculty.name,
-      amount: 0,
-      reason: 'Faculty profile created',
-      loggedByUserId: payload.userId,
+      category: 'HR', eventType: 'FACULTY_CREATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+      facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
+      description: `Faculty profile created: ${faculty.name} (${faculty.subject})`,
     })
 
     return withToken(json(faculty, 201), refreshedToken)

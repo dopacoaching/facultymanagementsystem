@@ -35,16 +35,46 @@ export type CancellationInitiator = 'FACULTY' | 'MANAGEMENT' | 'STUDENT'
 
 export type PayrollStatus = 'PENDING' | 'APPROVED' | 'BLOCKED'
 
+export type AuditCategory = 'HR' | 'ACADEMICS' | 'IG' | 'ADMIN' | 'AUTH'
+
 export type AuditEventType =
+  // ── HR / Salary ───────────────────────────────────────────────────────────
+  | 'FACULTY_CREATED'
+  | 'FACULTY_UPDATED'
+  | 'PAY_CONFIG_UPDATED'
+  | 'SALARY_APPROVED'
+  | 'SALARY_FIELD_CHANGED'
   | 'PENALTY_APPLIED'
   | 'OVERTIME_ADDED'
   | 'BALANCE_CARRY_FORWARD'
-  | 'SALARY_APPROVED'
-  | 'PAY_CONFIG_UPDATED'
-  | 'SALARY_FIELD_CHANGED'
+  // ── Academics (Repeaters) ─────────────────────────────────────────────────
+  | 'SESSION_LOGGED'
+  | 'SESSION_UPDATED'
+  | 'SESSION_STATUS_CHANGED'
   | 'SESSION_CANCELLED'
-  | 'FACULTY_CREATED'
-  | 'FACULTY_UPDATED'
+  | 'CHAPTER_UPDATED'
+  | 'SCHEDULE_CREATED'
+  | 'SCHEDULE_UPDATED'
+  | 'SCHEDULE_PUBLISHED'
+  | 'SCHEDULE_REVISED'
+  | 'SCHEDULE_DELETED'
+  // ── Integrated School ─────────────────────────────────────────────────────
+  | 'IG_SESSION_LOGGED'
+  | 'IG_SESSION_STATUS_CHANGED'
+  | 'IG_SESSION_CANCELLED'
+  | 'IG_CHAPTER_UPDATED'
+  | 'IG_TIMETABLE_ASSIGNED'
+  | 'IG_TIMETABLE_UPDATED'
+  | 'IG_TIMETABLE_DELETED'
+  | 'SPECIAL_DAY_ADDED'
+  | 'SPECIAL_DAY_DELETED'
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  | 'USER_ACCOUNT_CREATED'
+  | 'USER_ACCOUNT_UPDATED'
+  // ── Auth ─────────────────────────────────────────────────────────────────
+  | 'USER_LOGGED_IN'
+  | 'USER_LOGGED_OUT'
+  | 'PASSWORD_CHANGED'
 
 export interface JWTPayload {
   userId: string

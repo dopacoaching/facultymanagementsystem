@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { connectDB } from '@/lib/db'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
-import { isSameOrigin } from '@/lib/auth'
+import { isSameOrigin, authenticate } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -14,9 +15,21 @@ export async function POST(req: NextRequest) {
     const cookieStore = await cookies()
     const raw = cookieStore.get('refreshToken')?.value
 
+    // Capture actor info before clearing
+    const authResult = authenticate(req)
+    const actor = !(authResult instanceof NextResponse) ? authResult.payload : null
+
     if (raw) {
       await connectDB()
       await RefreshToken.deleteOne({ tokenHash: hashToken(raw) }).catch(() => null)
+    }
+
+    if (actor) {
+      writeAuditLog({
+        category: 'AUTH', eventType: 'USER_LOGGED_OUT',
+        actorUserId: actor.userId, actorRole: actor.role,
+        description: `User (${actor.role}) signed out`,
+      }).catch(() => null)
     }
 
     const res = NextResponse.json({ success: true })

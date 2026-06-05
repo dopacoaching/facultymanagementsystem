@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** DELETE /api/academics/schedules/:id — discard an unpublished draft */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +27,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       }, 409), refreshedToken)
     }
 
+    const weekStr = new Date(schedule.weekStartDate).toDateString()
     await schedule.deleteOne()
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'SCHEDULE_DELETED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Schedule', targetId: id,
+      description: `Draft schedule deleted for week of ${weekStr}`,
+    }).catch(() => null)
 
     return withToken(json({ success: true }), refreshedToken)
   } catch (err) {

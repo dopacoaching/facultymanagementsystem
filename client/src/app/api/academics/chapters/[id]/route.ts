@@ -2,6 +2,7 @@
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { BatchChapter } from '@/lib/models/BatchChapter'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** PATCH /api/academics/chapters/:id — update chapter completion flags */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -36,6 +37,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const chapter = await BatchChapter.findByIdAndUpdate(id, update, { new: true })
     if (!chapter) return withToken(json({ error: 'Chapter not found' }, 404), refreshedToken)
+
+    const changeDesc = videoComplete !== undefined
+      ? `Video marked ${Boolean(videoComplete) ? 'complete' : 'incomplete'}`
+      : `Class marked ${Boolean(facultyClassDone) ? 'done' : 'not done'}`
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'CHAPTER_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Chapter', targetId: id,
+      targetName: chapter.chapterName,
+      description: `${changeDesc}: "${chapter.chapterName}" (${chapter.subject})`,
+      metadata: { subject: chapter.subject, videoComplete, facultyClassDone },
+    }).catch(() => null)
 
     return withToken(json(chapter), refreshedToken)
   } catch (err) {

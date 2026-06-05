@@ -4,7 +4,7 @@ import { connectDB } from '@/lib/db'
 import { signAccessToken, signRefreshToken, isSameOrigin } from '@/lib/auth'
 import { User } from '@/lib/models/User'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
-
+import { writeAuditLog } from '@/lib/services/salary/audit'
 import { loginLimiter, getIP } from '@/lib/ratelimit'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
@@ -69,6 +69,14 @@ export async function POST(req: NextRequest) {
       userId:    user._id,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
     })
+
+    writeAuditLog({
+      category: 'AUTH', eventType: 'USER_LOGGED_IN',
+      actorUserId: user._id.toString(), actorRole: user.role,
+      actorUsername: user.username,
+      description: `User "${user.username}" (${user.role}) signed in`,
+      metadata: { ip: req.headers.get('x-forwarded-for') ?? 'unknown' },
+    }).catch(() => null)
 
     const res = NextResponse.json({
       accessToken,

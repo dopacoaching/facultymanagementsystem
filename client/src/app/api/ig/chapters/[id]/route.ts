@@ -2,6 +2,7 @@
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { ISBatchChapter } from '@/lib/models/ISBatchChapter'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** PATCH /api/ig/chapters/:id — manual status override */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +38,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const chapter = await ISBatchChapter.findByIdAndUpdate(id, update, { new: true })
     if (!chapter) return withToken(json({ error: 'IS chapter not found' }, 404), refreshedToken)
+
+    writeAuditLog({
+      category: 'IG', eventType: 'IG_CHAPTER_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role,
+      targetType: 'Chapter', targetId: id,
+      targetName: chapter.chapterName,
+      description: `IG chapter updated: "${chapter.chapterName}" (${chapter.subject})${status ? ` → ${status}` : ''}`,
+      metadata: { updated: Object.keys(update) },
+    }).catch(() => null)
 
     return withToken(json(chapter), refreshedToken)
   } catch (err) {
