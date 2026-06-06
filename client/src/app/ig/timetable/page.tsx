@@ -193,14 +193,17 @@ export default function ISTimetablePage() {
 
   useEffect(() => { loadDaily() }, [accessToken, selectedDate, filterCampusId]) // eslint-disable-line
 
-  // ── Load chapters when batch/subject changes ────────────────────────────────
+  // ── Load all NOT_YET_SCHEDULED chapters for the selected batch ──────────────
+  // Loading all subjects at once lets the subject dropdown show every option
+  // (PHYSICS, CHEMISTRY, BIOLOGY, MATHS, ENGLISH, MALAYALAM) without needing
+  // to know the subject first.
   useEffect(() => {
-    if (!accessToken || !form.batchId || !form.subject) { setChapters([]); return }
+    if (!accessToken || !form.batchId) { setChapters([]); return }
     apiFetch<ISChapter[]>(
-      `/ig/chapters?batchId=${form.batchId}&subject=${encodeURIComponent(form.subject)}&status=NOT_YET_SCHEDULED`,
+      `/ig/chapters?batchId=${form.batchId}&status=NOT_YET_SCHEDULED`,
       { token: accessToken }
     ).then(setChapters).catch(() => setChapters([]))
-  }, [accessToken, form.batchId, form.subject])
+  }, [accessToken, form.batchId])
 
   // Auto-populate campusId when batch changes
   useEffect(() => {
