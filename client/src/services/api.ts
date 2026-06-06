@@ -194,9 +194,17 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
     }
 
     const err = await retryRes.json().catch(() => ({ error: `HTTP ${retryRes.status}` }))
-    throw new Error((err as { error?: string }).error ?? 'Request failed')
+    throwApiError(err)
   }
 
   const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
-  throw new Error((err as { error?: string }).error ?? 'Request failed')
+  throwApiError(err)
+}
+
+/** Throw an Error whose `.violations` property mirrors the server's violations array (if any). */
+function throwApiError(body: unknown): never {
+  const b = body as { error?: string; violations?: string[] }
+  const e = new Error(b.error ?? 'Request failed') as Error & { violations?: string[] }
+  if (b.violations?.length) e.violations = b.violations
+  throw e
 }

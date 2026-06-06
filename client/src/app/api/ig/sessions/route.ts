@@ -121,6 +121,9 @@ export async function POST(req: NextRequest) {
 
     const batch = await Batch.findById(batchOid)
     if (!batch) return withToken(json({ error: 'Batch not found' }, 404), refreshedToken)
+    if (batch.type !== 'IG') {
+      return withToken(json({ error: 'Sessions can only be logged against IG batches on this endpoint' }, 400), refreshedToken)
+    }
 
     // Coordinator batch ownership gate
     if (isCoordinator(payload.role)) {
@@ -152,26 +155,6 @@ export async function POST(req: NextRequest) {
         error: 'Duplicate session: a session is already logged for this faculty in this batch on this date.',
         code:  'DUPLICATE_SESSION',
       }, 409), refreshedToken)
-    }
-
-    // OFFLINE 1-CAMPUS LIMIT
-    if (batch.type === 'OFFLINE') {
-      const todaySessions = await Session.find({
-        facultyId:   facultyOid,
-        sessionDate: { $gte: dayStart, $lte: dayEnd },
-        status:      { $ne: 'CANCELLED' },
-      }).populate<{ batchId: IBatch }>('batchId', 'type campusId')
-
-      const offlineOtherCampus = todaySessions.find((s) => {
-        const b = s.batchId as unknown as IBatch
-        return b.type === 'OFFLINE' && b.campusId.toString() !== batch.campusId.toString()
-      })
-      if (offlineOtherCampus) {
-        return withToken(json({
-          error: 'Offline faculty can only be assigned to one campus per day.',
-          code:  'OFFLINE_CAMPUS_CONFLICT',
-        }, 409), refreshedToken)
-      }
     }
 
     // RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK

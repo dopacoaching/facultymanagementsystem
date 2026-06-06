@@ -491,7 +491,7 @@ export default function IGSessionsPage() {
                           <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)}
                             disabled={cancelling === s._id} title="Mark Completed">✓</button>
                         )}
-                        {(s.status === 'SCHEDULED' || s.status === 'COMPLETED' || s.status === 'NOT_COMPLETED') && (
+                        {(s.status === 'SCHEDULED' || s.status === 'NOT_COMPLETED') && (
                           <>
                             <select className="input" style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: 105 }}
                               value={cancelInitiator[s._id] ?? ''}

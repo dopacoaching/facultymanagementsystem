@@ -126,7 +126,14 @@ function statusBadge(status: SalaryResult['status']): string {
 }
 
 export default function SalaryPage() {
-  const { accessToken } = useAppSelector((s) => s.auth)
+  const { accessToken, role } = useAppSelector((s) => s.auth)
+
+  // Only HR_MANAGER and ADMIN may access salary data.
+  // The layout/shell should enforce this too, but guard here as a fallback.
+  if (role && !['HR_MANAGER', 'ADMIN'].includes(role)) {
+    return <div className="alert alert-error" style={{ margin: '2rem' }}>Access denied — HR Manager or Admin only.</div>
+  }
+
   const [faculty, setFaculty]       = useState<Faculty[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [month, setMonth]           = useState(new Date().getMonth() + 1)
@@ -138,7 +145,7 @@ export default function SalaryPage() {
   const [approved, setApproved]     = useState(false)
 
   useEffect(() => {
-    if (accessToken) getAll(accessToken, true).then((list) => {
+    if (accessToken) getAll(accessToken, false).then((list) => {
       setFaculty(list)
       if (list.length > 0) setSelectedId(list[0]._id)
     }).catch(console.error)

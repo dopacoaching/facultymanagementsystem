@@ -60,9 +60,10 @@ export default function AvailabilityPage() {
   useEffect(() => {
     if (!accessToken || !selectedFaculty) { setEntries([]); return }
     setLoadingEntries(true)
+    setEntries([]) // clear stale data from previous selection immediately
     getAvailability(selectedFaculty, month, year, accessToken)
       .then(setEntries)
-      .catch(console.error)
+      .catch((err) => { console.error(err); setEntries([]) })
       .finally(() => setLoadingEntries(false))
   }, [accessToken, selectedFaculty, month, year])
 

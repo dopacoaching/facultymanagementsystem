@@ -38,7 +38,11 @@ export default function FacultyDashboard() {
     setLoading(true)
     Promise.all([
       getFacultyById(facultyId, accessToken).catch(() => null),
-      getSessions({ facultyId, limit: 10 } as Parameters<typeof getSessions>[0], accessToken).catch(() => [] as Session[]),
+      // Fetch enough sessions to cover this month's display + upcoming list.
+      // limit:50 is generous; total hours are derived from the salary calculation
+      // below (which aggregates all COMPLETED sessions server-side) rather than
+      // from this capped list.
+      getSessions({ facultyId, limit: 50 } as Parameters<typeof getSessions>[0], accessToken).catch(() => [] as Session[]),
       calculate(facultyId, month, year, accessToken).catch(() => null),
       getMyHoursSummary(accessToken).catch(() => [] as MonthlyHoursSummary[]),
     ])
@@ -57,7 +61,9 @@ export default function FacultyDashboard() {
   })
   const completed   = thisMonthSessions.filter((s) => s.status === 'COMPLETED')
   const upcoming    = sessions.filter((s) => s.status === 'SCHEDULED')
-  const totalHours  = completed.reduce((sum, s) => sum + s.durationHours, 0)
+  // Use server-aggregated hoursLogged from the salary calculation as the authoritative
+  // hours total — it covers ALL sessions, not just the ones in the capped fetch above.
+  const totalHours  = salary?.hoursLogged ?? completed.reduce((sum, s) => sum + s.durationHours, 0)
 
   if (loading) {
     return (

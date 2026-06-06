@@ -300,7 +300,10 @@ async function calcBaseOvertime(
   persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const base = contract.fixedMonthlySalary ?? 0
-  const threshold = contract.overtimeThresholdHours ?? contract.monthlyHourQuota ?? 50
+  // Use ONLY overtimeThresholdHours for overtime calculation — monthlyHourQuota
+  // is the faculty's required hours target and is semantically unrelated to overtime.
+  // Falling back to quota would incorrectly pay overtime from a lower boundary.
+  const threshold = contract.overtimeThresholdHours ?? 50
   const rate = contract.overtimeRatePerHour ?? 0
   const overtimeHours = Math.max(0, hoursLogged - threshold)
   const overtimePay = overtimeHours * rate

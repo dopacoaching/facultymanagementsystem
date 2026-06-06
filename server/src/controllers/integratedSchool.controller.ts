@@ -295,10 +295,12 @@ export const updateSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     )
   }
   if (update.status === 'CANCELLED') {
+    // Reset to NOT_YET_SCHEDULED so the chapter can be re-scheduled on another date.
+    // Setting CANCELLED here would permanently block re-scheduling via the normal flow.
     await ISBatchChapter.findOneAndUpdate(
       { batchId: slot.batchId, chapterName: effectiveChapter, subject: effectiveSubject },
       {
-        $set: { status: 'CANCELLED' },
+        $set:   { status: 'NOT_YET_SCHEDULED' },
         $unset: { scheduledDate: 1, timetableSlotId: 1 },
       },
       { upsert: false }

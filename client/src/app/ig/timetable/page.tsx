@@ -419,7 +419,7 @@ export default function ISTimetablePage() {
                 {typeof sd.campusId === 'object' && sd.campusId ? sd.campusId.name : 'All IG Campuses'}
                 {sd.notes ? ` — ${sd.notes}` : ''}
               </span>
-              {canManage && (
+              {canDelete && (
                 <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', lineHeight: 1 }}
                   onClick={() => handleDeleteSpecialDay(sd._id)}>×</button>
               )}

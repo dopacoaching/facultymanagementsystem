@@ -77,8 +77,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const effectiveChapter = (update.chapter as string) ?? slot.chapter
     const effectiveSubject = (update.subject as string) ?? slot.subject
 
-    // Sync ISBatchChapter if chapter/subject renamed without a status change
-    if (update.status === undefined && (update.chapter !== undefined || update.subject !== undefined)) {
+    // Sync ISBatchChapter name/subject whenever chapter or subject is renamed.
+    // This runs BEFORE the status branches so that effectiveChapter/Subject lookups
+    // in the COMPLETED/CANCELLED branches find the record under its new name.
+    if (update.chapter !== undefined || update.subject !== undefined) {
       await ISBatchChapter.findOneAndUpdate(
         { batchId: slot.batchId, chapterName: slot.chapter, subject: slot.subject },
         {
@@ -105,10 +107,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       )
     }
     if (update.status === 'CANCELLED') {
+      // Reset to NOT_YET_SCHEDULED so the chapter can be re-scheduled on another date.
       await ISBatchChapter.findOneAndUpdate(
         { batchId: slot.batchId, chapterName: effectiveChapter, subject: effectiveSubject },
         {
-          $set:   { status: 'CANCELLED' },
+          $set:   { status: 'NOT_YET_SCHEDULED' },
           $unset: { scheduledDate: 1, timetableSlotId: 1 },
         },
         { upsert: false }

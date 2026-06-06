@@ -110,9 +110,11 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
 
   // ── 2. VIDEO-FIRST GATE (Residential + Online only) ──────────────────────
   if (isVideoFirstBatch(batch.type)) {
+    // Normalise subject to uppercase so the lookup always matches seeded data
+    // (gate 6 normalises the same way when upserting the BatchChapter record).
     const chapterRecord = await BatchChapter.findOne({
       batchId: batchOid,
-      subject,
+      subject: subject.toUpperCase(),
       chapterName: chapter,
     })
     if (!chapterRecord || !chapterRecord.videoComplete) {
@@ -383,13 +385,13 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  const effectiveInitiator = cancellationInitiator === 'STUDENT' ? 'MANAGEMENT' : cancellationInitiator as 'FACULTY' | 'MANAGEMENT'
+  const storedInitiator = cancellationInitiator as 'FACULTY' | 'MANAGEMENT' | 'STUDENT'
 
   const session = await Session.findOneAndUpdate(
     { _id: sessionId, status: { $ne: 'CANCELLED' } },
     {
       status: 'CANCELLED',
-      cancellationInitiator: effectiveInitiator,
+      cancellationInitiator: storedInitiator,
       cancellationReason: cancellationReason || `Cancelled by ${cancellationInitiator.toLowerCase()}`,
     },
     { new: true }
@@ -405,7 +407,13 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
   const facultyOid = (populatedFaculty?._id ?? session.facultyId) as Types.ObjectId
   const facultyName = populatedFaculty?.name ?? 'Unknown'
 
-  if (effectiveInitiator === 'FACULTY') {
+  // Reset the BatchChapter flag so the chapter is no longer marked as done by faculty
+  await BatchChapter.findOneAndUpdate(
+    { sessionId: session._id },
+    { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } }
+  ).catch(() => null)
+
+  if (storedInitiator === 'FACULTY') {
     const contract = await PermanentFacultyContract.findOne({ facultyId: facultyOid })
     const penaltyAmount = contract?.cancellationPenaltyPerClass ?? 0
 
@@ -429,7 +437,7 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
       amount: 0,
       reason: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
         (cancellationReason ? ` — ${cancellationReason}` : ''),
-      cancellationInitiator: effectiveInitiator,
+      cancellationInitiator: storedInitiator,
       sessionId: session._id.toString(),
       loggedByUserId: req.user!.userId,
     })

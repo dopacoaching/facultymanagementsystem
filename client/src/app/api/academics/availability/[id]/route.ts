@@ -29,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({ error: 'status must be AVAILABLE, RESCHEDULED, or CANCELLED' }, 400), refreshedToken)
     }
 
-    if (status !== 'AVAILABLE' && remark !== undefined && !remark.trim()) {
+    if (status !== 'AVAILABLE' && !remark?.trim()) {
       return withToken(json({ error: 'A remark is required when status is RESCHEDULED or CANCELLED' }, 400), refreshedToken)
     }
 

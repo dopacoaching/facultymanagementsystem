@@ -78,6 +78,7 @@ export default function ISChaptersPage() {
   useEffect(() => {
     if (!accessToken || !selectedBatch) return
     setLoading(true)
+    setChapters([]) // clear stale chapters from previous batch immediately
     apiFetch<ISChapter[]>(`/ig/chapters?batchId=${selectedBatch}`, { token: accessToken })
       .then(setChapters)
       .catch(console.error)
