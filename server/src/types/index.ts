@@ -1,6 +1,13 @@
-﻿export type Subject = 'PHYSICS' | 'CHEMISTRY' | 'BIOLOGY' | 'MATHS' | 'ENGLISH' | 'MALAYALAM' | 'ARABIC'
+﻿export type Subject =
+  | 'PHYSICS' | 'CHEMISTRY' | 'BIOLOGY'
+  | 'BOTANY'  | 'ZOOLOGY'
+  | 'MATHS'
+  | 'ENGLISH' | 'MALAYALAM' | 'ARABIC'
 
-export const SUBJECTS: Subject[] = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC']
+export const SUBJECTS: Subject[] = [
+  'PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY',
+  'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC',
+]
 
 export type UserRole =
   | 'ADMIN'
