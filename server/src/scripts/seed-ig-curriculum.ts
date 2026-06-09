@@ -1,12 +1,14 @@
 /**
- * Seed IG batch chapters for languages (English, Malayalam) and Maths.
+ * Seed IG batch chapters for languages (English, Malayalam, Arabic) and Maths.
  *
  * Data source:
  *   - Plus One English   : xi-english.pdf  (3 terms, 6 units)
  *   - Plus One Malayalam : xi-malayalam.pdf (5 units, June–Feb)
+ *   - Plus One Arabic    : Arabic Chapter Details image (5 units, 14 chapters, 51.5 h)
+ *   - Plus One Maths     : 6-module pathway image (Sets → Probability)
  *   - Plus Two English   : Hsslive-xii-scheme-english.pdf (3 terms, 5 units)
  *   - Plus Two Malayalam : XII-Malayalam.pdf (4 units, June–Feb)
- *   - Plus One Maths     : 6-module pathway image (Sets → Probability)
+ *   - Plus Two Arabic    : Arabic Chapter Details image (5 units, 14 chapters, 50.5 h)
  *   - Plus Two Maths     : 5-module accelerated image (Relations → Probability)
  *
  * Run:
@@ -137,6 +139,58 @@ const XII_MALAYALAM: ChapterDef[] = [
   { subject: 'MALAYALAM', chapterName: 'Madhyamam (മാധ്യമം)',    chapterOrder: 4, durationHours: 28 },
 ]
 
+// ── Plus One (XI) Arabic ─────────────────────────────────────────────────────
+// Source: Arabic Chapter Details image (Plus One)
+// 5 units, 14 chapters, total 51.5 hours
+// Module mapping: Unit 1→mod2(Jun), Unit 2→mod3(Jul), Unit 3→mod4(Aug), Unit 4→mod5(Sep), Unit 5→mod6(Oct)
+const XI_ARABIC: ChapterDef[] = [
+  // Unit 1
+  { subject: 'ARABIC', chapterName: 'Unit 1 — In the School Campus',       chapterOrder:  1, scheduledModule: 2, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 1 — The Weakest of Houses',       chapterOrder:  2, scheduledModule: 2, durationHours: 3.5 },
+  { subject: 'ARABIC', chapterName: 'Unit 1 — Congratulations',             chapterOrder:  3, scheduledModule: 2, durationHours: 3.5 },
+  // Unit 2
+  { subject: 'ARABIC', chapterName: 'Unit 2 — A Glimpse into Nature',       chapterOrder:  4, scheduledModule: 3, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 2 — Precious Gems',               chapterOrder:  5, scheduledModule: 3, durationHours: 3.5 },
+  { subject: 'ARABIC', chapterName: 'Unit 2 — How Much You Complain',       chapterOrder:  6, scheduledModule: 3, durationHours: 4   },
+  // Unit 3
+  { subject: 'ARABIC', chapterName: 'Unit 3 — In the Clinic',               chapterOrder:  7, scheduledModule: 4, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 3 — Health and Lifestyle',         chapterOrder:  8, scheduledModule: 4, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 3 — Ibnuseena',                   chapterOrder:  9, scheduledModule: 4, durationHours: 3.5 },
+  // Unit 4
+  { subject: 'ARABIC', chapterName: 'Unit 4 — E-Mail',                      chapterOrder: 10, scheduledModule: 5, durationHours: 3.5 },
+  { subject: 'ARABIC', chapterName: 'Unit 4 — Missed Call',                 chapterOrder: 11, scheduledModule: 5, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 4 — Media and Safety of Society', chapterOrder: 12, scheduledModule: 5, durationHours: 4   },
+  // Unit 5
+  { subject: 'ARABIC', chapterName: 'Unit 5 — The Sweetness of Motherhood', chapterOrder: 13, scheduledModule: 6, durationHours: 3   },
+  { subject: 'ARABIC', chapterName: 'Unit 5 — A Sacrifice for the Homeland',chapterOrder: 14, scheduledModule: 6, durationHours: 3   },
+]
+
+// ── Plus Two (XII) Arabic ─────────────────────────────────────────────────────
+// Source: Arabic Chapter Details image (Plus Two)
+// 5 units, 14 chapters, total 50.5 hours
+// Module mapping (5-module accelerated): Unit 1→mod1(Apr), Unit 2→mod2(May), Unit 3→mod3(Jun), Unit 4→mod4(Jul), Unit 5→mod5(Aug)
+const XII_ARABIC: ChapterDef[] = [
+  // Unit 1 — Language of God in God's Own Country
+  { subject: 'ARABIC', chapterName: "Unit 1 — God's Goodness",                       chapterOrder:  1, scheduledModule: 1, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 1 — A Genius from Kerala',                  chapterOrder:  2, scheduledModule: 1, durationHours: 3.5 },
+  { subject: 'ARABIC', chapterName: "Unit 1 — Kerala and God's Countless Blessings",  chapterOrder:  3, scheduledModule: 1, durationHours: 4   },
+  // Unit 2 — Towards Happiness
+  { subject: 'ARABIC', chapterName: "Unit 2 — Sleep and Don't Wake Up",               chapterOrder:  4, scheduledModule: 2, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 2 — Traffic Police',                        chapterOrder:  5, scheduledModule: 2, durationHours: 3.5 },
+  { subject: 'ARABIC', chapterName: 'Unit 2 — The Chemistry of Happiness',            chapterOrder:  6, scheduledModule: 2, durationHours: 3   },
+  // Unit 3 — The Sweetness of Arabic
+  { subject: 'ARABIC', chapterName: 'Unit 3 — The Language of "Lad"',                 chapterOrder:  7, scheduledModule: 3, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 3 — Do Not Blame Me',                       chapterOrder:  8, scheduledModule: 3, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 3 — Linguistic Pearls',                     chapterOrder:  9, scheduledModule: 3, durationHours: 3   },
+  // Unit 4 — To the Shore of Dreams
+  { subject: 'ARABIC', chapterName: 'Unit 4 — Are You Alone..?',                      chapterOrder: 10, scheduledModule: 4, durationHours: 3.5 },
+  { subject: 'ARABIC', chapterName: 'Unit 4 — Do Not Kill Yourselves',                chapterOrder: 11, scheduledModule: 4, durationHours: 4   },
+  { subject: 'ARABIC', chapterName: 'Unit 4 — A Testament from the Loving One',       chapterOrder: 12, scheduledModule: 4, durationHours: 4   },
+  // Unit 5 — A Window to Opportunities
+  { subject: 'ARABIC', chapterName: 'Unit 5 — Where to Escape..?',                    chapterOrder: 13, scheduledModule: 5, durationHours: 3   },
+  { subject: 'ARABIC', chapterName: "Unit 5 — Today's News",                          chapterOrder: 14, scheduledModule: 5, durationHours: 3   },
+]
+
 // ── Plus Two (XII) Maths ──────────────────────────────────────────────────────
 // Source: Plus Two 5-Module Accelerated Pathway image
 const XII_MATHS: ChapterDef[] = [
@@ -164,7 +218,7 @@ const XII_MATHS: ChapterDef[] = [
 
 async function seed() {
   await connectDB()
-  console.log('Seeding IG curriculum (Languages + Maths)...\n')
+  console.log('Seeding IG curriculum (English, Malayalam, Arabic, Maths)...\n')
 
   const igBatches = await Batch.find({ type: 'IG' }).lean()
   const plusOneBatches = igBatches.filter((b) => b.ig1Subgroup === 'PLUS_ONE')
@@ -205,6 +259,8 @@ async function seed() {
     console.log(`    English   — ${XI_ENGLISH.length} chapters`)
     await upsertChapters(batch._id as mongoose.Types.ObjectId, XI_MALAYALAM)
     console.log(`    Malayalam — ${XI_MALAYALAM.length} chapters`)
+    await upsertChapters(batch._id as mongoose.Types.ObjectId, XI_ARABIC)
+    console.log(`    Arabic    — ${XI_ARABIC.length} chapters`)
     await upsertChapters(batch._id as mongoose.Types.ObjectId, XI_MATHS)
     console.log(`    Maths     — ${XI_MATHS.length} chapters`)
   }
@@ -215,6 +271,8 @@ async function seed() {
     console.log(`    English   — ${XII_ENGLISH.length} chapters`)
     await upsertChapters(batch._id as mongoose.Types.ObjectId, XII_MALAYALAM)
     console.log(`    Malayalam — ${XII_MALAYALAM.length} chapters`)
+    await upsertChapters(batch._id as mongoose.Types.ObjectId, XII_ARABIC)
+    console.log(`    Arabic    — ${XII_ARABIC.length} chapters`)
     await upsertChapters(batch._id as mongoose.Types.ObjectId, XII_MATHS)
     console.log(`    Maths     — ${XII_MATHS.length} chapters`)
   }
