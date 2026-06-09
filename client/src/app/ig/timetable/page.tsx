@@ -200,7 +200,7 @@ export default function ISTimetablePage() {
   useEffect(() => {
     if (!accessToken || !form.batchId) { setChapters([]); return }
     apiFetch<ISChapter[]>(
-      `/ig/chapters?batchId=${form.batchId}&status=NOT_YET_SCHEDULED`,
+      `/ig/chapters?batchId=${form.batchId}`,
       { token: accessToken }
     ).then(setChapters).catch(() => setChapters([]))
   }, [accessToken, form.batchId])
@@ -348,9 +348,9 @@ export default function ISTimetablePage() {
     return Array.from(sub)
   }, [chapters, form.batchId])
 
-  // Chapters for chosen subject
+  // Chapters for chosen subject — only those not yet scheduled
   const availableChapters = useMemo(
-    () => chapters.filter((c) => c.subject === form.subject).sort((a, b) => a.chapterOrder - b.chapterOrder),
+    () => chapters.filter((c) => c.subject === form.subject && c.status === 'NOT_YET_SCHEDULED').sort((a, b) => a.chapterOrder - b.chapterOrder),
     [chapters, form.subject]
   )
 
