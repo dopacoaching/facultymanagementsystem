@@ -301,12 +301,16 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
       {/* Change Password Modal */}
       {showChangePwd && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 100, padding: '1rem',
-        }}>
+        <div
+          role="dialog" aria-modal="true" aria-label="Change Password"
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 100, padding: '1rem',
+          }}
+          onKeyDown={(e) => { if (e.key === 'Escape') closePwdModal() }}
+        >
           <div style={{
             background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 400,
@@ -314,7 +318,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontWeight: 700, margin: 0, fontSize: '1.0625rem' }}>Change Password</h2>
-              <button onClick={closePwdModal} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
+              <button onClick={closePwdModal} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
               {pwdSuccess ? (

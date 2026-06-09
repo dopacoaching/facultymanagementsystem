@@ -5,7 +5,7 @@ import { getAll, create, update } from '@/services/faculty.service'
 import { getContract, updateContract } from '@/services/salary.service'
 import type { Faculty } from '@/types'
 import type { FacultyContract } from '@/services/salary.service'
-import { Skeleton, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 
 const SALARY_MODELS = ['HOURLY', 'FIXED_MONTHLY', 'FIXED_WITH_QUOTA', 'SPLIT_FIXED_VARIABLE', 'CONFIGURABLE']
@@ -163,13 +163,17 @@ function ConfigurePayModal({
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0,
-      background: 'rgba(15,23,42,0.65)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 60, padding: '1rem',
-    }}>
+    <div
+      role="dialog" aria-modal="true" aria-label="Configure Pay"
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(15,23,42,0.65)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 60, padding: '1rem',
+      }}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
+    >
       <div style={{
         background: 'var(--color-surface)',
         borderRadius: 'var(--radius-lg)',
@@ -183,7 +187,7 @@ function ConfigurePayModal({
             <h2 style={{ margin: 0 }}>Configure Pay — {faculty.name}</h2>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.2rem' }}>CONFIGURABLE contract type</div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', padding: '0.25rem', lineHeight: 1 }}>×</button>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', padding: '0.25rem', lineHeight: 1 }}>×</button>
         </div>
 
         <div style={{ padding: '1.5rem' }}>
@@ -270,11 +274,17 @@ export default function FacultyPage() {
   const [editing, setEditing]   = useState<(Faculty | typeof EMPTY) | null>(null)
   const [configuring, setConfiguring] = useState<Faculty | null>(null)
   const [saving, setSaving]     = useState(false)
+  const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [search, setSearch]     = useState('')
 
   const load = useCallback(() => {
-    if (accessToken) getAll(accessToken, true).then(setList).catch(console.error)
+    if (!accessToken) return
+    setLoading(true)
+    getAll(accessToken, true)
+      .then(setList)
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }, [accessToken])
 
   useEffect(load, [load])
@@ -324,7 +334,9 @@ export default function FacultyPage() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <SkeletonTable rows={5} cols={6} />
+        ) : filtered.length === 0 ? (
           <EmptyState
             icon="👥"
             title={search ? 'No results found' : 'No faculty added yet'}
@@ -392,12 +404,16 @@ export default function FacultyPage() {
 
       {/* ── Edit / Add Modal ── */}
       {editing && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+        <div
+          role="dialog" aria-modal="true" aria-label={'_id' in editing ? 'Edit Faculty' : 'Add Faculty'}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setEditing(null); setError('') } }}
+        >
           <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--color-border)' }}>
             {/* Header */}
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontWeight: 700, margin: 0 }}>{'_id' in editing ? 'Edit Faculty' : 'Add Faculty'}</h2>
-              <button onClick={() => { setEditing(null); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', padding: '0.25rem', lineHeight: 1 }}>×</button>
+              <button onClick={() => { setEditing(null); setError('') }} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', padding: '0.25rem', lineHeight: 1 }}>×</button>
             </div>
 
             {/* Body */}

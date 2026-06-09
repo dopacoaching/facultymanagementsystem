@@ -188,11 +188,16 @@ export default function AdminUsersPage() {
 
       {/* ── Create User Modal ──────────────────────────────────────────────────── */}
       {showCreate && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+        <div
+          role="dialog" aria-modal="true" aria-label="Create User"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setShowCreate(false); setCreateError('') } }}
+        >
           <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontWeight: 700, margin: 0 }}>Create User</h2>
               <button onClick={() => { setShowCreate(false); setCreateError('') }}
+                aria-label="Close"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -264,7 +269,11 @@ export default function AdminUsersPage() {
 
       {/* ── Edit User Modal ────────────────────────────────────────────────────── */}
       {editTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+        <div
+          role="dialog" aria-modal="true" aria-label="Edit User"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+          onKeyDown={(e) => { if (e.key === 'Escape') setEditTarget(null) }}
+        >
           <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -272,6 +281,7 @@ export default function AdminUsersPage() {
                 <p style={{ margin: '0.125rem 0 0', fontSize: '0.875rem', color: 'var(--color-muted)' }}>@{editTarget.username}</p>
               </div>
               <button onClick={() => setEditTarget(null)}
+                aria-label="Close"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>

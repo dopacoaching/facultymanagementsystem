@@ -1,5 +1,6 @@
 ﻿'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty } from '@/services/faculty.service'
 import { getAll as getSessions } from '@/services/session.service'
@@ -71,6 +72,7 @@ function QuickLink({ href, icon, label, desc }: { href: string; icon: string; la
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
+  const router = useRouter()
   const { accessToken } = useAppSelector((s) => s.auth)
 
   const [faculty,     setFaculty]     = useState<Faculty[]>([])
@@ -268,7 +270,7 @@ export default function AdminDashboard() {
               icon="👥"
               title="No faculty added yet"
               description="Add the first faculty member to get started."
-              action={{ label: 'Add Faculty', onClick: () => window.location.href = '/hr/faculty' }}
+              action={{ label: 'Add Faculty', onClick: () => router.push('/hr/faculty') }}
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>

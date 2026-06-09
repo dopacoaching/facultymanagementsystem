@@ -1,5 +1,6 @@
 ﻿'use client'
 import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getSessions, getFacultyHoursSummary } from '@/services/session.service'
 import type { FacultyHoursItem } from '@/services/session.service'
@@ -47,6 +48,7 @@ interface ChapterSummary {
 }
 
 export default function AcademicsDashboard() {
+  const router = useRouter()
   const { accessToken } = useAppSelector((s) => s.auth)
   const now = new Date()
   const [hoursMonth, setHoursMonth] = useState(now.getMonth() + 1)
@@ -378,7 +380,7 @@ export default function AcademicsDashboard() {
             icon="📅"
             title="No sessions logged yet"
             description="Log the first session to see recent activity here."
-            action={{ label: 'Log Session', onClick: () => window.location.href = '/academics/sessions' }}
+            action={{ label: 'Log Session', onClick: () => router.push('/academics/sessions') }}
           />
         ) : (
           <div className="table-wrapper">

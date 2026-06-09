@@ -542,7 +542,11 @@ export default function ISTimetablePage() {
 
       {/* ── Assign Class Modal ──────────────────────────────────────────────── */}
       {showAssign && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+        <div
+          role="dialog" aria-modal="true" aria-label="Assign IG Class"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setShowAssign(false); setError('') } }}
+        >
           <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 600, border: '1px solid var(--color-border)', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -550,6 +554,7 @@ export default function ISTimetablePage() {
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{fmtDate(selectedDate)}</p>
               </div>
               <button onClick={() => { setShowAssign(false); setError(''); setForm((f) => ({ ...f, subject: '', chapter: '', examTopic: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0, sessionType: 'LIVE_SESSION' })) }}
+                aria-label="Close"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -670,7 +675,11 @@ export default function ISTimetablePage() {
 
       {/* ── Special Day Modal ───────────────────────────────────────────────── */}
       {showSpecial && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+        <div
+          role="dialog" aria-modal="true" aria-label="Add Special Day"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setShowSpecial(false); setError('') } }}
+        >
           <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, border: '1px solid var(--color-border)' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -678,6 +687,7 @@ export default function ISTimetablePage() {
                 <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{fmtDate(selectedDate)}</p>
               </div>
               <button onClick={() => { setShowSpecial(false); setError('') }}
+                aria-label="Close"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>

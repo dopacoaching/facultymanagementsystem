@@ -59,10 +59,11 @@ export default function ChaptersPage() {
   useEffect(() => {
     if (!accessToken || !batchId) return
     setLoading(true)
+    setToggleError('')
     const url = `/academics/chapters?batchId=${batchId}`
     apiFetch<BatchChapter[]>(url, { token: accessToken })
       .then(setChapters)
-      .catch(console.error)
+      .catch((e: unknown) => setToggleError(e instanceof Error ? e.message : 'Failed to load chapters. Try refreshing the page.'))
       .finally(() => setLoading(false))
   }, [accessToken, batchId])
 
