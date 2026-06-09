@@ -9,7 +9,8 @@
     "seed": "tsx --env-file=../.env src/seed.ts",
     "seed:syllabus": "tsx --env-file=../.env src/scripts/seed-syllabus.ts",
     "seed:ig-curriculum": "tsx --env-file=../.env src/scripts/seed-ig-curriculum.ts",
-    "seed:ig-neet-jee": "tsx --env-file=../.env src/scripts/seed-ig-neet-jee.ts"
+    "seed:ig-neet-jee": "tsx --env-file=../.env src/scripts/seed-ig-neet-jee.ts",
+    "set-ig-stream": "tsx --env-file=../.env src/scripts/set-ig-batch-stream.ts"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
