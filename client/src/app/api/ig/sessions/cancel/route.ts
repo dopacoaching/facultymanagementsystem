@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const effectiveInitiator = cancellationInitiator === 'STUDENT' ? 'MANAGEMENT' : cancellationInitiator as 'FACULTY' | 'MANAGEMENT'
+    const effectiveInitiator = cancellationInitiator as 'FACULTY' | 'MANAGEMENT' | 'STUDENT'
 
     const session = await Session.findOneAndUpdate(
       { _id: sessionId, status: { $ne: 'CANCELLED' } },

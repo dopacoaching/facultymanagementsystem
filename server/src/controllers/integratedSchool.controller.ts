@@ -222,6 +222,10 @@ export const updateSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     if (!allowed.includes(status)) {
       res.status(400).json({ error: `status must be one of: ${allowed.join(', ')}` }); return
     }
+    // Prevent reverting a COMPLETED slot back to PLANNED — ISBatchChapter would be out of sync
+    if (status === 'PLANNED' && slot.status === 'COMPLETED') {
+      res.status(409).json({ error: 'Cannot revert a completed slot back to planned. Cancel it and create a new one.' }); return
+    }
     update.status = status
   }
   if (notes         !== undefined) update.notes         = notes

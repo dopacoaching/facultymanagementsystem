@@ -82,6 +82,20 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
   if (fridayExamTopic !== undefined) updateDoc.fridayExamTopic = fridayExamTopic
   if (classEntries   !== undefined) updateDoc.classEntries    = classEntries
 
+  // Guard: if a published schedule already exists for this batch-week, block a new draft creation.
+  // The caller must use the revise endpoint to amend a published schedule.
+  const alreadyPublished = await WeeklySchedule.findOne({
+    batchId: batchOid,
+    weekStartDate: startDate,
+    isPublished: true,
+  })
+  if (alreadyPublished) {
+    res.status(409).json({
+      error: 'A published schedule already exists for this week. Use the revise endpoint to make changes.',
+      scheduleId: alreadyPublished._id,
+    }); return
+  }
+
   // Check if there is an unpublished draft (could be original or revised)
   let schedule = await WeeklySchedule.findOne({
     batchId: batchOid,
@@ -187,17 +201,31 @@ export const reviseSchedule = asyncHandler(async (req: AuthRequest, res: Respons
     res.status(400).json({ error: 'Only published schedules can be revised. Edit the draft directly instead.' }); return
   }
 
-  // Check if a revision already exists for this week / batch, and return it if so
-  const existing = await WeeklySchedule.findOne({
+  // Return an existing unpublished revision draft if one already exists for this week/batch
+  const existingDraft = await WeeklySchedule.findOne({
     batchId: original.batchId,
     weekStartDate: original.weekStartDate,
     isRevised: true,
     isPublished: false,
   }).populate('classEntries.facultyId', 'name subject')
 
-  if (existing) {
-    res.status(200).json({ success: true, revision: existing })
+  if (existingDraft) {
+    res.status(200).json({ success: true, revision: existingDraft })
     return
+  }
+
+  // Block if a published revision already exists — can't have two active published schedules
+  const publishedRevision = await WeeklySchedule.findOne({
+    batchId:       original.batchId,
+    weekStartDate: original.weekStartDate,
+    isRevised:     true,
+    isPublished:   true,
+  })
+  if (publishedRevision) {
+    res.status(409).json({
+      error: 'A published revision already exists for this week. Revise the revision instead.',
+      scheduleId: publishedRevision._id,
+    }); return
   }
 
   const revision = await WeeklySchedule.create({
@@ -459,17 +487,28 @@ export const updateChapter = asyncHandler(async (req: AuthRequest, res: Response
     update.videoComplete = Boolean(videoComplete)
     update.videoCompletedAt = videoComplete ? now : null
   }
+  const unset: Record<string, unknown> = {}
   if (facultyClassDone !== undefined) {
     update.facultyClassDone = Boolean(facultyClassDone)
-    update.facultyClassDoneAt = facultyClassDone ? now : null
-    update.sessionId = facultyClassDone ? (sessionId ?? null) : null
+    if (Boolean(facultyClassDone)) {
+      update.facultyClassDoneAt = now
+      if (sessionId) update.sessionId = sessionId
+    } else {
+      // Use $unset so sessionId is fully absent (null satisfies $exists:true, breaking cancel reset queries)
+      unset.facultyClassDoneAt = ''
+      unset.sessionId = ''
+    }
   }
 
-  if (Object.keys(update).length === 0) {
+  if (Object.keys(update).length === 0 && Object.keys(unset).length === 0) {
     res.status(400).json({ error: 'Provide videoComplete and/or facultyClassDone' }); return
   }
 
-  const chapter = await BatchChapter.findByIdAndUpdate(id, update, { new: true })
+  const mongoUpdate: Record<string, unknown> = {}
+  if (Object.keys(update).length) mongoUpdate.$set   = update
+  if (Object.keys(unset).length)  mongoUpdate.$unset = unset
+
+  const chapter = await BatchChapter.findByIdAndUpdate(id, mongoUpdate, { new: true })
   if (!chapter) { res.status(404).json({ error: 'Chapter not found' }); return }
   res.json(chapter)
 })

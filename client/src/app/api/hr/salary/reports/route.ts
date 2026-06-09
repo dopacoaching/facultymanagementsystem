@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       return withToken(json({ error: 'month and year required' }, 400), refreshedToken)
     }
     const m = Number(month), y = Number(year)
-    if (isNaN(m) || isNaN(y) || m < 1 || m > 12) {
+    if (isNaN(m) || isNaN(y) || m < 1 || m > 12 || y < 2020 || y > 2100) {
       return withToken(json({ error: 'Invalid month or year' }, 400), refreshedToken)
     }
 

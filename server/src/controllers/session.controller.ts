@@ -120,7 +120,10 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
       subject: subject.toUpperCase(),
       chapterName: chapter,
     })
-    if (!chapterRecord || !chapterRecord.videoComplete) {
+    // Only block when a record EXISTS with videoComplete=false.
+    // If no record exists yet, allow the session to create it — coordinator can then
+    // mark videoComplete so future logs are gated correctly.
+    if (chapterRecord && !chapterRecord.videoComplete) {
       res.status(422).json({
         error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
         code: 'VIDEO_NOT_COMPLETE',
@@ -410,9 +413,11 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
   const facultyOid = (populatedFaculty?._id ?? session.facultyId) as Types.ObjectId
   const facultyName = populatedFaculty?.name ?? 'Unknown'
 
-  // Reset the BatchChapter flag so the chapter is no longer marked as done by faculty
+  // Reset the chapter's class-done status so it can be re-logged correctly.
+  // Match by batchId+subject+chapterName (not sessionId, which may not be set if the chapter
+  // was marked done via the chapter endpoint rather than via a session status update).
   await BatchChapter.findOneAndUpdate(
-    { sessionId: session._id },
+    { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
     { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } }
   ).catch(() => null)
 

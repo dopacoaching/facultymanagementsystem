@@ -35,6 +35,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!allowed.includes(status)) {
         return withToken(json({ error: `status must be one of: ${allowed.join(', ')}` }, 400), refreshedToken)
       }
+      if (status === 'PLANNED' && slot.status === 'COMPLETED') {
+        return withToken(json({ error: 'Cannot revert a completed slot back to planned. Cancel it and create a new one.' }, 409), refreshedToken)
+      }
       update.status = status
     }
     if (notes         !== undefined) update.notes         = notes

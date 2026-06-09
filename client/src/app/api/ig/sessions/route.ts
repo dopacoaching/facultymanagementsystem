@@ -6,6 +6,7 @@ import { Session } from '@/lib/models/Session'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
+import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 
@@ -134,13 +135,28 @@ export async function POST(req: NextRequest) {
 
     // VIDEO-FIRST GATE (Residential + Online only — IS batches skip this)
     if (isVideoFirstBatch(batch.type)) {
-      const chapterRecord = await BatchChapter.findOne({ batchId: batchOid, subject, chapterName: chapter })
-      if (!chapterRecord || !chapterRecord.videoComplete) {
+      const chapterRecord = await BatchChapter.findOne({ batchId: batchOid, subject: subject.toUpperCase(), chapterName: chapter })
+      if (chapterRecord && !chapterRecord.videoComplete) {
         return withToken(json({
           error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
           code:  'VIDEO_NOT_COMPLETE',
         }, 422), refreshedToken)
       }
+    }
+
+    // CROSS-SYSTEM LOCK — faculty cannot have a Repeaters session and an IG slot on the same day
+    const repeatersBatchIds = await Batch.find({ type: { $ne: 'IG' } }).distinct('_id')
+    const repeatersSessionToday = await Session.findOne({
+      facultyId:   facultyOid,
+      batchId:     { $in: repeatersBatchIds },
+      sessionDate: { $gte: dayStart, $lte: dayEnd },
+      status:      { $ne: 'CANCELLED' },
+    })
+    if (repeatersSessionToday) {
+      return withToken(json({
+        error: 'Faculty has a Repeaters session on this date and cannot be scheduled in IG on the same day.',
+        code:  'CROSS_SYSTEM_CONFLICT',
+      }, 409), refreshedToken)
     }
 
     // DUPLICATE SESSION CHECK
@@ -191,7 +207,7 @@ export async function POST(req: NextRequest) {
 
     // Auto-mark chapter as facultyClassDone
     await BatchChapter.findOneAndUpdate(
-      { batchId: batchOid, subject, chapterName: chapter },
+      { batchId: batchOid, subject: subject.toUpperCase(), chapterName: chapter },
       {
         $set: {
           facultyClassDone:   true,

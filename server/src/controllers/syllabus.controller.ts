@@ -179,8 +179,11 @@ export const getBatchProgress = asyncHandler(async (req: AuthRequest, res: Respo
           // Within the academic window: on time if completed by the scheduled month.
           if (doneMonth >= 6 && doneMonth <= month) onTime++
           else late++
+        } else {
+          // Done flag is set but timestamp is missing — count as late so
+          // chaptersOnTime + chaptersLate always equals chaptersCompleted.
+          late++
         }
-        // No completion date recorded → don't count as either on-time or late
       }
 
       const planned = monthChapters.length

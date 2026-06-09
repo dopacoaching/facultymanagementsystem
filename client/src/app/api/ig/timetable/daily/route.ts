@@ -1,7 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
-import { authenticate, json, withToken } from '@/lib/auth'
+import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { SpecialDay } from '@/lib/models/SpecialDay'
 import { getBatchTimings, applyExamDayTimings } from '@/lib/services/integratedSchool/timings'
@@ -18,6 +18,9 @@ export async function GET(req: NextRequest) {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
+
+    const forbidden = authorize(payload, 'COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY')
+    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
     const date     = searchParams.get('date')

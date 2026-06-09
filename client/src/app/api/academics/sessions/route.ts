@@ -7,6 +7,7 @@ import { Batch, IBatch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
+import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 
@@ -230,6 +231,19 @@ export async function POST(req: NextRequest) {
           code:  'MAX_CAMPUS_LIMIT',
         }, 409), refreshedToken)
       }
+    }
+
+    // CROSS-SYSTEM LOCK — faculty cannot have a Repeaters session and an IG slot on the same day
+    const igSlotToday = await ISTimetableSlot.findOne({
+      facultyId:  facultyOid,
+      date:       { $gte: dayStart, $lte: dayEnd },
+      status:     { $ne: 'CANCELLED' },
+    })
+    if (igSlotToday) {
+      return withToken(json({
+        error: 'Faculty has an IG timetable slot on this date and cannot be scheduled in Repeaters on the same day.',
+        code:  'CROSS_SYSTEM_CONFLICT',
+      }, 409), refreshedToken)
     }
 
     // SPLIT-CHAPTER ORDERING GATE

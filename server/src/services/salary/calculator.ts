@@ -198,13 +198,16 @@ async function calcFixedQuotaCarryForward(
 ): Promise<Partial<SalaryResult>> {
   const salary = contract.fixedMonthlySalary ?? 0
   const quota = contract.monthlyHourQuota ?? 0
-  const currentMonthBalance = Math.max(0, quota - hoursLogged)
+  // Negative means surplus (over-delivery); positive means shortfall
+  const currentMonthNet = quota - hoursLogged
 
   // Load previous month carry-forward
   const prev = prevMonth(month, year)
   const prevRecord = await CarryForwardBalance.findOne({ facultyId: fId, month: prev.month, year: prev.year })
   const previousMonthBalance = prevRecord?.balanceHours ?? 0
-  const combinedTotal = previousMonthBalance + currentMonthBalance
+  // Surplus reduces the accumulated deficit; floor at 0 (no negative carry)
+  const combinedTotal = Math.max(0, previousMonthBalance + currentMonthNet)
+  const currentMonthBalance = Math.max(0, currentMonthNet)
 
   const alerts: SalaryAlert[] = []
   if (currentMonthBalance > 0) {

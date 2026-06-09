@@ -17,9 +17,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const isManager = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
 
-    // Managers may supply an explicit facultyId; faculty are scoped to their own
+    // Managers must supply an explicit facultyId; faculty are scoped to their own
+    if (isManager && !searchParams.get('facultyId')) {
+      return withToken(json({ error: 'facultyId query parameter is required for managers' }, 400), refreshedToken)
+    }
     const targetFacultyId = isManager
-      ? (searchParams.get('facultyId') ?? payload.facultyId)
+      ? searchParams.get('facultyId')!
       : payload.facultyId
 
     if (!targetFacultyId) {

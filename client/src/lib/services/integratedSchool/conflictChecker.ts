@@ -33,8 +33,10 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
   const { date, campusId, batchId, facultyId, timeSlot, excludeId } = input
   const violations: string[] = []
 
-  const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0)
-  const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999)
+  // Use UTC calendar boundaries so the window is correct regardless of server timezone
+  const d = new Date(date)
+  const dayStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0))
+  const dayEnd   = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999))
 
   const baseFilter = excludeId ? { _id: { $ne: excludeId } } : {}
 

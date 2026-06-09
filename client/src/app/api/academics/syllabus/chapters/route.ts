@@ -3,7 +3,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, json, withToken } from '@/lib/auth'
 import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 
-const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY']
+const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC']
 
 /** GET /api/academics/syllabus/chapters?subject=CHEMISTRY&month=8 */
 export async function GET(req: NextRequest) {

@@ -112,4 +112,8 @@ WeeklyScheduleSchema.pre('validate', function (this: any, next: any) {
   next()
 })
 
+WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1 })
+WeeklyScheduleSchema.index({ batchId: 1, weekStartDate: 1, isPublished: 1 })
+WeeklyScheduleSchema.index({ batchId: 1, isPublished: 1 })
+
 export const WeeklySchedule = model<IWeeklySchedule>('WeeklySchedule', WeeklyScheduleSchema)
