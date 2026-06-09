@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth'
 import { User } from '../models/User'
 import { Faculty } from '../models/Faculty'
 import { Batch } from '../models/Batch'
+import { RefreshToken } from '../models/RefreshToken'
 import { asyncHandler } from '../utils/asyncHandler'
 import { validatePasswordComplexity } from '../utils/passwordUtils'
 import { writeAuditLog } from '../services/salary/audit'
@@ -124,6 +125,12 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
     .populate('batchId', 'name type')
 
   if (!user) { res.status(404).json({ error: 'User not found' }); return }
+
+  // Revoke all refresh tokens when role changes, password is reset, or account is deactivated
+  // so the user cannot silently continue using a stale session with old privileges.
+  if (update.role || update.passwordHash || update.isActive === false) {
+    await RefreshToken.deleteMany({ userId: id }).catch(() => null)
+  }
 
   // Audit: user account changed
   await writeAuditLog({

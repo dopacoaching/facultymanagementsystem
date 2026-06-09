@@ -22,7 +22,9 @@ export const getSchedules = asyncHandler(async (req: AuthRequest, res: Response)
   const { batchId } = req.query
   const filter: Record<string, unknown> = {}
   if (batchId) {
-    try { filter.batchId = new Types.ObjectId(batchId as string) } catch {}
+    try { filter.batchId = new Types.ObjectId(batchId as string) } catch {
+      res.status(400).json({ error: 'Invalid batchId' }); return
+    }
   }
   const schedules = await WeeklySchedule.find(filter)
     .populate('batchId', 'name type')

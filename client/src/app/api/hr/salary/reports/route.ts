@@ -20,12 +20,16 @@ export async function GET(req: NextRequest) {
     if (!month || !year) {
       return withToken(json({ error: 'month and year required' }, 400), refreshedToken)
     }
+    const m = Number(month), y = Number(year)
+    if (isNaN(m) || isNaN(y) || m < 1 || m > 12) {
+      return withToken(json({ error: 'Invalid month or year' }, 400), refreshedToken)
+    }
 
     await connectDB()
 
     const records = await SalaryRecord.find({
-      month:  Number(month),
-      year:   Number(year),
+      month:  m,
+      year:   y,
       status: 'APPROVED',
     })
       .populate('facultyId', 'name subject type')

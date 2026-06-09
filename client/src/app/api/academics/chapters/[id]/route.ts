@@ -16,26 +16,37 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const { id } = await params
     const { videoComplete, facultyClassDone, sessionId } = await req.json()
-    const now    = new Date()
-    const update: Record<string, unknown> = {}
+    const now = new Date()
+    const setFields:   Record<string, unknown> = {}
+    const unsetFields: Record<string, unknown> = {}
 
     if (videoComplete !== undefined) {
-      update.videoComplete    = Boolean(videoComplete)
-      update.videoCompletedAt = videoComplete ? now : null
+      setFields.videoComplete    = Boolean(videoComplete)
+      setFields.videoCompletedAt = videoComplete ? now : null
     }
     if (facultyClassDone !== undefined) {
-      update.facultyClassDone   = Boolean(facultyClassDone)
-      update.facultyClassDoneAt = facultyClassDone ? now : null
-      update.sessionId          = facultyClassDone ? (sessionId ?? null) : null
+      setFields.facultyClassDone = Boolean(facultyClassDone)
+      if (Boolean(facultyClassDone)) {
+        setFields.facultyClassDoneAt = now
+        if (sessionId) setFields.sessionId = sessionId
+      } else {
+        // Use $unset so sessionId is fully absent (null satisfies $exists:true, breaking cancel reset queries).
+        unsetFields.facultyClassDoneAt = ''
+        unsetFields.sessionId = ''
+      }
     }
 
-    if (Object.keys(update).length === 0) {
+    if (Object.keys(setFields).length === 0 && Object.keys(unsetFields).length === 0) {
       return withToken(json({ error: 'Provide videoComplete and/or facultyClassDone' }, 400), refreshedToken)
     }
 
+    const mongoUpdate: Record<string, unknown> = {}
+    if (Object.keys(setFields).length)   mongoUpdate.$set   = setFields
+    if (Object.keys(unsetFields).length) mongoUpdate.$unset = unsetFields
+
     await connectDB()
 
-    const chapter = await BatchChapter.findByIdAndUpdate(id, update, { new: true })
+    const chapter = await BatchChapter.findByIdAndUpdate(id, mongoUpdate, { new: true })
     if (!chapter) return withToken(json({ error: 'Chapter not found' }, 404), refreshedToken)
 
     const changeDesc = videoComplete !== undefined

@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
     const faculty = await Faculty.findById(facultyId)
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
+    // Use status: { $ne: 'APPROVED' } as an atomic guard against concurrent double-approval.
     const record = await SalaryRecord.findOneAndUpdate(
-      { facultyId: new Types.ObjectId(facultyId), month: Number(month), year: Number(year) },
+      { facultyId: new Types.ObjectId(facultyId), month: Number(month), year: Number(year), status: { $ne: 'APPROVED' } },
       {
         hoursLogged:      result.hoursLogged    ?? 0,
         daysWorked:       result.daysWorked     ?? 0,

@@ -19,5 +19,6 @@ export function applyExamDayTimings(
   if (dayOfWeek === 'MONDAY') {
     return { ...base, examStart: '08:30', examEnd: '10:00', morningStart: '10:00' }
   }
-  return { ...base, examStart: '09:15', examEnd: '09:45', afternoonEnd: '17:00' }
+  // morningStart advances to 09:45 so teaching doesn't overlap the 09:15–09:45 exam.
+  return { ...base, examStart: '09:15', examEnd: '09:45', morningStart: '09:45', afternoonEnd: '17:00' }
 }

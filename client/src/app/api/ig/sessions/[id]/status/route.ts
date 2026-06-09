@@ -30,6 +30,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({ error: `status must be one of: ${ALLOWED.join(', ')}` }, 400), refreshedToken)
     }
 
+    const isManager = payload.role === 'IG_ACADEMICS_MANAGER' || payload.role === 'ACADEMICS_MANAGER' || payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
+
     await connectDB()
 
     // Coordinator batch ownership guard
@@ -39,6 +41,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!payload.batchId || target.batchId.toString() !== payload.batchId) {
         return withToken(json({ error: 'You can only update sessions for your assigned batch.' }, 403), refreshedToken)
       }
+      // State-machine guard: coordinators cannot revert a COMPLETED session back to SCHEDULED.
+      if (status === 'SCHEDULED' && target.status === 'COMPLETED') {
+        return withToken(json({ error: 'Only managers can revert a completed session to scheduled.' }, 403), refreshedToken)
+      }
+    }
+
+    // Only managers can flip back to SCHEDULED
+    if (status === 'SCHEDULED' && !isManager) {
+      return withToken(json({ error: 'Only managers can change status back to scheduled.' }, 403), refreshedToken)
     }
 
     const session = await Session.findOneAndUpdate(
@@ -55,8 +66,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (status === 'NOT_COMPLETED') {
+      // Reset by batchId+subject+chapterName (not sessionId, which may not be set).
       await BatchChapter.findOneAndUpdate(
-        { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, sessionId: session._id },
+        { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
         { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
       ).catch(() => null)
     }

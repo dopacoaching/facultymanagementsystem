@@ -98,8 +98,9 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     return
   }
 
-  // Check that this token hasn't been revoked.
-  const stored = await RefreshToken.findOne({ tokenHash: hashToken(raw) })
+  // Check that this token hasn't been revoked and hasn't expired yet.
+  // The TTL index cleans up expired docs within ~60s; the expiresAt guard closes that window.
+  const stored = await RefreshToken.findOne({ tokenHash: hashToken(raw), expiresAt: { $gt: new Date() } })
   if (!stored) {
     res.status(401).json({ error: 'Refresh token revoked or expired' })
     return
@@ -155,6 +156,13 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
 
   const user = await User.findById(resolvedUserId)
   if (!user) { res.status(404).json({ error: 'User not found' }); return }
+
+  // HR_MANAGER cannot escalate privileges by resetting an ADMIN or HR_MANAGER's password.
+  if (req.user!.role === 'HR_MANAGER' && resolvedUserId !== req.user!.userId) {
+    if (user.role === 'ADMIN' || user.role === 'HR_MANAGER') {
+      res.status(403).json({ error: 'HR Manager cannot reset another HR Manager or Admin password.' }); return
+    }
+  }
 
   // If changing own password, require current password verification
   if (resolvedUserId === req.user!.userId) {

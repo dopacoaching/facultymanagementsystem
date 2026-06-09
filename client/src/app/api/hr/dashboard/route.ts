@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const month = Number(searchParams.get('month') ?? new Date().getMonth() + 1)
     const year  = Number(searchParams.get('year')  ?? new Date().getFullYear())
+    if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
+      return withToken(json({ error: 'Invalid month or year' }, 400), refreshedToken)
+    }
 
     const startDate = new Date(year, month - 1, 1)
     const endDate   = new Date(year, month,     1)

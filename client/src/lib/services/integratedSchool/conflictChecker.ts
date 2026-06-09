@@ -1,5 +1,7 @@
 ﻿import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { SpecialDay }     from '@/lib/models/SpecialDay'
+import { Session }        from '@/lib/models/Session'
+import { Batch }          from '@/lib/models/Batch'
 import { Types }          from 'mongoose'
 
 export interface ConflictCheckInput {
@@ -18,13 +20,14 @@ export interface ConflictResult {
 }
 
 /**
- * Checks all 5 IS conflict rules.
+ * Checks all IS conflict rules (mirrors server-side conflictChecker exactly).
  *
- * Rule 1: No double-booking — faculty can't teach at the same campus at the same slot.
- * Rule 2: No cross-campus overlap — faculty can't be at IG1 and IG2 in the same slot.
+ * Rule 1: No double-booking — faculty can't teach at the same campus in the same slot.
+ * Rule 2: Campus-day lock — all of a faculty's IG sessions on a day must be at the same campus.
  * Rule 3: Max 3 IG sessions per faculty per day.
  * Rule 4: One class per batch per time slot.
  * Rule 5: No assignments on Buffer Days, Tours, or Holidays for the campus.
+ * Rule 6: Cross-system lock — if faculty has a Repeaters session that day, IG cannot schedule them.
  */
 export async function checkISConflicts(input: ConflictCheckInput): Promise<ConflictResult> {
   const { date, campusId, batchId, facultyId, timeSlot, excludeId } = input
@@ -81,18 +84,18 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
       )
     }
 
-    // ── Rule 2: No cross-campus overlap (IG1 ↔ IG2) ─────────────────────────
-    const crossCampusConflict = await ISTimetableSlot.findOne({
+    // ── Rule 2: Campus-day lock — all IG sessions for a faculty on a day must be at the same campus ──
+    // (Day-level, not per-slot: SESSION_1 at IG1 blocks SESSION_2 at IG2 on the same day.)
+    const differentCampusToday = await ISTimetableSlot.findOne({
       ...baseFilter,
       facultyId,
       campusId: { $ne: campusId },
       date:     { $gte: dayStart, $lte: dayEnd },
-      timeSlot,
       status:   { $ne: 'CANCELLED' },
     })
-    if (crossCampusConflict) {
+    if (differentCampusToday) {
       violations.push(
-        `Faculty is already assigned at a different IG campus in the ${timeSlot} slot (IG1/IG2 overlap not allowed)`
+        `Faculty is already scheduled at a different IG campus today. All IG sessions for a faculty must be at the same campus on the same day.`
       )
     }
 
@@ -106,6 +109,20 @@ export async function checkISConflicts(input: ConflictCheckInput): Promise<Confl
     if (dailyCount >= 3) {
       violations.push(
         `Faculty already has ${dailyCount} IS class${dailyCount > 1 ? 'es' : ''} today (max 3 per day)`
+      )
+    }
+
+    // ── Rule 6: Cross-system lock — Repeaters session blocks IG scheduling ───
+    const repeatersBatchIds = await Batch.find({ type: { $ne: 'IG' } }).distinct('_id')
+    const repeatersConflict = await Session.findOne({
+      facultyId,
+      batchId: { $in: repeatersBatchIds },
+      sessionDate: { $gte: dayStart, $lte: dayEnd },
+      status: { $ne: 'CANCELLED' },
+    })
+    if (repeatersConflict) {
+      violations.push(
+        `Faculty has a Repeaters session on this date and cannot be scheduled in IG on the same day.`
       )
     }
   }

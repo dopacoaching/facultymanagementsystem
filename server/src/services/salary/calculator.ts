@@ -106,7 +106,8 @@ async function calcFixedMonthlyLeave(
   const leaveTaken = Math.max(0, workingDays - daysWorked)
   const excessLeaves = Math.max(0, leaveTaken - leaveAllowance)
   const perDayRate = salary / workingDays
-  const penalties = excessLeaves > 0 ? excessLeaves * perDayRate : 0
+  // Round to whole rupees — fractional rupees cannot be disbursed via bank transfer.
+  const penalties = excessLeaves > 0 ? Math.round(excessLeaves * perDayRate) : 0
 
   const breakdown: SalaryBreakdown[] = [
     { label: 'Fixed Monthly Salary', amount: salary },
@@ -229,9 +230,11 @@ async function calcFixedQuotaCarryForward(
   // Persist current month balance — ONLY on approval, never on preview, so that
   // repeatedly viewing the calculation doesn't keep overwriting the stored balance.
   if (persist) {
+    // Store the running combined total so that next month's previousMonthBalance
+    // accumulates correctly across multiple months of shortfall.
     await CarryForwardBalance.findOneAndUpdate(
       { facultyId: fId, month, year },
-      { balanceHours: currentMonthBalance },
+      { balanceHours: combinedTotal },
       { upsert: true, new: true }
     )
   }
@@ -476,7 +479,8 @@ export async function calculateMonthlySalary(
     Session.find({ facultyId: fId, sessionDate: { $gte: start, $lt: end }, status: 'CANCELLED' }),
   ])
 
-  // 4. Global cancellation gate — blank initiator blocks payroll
+  // 4. Global cancellation gate — blank initiator on any cancelled session blocks payroll
+  // because we cannot determine whether a penalty applies without knowing the initiator.
   const blankInitiator = cancellations.some((c) => !c.cancellationInitiator)
   if (blankInitiator) {
     return {
@@ -607,12 +611,13 @@ async function calcLegacyFallback(
       const fixed = faculty.fixedComponent ?? 0
       const variable = faculty.variableComponent ?? 0
       const penaltyPerClass = 9000
-      penalties = facultyCancellations * penaltyPerClass
-      baseSalary = fixed + Math.max(0, variable - penalties)
+      // Cap penalties at the variable component so finalPayable never goes below fixed.
+      penalties = Math.min(facultyCancellations * penaltyPerClass, variable)
+      baseSalary = fixed + variable  // pre-penalty; finalPayable = baseSalary - penalties in the shared return
       breakdown.push({ label: 'Fixed Component', amount: fixed })
       breakdown.push({ label: 'Variable Component', amount: variable })
       if (penalties > 0) breakdown.push({ label: 'Cancellation Penalty', amount: penalties, isDeduction: true })
-      breakdown.push({ label: 'Total Payable', amount: baseSalary })
+      breakdown.push({ label: 'Total Payable', amount: fixed + variable - penalties })
       break
     }
     case 'CONFIGURABLE': {

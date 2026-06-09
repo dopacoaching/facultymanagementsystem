@@ -15,7 +15,7 @@ export interface ISyllabusChapter extends Document {
 
 const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
   {
-    subject:          { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'], required: true },
+    subject:          { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC'], required: true },
     chapterName:      { type: String, required: true, trim: true },
     scheduledMonth:   { type: Number, required: true, min: 6, max: 12 },
     chapterOrder:     { type: Number, required: true },

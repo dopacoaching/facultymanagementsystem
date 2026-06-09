@@ -39,13 +39,15 @@ export async function GET(req: NextRequest) {
       filter.timestamp = ts
     }
 
-    // Full-text search across description, targetName, actorUsername
+    // Full-text search across description, targetName, actorUsername.
+    // Escape regex metacharacters to prevent ReDoS.
     if (search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       filter.$or = [
-        { description:   { $regex: search.trim(), $options: 'i' } },
-        { targetName:    { $regex: search.trim(), $options: 'i' } },
-        { actorUsername: { $regex: search.trim(), $options: 'i' } },
-        { actorRole:     { $regex: search.trim(), $options: 'i' } },
+        { description:   { $regex: escaped, $options: 'i' } },
+        { targetName:    { $regex: escaped, $options: 'i' } },
+        { actorUsername: { $regex: escaped, $options: 'i' } },
+        { actorRole:     { $regex: escaped, $options: 'i' } },
       ]
     }
 

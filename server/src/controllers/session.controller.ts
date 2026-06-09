@@ -85,6 +85,9 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     })
     return
   }
+  if (Number(durationHours) <= 0) {
+    res.status(400).json({ error: 'durationHours must be a positive number' }); return
+  }
 
   let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
   try { facultyOid = new Types.ObjectId(facultyId) } catch { res.status(400).json({ error: 'Invalid facultyId' }); return }

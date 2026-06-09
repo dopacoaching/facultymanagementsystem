@@ -96,8 +96,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Reset the chapter's class-done status so the class can be re-logged correctly.
+    // Match by batchId+subject+chapterName (not sessionId, which may not be set).
     await BatchChapter.findOneAndUpdate(
-      { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, sessionId: session._id },
+      { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
       { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
     ).catch(() => null)
 
