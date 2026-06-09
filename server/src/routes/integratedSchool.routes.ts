@@ -21,8 +21,8 @@ function injectISBatchType(req: Request, _res: Response, next: NextFunction) {
 }
 
 // ─── Timetable (date-based) ───────────────────────────────────────────────────
-router.get ('/timetable/daily',  getDailyTimetable)
-router.get ('/timetable/weekly', getWeeklyTimetable)
+router.get ('/timetable/daily',  authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getDailyTimetable)
+router.get ('/timetable/weekly', authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getWeeklyTimetable)
 router.post(
   '/timetable/assign',
   authorize('IG_ACADEMICS_MANAGER', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'),
@@ -40,15 +40,15 @@ router.delete(
 )
 
 // Timings helper
-router.get('/timings', getTimings)
+router.get('/timings', authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getTimings)
 
 // ─── Special Days ─────────────────────────────────────────────────────────────
-router.get   ('/special-days',     getSpecialDays)
+router.get   ('/special-days',     authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSpecialDays)
 router.post  ('/special-days',     authorize('IG_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), createSpecialDay)
 router.delete('/special-days/:id', authorize('IG_ACADEMICS_MANAGER', 'ADMIN'), deleteSpecialDay)
 
 // ─── IS Batch Chapters ────────────────────────────────────────────────────────
-router.get  ('/chapters',     getISChapters)
+router.get  ('/chapters',     authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'), getISChapters)
 router.patch('/chapters/:id', authorize('IG_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), updateISChapter)
 
 // ─── IS Sessions (reuse shared session controller, scoped to IS) ──────────────

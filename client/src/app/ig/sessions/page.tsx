@@ -55,12 +55,13 @@ export default function IGSessionsPage() {
   const [showForm, setShowForm]       = useState(false)
   const [cancelling, setCancelling]   = useState('')
   const [form, setForm] = useState({
-    facultyId:   '',
-    batchId:     '',
-    subject:     '',
-    chapter:     '',
-    startTime:   '',
-    sessionDate: new Date().toISOString().slice(0, 10),
+    facultyId:     '',
+    batchId:       '',
+    subject:       '',
+    chapter:       '',
+    startTime:     '',
+    durationHours: '',
+    sessionDate:   new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]                     = useState(false)
   const [cancelInitiator, setCancelInitiator]   = useState<Record<string, string>>({})
@@ -162,12 +163,13 @@ export default function IGSessionsPage() {
         token: accessToken,
         method: 'POST',
         body: {
-          facultyId:   form.facultyId,
-          batchId:     form.batchId,
-          subject:     form.subject,
-          chapter:     form.chapter,
-          startTime:   form.startTime || undefined,
-          sessionDate: form.sessionDate,
+          facultyId:     form.facultyId,
+          batchId:       form.batchId,
+          subject:       form.subject,
+          chapter:       form.chapter,
+          startTime:     form.startTime || undefined,
+          durationHours: form.durationHours ? Number(form.durationHours) : undefined,
+          sessionDate:   form.sessionDate,
         },
       })
       toast.success('Session created', 'IG session has been logged successfully.')
@@ -373,6 +375,11 @@ export default function IGSessionsPage() {
                   <label className="label">Start Time</label>
                   <input type="time" className="input" value={form.startTime}
                     onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Duration (hours)</label>
+                  <input type="number" className="input" value={form.durationHours} min="0.25" max="8" step="0.25"
+                    placeholder="e.g. 1.5" onChange={(e) => setForm({ ...form, durationHours: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>

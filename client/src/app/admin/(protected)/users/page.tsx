@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
   }
 
   async function handleToggleActive(u: AppUser) {
-    if (!accessToken || toggling) return
+    if (!accessToken || toggling === u._id) return
     if (u._id === selfId) { setError('You cannot deactivate your own account.'); return }
     setToggling(u._id); setError('')
     try {

@@ -205,8 +205,8 @@ async function calcFixedQuotaCarryForward(
   const prev = prevMonth(month, year)
   const prevRecord = await CarryForwardBalance.findOne({ facultyId: fId, month: prev.month, year: prev.year })
   const previousMonthBalance = prevRecord?.balanceHours ?? 0
-  // Surplus reduces the accumulated deficit; floor at 0 (no negative carry)
-  const combinedTotal = Math.max(0, previousMonthBalance + currentMonthNet)
+  // Surplus (negative net) reduces accumulated deficit; allow negative so credit rolls forward
+  const combinedTotal = previousMonthBalance + currentMonthNet
   const currentMonthBalance = Math.max(0, currentMonthNet)
 
   const alerts: SalaryAlert[] = []
@@ -463,6 +463,10 @@ export async function calculateMonthlySalary(
   year: number,
   persist = false,
 ): Promise<SalaryResult> {
+  if (month < 1 || month > 12) {
+    return { status: 'BLOCKED', reason: 'Invalid month: must be 1–12', alerts: [], breakdown: [] }
+  }
+
   // 1. Load faculty
   const faculty = await Faculty.findById(facultyId)
   if (!faculty) {

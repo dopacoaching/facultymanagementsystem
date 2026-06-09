@@ -81,7 +81,7 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
 
   const record = await SalaryRecord.findOneAndUpdate(
-    { facultyId: new Types.ObjectId(facultyId), month: Number(month), year: Number(year) },
+    { facultyId: new Types.ObjectId(facultyId), month: Number(month), year: Number(year), status: { $ne: 'APPROVED' } },
     {
       hoursLogged: result.hoursLogged ?? 0,
       daysWorked: result.daysWorked ?? 0,

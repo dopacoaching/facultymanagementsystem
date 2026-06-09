@@ -84,9 +84,9 @@ export const assignSlot = asyncHandler(async (req: AuthRequest, res: Response) =
     isUnplanned:   Boolean(isUnplanned),
   })
 
-  // Auto-mark the ISBatchChapter as SCHEDULED
+  // Auto-mark the ISBatchChapter as SCHEDULED (never overwrite a COMPLETED chapter)
   await ISBatchChapter.findOneAndUpdate(
-    { batchId: batchOid, chapterName: chapter, subject },
+    { batchId: batchOid, chapterName: chapter, subject, status: { $ne: 'COMPLETED' } },
     {
       $set: {
         status:         'SCHEDULED',

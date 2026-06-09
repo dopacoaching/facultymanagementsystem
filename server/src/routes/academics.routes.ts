@@ -40,7 +40,7 @@ router.delete('/availability/:id', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
 // GET: exclude IG batches when no explicit batchId given
-router.get('/sessions', excludeIGBatches, getSessions)
+router.get('/sessions', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), excludeIGBatches, getSessions)
 router.post('/sessions', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), createSession)
 router.post('/sessions/cancel', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), cancelSession)
 router.patch('/sessions/:id/status', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
@@ -48,8 +48,8 @@ router.patch('/sessions/:id/status', authorize('COORDINATOR', 'ACADEMICS_MANAGER
 router.patch('/sessions/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSession)
 
 // ── Schedule (REST plural + legacy singular) ──────────────────────────────────
-router.get('/schedules', getSchedules)
-router.get('/schedule', getSchedules)
+router.get('/schedules', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSchedules)
+router.get('/schedule',  authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSchedules)
 router.post('/schedules', authorize('ACADEMICS_MANAGER', 'COORDINATOR', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
 router.post('/schedule', authorize('ACADEMICS_MANAGER', 'COORDINATOR', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
 
@@ -67,21 +67,21 @@ router.post('/schedules/:id/revise', authorize('ACADEMICS_MANAGER', 'HR_MANAGER'
 router.delete('/schedules/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), deleteSchedule)
 
 // ── Exam topic suggestion ─────────────────────────────────────────────────────
-router.get('/exams/suggest', suggestTopic)
+router.get('/exams/suggest', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), suggestTopic)
 
 // ── Chapters ──────────────────────────────────────────────────────────────────
 // Summary aggregate — used by the academics dashboard to avoid N parallel queries.
-router.get('/chapters/summary', getChapterSummary)
-router.get('/chapters', getChapters)
+router.get('/chapters/summary', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), getChapterSummary)
+router.get('/chapters',         authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), getChapters)
 // Coordinators mark video-complete; managers can also set facultyClassDone manually
 router.patch('/chapters/:id', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'), updateChapter)
 
 // ── Syllabus (Annual Chapter Plan) ───────────────────────────────────────────
 // Order matters: specific paths before parameterized
-router.get('/syllabus/chapters',             getSyllabusChapters)
-router.get('/syllabus/split-chapters',       getSplitChapters)
-router.get('/syllabus/behind',               getBehindScheduleBatches)
-router.get('/syllabus/progress/:batchId',    getBatchProgress)
-router.get('/syllabus',                      getAnnualSyllabus)
+router.get('/syllabus/chapters',          authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSyllabusChapters)
+router.get('/syllabus/split-chapters',    authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSplitChapters)
+router.get('/syllabus/behind',            authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getBehindScheduleBatches)
+router.get('/syllabus/progress/:batchId', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getBatchProgress)
+router.get('/syllabus',                   authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getAnnualSyllabus)
 
 export default router
