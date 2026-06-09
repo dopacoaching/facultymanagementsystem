@@ -43,11 +43,10 @@ const ISTimetableSlotSchema = new Schema<IISTimetableSlot>(
   { timestamps: true }
 )
 
-// One active class per batch per time slot per day (CANCELLED slots are excluded so re-scheduling works)
-ISTimetableSlotSchema.index(
-  { batchId: 1, date: 1, timeSlot: 1 },
-  { unique: true, partialFilterExpression: { status: { $ne: 'CANCELLED' } } }
-)
+// One class per batch per time slot per day — uniqueness is enforced at the application layer
+// (conflict Rule 4 excludes CANCELLED slots) rather than at the DB level because MongoDB Atlas
+// does not support $ne in partialFilterExpression.
+ISTimetableSlotSchema.index({ batchId: 1, date: 1, timeSlot: 1 })
 // Conflict-check: faculty at campus/date/slot
 ISTimetableSlotSchema.index({ campusId: 1, date: 1, timeSlot: 1 })
 // Faculty schedule lookup
