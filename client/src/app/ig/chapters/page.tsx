@@ -4,6 +4,8 @@ import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Batch } from '@/services/faculty.service'
+import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +54,7 @@ const todayISO = () => new Date().toISOString()
 
 export default function ISChaptersPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
+  const toast = useToast()
 
   const [batches,     setBatches]     = useState<Batch[]>([])
   const [chapters,    setChapters]    = useState<ISChapter[]>([])
@@ -138,6 +141,7 @@ export default function ISChaptersPage() {
         method: 'PATCH', token: accessToken, body,
       })
       setChapters((prev) => prev.map((c) => c._id === id ? updated : c))
+      toast.success('Chapter updated', `Status changed to ${status.replace(/_/g, ' ').toLowerCase()}.`)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Update failed')
     } finally { setUpdating('') }
@@ -158,8 +162,8 @@ export default function ISChaptersPage() {
       </div>
 
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-          <span className="alert-icon">⚠</span>{error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} onRetry={() => setError('')} />
         </div>
       )}
 
@@ -217,16 +221,16 @@ export default function ISChaptersPage() {
 
       {/* ── Chapter tables by subject ─────────────────────────────────────── */}
       {loading ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-muted)' }}>
-          <span className="spinner" style={{ display: 'inline-block', marginRight: '0.5rem' }} />Loading…
+        <div className="card">
+          <SkeletonTable rows={6} cols={5} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="card">
-          <div className="empty-state">
-            <div className="empty-state-icon">📚</div>
-            <h3>No chapters found</h3>
-            <p>Try adjusting the filters</p>
-          </div>
+          <EmptyState
+            icon="📚"
+            title="No chapters found"
+            description="Try selecting a different batch or adjusting the filters. Chapters are seeded from the yearly plan."
+          />
         </div>
       ) : (
         Object.entries(bySubject).map(([subject, subChapters]) => (

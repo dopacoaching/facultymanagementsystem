@@ -9,6 +9,7 @@ import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Session } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import Link from 'next/link'
+import { Skeleton, EmptyState } from '@/components/ui/Skeleton'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -205,11 +206,17 @@ export default function AcademicsDashboard() {
         </div>
 
         {facultyHoursLoading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-            <span className="spinner" style={{ width: 24, height: 24 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            {[100, 80, 95, 70, 85].map((w, i) => (
+              <Skeleton key={i} height={32} style={{ width: `${w}%` }} />
+            ))}
           </div>
         ) : facultyHours.length === 0 ? (
-          <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', padding: '0.5rem 0' }}>No faculty data.</p>
+          <EmptyState
+            icon="⏱"
+            title="No faculty hours for this month"
+            description="Hours will appear here once sessions are logged for the selected month."
+          />
         ) : (
           <div className="table-wrapper">
             <table>
@@ -367,10 +374,12 @@ export default function AcademicsDashboard() {
           </Link>
         </div>
         {sessions.length === 0 ? (
-          <div className="empty-state" style={{ padding: '2rem' }}>
-            <div className="empty-state-icon">📅</div>
-            <p>No sessions logged yet</p>
-          </div>
+          <EmptyState
+            icon="📅"
+            title="No sessions logged yet"
+            description="Log the first session to see recent activity here."
+            action={{ label: 'Log Session', onClick: () => window.location.href = '/academics/sessions' }}
+          />
         ) : (
           <div className="table-wrapper">
             <table>

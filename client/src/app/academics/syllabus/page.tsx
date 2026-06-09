@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
+import { SkeletonCard, ErrorAlert } from '@/components/ui/Skeleton'
 
 const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'] as const
 type Subject = (typeof SUBJECTS)[number]
@@ -62,10 +63,14 @@ export default function AnnualSyllabusPage() {
   }
 
   if (loading) return (
-    <div className="p-8 text-center text-gray-500">Loading annual syllabus…</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <SkeletonCard lines={3} />
+      <SkeletonCard lines={5} />
+      <SkeletonCard lines={5} />
+    </div>
   )
   if (error) return (
-    <div className="p-8 text-center text-red-600">{error}</div>
+    <ErrorAlert message={error} what="Failed to load annual syllabus" />
   )
 
   return (

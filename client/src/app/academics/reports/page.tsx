@@ -5,6 +5,7 @@ import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Batch } from '@/services/faculty.service'
 import type { Session } from '@/types'
+import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -232,11 +233,9 @@ export default function AcademicsReportsPage() {
         </div>
       </div>
 
-      {/* ── Loading spinner ─────────────────────────────────────────────── */}
       {isLoading && (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-muted)' }}>
-          <span className="spinner" style={{ display: 'inline-block', width: 28, height: 28, borderWidth: 3 }} />
-          <p style={{ marginTop: '0.75rem' }}>Loading data…</p>
+        <div className="card">
+          <SkeletonTable rows={6} cols={7} />
         </div>
       )}
 
@@ -252,10 +251,11 @@ export default function AcademicsReportsPage() {
               )}
             </div>
             {chapterStats.length === 0 ? (
-              <div className="empty-state" style={{ padding: '2rem' }}>
-                <div className="empty-state-icon">📚</div>
-                <p>No chapters found for this batch. Log a session to auto-create chapters.</p>
-              </div>
+              <EmptyState
+                icon="📚"
+                title="No chapters yet"
+                description="No chapters found for this batch. Log a session to automatically create chapter records."
+              />
             ) : (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.875rem', marginBottom: '1.25rem' }}>
@@ -341,11 +341,11 @@ export default function AcademicsReportsPage() {
             )}
           </div>
           {pendingVideoChapters.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">✅</div>
-              <h3>All chapters have video complete!</h3>
-              <p>No pending video chapters for this batch.</p>
-            </div>
+            <EmptyState
+              icon="✅"
+              title="All videos are complete!"
+              description="No pending video chapters for this batch. Great work!"
+            />
           ) : (
             <>
               <div style={{ marginBottom: '0.75rem', padding: '0.625rem 0.875rem', background: 'rgba(245,158,11,.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245,158,11,.25)', fontSize: '0.8125rem', color: '#92400e' }}>
@@ -392,11 +392,11 @@ export default function AcademicsReportsPage() {
             )}
           </div>
           {facultyActivity.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">📊</div>
-              <h3>No sessions found</h3>
-              <p>No sessions logged for the selected period.</p>
-            </div>
+            <EmptyState
+              icon="📊"
+              title="No sessions found"
+              description="No sessions were logged for the selected period and batch."
+            />
           ) : (
             <>
               {/* Summary stats */}

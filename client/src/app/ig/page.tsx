@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 import Link from 'next/link'
+import { EmptyState, SkeletonStats, SkeletonCard } from '@/components/ui/Skeleton'
 
 interface ISession {
   _id:      string
@@ -47,20 +48,20 @@ export default function ISDashboard() {
   const [sessions, setSessions] = useState<ISession[]>([])
   const [todaySlots, setTodaySlots] = useState<DailySlot[]>([])
   const [chapters, setChapters] = useState<ISChapter[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!accessToken) return
-    // Load recent sessions
-    apiFetch<ISession[]>('/ig/sessions', { token: accessToken })
-      .then(setSessions).catch(console.error)
-    // Load today's timetable
-    apiFetch<{ slots: DailySlot[] }>(
-      `/ig/timetable/daily?date=${today()}`,
-      { token: accessToken }
-    ).then((d) => setTodaySlots(d.slots)).catch(console.error)
-    // Load IG Chapters summary (no batchId filter = all)
-    apiFetch<ISChapter[]>('/ig/chapters', { token: accessToken })
-      .then(setChapters).catch(console.error)
+    setLoading(true)
+    Promise.all([
+      apiFetch<ISession[]>('/ig/sessions', { token: accessToken }).catch(() => [] as ISession[]),
+      apiFetch<{ slots: DailySlot[] }>(`/ig/timetable/daily?date=${today()}`, { token: accessToken }).catch(() => ({ slots: [] as DailySlot[] })),
+      apiFetch<ISChapter[]>('/ig/chapters', { token: accessToken }).catch(() => [] as ISChapter[]),
+    ]).then(([sess, timetable, chs]) => {
+      setSessions(sess as ISession[])
+      setTodaySlots((timetable as { slots: DailySlot[] }).slots)
+      setChapters(chs as ISChapter[])
+    }).finally(() => setLoading(false))
   }, [accessToken])
 
   const completed = sessions.filter((s) => s.status === 'COMPLETED').length
@@ -70,6 +71,18 @@ export default function ISDashboard() {
 
   const getBatchName = (bid: DailySlot['batchId']): string =>
     typeof bid === 'object' ? bid.name : String(bid).slice(-6)
+
+  if (loading) {
+    return (
+      <div>
+        <SkeletonStats count={4} />
+        <div className="panel-grid-2" style={{ marginTop: '1.5rem' }}>
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -103,10 +116,12 @@ export default function ISDashboard() {
             </Link>
           </div>
           {todaySlots.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">⏱</div>
-              <p>No classes scheduled today</p>
-            </div>
+            <EmptyState
+              icon="⏱"
+              title="No classes scheduled today"
+              description="Assign classes in the IG Timetable to see today's schedule here."
+              action={{ label: 'Manage Timetable', onClick: () => window.location.href = '/ig/timetable' }}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
               {todaySlots.map((slot) => (
@@ -142,10 +157,12 @@ export default function ISDashboard() {
             </Link>
           </div>
           {sessions.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">📅</div>
-              <p>No sessions recorded yet</p>
-            </div>
+            <EmptyState
+              icon="📅"
+              title="No sessions recorded yet"
+              description="Log the first IG session to get started."
+              action={{ label: 'Log Session', onClick: () => window.location.href = '/ig/sessions' }}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
               {sessions.slice(0, 6).map((s) => (

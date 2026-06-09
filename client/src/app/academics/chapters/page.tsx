@@ -4,6 +4,8 @@ import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Batch } from '@/services/faculty.service'
+import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 interface BatchChapter {
   _id: string
@@ -22,6 +24,7 @@ const fmt = (d?: string) =>
 
 export default function ChaptersPage() {
   const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
+  const toast = useToast()
 
   const [chapters, setChapters]     = useState<BatchChapter[]>([])
   const [batches, setBatches]       = useState<Batch[]>([])
@@ -80,6 +83,7 @@ export default function ChaptersPage() {
         body: { [field]: !current },
       })
       setChapters((prev) => prev.map((c) => c._id === id ? updated : c))
+      toast.success('Updated', field === 'videoComplete' ? 'Video status updated.' : 'Class status updated.')
     } catch (e: unknown) {
       setToggleError(e instanceof Error ? e.message : 'Update failed')
     } finally {
@@ -103,8 +107,8 @@ export default function ChaptersPage() {
       </div>
 
       {toggleError && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setToggleError('')}>
-          <span className="alert-icon">⚠</span>{toggleError}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={toggleError} onRetry={() => setToggleError('')} />
         </div>
       )}
 
@@ -153,18 +157,15 @@ export default function ChaptersPage() {
       {/* ── Table ───────────────────────────────────────────────────────── */}
       <div className="card">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--color-muted)' }}>
-            <span className="spinner" style={{ display: 'inline-block', width: 28, height: 28, borderWidth: 3 }} />
-            <p style={{ marginTop: '0.75rem' }}>Loading chapters…</p>
-          </div>
+          <SkeletonTable rows={7} cols={7} />
         ) : filtered.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📚</div>
-            <h3>{totalCount === 0 ? 'No chapters seeded for this batch' : 'No chapters match the filter'}</h3>
-            <p>{totalCount === 0
-              ? 'Chapters are created automatically when sessions are logged, or via the seed script.'
-              : 'Try selecting a different subject.'}</p>
-          </div>
+          <EmptyState
+            icon="📚"
+            title={totalCount === 0 ? 'No chapters seeded for this batch' : 'No chapters match the filter'}
+            description={totalCount === 0
+              ? 'Chapters are created automatically when sessions are logged. Log a session to get started.'
+              : 'Try selecting a different subject from the filter above.'}
+          />
         ) : (
           <div className="table-wrapper">
             <table>

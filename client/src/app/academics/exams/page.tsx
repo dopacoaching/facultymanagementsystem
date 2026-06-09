@@ -4,6 +4,8 @@ import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Batch } from '@/services/faculty.service'
+import { SkeletonCard, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 interface Schedule {
   _id: string
@@ -20,6 +22,7 @@ const fmt = (d: string) =>
 
 export default function ExamTopicsPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'COORDINATOR'
 
   const [batches,   setBatches]   = useState<Batch[]>([])
@@ -85,6 +88,7 @@ export default function ExamTopicsPage() {
         method: 'PATCH',
         body: { mondayExamTopic: t.monday.trim(), fridayExamTopic: t.friday.trim() },
       })
+      toast.success('Exam topics saved', 'Topics for this week have been updated.')
       setSuccess('Exam topics saved.')
       load()
     } catch (e: unknown) {
@@ -113,15 +117,27 @@ export default function ExamTopicsPage() {
         </select>
       </div>
 
-      {error   && <div className="alert alert-error"   style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+      {error && (
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} onRetry={load} />
+        </div>
+      )}
       {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✅</span>{success}</div>}
 
-      {loading && <div style={{ color: 'var(--color-muted)', padding: '2rem 0' }}>Loading…</div>}
+      {loading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={3} />
+        </div>
+      )}
 
       {!loading && schedules.length === 0 && (
-        <div className="card" style={{ color: 'var(--color-muted)', textAlign: 'center', padding: '3rem' }}>
-          No schedules found for this batch.
-        </div>
+        <EmptyState
+          icon="📋"
+          title="No schedules found for this batch"
+          description="Create a weekly schedule first, then you can set exam topics for each week."
+        />
       )}
 
       {!loading && schedules.length > 0 && (

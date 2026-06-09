@@ -5,6 +5,8 @@ import { getAll, create, update } from '@/services/faculty.service'
 import { getContract, updateContract } from '@/services/salary.service'
 import type { Faculty } from '@/types'
 import type { FacultyContract } from '@/services/salary.service'
+import { Skeleton, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 const SALARY_MODELS = ['HOURLY', 'FIXED_MONTHLY', 'FIXED_WITH_QUOTA', 'SPLIT_FIXED_VARIABLE', 'CONFIGURABLE']
 const TYPES = ['PERMANENT', 'TEMPORARY', 'REGULAR', 'VISITING', 'CONTRACTUAL']
@@ -185,11 +187,18 @@ function ConfigurePayModal({
         </div>
 
         <div style={{ padding: '1.5rem' }}>
-          {loading && <div style={{ display: 'flex', gap: '0.5rem', color: 'var(--color-muted)' }}><span className="spinner" /> Loading contract…</div>}
+          {loading && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <Skeleton height="1.5rem" width="60%" />
+              <Skeleton height="1rem" width="40%" />
+              <Skeleton height="8rem" />
+              <Skeleton height="4rem" />
+            </div>
+          )}
 
           {error && (
-            <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-              <span className="alert-icon">⚠</span>{error}
+            <div style={{ marginBottom: '1rem' }}>
+              <ErrorAlert message={error} />
             </div>
           )}
 
@@ -256,6 +265,7 @@ function ConfigurePayModal({
 
 export default function FacultyPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const [list, setList]         = useState<Faculty[]>([])
   const [editing, setEditing]   = useState<(Faculty | typeof EMPTY) | null>(null)
   const [configuring, setConfiguring] = useState<Faculty | null>(null)
@@ -280,8 +290,10 @@ export default function FacultyPage() {
     try {
       if ('_id' in editing) {
         await update(editing._id, editing as Partial<Faculty>, accessToken)
+        toast.success('Faculty updated', 'Changes have been saved.')
       } else {
         await create(editing as Omit<Faculty, '_id'>, accessToken)
+        toast.success('Faculty added', 'New faculty member has been created.')
       }
       setEditing(null); load()
     } catch (e: unknown) {
@@ -313,11 +325,12 @@ export default function FacultyPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">👥</div>
-            <h3>{search ? 'No results found' : 'No faculty added yet'}</h3>
-            <p>{search ? `No faculty match "${search}"` : 'Add your first faculty member to get started'}</p>
-          </div>
+          <EmptyState
+            icon="👥"
+            title={search ? 'No results found' : 'No faculty added yet'}
+            description={search ? `No faculty match "${search}". Try a different search term.` : 'Add your first faculty member to get started with payroll and scheduling.'}
+            action={search ? undefined : { label: '+ Add Faculty', onClick: () => setEditing(EMPTY) }}
+          />
         ) : (
           <div className="table-wrapper">
             <table>
@@ -390,8 +403,8 @@ export default function FacultyPage() {
             {/* Body */}
             <div style={{ padding: '1.5rem' }}>
               {error && (
-                <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-                  <span className="alert-icon">⚠</span>{error}
+                <div style={{ marginBottom: '1rem' }}>
+                  <ErrorAlert message={error} />
                 </div>
               )}
 

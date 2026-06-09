@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 import { getBatches } from '@/services/faculty.service'
 import type { Batch } from '@/services/faculty.service'
+import { SkeletonCard, ErrorAlert } from '@/components/ui/Skeleton'
 
 const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'] as const
 type Subject = (typeof SUBJECTS)[number]
@@ -104,10 +105,14 @@ export default function SyllabusProgressPage() {
       </div>
 
       {loading && (
-        <div className="text-center text-gray-500 py-12">Loading progress…</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={4} />
+        </div>
       )}
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700 text-sm">{error}</div>
+        <ErrorAlert message={error} what="Failed to load syllabus progress" />
       )}
 
       {!loading && data && (

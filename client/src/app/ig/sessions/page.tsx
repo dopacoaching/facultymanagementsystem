@@ -5,6 +5,8 @@ import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import { ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 interface ISession {
   _id: string
@@ -45,6 +47,7 @@ interface ISBatchChapter {
 
 export default function IGSessionsPage() {
   const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const isCoordinator = role === 'IG_COORDINATOR' || role === 'COORDINATOR'
   const [sessions, setSessions]       = useState<ISession[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
@@ -167,6 +170,7 @@ export default function IGSessionsPage() {
           sessionDate: form.sessionDate,
         },
       })
+      toast.success('Session created', 'IG session has been logged successfully.')
       setShowForm(false); load()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Create failed')
@@ -247,10 +251,9 @@ export default function IGSessionsPage() {
         <button className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>+ New Session</button>
       </div>
 
-      {/* Page-level error (table actions: mark complete, cancel) */}
       {error && !showForm && !editing && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setError('')}>
-          <span className="alert-icon">⚠</span>{error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} onRetry={() => setError('')} />
         </div>
       )}
 
@@ -300,7 +303,7 @@ export default function IGSessionsPage() {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
-              {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+              {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} /></div>}
               <div className="input-group-3">
                 <div className="form-group">
                   <label className="label">Faculty</label>
@@ -399,7 +402,7 @@ export default function IGSessionsPage() {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
-              {editError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{editError}</div>}
+              {editError && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={editError} /></div>}
               <div className="input-group-3">
                 <div className="form-group">
                   <label className="label">Faculty</label>
@@ -446,11 +449,12 @@ export default function IGSessionsPage() {
       {/* ── Sessions table ────────────────────────────────────────────────────── */}
       <div className="card">
         {filtered.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🏫</div>
-            <h3>{sessions.length === 0 ? 'No IG Sessions yet' : 'No sessions match your filters'}</h3>
-            <p>{sessions.length === 0 ? 'Click "New Session" to log an IG class' : 'Try adjusting the search or filters'}</p>
-          </div>
+          <EmptyState
+            icon="🏫"
+            title={sessions.length === 0 ? 'No IG sessions yet' : 'No sessions match your filters'}
+            description={sessions.length === 0 ? 'Click "+ New Session" above to log the first IG class.' : 'Try adjusting the search term or status filter.'}
+            action={sessions.length === 0 ? { label: '+ New Session', onClick: () => setShowForm(true) } : undefined}
+          />
         ) : (
           <div className="table-wrapper">
             <table>

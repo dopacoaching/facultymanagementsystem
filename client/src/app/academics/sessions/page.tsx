@@ -7,6 +7,8 @@ import { apiFetch } from '@/services/api'
 import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Session, Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_BADGE: Record<string, string> = {
   SCHEDULED:     'badge-blue',
@@ -51,9 +53,11 @@ function getBatchType(batchId: string, batches: Batch[]): string {
 
 export default function SessionsPage() {
   const { accessToken, role, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const [sessions, setSessions]       = useState<Session[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
+  const [loading, setLoading]         = useState(true)
   const [showForm, setShowForm]       = useState(false)
   const [cancelling, setCancelling]   = useState('')
   const [form, setForm] = useState({
@@ -93,7 +97,10 @@ export default function SessionsPage() {
   const needsVideoFirst = formBatchType ? isVideoFirstBatch(formBatchType) : false
 
   const load = () => {
-    if (accessToken) getAll({}, accessToken).then(setSessions).catch(console.error)
+    if (accessToken) {
+      setLoading(true)
+      getAll({}, accessToken).then(setSessions).catch(console.error).finally(() => setLoading(false))
+    }
   }
 
   useEffect(() => {
@@ -177,6 +184,7 @@ export default function SessionsPage() {
         startTime:         form.startTime || undefined,
         syllabusChapterId: form.syllabusChapterId ?? undefined,
       }, accessToken)
+      toast.success('Session created', `${form.subject} session has been logged.`)
       setShowForm(false); load()
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to create session'
@@ -203,6 +211,7 @@ export default function SessionsPage() {
     setCancelling(id)
     try {
       await cancel(id, initiator, accessToken)
+      toast.info('Session cancelled', 'The session has been marked as cancelled.')
       load()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Cancel failed')
@@ -230,6 +239,7 @@ export default function SessionsPage() {
         body: { ...editForm },
         token: accessToken,
       })
+      toast.success('Session updated', 'Changes have been saved.')
       setEditing(null); load()
     } catch (e: unknown) {
       setEditError(e instanceof Error ? e.message : 'Edit failed')
@@ -256,8 +266,8 @@ export default function SessionsPage() {
 
       {/* Page-level error (table actions: mark complete, cancel) */}
       {error && !showForm && !editing && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setError('')}>
-          <span className="alert-icon">⚠</span>{error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} what="Action failed" onRetry={() => setError('')} />
         </div>
       )}
 
@@ -455,12 +465,15 @@ export default function SessionsPage() {
 
       {/* ── Sessions table ────────────────────────────────────────────────────── */}
       <div className="card">
-        {filtered.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📅</div>
-            <h3>{sessions.length === 0 ? 'No sessions logged yet' : 'No sessions match your filters'}</h3>
-            <p>{sessions.length === 0 ? 'Click "New Session" to log a class' : 'Try adjusting the search or filters'}</p>
-          </div>
+        {loading ? (
+          <SkeletonTable rows={8} cols={8} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="📅"
+            title={sessions.length === 0 ? 'No sessions logged yet' : 'No sessions match your filters'}
+            description={sessions.length === 0 ? 'Log the first session to start tracking class history.' : 'Try adjusting the search or filters above.'}
+            action={sessions.length === 0 ? { label: '+ New Session', onClick: () => { setShowForm(true); setError('') } } : undefined}
+          />
         ) : (
           <div className="table-wrapper">
             <table>

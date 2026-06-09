@@ -8,6 +8,7 @@ import { apiFetch } from '@/services/api'
 import type { Faculty, AuditLog } from '@/types'
 import type { Session } from '@/types'
 import Link from 'next/link'
+import { SkeletonStats, SkeletonCard, EmptyState } from '@/components/ui/Skeleton'
 
 interface ISession {
   _id: string
@@ -76,13 +77,22 @@ export default function AdminDashboard() {
   const [acSessions,  setAcSessions]  = useState<Session[]>([])
   const [isSessions,  setIsSessions]  = useState<ISession[]>([])
   const [auditLogs,   setAuditLogs]   = useState<AuditLog[]>([])
+  const [loading,     setLoading]     = useState(true)
 
   useEffect(() => {
     if (!accessToken) return
-    getFaculty(accessToken, true).then(setFaculty).catch(console.error)  // include inactive for accurate stats
-    getSessions({}, accessToken).then(setAcSessions).catch(console.error)
-    apiFetch<ISession[]>('/ig/sessions', { token: accessToken }).then(setIsSessions).catch(console.error)
-    getAuditLog(accessToken, 1, 8).then((r) => setAuditLogs(r.logs)).catch(console.error)
+    setLoading(true)
+    Promise.all([
+      getFaculty(accessToken, true).catch(() => [] as Faculty[]),
+      getSessions({}, accessToken).catch(() => [] as Session[]),
+      apiFetch<ISession[]>('/ig/sessions', { token: accessToken }).catch(() => [] as ISession[]),
+      getAuditLog(accessToken, 1, 8).catch(() => ({ logs: [] as AuditLog[] })),
+    ]).then(([fac, ac, is, audit]) => {
+      setFaculty(fac as Faculty[])
+      setAcSessions(ac as Session[])
+      setIsSessions(is as ISession[])
+      setAuditLogs((audit as { logs: AuditLog[] }).logs)
+    }).finally(() => setLoading(false))
   }, [accessToken])
 
   // ── derived counts ──────────────────────────────────────────────────────────
@@ -100,6 +110,18 @@ export default function AdminDashboard() {
   const todayStr = new Date().toISOString().slice(0, 10)
   const todayAC  = acSessions.filter((s) => s.sessionDate?.startsWith(todayStr)).length
   const todayIS  = isSessions.filter((s) => s.sessionDate?.startsWith(todayStr)).length
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <SkeletonStats count={3} />
+        <div className="panel-grid-2">
+          <SkeletonCard lines={5} />
+          <SkeletonCard lines={5} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -242,10 +264,12 @@ export default function AdminDashboard() {
             </Link>
           </div>
           {faculty.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">👥</div>
-              <p>No faculty added yet</p>
-            </div>
+            <EmptyState
+              icon="👥"
+              title="No faculty added yet"
+              description="Add the first faculty member to get started."
+              action={{ label: 'Add Faculty', onClick: () => window.location.href = '/hr/faculty' }}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
               {faculty.slice(0, 7).map((f) => (
@@ -288,10 +312,11 @@ export default function AdminDashboard() {
             </Link>
           </div>
           {acSessions.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">📅</div>
-              <p>No sessions logged yet</p>
-            </div>
+            <EmptyState
+              icon="📅"
+              title="No sessions logged yet"
+              description="Sessions will appear here once coordinators start logging classes."
+            />
           ) : (
             <div className="table-wrapper">
               <table>
@@ -330,10 +355,11 @@ export default function AdminDashboard() {
             </Link>
           </div>
           {isSessions.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">🏫</div>
-              <p>No IG Sessions yet</p>
-            </div>
+            <EmptyState
+              icon="🏫"
+              title="No IG sessions yet"
+              description="IG sessions will appear here once they are logged."
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
               {isSessions.slice(0, 6).map((s) => (
@@ -370,10 +396,11 @@ export default function AdminDashboard() {
             </Link>
           </div>
           {auditLogs.length === 0 ? (
-            <div className="empty-state" style={{ padding: '2rem' }}>
-              <div className="empty-state-icon">📋</div>
-              <p>No recent activity</p>
-            </div>
+            <EmptyState
+              icon="📋"
+              title="No recent activity"
+              description="System events will be recorded here as actions are taken."
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {auditLogs.map((log) => (

@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getDashboard } from '@/services/salary.service'
 import type { DashboardData, HoursProgressItem, PayrollStatusItem } from '@/services/salary.service'
 import Link from 'next/link'
+import { Skeleton } from '@/components/ui/Skeleton'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -210,8 +211,16 @@ export default function HRDashboard() {
             </Link>
           </div>
           {loading && !data ? (
-            <div style={{ color: 'var(--color-muted)', fontSize: '0.875rem', display: 'flex', gap: '0.5rem' }}>
-              <span className="spinner" /> Loading…
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {[1,2,3,4].map((i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.375rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <Skeleton height="0.875rem" width={120} />
+                    <Skeleton height="0.7rem" width={70} />
+                  </div>
+                  <Skeleton height="1.25rem" width={60} />
+                </div>
+              ))}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>

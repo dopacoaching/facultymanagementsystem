@@ -9,6 +9,7 @@ import type { Session } from '@/types'
 import type { Faculty } from '@/types'
 import type { SalaryResult } from '@/types'
 import Link from 'next/link'
+import { SkeletonStats, SkeletonCard, EmptyState } from '@/components/ui/Skeleton'
 
 const STATUS_BADGE: Record<string, string> = {
   COMPLETED:     'badge-green',
@@ -67,8 +68,11 @@ export default function FacultyDashboard() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-        <span className="spinner" style={{ width: 28, height: 28 }} />
+      <div>
+        <SkeletonStats count={4} />
+        <div style={{ marginTop: '1.5rem' }}>
+          <SkeletonCard lines={5} />
+        </div>
       </div>
     )
   }
@@ -227,11 +231,11 @@ export default function FacultyDashboard() {
         </div>
 
         {sessions.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📅</div>
-            <h3>No sessions yet</h3>
-            <p>Your sessions will appear here once logged</p>
-          </div>
+          <EmptyState
+            icon="📅"
+            title="No sessions yet"
+            description="Your sessions will appear here once they are logged by the coordinator."
+          />
         ) : (
           <div className="table-wrapper">
             <table>

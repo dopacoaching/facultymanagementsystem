@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 import type { AuditEventType, AuditCategory } from '@/lib/types'
+import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -204,15 +205,13 @@ export default function AdminAuditLogPage() {
       {/* ── Table ────────────────────────────────────────────────────────────── */}
       <div className="card">
         {loading && logs.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-muted)', padding: '2rem' }}>
-            <span className="spinner" /> Loading events…
-          </div>
+          <SkeletonTable rows={8} cols={6} />
         ) : logs.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📋</div>
-            <h3>No audit events found</h3>
-            <p>Try adjusting the filters, or actions will appear here as they happen</p>
-          </div>
+          <EmptyState
+            icon="📋"
+            title="No audit events found"
+            description="Try adjusting the filters above. Events are recorded automatically as actions are taken in the system."
+          />
         ) : (
           <div className="table-wrapper">
             <table>

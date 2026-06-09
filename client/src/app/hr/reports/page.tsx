@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getReports } from '@/services/salary.service'
+import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
 
 interface ReportRow {
   facultyId: string
@@ -81,8 +82,8 @@ export default function ReportsPage() {
       </div>
 
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-          <span className="alert-icon">⚠</span>{error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} onRetry={load} />
         </div>
       )}
 
@@ -125,18 +126,14 @@ export default function ReportsPage() {
 
       {/* Table */}
       <div className="card">
-        {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-muted)', padding: '1rem 0' }}>
-            <span className="spinner" /> Loading…
-          </div>
-        )}
-
-        {!loading && rows.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📊</div>
-            <h3>No approved salaries</h3>
-            <p>No salaries have been approved for {MONTHS[month - 1]} {year}</p>
-          </div>
+        {loading ? (
+          <SkeletonTable rows={5} cols={6} />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon="📊"
+            title="No approved salaries"
+            description={`No salaries have been approved for ${MONTHS[month - 1]} ${year}. Calculate and approve salaries from the Salary Calculator.`}
+          />
         ) : (
           <div className="table-wrapper">
             <table>
@@ -187,3 +184,4 @@ export default function ReportsPage() {
     </div>
   )
 }
+

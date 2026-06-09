@@ -5,6 +5,8 @@ import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import { ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +119,7 @@ const EMPTY_ENTRY = (): ClassEntry => ({ day: 'TUESDAY', subject: '', chapter: '
 
 export default function SchedulePage() {
   const { accessToken, role, batchId: coordinatorBatchId, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const isCoordinator = role === 'COORDINATOR'
 
   const [schedules, setSchedules]     = useState<Schedule[]>([])
@@ -252,6 +255,7 @@ export default function SchedulePage() {
           })),
         },
       })
+      toast.success('Schedule saved', 'Weekly schedule has been created successfully.')
       setSuccess('Schedule saved successfully!')
       load()
     } catch (e: unknown) {
@@ -266,6 +270,7 @@ export default function SchedulePage() {
     setPublishing(scheduleId); setError('')
     try {
       await apiFetch(`/academics/schedules/${scheduleId}/publish`, { token: accessToken, method: 'POST' })
+      toast.success('Schedule published', 'The schedule is now visible to students and faculty.')
       setSuccess('Schedule published successfully.')
       load()
     } catch (e: unknown) {
@@ -353,7 +358,7 @@ export default function SchedulePage() {
             Create / Update Schedule
           </h2>
 
-          {error   && <div className="alert alert-error"   style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+          {error   && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} /></div>}
           {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✅</span>{success}</div>}
 
           <div style={{ marginBottom: '1.5rem', maxWidth: 320 }}>
@@ -507,11 +512,11 @@ export default function SchedulePage() {
       {/* ── Schedules list ───────────────────────────────────────────────── */}
       {sorted.length === 0 ? (
         <div className="card">
-          <div className="empty-state">
-            <div className="empty-state-icon">🗓</div>
-            <h3>No schedules yet</h3>
-            <p>Use the form above to create the first weekly schedule.</p>
-          </div>
+          <EmptyState
+            icon="🗓"
+            title="No schedules yet"
+            description="Create the first weekly schedule using the form above."
+          />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { calculate, getMyHoursSummary } from '@/services/salary.service'
 import type { MonthlyHoursSummary } from '@/services/salary.service'
 import type { SalaryResult } from '@/types'
+import { ErrorAlert } from '@/components/ui/Skeleton'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -65,9 +66,8 @@ export default function FacultySalaryPage() {
       </div>
 
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
-          <span className="alert-icon">⚠</span>
-          <div>{error}</div>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <ErrorAlert message={error} what="Salary calculation failed" onRetry={handleCalculate} />
         </div>
       )}
 

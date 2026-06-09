@@ -4,6 +4,7 @@ import { Provider, useDispatch, useSelector } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import { store, persistor, type RootState, type AppDispatch } from '@/store'
 import { setCredentials, clearCredentials } from '@/store/slices/authSlice'
+import { ToastProvider } from '@/components/ui/Toast'
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
 
@@ -47,7 +48,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <SilentRefresh />
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </PersistGate>
     </Provider>
   )

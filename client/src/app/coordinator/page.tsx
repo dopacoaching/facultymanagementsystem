@@ -6,6 +6,8 @@ import { apiFetch } from '@/services/api'
 import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import { ErrorAlert } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
 
@@ -61,6 +63,7 @@ const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
 
 export default function LogSessionPage() {
   const { accessToken, batchId: assignedBatchId } = useAppSelector((s) => s.auth)
+  const toast = useToast()
 
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches,     setBatches]     = useState<Batch[]>([])
@@ -184,6 +187,7 @@ export default function LogSessionPage() {
           sessionDate:       form.sessionDate,
         },
       })
+      toast.success('Session logged', 'The session has been recorded. The form has been reset.')
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
@@ -230,9 +234,8 @@ export default function LogSessionPage() {
         )}
 
         {error && (
-          <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
-            <span className="alert-icon">⚠</span>
-            {error}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <ErrorAlert message={error} what="Session could not be submitted" onRetry={() => setError('')} />
           </div>
         )}
 

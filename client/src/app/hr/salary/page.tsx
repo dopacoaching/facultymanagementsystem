@@ -4,6 +4,8 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/faculty.service'
 import { calculate, approve } from '@/services/salary.service'
 import type { Faculty, SalaryResult, SalaryAlert } from '@/types'
+import { ErrorAlert } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const MONTHS_LONG = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -127,6 +129,7 @@ function statusBadge(status: SalaryResult['status']): string {
 
 export default function SalaryPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
+  const toast = useToast()
 
   // Only HR_MANAGER and ADMIN may access salary data.
   // The layout/shell should enforce this too, but guard here as a fallback.
@@ -167,6 +170,7 @@ export default function SalaryPage() {
     setApproving(true); setError('')
     try {
       await approve(selectedId, month, year, accessToken)
+      toast.success('Salary approved', `${selectedFaculty?.name ?? 'Faculty'} salary for ${MONTHS[month - 1]} ${year} has been recorded.`)
       setApproved(true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Approval failed')
@@ -212,9 +216,8 @@ export default function SalaryPage() {
 
       {/* ── Error ── */}
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
-          <span className="alert-icon">⚠</span>
-          <div>{error}</div>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <ErrorAlert message={error} what="Salary calculation failed" onRetry={handleCalculate} />
         </div>
       )}
 

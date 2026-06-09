@@ -10,6 +10,8 @@ import {
   deleteAvailabilityEntry,
 } from '@/services/availability.service'
 import type { AvailabilityEntry, AvailabilityStatus } from '@/services/availability.service'
+import { Skeleton, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
@@ -25,6 +27,7 @@ function fmtDate(iso: string) {
 
 export default function AvailabilityPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const now = new Date()
 
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -84,6 +87,7 @@ export default function AvailabilityPage() {
       const updated = await addAvailabilityDates(selectedFaculty, stagingDates, accessToken)
       setEntries(updated)
       setStagingDates([])
+      toast.success('Availability saved', `${stagingDates.length} date${stagingDates.length !== 1 ? 's' : ''} added successfully.`)
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : 'Failed to save')
     } finally { setSaving(false) }
@@ -163,11 +167,11 @@ export default function AvailabilityPage() {
 
       {!selectedFaculty && (
         <div className="card">
-          <div className="empty-state">
-            <div className="empty-state-icon">📅</div>
-            <h3>Select a faculty</h3>
-            <p>Choose a faculty member above to manage their availability</p>
-          </div>
+          <EmptyState
+            icon="📅"
+            title="Select a faculty member"
+            description="Choose a faculty member from the dropdown above to view and manage their monthly availability."
+          />
         </div>
       )}
 
@@ -233,8 +237,8 @@ export default function AvailabilityPage() {
                   ))}
                 </div>
                 {saveError && (
-                  <div className="alert alert-error" style={{ marginBottom: '0.75rem' }}>
-                    <span className="alert-icon">⚠</span><div>{saveError}</div>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <ErrorAlert message={saveError} />
                   </div>
                 )}
                 <button className="btn btn-primary" onClick={saveAvailability} disabled={saving}>
@@ -264,15 +268,21 @@ export default function AvailabilityPage() {
             </div>
 
             {loadingEntries ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-                <span className="spinner" style={{ width: 24, height: 24 }} />
+              <div style={{ padding: '0.5rem' }}>
+                {[1,2,3].map((i) => (
+                  <div key={i} style={{ display: 'flex', gap: '1rem', padding: '0.8rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <Skeleton height="0.875rem" width="35%" />
+                    <Skeleton height="1.25rem" width={80} />
+                    <Skeleton height="0.875rem" width="25%" />
+                  </div>
+                ))}
               </div>
             ) : entries.length === 0 ? (
-              <div className="empty-state" style={{ padding: '2rem' }}>
-                <div className="empty-state-icon">📋</div>
-                <h3>No availability entered yet</h3>
-                <p>Add dates using the form above</p>
-              </div>
+              <EmptyState
+                icon="📋"
+                title="No availability entered yet"
+                description="Add dates using the form above to track this faculty member's availability."
+              />
             ) : (
               <div className="table-wrapper">
                 <table>

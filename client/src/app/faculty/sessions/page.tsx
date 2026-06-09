@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/session.service'
 import { apiFetch } from '@/services/api'
 import type { Session } from '@/types'
+import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -139,8 +140,8 @@ export default function FacultySessionsPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-        <span className="spinner" style={{ width: 28, height: 28 }} />
+      <div className="card">
+        <SkeletonTable rows={6} cols={5} />
       </div>
     )
   }
@@ -347,11 +348,11 @@ export default function FacultySessionsPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📅</div>
-            <h3>No sessions found</h3>
-            <p>{filter === 'ALL' ? 'No sessions recorded yet' : `No ${filter.toLowerCase().replace('_', ' ')} sessions`}</p>
-          </div>
+          <EmptyState
+            icon="📅"
+            title="No sessions found"
+            description={filter === 'ALL' ? 'No sessions recorded yet. Sessions will appear here once logged.' : `No ${filter.toLowerCase().replace('_', ' ')} sessions. Try changing the filter.`}
+          />
         ) : (
           <div className="table-wrapper">
             <table>

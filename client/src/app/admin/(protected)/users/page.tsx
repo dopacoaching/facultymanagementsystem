@@ -9,6 +9,8 @@ import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import type { Faculty } from '@/types'
 import PasswordInput from '@/components/ui/PasswordInput'
+import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 /** Client-side mirror of the server's validatePasswordComplexity rule. */
 function validatePasswordComplexity(pw: string): string | null {
@@ -52,6 +54,7 @@ function getRoleLabel(role: string) {
 
 export default function AdminUsersPage() {
   const { accessToken, userId: selfId } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const [users, setUsers]             = useState<AppUser[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
@@ -108,6 +111,7 @@ export default function AdminUsersPage() {
       if (!payload.batchId)   delete payload.batchId
       if (!payload.batchType) delete payload.batchType
       await createUser(payload, accessToken)
+      toast.success('User created', `@${createForm.username} has been added.`)
       setShowCreate(false)
       setCreateForm({ username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '', batchType: '' })
       load()
@@ -131,6 +135,7 @@ export default function AdminUsersPage() {
     setToggling(u._id); setError('')
     try {
       await updateUser(u._id, { isActive: !u.isActive }, accessToken)
+      toast.success(u.isActive ? 'User deactivated' : 'User reactivated', `@${u.username} status updated.`)
       load()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Update failed')
@@ -152,6 +157,7 @@ export default function AdminUsersPage() {
         payload.password = editPw
       }
       await updateUser(editTarget._id, payload, accessToken)
+      toast.success('User updated', `@${editTarget.username} has been saved.`)
       setEditTarget(null)
       load()
     } catch (e: unknown) {
@@ -175,8 +181,8 @@ export default function AdminUsersPage() {
       </div>
 
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }}>
-          <span className="alert-icon">⚠</span>{error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} onRetry={() => setError('')} />
         </div>
       )}
 
@@ -322,17 +328,15 @@ export default function AdminUsersPage() {
 
       {/* ── Users Table ────────────────────────────────────────────────────────── */}
       <div className="card">
-        {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-muted)', padding: '1rem 0' }}>
-            <span className="spinner" /> Loading…
-          </div>
-        )}
-        {!loading && users.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🔐</div>
-            <h3>No users yet</h3>
-            <p>Create the first user account to get started</p>
-          </div>
+        {loading ? (
+          <SkeletonTable rows={5} cols={5} />
+        ) : users.length === 0 ? (
+          <EmptyState
+            icon="🔐"
+            title="No users yet"
+            description="Create the first user account to give staff access to the system."
+            action={{ label: '+ New User', onClick: () => setShowCreate(true) }}
+          />
         ) : (
           <div className="table-wrapper">
             <table>

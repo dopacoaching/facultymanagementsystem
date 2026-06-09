@@ -5,6 +5,8 @@ import { getBatches, getAll as getFaculty } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import { Skeleton, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,7 @@ function fmtDate(d: string): string {
 
 export default function ISTimetablePage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
+  const toast = useToast()
 
   const [selectedDate,   setSelectedDate]   = useState(today())
   const [filterCampusId, setFilterCampusId] = useState('')
@@ -267,6 +270,7 @@ export default function ISTimetablePage() {
             : undefined,
         },
       })
+      toast.success('Class assigned', 'Timetable slot has been created.')
       setShowAssign(false)
       setForm((f) => ({ ...f, subject: '', chapter: '', examTopic: '', notes: '', facultyId: '', startTime: '', durationHours: '', durationMinutes: 0, sessionType: 'LIVE_SESSION' }))
       loadDaily()
@@ -373,10 +377,9 @@ export default function ISTimetablePage() {
         )}
       </div>
 
-      {/* Page-level error (status/delete actions outside modals) */}
       {error && !showAssign && !showSpecial && (
-        <div className="alert alert-error" style={{ marginBottom: '1rem' }} onClick={() => setError('')}>
-          <span className="alert-icon">⚠</span>{error}
+        <div style={{ marginBottom: '1rem' }}>
+          <ErrorAlert message={error} onRetry={() => setError('')} />
         </div>
       )}
 
@@ -430,8 +433,17 @@ export default function ISTimetablePage() {
 
       {/* ── Timetable grid ─────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-muted)' }}>
-          <span className="spinner" style={{ display: 'inline-block', marginRight: '0.5rem' }} />Loading…
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+          {[1,2,3].map((i) => (
+            <div key={i} style={{ display: 'flex', gap: '1rem', padding: '1rem', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)' }}>
+              <Skeleton height="1rem" width={80} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <Skeleton height="1rem" width="50%" />
+                <Skeleton height="0.875rem" width="35%" />
+              </div>
+              <Skeleton height="1.5rem" width={80} radius="999px" />
+            </div>
+          ))}
         </div>
       ) : (
         <>
@@ -518,11 +530,11 @@ export default function ISTimetablePage() {
 
           {session1Slots.length === 0 && session2Slots.length === 0 && session3Slots.length === 0 && morningSlots.length === 0 && afternoonSlots.length === 0 && (
             <div className="card">
-              <div className="empty-state">
-                <div className="empty-state-icon">🏫</div>
-                <h3>No classes scheduled for this day</h3>
-                <p>{canManage ? 'Click "Assign Class" to plan a class.' : 'No timetable entries for the selected date.'}</p>
-              </div>
+              <EmptyState
+                icon="🏫"
+                title="No classes scheduled for this day"
+                description={canManage ? 'No timetable entries for the selected date. Click "Assign Class" to plan a class.' : 'No timetable entries for the selected date.'}
+              />
             </div>
           )}
         </>
@@ -541,7 +553,7 @@ export default function ISTimetablePage() {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
-              {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+              {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} /></div>}
               <div className="input-group">
                 <div className="form-group">
                   <label className="label">IG Batch</label>
@@ -669,7 +681,7 @@ export default function ISTimetablePage() {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-              {error && <div className="alert alert-error"><span className="alert-icon">⚠</span>{error}</div>}
+              {error && <div style={{ marginBottom: '0.75rem' }}><ErrorAlert message={error} /></div>}
               <div className="form-group">
                 <label className="label">Type</label>
                 <select className="input" value={specialForm.type}
