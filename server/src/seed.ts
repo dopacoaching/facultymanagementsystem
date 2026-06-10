@@ -271,7 +271,9 @@ async function seed() {
     chapters.forEach((chapterName, idx) => {
       chapterDocs.push({
         batchId:         batchFerGirls._id,
-        subject,
+        // UPPERCASE — session logging and the video-first gate normalise
+        // BatchChapter.subject to uppercase, so the seed must match.
+        subject:         subject.toUpperCase(),
         chapterName,
         chapterOrder:    idx + 1,
         videoComplete:   false,

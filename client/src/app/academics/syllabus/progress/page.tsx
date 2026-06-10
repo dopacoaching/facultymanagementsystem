@@ -88,8 +88,8 @@ export default function SyllabusProgressPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Syllabus Progress</h1>
-          <p className="text-sm text-gray-500 mt-1">Track each batch against the annual plan</p>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>Syllabus Progress</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>Track each batch against the annual plan</p>
         </div>
         {batches.length > 1 && (
           <select
@@ -132,7 +132,7 @@ export default function SyllabusProgressPage() {
             const pct = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0
 
             return (
-              <section key={subj} className="rounded-xl border border-gray-200 overflow-hidden">
+              <section key={subj} className="rounded-xl border border-gray-200 overflow-hidden bg-white">
                 {/* Subject header */}
                 <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-3">
                   <h2 className="font-bold text-gray-700">{SUBJECT_LABEL[subj]}</h2>

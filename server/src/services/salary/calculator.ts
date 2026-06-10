@@ -367,6 +367,9 @@ async function calcSplitFixedVariable(
 
   const penaltyAmount = facultyCancellations * penaltyPerClass
   const effectiveVariable = Math.max(0, variable - penaltyAmount)
+  // Report only the penalty actually deducted — the variable component floors at 0,
+  // so a raw penaltyAmount larger than `variable` would overstate the deduction.
+  const appliedPenalty = Math.min(penaltyAmount, variable)
   const baseSalary = fixed + variable
   const finalPayable = fixed + effectiveVariable
   const alerts: SalaryAlert[] = []
@@ -408,7 +411,7 @@ async function calcSplitFixedVariable(
 
   return {
     baseSalary,
-    penalties: penaltyAmount,
+    penalties: appliedPenalty,
     finalPayable,
     breakdown,
     alerts,
@@ -641,13 +644,4 @@ async function calcLegacyFallback(
     alerts,
     breakdown,
   }
-}
-
-/** Still exported for any callers that rely on it */
-export function getMinDays(faculty: IFaculty, month: number): number {
-  const dryMonths = [2, 3, 5]
-  if (faculty.minDaysNormal != null || faculty.minDaysDryMonth != null) {
-    return dryMonths.includes(month) ? (faculty.minDaysDryMonth ?? 10) : (faculty.minDaysNormal ?? 22)
-  }
-  return faculty.monthlyDayQuota ?? 0
 }

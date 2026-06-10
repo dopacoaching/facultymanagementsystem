@@ -27,9 +27,10 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(resolvedUserId)
     if (!user) return withToken(json({ error: 'User not found' }, 404), refreshedToken)
 
-    // Privilege escalation guard: HR_MANAGER cannot reset ADMIN passwords
-    if (payload.role === 'HR_MANAGER' && user.role === 'ADMIN') {
-      return withToken(json({ error: 'Insufficient permissions to reset admin password' }, 403), refreshedToken)
+    // Privilege escalation guard: HR_MANAGER cannot reset another ADMIN or HR_MANAGER's password.
+    if (payload.role === 'HR_MANAGER' && resolvedUserId !== payload.userId &&
+        (user.role === 'ADMIN' || user.role === 'HR_MANAGER')) {
+      return withToken(json({ error: 'HR Manager cannot reset another HR Manager or Admin password.' }, 403), refreshedToken)
     }
 
     // If changing own password, require current password verification

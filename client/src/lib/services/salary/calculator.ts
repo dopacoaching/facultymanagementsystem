@@ -106,7 +106,8 @@ async function calcFixedMonthlyLeave(
   const leaveTaken = Math.max(0, workingDays - daysWorked)
   const excessLeaves = Math.max(0, leaveTaken - leaveAllowance)
   const perDayRate = salary / workingDays
-  const penalties = excessLeaves > 0 ? excessLeaves * perDayRate : 0
+  // Round to whole rupees — fractional rupees cannot be disbursed via bank transfer.
+  const penalties = excessLeaves > 0 ? Math.round(excessLeaves * perDayRate) : 0
 
   const breakdown: SalaryBreakdown[] = [
     { label: 'Fixed Monthly Salary', amount: salary },
@@ -196,13 +197,16 @@ async function calcFixedQuotaCarryForward(
 ): Promise<Partial<SalaryResult>> {
   const salary = contract.fixedMonthlySalary ?? 0
   const quota = contract.monthlyHourQuota ?? 0
-  const currentMonthBalance = Math.max(0, quota - hoursLogged)
+  // Negative means surplus (over-delivery); positive means shortfall
+  const currentMonthNet = quota - hoursLogged
 
   // Load previous month carry-forward
   const prev = prevMonth(month, year)
   const prevRecord = await CarryForwardBalance.findOne({ facultyId: fId, month: prev.month, year: prev.year })
   const previousMonthBalance = prevRecord?.balanceHours ?? 0
-  const combinedTotal = previousMonthBalance + currentMonthBalance
+  // Surplus (negative net) reduces accumulated deficit; allow negative so credit rolls forward
+  const combinedTotal = previousMonthBalance + currentMonthNet
+  const currentMonthBalance = Math.max(0, currentMonthNet)
 
   const alerts: SalaryAlert[] = []
   if (currentMonthBalance > 0) {
@@ -227,9 +231,12 @@ async function calcFixedQuotaCarryForward(
   // Persist current month balance — ONLY on approval, never on preview, so that
   // repeatedly viewing the calculation doesn't keep overwriting the stored balance.
   if (persist) {
+    // Store the running combined total so that next month's previousMonthBalance
+    // accumulates correctly across multiple months of shortfall (and surplus
+    // months reduce the accumulated deficit).
     await CarryForwardBalance.findOneAndUpdate(
       { facultyId: fId, month, year },
-      { balanceHours: currentMonthBalance },
+      { balanceHours: combinedTotal },
       { upsert: true, new: true }
     )
   }
@@ -298,7 +305,10 @@ async function calcBaseOvertime(
   persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const base = contract.fixedMonthlySalary ?? 0
-  const threshold = contract.overtimeThresholdHours ?? contract.monthlyHourQuota ?? 50
+  // Use ONLY overtimeThresholdHours for overtime calculation — monthlyHourQuota
+  // is the faculty's required hours target and is semantically unrelated to overtime.
+  // Falling back to quota would incorrectly pay overtime from a lower boundary.
+  const threshold = contract.overtimeThresholdHours ?? 50
   const rate = contract.overtimeRatePerHour ?? 0
   const overtimeHours = Math.max(0, hoursLogged - threshold)
   const overtimePay = overtimeHours * rate
@@ -355,6 +365,9 @@ async function calcSplitFixedVariable(
 
   const penaltyAmount = facultyCancellations * penaltyPerClass
   const effectiveVariable = Math.max(0, variable - penaltyAmount)
+  // Report only the penalty actually deducted — the variable component floors at 0,
+  // so a raw penaltyAmount larger than `variable` would overstate the deduction.
+  const appliedPenalty = Math.min(penaltyAmount, variable)
   const baseSalary = fixed + variable
   const finalPayable = fixed + effectiveVariable
   const alerts: SalaryAlert[] = []
@@ -395,7 +408,7 @@ async function calcSplitFixedVariable(
 
   return {
     baseSalary,
-    penalties: penaltyAmount,
+    penalties: appliedPenalty,
     finalPayable,
     breakdown,
     alerts,
@@ -450,6 +463,10 @@ export async function calculateMonthlySalary(
   year: number,
   persist = false,
 ): Promise<SalaryResult> {
+  if (month < 1 || month > 12) {
+    return { status: 'BLOCKED', reason: 'Invalid month: must be 1–12', alerts: [], breakdown: [] }
+  }
+
   // 1. Load faculty
   const faculty = await Faculty.findById(facultyId)
   if (!faculty) {
@@ -625,13 +642,4 @@ async function calcLegacyFallback(
     alerts,
     breakdown,
   }
-}
-
-/** Still exported for any callers that rely on it */
-export function getMinDays(faculty: IFaculty, month: number): number {
-  const dryMonths = [2, 3, 5]
-  if (faculty.minDaysNormal != null || faculty.minDaysDryMonth != null) {
-    return dryMonths.includes(month) ? (faculty.minDaysDryMonth ?? 10) : (faculty.minDaysNormal ?? 22)
-  }
-  return faculty.monthlyDayQuota ?? 0
 }

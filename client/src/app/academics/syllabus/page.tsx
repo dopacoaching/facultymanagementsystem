@@ -77,8 +77,8 @@ export default function AnnualSyllabusPage() {
     <div className="p-4 md:p-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Annual Syllabus Schedule</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>Annual Syllabus Schedule</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
           June–December 2025–26 · NEET DOPA Coaching
         </p>
       </div>
@@ -104,7 +104,7 @@ export default function AnnualSyllabusPage() {
           const md = syllabus[String(month)]
           return (
             <section key={month}>
-              <h2 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+              <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
                 <span className="inline-block w-2 h-2 rounded-full bg-gray-400" />
                 {md.monthName}
               </h2>

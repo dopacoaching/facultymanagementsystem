@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         targetName: `${session.subject} — ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: penaltyAmount,
         description: `IG session cancelled by faculty on ${session.sessionDate.toDateString()}` +
-          (penaltyAmount > 0 ? ` — penalty ?${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty'),
+          (penaltyAmount > 0 ? ` — penalty ₹${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty'),
         cancellationInitiator: 'FACULTY',
         sessionId: session._id.toString(),
       })

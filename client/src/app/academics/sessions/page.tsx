@@ -64,6 +64,8 @@ export default function SessionsPage() {
     facultyId: '', batchId: '', subject: '', chapter: '',
     syllabusChapterId: undefined as string | undefined,
     startTime: '',
+    durationHours: 1,
+    durationMinutes: 0,
     sessionDate: new Date().toISOString().slice(0, 10),
   })
   const [saving, setSaving]           = useState(false)
@@ -86,7 +88,7 @@ export default function SessionsPage() {
 
   // Edit modal
   const [editing, setEditing]         = useState<Session | null>(null)
-  const [editForm, setEditForm]       = useState({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '' })
+  const [editForm, setEditForm]       = useState({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '', durationHours: 1 })
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
 
@@ -177,10 +179,19 @@ export default function SessionsPage() {
     if (!form.facultyId || !form.batchId || !form.subject || !form.chapter) {
       setError('All fields are required'); return
     }
+    const totalDuration = form.durationHours + form.durationMinutes / 60
+    if (totalDuration <= 0) {
+      setError('Duration must be greater than 0'); return
+    }
     setSaving(true); setError('')
     try {
       await create({
-        ...form,
+        facultyId:         form.facultyId,
+        batchId:           form.batchId,
+        subject:           form.subject,
+        chapter:           form.chapter,
+        sessionDate:       form.sessionDate,
+        durationHours:     totalDuration,
         startTime:         form.startTime || undefined,
         syllabusChapterId: form.syllabusChapterId ?? undefined,
       }, accessToken)
@@ -221,11 +232,12 @@ export default function SessionsPage() {
   function openEdit(s: Session) {
     setEditing(s)
     setEditForm({
-      facultyId:   typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId ?? '',
-      batchId:     s.batchId ?? '',
-      subject:     s.subject,
-      chapter:     s.chapter,
-      sessionDate: s.sessionDate.slice(0, 10),
+      facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId ?? '',
+      batchId:       s.batchId ?? '',
+      subject:       s.subject,
+      chapter:       s.chapter,
+      sessionDate:   s.sessionDate.slice(0, 10),
+      durationHours: s.durationHours ?? 1,
     })
     setEditError('')
   }
@@ -403,6 +415,27 @@ export default function SessionsPage() {
                   <input type="time" className="input" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
                 </div>
                 <div className="form-group">
+                  <label className="label">Duration</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="number" className="input" min={0} max={12} style={{ width: '5rem' }}
+                      value={form.durationHours}
+                      onChange={(e) => setForm({ ...form, durationHours: Math.max(0, +e.target.value) })}
+                      aria-label="Duration hours" placeholder="hrs"
+                    />
+                    <select
+                      className="input" style={{ width: '5rem' }}
+                      value={form.durationMinutes}
+                      onChange={(e) => setForm({ ...form, durationMinutes: +e.target.value })}
+                      aria-label="Duration minutes"
+                    >
+                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
+                        <option key={m} value={m}>{m}m</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
                   <label className="label">Session Date</label>
                   <input type="date" className="input" value={form.sessionDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setForm({ ...form, sessionDate: e.target.value })} />
                 </div>
@@ -458,6 +491,12 @@ export default function SessionsPage() {
                 <div className="form-group">
                   <label className="label">Session Date</label>
                   <input type="date" className="input" value={editForm.sessionDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setEditForm({ ...editForm, sessionDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Duration (hours)</label>
+                  <input type="number" className="input" min={0.25} max={12} step={0.25}
+                    value={editForm.durationHours}
+                    onChange={(e) => setEditForm({ ...editForm, durationHours: +e.target.value })} />
                 </div>
               </div>
             </div>

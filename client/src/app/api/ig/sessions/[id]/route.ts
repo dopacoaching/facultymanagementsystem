@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { Batch } from '@/lib/models/Batch'
 
 /** PATCH /api/ig/sessions/:id — full edit (manager only) */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -48,6 +49,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     await connectDB()
+
+    const existing = await Session.findById(oid)
+    if (!existing) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+    if (existing.status === 'CANCELLED') {
+      return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
+    }
+
+    // Cross-system lock: re-check Repeaters conflicts when faculty or date changes
+    if ('facultyId' in update || 'sessionDate' in update) {
+      const effectiveFacultyId = (update.facultyId ?? existing.facultyId) as Types.ObjectId
+      const effectiveDate = new Date((update.sessionDate as Date | undefined) ?? existing.sessionDate)
+      effectiveDate.setHours(0, 0, 0, 0)
+      const dayStart = new Date(effectiveDate)
+      const dayEnd   = new Date(effectiveDate); dayEnd.setHours(23, 59, 59, 999)
+
+      const repeatersBatchIds = await Batch.find({ type: { $ne: 'IG' } }).distinct('_id')
+      const repeatersConflict = await Session.findOne({
+        _id:         { $ne: oid },
+        facultyId:   effectiveFacultyId,
+        batchId:     { $in: repeatersBatchIds },
+        sessionDate: { $gte: dayStart, $lte: dayEnd },
+        status:      { $ne: 'CANCELLED' },
+      })
+      if (repeatersConflict) {
+        return withToken(json({
+          error: 'Faculty has a Repeaters session on this date and cannot be scheduled in IG on the same day.',
+          code:  'CROSS_SYSTEM_CONFLICT',
+        }, 409), refreshedToken)
+      }
+    }
 
     const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
       .populate('facultyId', 'name subject')

@@ -70,6 +70,25 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'batchId and weekStartDate required' }, 400), refreshedToken)
     }
 
+    // Validate that all class sessions carry a date and faculty — fail with a clear
+    // 400 instead of letting Mongoose validation bubble up as a 500.
+    if (classEntries && Array.isArray(classEntries)) {
+      for (const entry of classEntries) {
+        if (entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') {
+          if (!entry.sessionDate) {
+            return withToken(json({
+              error: `Date is required for class session: ${entry.subject || 'unnamed'} - ${entry.chapter || 'unnamed'}`,
+            }, 400), refreshedToken)
+          }
+          if (!entry.facultyId) {
+            return withToken(json({
+              error: `Faculty is required for class session: ${entry.subject || 'unnamed'} - ${entry.chapter || 'unnamed'}`,
+            }, 400), refreshedToken)
+          }
+        }
+      }
+    }
+
     let batchOid: Types.ObjectId
     try { batchOid = new Types.ObjectId(batchId) } catch {
       return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
@@ -94,6 +113,38 @@ export async function POST(req: NextRequest) {
       if (!targetBatch || targetBatch.type !== payload.batchType) {
         return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
       }
+    }
+
+    // Guard: a published schedule must never be silently overwritten — the caller
+    // must use the revise endpoint. Only an unpublished draft may be updated here.
+    const alreadyPublished = await WeeklySchedule.findOne({
+      batchId: batchOid,
+      weekStartDate: startDate,
+      isPublished: true,
+      isRevised: false,
+    })
+    if (alreadyPublished) {
+      // If an unpublished revision draft exists, update that instead; otherwise block.
+      const revisionDraft = await WeeklySchedule.findOne({
+        batchId: batchOid, weekStartDate: startDate, isRevised: true, isPublished: false,
+      })
+      if (!revisionDraft) {
+        return withToken(json({
+          error: 'A published schedule already exists for this week. Use the revise option to make changes.',
+          scheduleId: alreadyPublished._id,
+        }, 409), refreshedToken)
+      }
+      const updatedRevision = await WeeklySchedule.findByIdAndUpdate(
+        revisionDraft._id, updateDoc, { new: true },
+      ).populate('classEntries.facultyId', 'name subject')
+      writeAuditLog({
+        category: 'ACADEMICS', eventType: 'SCHEDULE_UPDATED',
+        actorUserId: payload.userId, actorRole: payload.role,
+        targetType: 'Schedule', targetId: revisionDraft._id.toString(),
+        description: `Revision draft updated for week of ${startDate.toDateString()}`,
+        metadata: { batchId, weekStartDate, entries: (classEntries ?? []).length },
+      }).catch(() => null)
+      return withToken(json(updatedRevision, 200), refreshedToken)
     }
 
     const isNew = !(await WeeklySchedule.exists({ batchId: batchOid, weekStartDate: startDate, isRevised: false }))

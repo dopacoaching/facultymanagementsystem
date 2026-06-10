@@ -131,12 +131,6 @@ export default function SalaryPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
 
-  // Only HR_MANAGER and ADMIN may access salary data.
-  // The layout/shell should enforce this too, but guard here as a fallback.
-  if (role && !['HR_MANAGER', 'ADMIN'].includes(role)) {
-    return <div className="alert alert-error" style={{ margin: '2rem' }}>Access denied — HR Manager or Admin only.</div>
-  }
-
   const [faculty, setFaculty]       = useState<Faculty[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [month, setMonth]           = useState(new Date().getMonth() + 1)
@@ -179,6 +173,13 @@ export default function SalaryPage() {
 
   const selectedFaculty = faculty.find((f) => f._id === selectedId)
   const canApprove = result?.status === 'OK' || result?.status === 'HR_REVIEW'
+
+  // Only HR_MANAGER and ADMIN may access salary data.
+  // The layout/shell should enforce this too, but guard here as a fallback.
+  // (Placed after all hooks so the hook order stays stable across renders.)
+  if (role && !['HR_MANAGER', 'ADMIN'].includes(role)) {
+    return <div className="alert alert-error" style={{ margin: '2rem' }}>Access denied — HR Manager or Admin only.</div>
+  }
 
   return (
     <div>

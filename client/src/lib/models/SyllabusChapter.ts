@@ -14,7 +14,7 @@ export interface ISyllabusChapter extends Document {
 
 const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
   {
-    subject:         { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'], required: true },
+    subject:         { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC'], required: true },
     chapterName:     { type: String, required: true, trim: true },
     scheduledMonth:  { type: Number, required: true, min: 6, max: 12 },
     chapterOrder:    { type: Number, required: true },
@@ -29,6 +29,7 @@ const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
 
 SyllabusChapterSchema.index({ subject: 1, chapterName: 1 }, { unique: true })
 SyllabusChapterSchema.index({ subject: 1, scheduledMonth: 1 })
+SyllabusChapterSchema.index({ subject: 1, globalOrder: 1 })
 
 export const SyllabusChapter =
   (models.SyllabusChapter as Model<ISyllabusChapter>) ??

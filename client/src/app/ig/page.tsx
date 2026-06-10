@@ -200,7 +200,7 @@ export default function ISDashboard() {
             </Link>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {['Physics', 'Chemistry', 'Biology'].map((subj) => {
+            {[...new Set(chapters.map((c) => c.subject))].sort().map((subj) => {
               const subChapters = chapters.filter((c) => c.subject === subj)
               if (!subChapters.length) return null
               const done = subChapters.filter((c) => c.status === 'COMPLETED').length
@@ -208,7 +208,7 @@ export default function ISDashboard() {
               return (
                 <div key={subj}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', fontSize: '0.8125rem' }}>
-                    <span style={{ fontWeight: 600 }}>{subj}</span>
+                    <span style={{ fontWeight: 600 }}>{subj.charAt(0) + subj.slice(1).toLowerCase()}</span>
                     <span style={{ color: 'var(--color-muted)' }}>{done}/{subChapters.length}</span>
                   </div>
                   <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99 }}>
