@@ -1,12 +1,32 @@
 {
   "name": "DOPA Faculty Management System",
   "short_name": "DOPA FMS",
-  "description": "Faculty scheduling and salary management for DOPA Coaching",
+  "description": "Faculty scheduling, session tracking, and salary management for DOPA Coaching",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
   "theme_color": "#4f46e5",
+  "lang": "en",
+  "categories": ["education", "productivity"],
   "icons": [
-    { "src": "/logo.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log Session",
+      "url": "/coordinator",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Salary",
+      "url": "/faculty/salary",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }
