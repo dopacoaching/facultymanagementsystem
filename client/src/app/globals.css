@@ -1132,3 +1132,28 @@ tbody tr:hover td {
   gap: 0.5rem;
   font-size: 0.9375rem;
 }
+
+/* Skip-navigation link: visually hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  z-index: 300;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.6rem 1.125rem;
+  border-radius: 0 0 0.625rem 0.625rem;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* The skip target shouldn't show a focus ring of its own */
+.shell-content:focus {
+  outline: none;
+}

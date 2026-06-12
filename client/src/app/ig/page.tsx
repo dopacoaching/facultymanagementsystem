@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
@@ -40,7 +41,7 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocal()
 }
 
 export default function ISDashboard() {

@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal, addDays } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches, getAll as getFaculty } from '@/services/faculty.service'
@@ -98,7 +99,7 @@ const SPECIAL_TYPE_BADGE: Record<string, string> = {
 }
 
 function today(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocal()
 }
 
 function fmtDate(d: string): string {
@@ -265,9 +266,9 @@ export default function ISTimetablePage() {
           isUnplanned:   form.isUnplanned,
           date:          selectedDate,
           startTime:     form.startTime || undefined,
-          durationHours: form.durationHours !== ''
-            ? Number(form.durationHours) + form.durationMinutes / 60
-            : undefined,
+          // Use the combined total so a minutes-only duration (e.g. 45m with
+          // the hours box left blank) is not silently dropped.
+          durationHours: totalDuration > 0 ? totalDuration : undefined,
         },
       })
       toast.success('Class assigned', 'Timetable slot has been created.')
@@ -400,10 +401,10 @@ export default function ISTimetablePage() {
           </div>
           <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.5rem' }}>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().slice(0, 10)) }}>‹ Prev</button>
+              onClick={() => setSelectedDate(addDays(selectedDate, -1))}>‹ Prev</button>
             <button className="btn btn-ghost btn-sm" onClick={() => setSelectedDate(today())}>Today</button>
             <button className="btn btn-ghost btn-sm"
-              onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().slice(0, 10)) }}>Next ›</button>
+              onClick={() => setSelectedDate(addDays(selectedDate, 1))}>Next ›</button>
           </div>
         </div>
       </div>
@@ -562,7 +563,7 @@ export default function ISTimetablePage() {
               <div className="input-group">
                 <div className="form-group">
                   <label className="label">IG Batch</label>
-                  <select className="input" value={form.batchId}
+                  <select className="input" autoFocus value={form.batchId}
                     onChange={(e) => setForm({ ...form, batchId: e.target.value, subject: '', chapter: '' })}>
                     <option value="">— select —</option>
                     {isIsBatches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}

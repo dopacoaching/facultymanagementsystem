@@ -83,6 +83,9 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
 
   return (
     <div className="shell-layout">
+      {/* Keyboard users can jump straight past the sidebar/topbar */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -134,7 +137,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
         </header>
 
         {/* Page content */}
-        <main className="shell-content">
+        <main id="main-content" className="shell-content" tabIndex={-1}>
           <ErrorBoundary>
             {children}
           </ErrorBoundary>

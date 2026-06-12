@@ -254,7 +254,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                     background: '#fff', boxShadow: '0 0 6px rgba(255,255,255,.7)',
                   }} />
                 )}
-                <span style={{ fontSize: '1rem', width: '1.25rem', textAlign: 'center', flexShrink: 0 }}>
+                <span aria-hidden="true" style={{ fontSize: '1rem', width: '1.25rem', textAlign: 'center', flexShrink: 0 }}>
                   {linkItem.icon}
                 </span>
                 {linkItem.label}
@@ -333,6 +333,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                       <input
                         type="password"
                         className="input"
+                        autoFocus
                         value={pwdForm.current}
                         onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
                         autoComplete="current-password"

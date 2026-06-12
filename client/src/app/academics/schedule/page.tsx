@@ -1,4 +1,5 @@
 'use client'
+import { todayLocal, toLocalISO } from '@/utils/date'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
@@ -94,7 +95,7 @@ function currentWeekSaturday(): string {
   const d = new Date()
   const daysBack = (d.getDay() - 6 + 7) % 7   // 0 if today is Sat, 1 if Sun, …
   d.setDate(d.getDate() - daysBack)
-  return d.toISOString().slice(0, 10)
+  return toLocalISO(d)
 }
 
 function fmtDate(d: string | Date) {
@@ -176,7 +177,7 @@ export default function SchedulePage() {
     const d = new Date(dated[0])
     const daysBack = (d.getDay() - 6 + 7) % 7
     d.setDate(d.getDate() - daysBack)
-    setWeekStart(d.toISOString().slice(0, 10))
+    setWeekStart(toLocalISO(d))
   }, [entries])
 
   // ── Entry helpers ───────────────────────────────────────────────────────────

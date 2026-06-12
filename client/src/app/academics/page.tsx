@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
@@ -99,7 +100,7 @@ export default function AcademicsDashboard() {
     }).catch(console.error)
   }, [accessToken])
 
-  const todayStr  = new Date().toISOString().slice(0, 10)
+  const todayStr  = todayLocal()
   const today     = sessions.filter((s) => s.sessionDate?.startsWith(todayStr))
   const completed = sessions.filter((s) => s.status === 'COMPLETED')
   const cancelled = sessions.filter((s) => s.status === 'CANCELLED')

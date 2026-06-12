@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/session.service'
 import { apiFetch } from '@/services/api'
 import type { Session } from '@/types'
-import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
+import { SkeletonTable, EmptyState, ErrorAlert } from '@/components/ui/Skeleton'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,22 +93,31 @@ export default function FacultySessionsPage() {
   // Schedule state
   const [schedules, setSchedules] = useState<WeeklySchedule[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!accessToken || !facultyId) return
     const schedUrl = myBatchId
       ? `/academics/schedules?batchId=${myBatchId}`
       : '/academics/schedules'
 
-    Promise.all([
+    setLoading(true)
+    setLoadError('')
+    // Fetch independently so a schedule failure doesn't blank the session log (and vice versa).
+    Promise.allSettled([
       getAll({ facultyId }, accessToken),
       apiFetch<WeeklySchedule[]>(schedUrl, { token: accessToken }),
-    ]).then(([sess, scheds]) => {
-      setSessions(sess)
-      setSchedules(scheds.filter((s) => s.isPublished))
-    }).catch(console.error)
-      .finally(() => setLoading(false))
+    ]).then(([sessRes, schedRes]) => {
+      if (sessRes.status === 'fulfilled') setSessions(sessRes.value)
+      if (schedRes.status === 'fulfilled') setSchedules(schedRes.value.filter((s) => s.isPublished))
+      if (sessRes.status === 'rejected' || schedRes.status === 'rejected') {
+        const err = (sessRes.status === 'rejected' ? sessRes.reason : (schedRes as PromiseRejectedResult).reason)
+        setLoadError(err instanceof Error ? err.message : 'Failed to load your sessions')
+      }
+    }).finally(() => setLoading(false))
   }, [accessToken, facultyId, myBatchId])
+
+  useEffect(() => { load() }, [load])
 
   // ── Derive current week schedule ──────────────────────────────────────────
 
@@ -158,6 +167,12 @@ export default function FacultySessionsPage() {
           </p>
         </div>
       </div>
+
+      {loadError && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          <ErrorAlert message={loadError} what="Could not load your data" onRetry={load} />
+        </div>
+      )}
 
       {/* ════════════════════════════════════════════════════════════════════ */}
       {/* SECTION 1 — UPCOMING WEEKLY SCHEDULES                              */}

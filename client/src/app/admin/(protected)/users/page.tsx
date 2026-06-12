@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getUsers, createUser, updateUser } from '@/services/user.service'
@@ -205,7 +205,7 @@ export default function AdminUsersPage() {
               <div className="input-group">
                 <div className="form-group">
                   <label className="label">Username</label>
-                  <input className="input" value={createForm.username}
+                  <input className="input" autoFocus value={createForm.username}
                     onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
                     autoComplete="off" placeholder="e.g. john_doe" />
                 </div>

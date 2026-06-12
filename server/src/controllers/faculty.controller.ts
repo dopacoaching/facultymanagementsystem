@@ -30,15 +30,51 @@ function pickFacultyFields(body: Record<string, unknown>): Record<string, unknow
 export const getAllFaculty = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { includeInactive } = req.query
   const filter = includeInactive === 'true' ? {} : { isActive: true }
-  const faculty = await Faculty.find(filter).sort({ name: 1 })
+
+  // FACULTY role: scoped to own profile only — no salary data
+  if (req.user!.role === 'FACULTY') {
+    if (!req.user!.facultyId) {
+      res.status(403).json({ error: 'Faculty account not linked to a profile' }); return
+    }
+    const own = await Faculty.findById(req.user!.facultyId).select('name subject type isActive')
+    res.json(own ? [own] : [])
+    return
+  }
+
+  // Non-HR roles (Coordinator, Academics): name/subject only — no salary data
+  const isHR = req.user!.role === 'HR_MANAGER' || req.user!.role === 'ADMIN'
+  const projection = isHR ? '' : 'name subject type isActive'
+  const faculty = await Faculty.find(filter).select(projection).sort({ name: 1 })
   res.json(faculty)
 })
+
+const SALARY_RESPONSE_FIELDS = [
+  'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'monthlyDayQuota',
+  'overtimeThreshold', 'overtimeRate', 'fixedComponent', 'variableComponent',
+  'totalContractDays', 'configurablePayJson', 'salaryModel',
+]
 
 export const getFacultyById = asyncHandler(async (req: AuthRequest, res: Response) => {
   const oid = validateObjectId(req.params.id, 'facultyId', res)
   if (!oid) return
+
+  // FACULTY role: may only view their own profile
+  if (req.user!.role === 'FACULTY' && req.user!.facultyId !== oid.toString()) {
+    res.status(403).json({ error: 'Forbidden' }); return
+  }
+
   const faculty = await Faculty.findById(oid)
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
+
+  // Non-HR roles: strip salary data from the response
+  const isHR = req.user!.role === 'HR_MANAGER' || req.user!.role === 'ADMIN'
+  if (!isHR) {
+    const safe = faculty.toObject() as unknown as Record<string, unknown>
+    SALARY_RESPONSE_FIELDS.forEach((f) => delete safe[f])
+    res.json(safe)
+    return
+  }
+
   res.json(faculty)
 })
 

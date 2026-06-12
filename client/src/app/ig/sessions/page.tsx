@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
@@ -61,7 +62,7 @@ export default function IGSessionsPage() {
     chapter:       '',
     startTime:     '',
     durationHours: '',
-    sessionDate:   new Date().toISOString().slice(0, 10),
+    sessionDate:   todayLocal(),
   })
   const [saving, setSaving]                     = useState(false)
   const [cancelInitiator, setCancelInitiator]   = useState<Record<string, string>>({})
@@ -389,7 +390,7 @@ export default function IGSessionsPage() {
                 <div className="form-group">
                   <label className="label">Session Date</label>
                   <input type="date" className="input" value={form.sessionDate}
-                    max={new Date().toISOString().slice(0, 10)}
+                    max={todayLocal()}
                     onChange={(e) => setForm({ ...form, sessionDate: e.target.value })} />
                 </div>
               </div>
@@ -448,7 +449,7 @@ export default function IGSessionsPage() {
                 <div className="form-group">
                   <label className="label">Session Date</label>
                   <input type="date" className="input" value={editForm.sessionDate}
-                    max={new Date().toISOString().slice(0, 10)}
+                    max={todayLocal()}
                     onChange={(e) => setEditForm({ ...editForm, sessionDate: e.target.value })} />
                 </div>
               </div>

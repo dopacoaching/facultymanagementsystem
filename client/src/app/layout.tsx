@@ -6,7 +6,7 @@ export const viewport: Viewport = {
   themeColor: '#4f46e5',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  // No maximumScale — blocking pinch-zoom fails WCAG 1.4.4 (resize text).
 }
 
 export const metadata: Metadata = {

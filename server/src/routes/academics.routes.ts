@@ -39,8 +39,9 @@ router.patch('/availability/:id',  authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_
 router.delete('/availability/:id', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), deleteAvailabilityEntry)
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
-// GET: exclude IG batches when no explicit batchId given
-router.get('/sessions', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), excludeIGBatches, getSessions)
+// GET: exclude IG batches when no explicit batchId given.
+// FACULTY included (scoped to own sessions inside the controller).
+router.get('/sessions', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), excludeIGBatches, getSessions)
 router.post('/sessions', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), createSession)
 router.post('/sessions/cancel', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), cancelSession)
 router.patch('/sessions/:id/status', authorize('COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
@@ -48,8 +49,9 @@ router.patch('/sessions/:id/status', authorize('COORDINATOR', 'ACADEMICS_MANAGER
 router.patch('/sessions/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateSession)
 
 // ── Schedule (REST plural + legacy singular) ──────────────────────────────────
-router.get('/schedules', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSchedules)
-router.get('/schedule',  authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), getSchedules)
+// FACULTY included: the My Sessions page shows published weekly schedules.
+router.get('/schedules', authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), getSchedules)
+router.get('/schedule',  authorize('COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), getSchedules)
 router.post('/schedules', authorize('ACADEMICS_MANAGER', 'COORDINATOR', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
 router.post('/schedule', authorize('ACADEMICS_MANAGER', 'COORDINATOR', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
 

@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, create, cancel } from '@/services/session.service'
@@ -66,7 +67,7 @@ export default function SessionsPage() {
     startTime: '',
     durationHours: 1,
     durationMinutes: 0,
-    sessionDate: new Date().toISOString().slice(0, 10),
+    sessionDate: todayLocal(),
   })
   const [saving, setSaving]           = useState(false)
   const [cancelInitiator, setCancelInitiator] = useState<Record<string, string>>({})
@@ -341,7 +342,7 @@ export default function SessionsPage() {
               <div className="input-group">
                 <div className="form-group">
                   <label className="label">Faculty</label>
-                  <select className="input" value={form.facultyId} onChange={(e) => setForm({ ...form, facultyId: e.target.value })}>
+                  <select className="input" autoFocus value={form.facultyId} onChange={(e) => setForm({ ...form, facultyId: e.target.value })}>
                     <option value="">— select —</option>
                     {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
                   </select>
@@ -437,7 +438,7 @@ export default function SessionsPage() {
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>
-                  <input type="date" className="input" value={form.sessionDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setForm({ ...form, sessionDate: e.target.value })} />
+                  <input type="date" className="input" value={form.sessionDate} max={todayLocal()} onChange={(e) => setForm({ ...form, sessionDate: e.target.value })} />
                 </div>
               </div>
             </div>
@@ -490,7 +491,7 @@ export default function SessionsPage() {
                 </div>
                 <div className="form-group">
                   <label className="label">Session Date</label>
-                  <input type="date" className="input" value={editForm.sessionDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setEditForm({ ...editForm, sessionDate: e.target.value })} />
+                  <input type="date" className="input" value={editForm.sessionDate} max={todayLocal()} onChange={(e) => setEditForm({ ...editForm, sessionDate: e.target.value })} />
                 </div>
                 <div className="form-group">
                   <label className="label">Duration (hours)</label>

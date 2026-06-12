@@ -428,7 +428,7 @@ export default function FacultyPage() {
                 {/* Name */}
                 <div className="form-group">
                   <label className="label">Full Name</label>
-                  <input className="input" value={(editing as Faculty).name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Full name" />
+                  <input className="input" autoFocus value={(editing as Faculty).name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Full name" />
                 </div>
 
                 {/* Subject */}

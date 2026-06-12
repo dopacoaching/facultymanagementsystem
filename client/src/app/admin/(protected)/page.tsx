@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
@@ -109,7 +110,7 @@ export default function AdminDashboard() {
   const isCancelled = isSessions.filter((s) => s.status === 'CANCELLED').length
   const isScheduled = isSessions.filter((s) => s.status === 'SCHEDULED').length
 
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = todayLocal()
   const todayAC  = acSessions.filter((s) => s.sessionDate?.startsWith(todayStr)).length
   const todayIS  = isSessions.filter((s) => s.sessionDate?.startsWith(todayStr)).length
 

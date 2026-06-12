@@ -1,4 +1,5 @@
-﻿'use client'
+'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
@@ -150,7 +151,7 @@ export default function AcademicsReportsPage() {
         fmtDate(c.facultyClassDoneAt),
       ])
     ]
-    downloadCsv(toCsv(rows), `chapters-${bName.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0,10)}.csv`)
+    downloadCsv(toCsv(rows), `chapters-${bName.replace(/\s+/g, '-')}-${todayLocal()}.csv`)
   }
 
   function exportPendingVideo() {
@@ -165,7 +166,7 @@ export default function AcademicsReportsPage() {
         fmtDate(c.facultyClassDoneAt),
       ])
     ]
-    downloadCsv(toCsv(rows), `pending-video-${bName.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0,10)}.csv`)
+    downloadCsv(toCsv(rows), `pending-video-${bName.replace(/\s+/g, '-')}-${todayLocal()}.csv`)
   }
 
   function exportFacultyActivity() {

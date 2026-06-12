@@ -83,8 +83,8 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           />
           <button
             type="button"
-            tabIndex={-1}
             onClick={() => setShow((s) => !s)}
+            aria-pressed={show}
             style={{
               position: 'absolute', right: '0.625rem', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',

@@ -1,4 +1,5 @@
 'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
@@ -58,7 +59,7 @@ const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
   startTime:         '',
   durationHours:     1,
   durationMinutes:   0,
-  sessionDate:       new Date().toISOString().slice(0, 10),
+  sessionDate:       todayLocal(),
 })
 
 export default function LogSessionPage() {
@@ -397,7 +398,7 @@ export default function LogSessionPage() {
                 type="date"
                 className="input"
                 value={form.sessionDate}
-                max={new Date().toISOString().slice(0, 10)}
+                max={todayLocal()}
                 onChange={(e) => setField('sessionDate', e.target.value)}
               />
             </div>

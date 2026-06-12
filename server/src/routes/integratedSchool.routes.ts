@@ -52,7 +52,13 @@ router.get  ('/chapters',     authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER'
 router.patch('/chapters/:id', authorize('IG_ACADEMICS_MANAGER', 'ACADEMICS_MANAGER', 'ADMIN'), updateISChapter)
 
 // ─── IS Sessions (reuse shared session controller, scoped to IS) ──────────────
-router.get ('/sessions', injectISBatchType, getSessions)
+// FACULTY included (scoped to own sessions inside the controller).
+router.get(
+  '/sessions',
+  authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'),
+  injectISBatchType,
+  getSessions,
+)
 router.post(
   '/sessions',
   authorize('IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN'),

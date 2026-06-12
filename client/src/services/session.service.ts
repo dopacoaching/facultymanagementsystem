@@ -24,9 +24,10 @@ export async function create(
     chapter: string
     syllabusChapterId?: string
     startTime?: string
-    durationHours?: number
+    /** Required by the API — requests without a positive duration are rejected. */
+    durationHours: number
     sessionDate: string
-    facultyId?: string
+    facultyId: string
   },
   token: string
 ): Promise<Session> {

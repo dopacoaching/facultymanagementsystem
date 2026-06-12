@@ -55,8 +55,9 @@ app.use(cors({
 }))
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
-// 10 kb limit prevents large-payload DoS against unauthenticated endpoints.
-app.use(express.json({ limit: '10kb' }))
+// 100 kb limit: small enough to deter large-payload DoS, large enough for the
+// biggest legitimate payload (a weekly schedule with dozens of class entries).
+app.use(express.json({ limit: '100kb' }))
 app.use(cookieParser())
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
@@ -79,8 +80,19 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests — please slow down.' },
 })
 
+// Refresh fires automatically every ~15 min per signed-in user; a shared office
+// IP (NAT) with several staff would exhaust the strict 20/15min login limit, so
+// it gets its own, more generous budget.
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests — try again shortly.' },
+})
+
 app.use('/api/auth/login',   authLimiter)
-app.use('/api/auth/refresh', authLimiter)
+app.use('/api/auth/refresh', refreshLimiter)
 app.use('/api',              apiLimiter)
 
 // ── Routes ────────────────────────────────────────────────────────────────────
