@@ -110,10 +110,12 @@ export default function FacultySessionsPage() {
     ]).then(([sessRes, schedRes]) => {
       if (sessRes.status === 'fulfilled') setSessions(sessRes.value)
       if (schedRes.status === 'fulfilled') setSchedules(schedRes.value.filter((s) => s.isPublished))
-      if (sessRes.status === 'rejected' || schedRes.status === 'rejected') {
-        const err = (sessRes.status === 'rejected' ? sessRes.reason : (schedRes as PromiseRejectedResult).reason)
-        setLoadError(err instanceof Error ? err.message : 'Failed to load your sessions')
-      }
+      const errs: string[] = []
+      if (sessRes.status === 'rejected')
+        errs.push(sessRes.reason instanceof Error ? sessRes.reason.message : 'Failed to load sessions')
+      if (schedRes.status === 'rejected')
+        errs.push(schedRes.reason instanceof Error ? schedRes.reason.message : 'Failed to load schedule')
+      if (errs.length) setLoadError(errs.join(' · '))
     }).finally(() => setLoading(false))
   }, [accessToken, facultyId, myBatchId])
 

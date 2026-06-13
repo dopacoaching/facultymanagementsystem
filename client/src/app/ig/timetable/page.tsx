@@ -234,7 +234,10 @@ export default function ISTimetablePage() {
       setError('Subject is required for exams'); return
     }
     const totalDuration = (form.durationHours !== '' ? Number(form.durationHours) : 0) + form.durationMinutes / 60
-    if (totalDuration > 0 && totalDuration < 0.25) {
+    if (totalDuration === 0) {
+      setError('Duration is required'); return
+    }
+    if (totalDuration < 0.25) {
       setError('Duration must be at least 15 minutes'); return
     }
     // Derive campusId directly from the selected batch at submit time to avoid

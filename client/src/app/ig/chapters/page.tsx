@@ -1,4 +1,5 @@
 ﻿'use client'
+import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
@@ -48,7 +49,7 @@ const SUBGROUP_LABEL: Record<string, string> = {
 const fmt = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 
-const todayISO = () => new Date().toISOString()
+const todayISO = () => todayLocal()
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
