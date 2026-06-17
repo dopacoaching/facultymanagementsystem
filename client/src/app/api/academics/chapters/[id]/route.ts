@@ -15,12 +15,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
-    const { videoComplete, facultyClassDone, sessionId } = await req.json()
+    const { videoComplete, facultyClassDone, sessionId, videosWatched } = await req.json()
     const now = new Date()
     const setFields:   Record<string, unknown> = {}
     const unsetFields: Record<string, unknown> = {}
 
-    if (videoComplete !== undefined) {
+    // videosWatched: direct count update (auto-derives videoComplete from totalVideos)
+    if (videosWatched !== undefined) {
+      const chapter = await BatchChapter.findById((await params).id).lean()
+      if (chapter) {
+        const watched  = Math.max(0, Number(videosWatched))
+        const complete = typeof chapter.totalVideos === 'number' && chapter.totalVideos > 0
+          ? watched >= chapter.totalVideos
+          : Boolean(videoComplete ?? chapter.videoComplete)
+        setFields.videosWatched    = watched
+        setFields.videoComplete    = complete
+        setFields.videoCompletedAt = complete ? now : null
+      }
+    } else if (videoComplete !== undefined) {
       setFields.videoComplete    = Boolean(videoComplete)
       setFields.videoCompletedAt = videoComplete ? now : null
     }
