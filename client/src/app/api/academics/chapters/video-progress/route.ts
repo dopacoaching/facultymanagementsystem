@@ -72,8 +72,6 @@ export async function POST(req: NextRequest) {
           chapterName:  syllabus.chapterName,
           chapterOrder: syllabus.chapterOrder,
           facultyClassDone: false,
-          videoComplete:    nowComplete,
-          videosWatched:    clampedWatched,
         },
       },
       { upsert: true, new: true }
