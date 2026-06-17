@@ -7,6 +7,7 @@ export interface IBatchChapter extends Document {
   chapterOrder: number
   syllabusChapterId?: Types.ObjectId
   scheduledMonth?: number
+  totalVideos?: number      // copied from SyllabusChapter; undefined = legacy; 0 = no videos (gate bypass)
   videoComplete: boolean
   videoCompletedAt?: Date
   facultyClassDone: boolean
@@ -22,6 +23,7 @@ const BatchChapterSchema = new Schema<IBatchChapter>(
     chapterOrder:       { type: Number, required: true },
     syllabusChapterId:  { type: Schema.Types.ObjectId, ref: 'SyllabusChapter' },
     scheduledMonth:     { type: Number, min: 6, max: 12 },
+    totalVideos:        { type: Number, min: 0 },
     videoComplete:      { type: Boolean, default: false },
     videoCompletedAt:   Date,
     facultyClassDone:   { type: Boolean, default: false },

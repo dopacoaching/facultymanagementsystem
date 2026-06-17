@@ -164,15 +164,18 @@ export async function POST(req: NextRequest) {
 
     // VIDEO-FIRST GATE (Residential + Online only)
     // Only blocks when the chapter record EXISTS with videoComplete=false.
-    // If no record exists yet, the session log creates it — coordinator can then
-    // mark videoComplete so future logs are gated correctly.
+    // Chapters with totalVideos===0 (e.g. Experimental Skills, Practical Chemistry)
+    // have no video classes and bypass the gate automatically.
     if (isVideoFirstBatch(batch.type)) {
       const chapterRecord = await BatchChapter.findOne({
         batchId:     batchOid,
         subject:     subject.toUpperCase(),
         chapterName: chapter,
       })
-      if (chapterRecord && !chapterRecord.videoComplete) {
+      const hasVideos = typeof chapterRecord?.totalVideos === 'number'
+        ? chapterRecord.totalVideos > 0
+        : true  // legacy records (totalVideos undefined) default to gated
+      if (chapterRecord && hasVideos && !chapterRecord.videoComplete) {
         return withToken(json({
           error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
           code:  'VIDEO_NOT_COMPLETE',
@@ -247,7 +250,7 @@ export async function POST(req: NextRequest) {
     }
 
     // SPLIT-CHAPTER ORDERING GATE
-    type PopulatedSyllabus = { _id: Types.ObjectId; chapterName: string; isSplitPart: boolean; splitPartNumber?: number; scheduledMonth: number; parentChapterId: { _id: Types.ObjectId; chapterName: string } | null }
+    type PopulatedSyllabus = { _id: Types.ObjectId; chapterName: string; isSplitPart: boolean; splitPartNumber?: number; scheduledMonth: number; totalVideos: number; parentChapterId: { _id: Types.ObjectId; chapterName: string } | null }
     let resolvedSyllabus: PopulatedSyllabus | null = null
     let resolvedSyllabusOid: Types.ObjectId | undefined
 
@@ -299,6 +302,7 @@ export async function POST(req: NextRequest) {
     }
     if (resolvedSyllabusOid)  bcSet.syllabusChapterId = resolvedSyllabusOid
     if (resolvedSyllabus)     bcSet.scheduledMonth    = resolvedSyllabus.scheduledMonth
+    if (resolvedSyllabus)     bcSet.totalVideos       = resolvedSyllabus.totalVideos
 
     await BatchChapter.findOneAndUpdate(
       { batchId: batchOid, subject: normSubject, chapterName: chapter },

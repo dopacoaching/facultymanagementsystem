@@ -11,6 +11,8 @@ export interface ISyllabusChapter extends Document {
   splitGroup?: string         // e.g. "GOC" — links Part 1 and Part 2
   splitPartNumber?: number    // 1 or 2
   parentChapterId?: Types.ObjectId  // Part 2 points to Part 1
+  totalVideos: number         // 0 = no video classes for this chapter (bypasses video gate)
+  videoReshooting: boolean    // currently being reshot; videos available but under revision
 }
 
 const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
@@ -24,6 +26,8 @@ const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
     splitGroup:       { type: String },
     splitPartNumber:  { type: Number, enum: [1, 2] },
     parentChapterId:  { type: Schema.Types.ObjectId, ref: 'SyllabusChapter' },
+    totalVideos:      { type: Number, default: 0, min: 0 },
+    videoReshooting:  { type: Boolean, default: false },
   },
   { timestamps: true }
 )

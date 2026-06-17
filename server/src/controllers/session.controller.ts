@@ -121,9 +121,13 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
       chapterName: chapter,
     })
     // Only block when a record EXISTS with videoComplete=false.
-    // If no record exists yet, allow the session to create it — coordinator can then
-    // mark videoComplete so future logs are gated correctly.
-    if (chapterRecord && !chapterRecord.videoComplete) {
+    // Chapters with totalVideos===0 (e.g. Experimental Skills, Practical Chemistry)
+    // have no video classes and bypass the gate automatically.
+    // Legacy records (totalVideos undefined) default to gated behaviour.
+    const hasVideos = typeof chapterRecord?.totalVideos === 'number'
+      ? chapterRecord.totalVideos > 0
+      : true
+    if (chapterRecord && hasVideos && !chapterRecord.videoComplete) {
       res.status(422).json({
         error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
         code: 'VIDEO_NOT_COMPLETE',
@@ -269,6 +273,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   }
   if (resolvedSyllabusOid)          bcSet.syllabusChapterId = resolvedSyllabusOid
   if (resolvedSyllabusChapter)      bcSet.scheduledMonth    = resolvedSyllabusChapter.scheduledMonth
+  if (resolvedSyllabusChapter)      bcSet.totalVideos       = resolvedSyllabusChapter.totalVideos
 
   await BatchChapter.findOneAndUpdate(
     { batchId: batchOid, subject: normalisedSubject, chapterName: chapter },
