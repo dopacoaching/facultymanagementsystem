@@ -313,7 +313,7 @@ export default function AvailabilityPage() {
                                 borderRadius: 'var(--radius-sm)',
                                 fontStyle: 'italic',
                               }}>
-                                "{entry.remark}"
+                                &quot;{entry.remark}&quot;
                               </span>
                             ) : '—'}
                           </td>

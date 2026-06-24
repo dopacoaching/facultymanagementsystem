@@ -49,14 +49,14 @@ const ClassEntrySchema = new Schema<IClassEntry>(
     facultyId:     {
       type: Schema.Types.ObjectId,
       ref: 'Faculty',
-      required: function(this: any) {
+      required: function(this: IClassEntry) {
         return this.sessionType === 'LIVE_SESSION' || this.sessionType === 'RECORDED_VIDEO';
       }
     },
     notes:         String,
     sessionDate:   {
       type: Date,
-      required: function(this: any) {
+      required: function(this: IClassEntry) {
         return this.sessionType === 'LIVE_SESSION' || this.sessionType === 'RECORDED_VIDEO';
       }
     },
@@ -93,7 +93,7 @@ const DAY_OFFSETS: Record<string, number> = {
   FRIDAY: 6,
 }
 
-WeeklyScheduleSchema.pre('validate', function (this: any) {
+WeeklyScheduleSchema.pre('validate', function (this: IWeeklySchedule) {
   if (this.classEntries && Array.isArray(this.classEntries)) {
     for (const entry of this.classEntries) {
       if ((entry.sessionType === 'LIVE_SESSION' || entry.sessionType === 'RECORDED_VIDEO') && !entry.sessionDate && this.weekStartDate) {

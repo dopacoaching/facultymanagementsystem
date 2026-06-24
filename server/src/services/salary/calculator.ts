@@ -592,7 +592,8 @@ async function calcLegacyFallback(
   year: number,
   facultyId: string,
 ): Promise<Partial<SalaryResult>> {
-  let baseSalary = 0, overtimePay = 0, overtimeHours = 0, penalties = 0, monthBalance = 0
+  let baseSalary = 0, penalties = 0, monthBalance = 0
+  const overtimePay = 0, overtimeHours = 0
   const alerts: SalaryAlert[] = []
   const breakdown: SalaryBreakdown[] = []
 

@@ -104,7 +104,7 @@ export default function ExamTopicsPage() {
         <div>
           <h1 style={{ marginBottom: '0.125rem' }}>Exam Topics</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Set Monday &amp; Friday exam topics independently for each week's schedule.
+            Set Monday &amp; Friday exam topics independently for each week&apos;s schedule.
           </p>
         </div>
         <select

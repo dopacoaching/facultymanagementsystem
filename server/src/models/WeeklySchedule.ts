@@ -53,14 +53,14 @@ const ClassEntrySchema = new Schema<IClassEntry>(
     facultyId:     {
       type: Schema.Types.ObjectId,
       ref: 'Faculty',
-      required: function(this: any) {
+      required: function(this: IClassEntry) {
         return this.sessionType === 'LIVE_SESSION' || this.sessionType === 'RECORDED_VIDEO';
       }
     },
     notes:         String,
     sessionDate:   {
       type: Date,
-      required: function(this: any) {
+      required: function(this: IClassEntry) {
         return this.sessionType === 'LIVE_SESSION' || this.sessionType === 'RECORDED_VIDEO';
       }
     },
