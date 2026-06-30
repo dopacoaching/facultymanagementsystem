@@ -101,10 +101,11 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
   )
 
   await writeAuditLog({
-    eventType: 'SALARY_APPROVED', facultyId, facultyName: faculty.name,
-    amount: result.finalPayable ?? 0,
-    reason: `Salary approved for ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
-    loggedByUserId: req.user!.userId,
+    category: 'HR', eventType: 'SALARY_APPROVED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    targetType: 'Faculty', targetId: String(facultyId), targetName: faculty.name,
+    facultyId, facultyName: faculty.name, amount: result.finalPayable ?? 0,
+    description: `Salary approved for ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
   })
 
   res.json({ success: true, record })
@@ -401,12 +402,11 @@ export const updateContract = asyncHandler(async (req: AuthRequest, res: Respons
 
   const faculty = await Faculty.findById(fid)
   await writeAuditLog({
-    eventType: 'PAY_CONFIG_UPDATED',
-    facultyId: fid.toString(),
-    facultyName: faculty?.name ?? 'Unknown',
-    amount: 0,
-    reason: `Contract updated (${Object.keys(safeUpdate).join(', ')})`,
-    loggedByUserId: req.user!.userId,
+    category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    targetType: 'Faculty', targetId: fid.toString(), targetName: faculty?.name ?? 'Unknown',
+    facultyId: fid.toString(), facultyName: faculty?.name ?? 'Unknown',
+    description: `Contract updated (${Object.keys(safeUpdate).join(', ')})`,
   })
 
   res.json(contract)

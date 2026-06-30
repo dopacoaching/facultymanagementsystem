@@ -62,12 +62,11 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
 
   // Audit: user account created
   await writeAuditLog({
-    eventType: 'FACULTY_CREATED',      // closest existing type; can be extended
-    facultyId: user._id.toString(),    // reuse field for userId
-    facultyName: `[User] ${username.trim().toLowerCase()}`,
-    amount: 0,
-    reason: `User account created with role ${role} by admin ${req.user!.userId}`,
-    loggedByUserId: req.user!.userId,
+    category: 'ADMIN', eventType: 'USER_ACCOUNT_CREATED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    targetType: 'User', targetId: user._id.toString(),
+    targetName: username.trim().toLowerCase(),
+    description: `User account created with role ${role} by admin ${req.user!.userId}`,
   })
 
   // Return without the password hash
@@ -134,12 +133,11 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
 
   // Audit: user account changed
   await writeAuditLog({
-    eventType: 'FACULTY_UPDATED',
-    facultyId: String(id),
-    facultyName: `[User] ${user.username}`,
-    amount: 0,
-    reason: `User account updated: ${auditReasons.join(', ')} — by admin ${req.user!.userId}`,
-    loggedByUserId: req.user!.userId,
+    category: 'ADMIN', eventType: 'USER_ACCOUNT_UPDATED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    targetType: 'User', targetId: String(id),
+    targetName: user.username,
+    description: `User account updated: ${auditReasons.join(', ')} — by admin ${req.user!.userId}`,
   })
 
   res.json(user)

@@ -91,12 +91,11 @@ export const createFaculty = asyncHandler(async (req: AuthRequest, res: Response
   const faculty = await Faculty.create(safeData)
 
   await writeAuditLog({
-    eventType: 'FACULTY_CREATED',
-    facultyId: faculty._id.toString(),
-    facultyName: faculty.name,
-    amount: 0,
-    reason: 'Faculty profile created',
-    loggedByUserId: req.user!.userId,
+    category: 'HR', eventType: 'FACULTY_CREATED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+    facultyId: faculty._id.toString(), facultyName: faculty.name,
+    description: 'Faculty profile created',
   })
   res.status(201).json(faculty)
 })
@@ -119,21 +118,19 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
   ]
   if (SALARY_FIELDS.some((f) => f in safeData)) {
     await writeAuditLog({
-      eventType: 'PAY_CONFIG_UPDATED',
-      facultyId: faculty._id.toString(),
-      facultyName: faculty.name,
-      amount: 0,
-      reason: `Pay config updated (${Object.keys(safeData).join(', ')})`,
-      loggedByUserId: req.user!.userId,
+      category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
+      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+      facultyId: faculty._id.toString(), facultyName: faculty.name,
+      description: `Pay config updated (${Object.keys(safeData).join(', ')})`,
     })
   } else {
     await writeAuditLog({
-      eventType: 'FACULTY_UPDATED',
-      facultyId: faculty._id.toString(),
-      facultyName: faculty.name,
-      amount: 0,
-      reason: `Profile updated (${Object.keys(safeData).join(', ')})`,
-      loggedByUserId: req.user!.userId,
+      category: 'HR', eventType: 'FACULTY_UPDATED',
+      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+      facultyId: faculty._id.toString(), facultyName: faculty.name,
+      description: `Profile updated (${Object.keys(safeData).join(', ')})`,
     })
   }
   res.json(faculty)

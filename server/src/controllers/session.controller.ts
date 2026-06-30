@@ -431,28 +431,26 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
     const penaltyAmount = contract?.cancellationPenaltyPerClass ?? 0
 
     await writeAuditLog({
-      eventType: 'PENALTY_APPLIED',
-      facultyId: facultyOid.toString(),
-      facultyName,
-      amount: penaltyAmount,
-      reason: `Class cancelled by faculty on ${session.sessionDate.toDateString()}` +
+      category: 'HR', eventType: 'PENALTY_APPLIED',
+      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      targetType: 'Faculty', targetId: facultyOid.toString(), targetName: facultyName,
+      facultyId: facultyOid.toString(), facultyName, amount: penaltyAmount,
+      description: `Class cancelled by faculty on ${session.sessionDate.toDateString()}` +
         (penaltyAmount > 0 ? ` — penalty ₹${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty contract'),
       cancellationInitiator: 'FACULTY',
       sessionId: session._id.toString(),
-      loggedByUserId: req.user!.userId,
     })
   } else {
     const initiatorLabel = cancellationInitiator === 'STUDENT' ? 'student' : 'management'
     await writeAuditLog({
-      eventType: 'SESSION_CANCELLED',
-      facultyId: facultyOid.toString(),
-      facultyName,
-      amount: 0,
-      reason: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
+      category: 'ACADEMICS', eventType: 'SESSION_CANCELLED',
+      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      targetType: 'Session', targetId: session._id.toString(), targetName: facultyName,
+      facultyId: facultyOid.toString(), facultyName,
+      description: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
         (cancellationReason ? ` — ${cancellationReason}` : ''),
       cancellationInitiator: storedInitiator,
       sessionId: session._id.toString(),
-      loggedByUserId: req.user!.userId,
     })
   }
 
