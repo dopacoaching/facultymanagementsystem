@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
-    const { payload, refreshedToken } = auth
+    const { refreshedToken } = auth
 
     const { searchParams } = new URL(req.url)
     const from     = searchParams.get('from')

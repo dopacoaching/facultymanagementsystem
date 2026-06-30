@@ -5,8 +5,6 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
-import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
-import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 

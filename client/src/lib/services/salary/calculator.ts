@@ -517,7 +517,7 @@ export async function calculateMonthlySalary(
 
   if (!contract) {
     // Fallback for faculty without a PermanentFacultyContract (legacy / non-permanent)
-    partial = await calcLegacyFallback(faculty, hoursLogged, daysWorked, facultyCancellations, month, year, facultyId)
+    partial = await calcLegacyFallback(faculty, hoursLogged, daysWorked, facultyCancellations)
   } else {
     switch (contract.contractType) {
       case 'HOURLY':
@@ -584,9 +584,6 @@ async function calcLegacyFallback(
   hoursLogged: number,
   daysWorked: number,
   facultyCancellations: number,
-  month: number,
-  year: number,
-  facultyId: string,
 ): Promise<Partial<SalaryResult>> {
   let baseSalary = 0, penalties = 0, monthBalance = 0
   const overtimePay = 0, overtimeHours = 0

@@ -49,7 +49,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
   const dispatch = useAppDispatch()
   const router = useRouter()
   const pathname = usePathname()
-  const [refreshing, setRefreshing] = useState(!accessToken)
+  const [, setRefreshing] = useState(!accessToken)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { theme, toggle: toggleTheme } = useTheme()
 

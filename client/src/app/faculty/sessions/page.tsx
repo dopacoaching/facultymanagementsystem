@@ -125,11 +125,6 @@ export default function FacultySessionsPage() {
 
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d }, [])
 
-  const currentSchedule = useMemo(() =>
-    schedules.find((s) => new Date(s.weekStartDate) <= today && new Date(s.weekEndDate) >= today)
-    ?? schedules.find((s) => new Date(s.weekStartDate) > today) // next upcoming if no current
-  , [schedules, today])
-
   // ── Upcoming published schedules (current + future) ───────────────────────
 
   const upcomingSchedules = useMemo(() =>

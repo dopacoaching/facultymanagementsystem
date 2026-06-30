@@ -12,6 +12,17 @@ const eslintConfig = [
   {
     ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'scripts/**', 'next.config.js', 'postcss.config.mjs', 'eslint.config.mjs'],
   },
+  {
+    rules: {
+      // Allow intentionally-unused identifiers prefixed with `_`
+      // (e.g. unused route handler params like `_req`, placeholder destructures).
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+    },
+  },
 ]
 
 export default eslintConfig

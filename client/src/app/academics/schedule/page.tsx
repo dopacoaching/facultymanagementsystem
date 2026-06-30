@@ -1,5 +1,5 @@
 'use client'
-import { todayLocal, toLocalISO } from '@/utils/date'
+import { toLocalISO } from '@/utils/date'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
