@@ -38,6 +38,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
         role:      payload.role,
         ...(payload.facultyId != null ? { facultyId: payload.facultyId } : {}),
         ...(payload.batchId   != null ? { batchId:   payload.batchId   } : {}),
+        ...(payload.batchType != null ? { batchType: payload.batchType } : {}),
         lastActive: Date.now(),
       },
       process.env.JWT_SECRET!,

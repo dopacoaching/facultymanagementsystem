@@ -38,7 +38,8 @@ const ISBatchChapterSchema = new Schema<IISBatchChapter>(
 )
 
 ISBatchChapterSchema.index({ batchId: 1, subject: 1, chapterOrder: 1 })
-// For searching by chapter name within a batch
+// Unique per chapter name within a batch — prevents duplicate seed entries
+ISBatchChapterSchema.index({ batchId: 1, subject: 1, chapterName: 1 }, { unique: true })
 ISBatchChapterSchema.index({ batchId: 1, chapterName: 1 })
 
 export const ISBatchChapter = (models.ISBatchChapter as Model<IISBatchChapter>) ?? model<IISBatchChapter>('ISBatchChapter', ISBatchChapterSchema)

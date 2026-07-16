@@ -43,6 +43,19 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     filter.batchId = { $nin: excludedIds }
   }
 
+  // ACADEMICS_MANAGER scope — applied LAST so it always wins over the IG-exclusion filter above
+  if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType) {
+    const scopedIds = await Batch.find({ type: req.user!.batchType, isActive: true }).distinct('_id')
+    if (batchId) {
+      const inScope = scopedIds.some((id) => id.toString() === batchId)
+      if (!inScope) {
+        res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+      }
+    } else {
+      filter.batchId = { $in: scopedIds }
+    }
+  }
+
   if (month && year) {
     filter.sessionDate = {
       $gte: new Date(Number(year), Number(month) - 1, 1),
@@ -103,6 +116,11 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   // Fetch batch so we know its type and campusId
   const batch = await Batch.findById(batchOid)
   if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
+
+  // ACADEMICS_MANAGER batch type scope guard
+  if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType && batch.type !== req.user!.batchType) {
+    res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+  }
 
   // ── M-7: Coordinator batch ownership gate (before any DB queries) ────────
   if (isCoordinator(req.user!.role)) {

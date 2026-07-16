@@ -26,6 +26,20 @@ export const getSchedules = asyncHandler(async (req: AuthRequest, res: Response)
       res.status(400).json({ error: 'Invalid batchId' }); return
     }
   }
+
+  // ACADEMICS_MANAGER scope — applied after batchId filter so it always wins
+  if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType) {
+    const scopedIds = await Batch.find({ type: req.user!.batchType, isActive: true }).distinct('_id')
+    if (batchId) {
+      const inScope = scopedIds.some((id) => id.toString() === batchId)
+      if (!inScope) {
+        res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+      }
+    } else {
+      filter.batchId = { $in: scopedIds }
+    }
+  }
+
   const schedules = await WeeklySchedule.find(filter)
     .populate('batchId', 'name type')
     .populate('classEntries.facultyId', 'name subject')
@@ -69,6 +83,14 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
   let batchOid: Types.ObjectId
   try { batchOid = new Types.ObjectId(batchId) } catch {
     res.status(400).json({ error: 'Invalid batchId' }); return
+  }
+
+  // ACADEMICS_MANAGER batch type scope guard
+  if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType) {
+    const targetBatch = await Batch.findById(batchOid)
+    if (!targetBatch || targetBatch.type !== req.user!.batchType) {
+      res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+    }
   }
 
   const startDate = midnight(weekStartDate)

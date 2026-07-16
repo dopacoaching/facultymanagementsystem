@@ -92,6 +92,8 @@ export interface JWTPayload {
   role: UserRole
   facultyId?: string
   batchId?: string
+  /** Restricts ACADEMICS_MANAGER to a single batch type (RESIDENTIAL | OFFLINE | ONLINE) */
+  batchType?: string
   /** Unix timestamp (ms) of the last verified request — used for inactivity timeout */
   lastActive?: number
 }

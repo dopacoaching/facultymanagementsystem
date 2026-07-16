@@ -64,6 +64,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
     role: user.role,
     facultyId: user.facultyId?.toString(),
     batchId: user.batchId?.toString(),
+    batchType: user.batchType,
   }
 
   const accessToken  = signAccess(payload)
@@ -78,7 +79,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
   })
 
   res.cookie('refreshToken', refreshToken, refreshCookieOptions)
-  res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId })
+  res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType })
 })
 
 export const logout = asyncHandler(async (req: Request & { user?: JWTPayload }, res: Response) => {
@@ -115,7 +116,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
 
     const newRefreshToken = signRefresh({
       userId: payload.userId, role: payload.role,
-      facultyId: payload.facultyId, batchId: payload.batchId,
+      facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
     })
     await RefreshToken.create({
       tokenHash: hashToken(newRefreshToken),
@@ -126,7 +127,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     // Re-stamp lastActive so the session inactivity clock resets on refresh
     const accessToken = signAccess({
       userId: payload.userId, role: payload.role,
-      facultyId: payload.facultyId, batchId: payload.batchId,
+      facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
     })
 
     res.cookie('refreshToken', newRefreshToken, refreshCookieOptions)
