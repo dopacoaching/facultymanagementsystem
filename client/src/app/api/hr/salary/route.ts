@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
-import { calculateMonthlySalary } from '@/lib/services/salary/calculator'
+import { calculateMonthlySalary, redactForFacultyView } from '@/lib/services/salary/calculator'
 
 /** GET /api/hr/salary?facultyId=&month=&year= */
 export async function GET(req: NextRequest) {
@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
     await connectDB()
 
     const result = await calculateMonthlySalary(facultyId, Number(month), Number(year))
-    return withToken(json(result), refreshedToken)
+    // Faculty may never see surplus/carry-forward detail — only HR does (via the dashboard).
+    return withToken(json(payload.role === 'FACULTY' ? redactForFacultyView(result) : result), refreshedToken)
   } catch (err) {
     console.error('[GET /api/hr/salary]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

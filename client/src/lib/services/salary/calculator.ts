@@ -639,3 +639,23 @@ async function calcLegacyFallback(
     breakdown,
   }
 }
+
+// ─── Faculty-facing redaction ───────────────────────────────────────────────────
+
+/** Breakdown rows that reveal accumulated carry-forward surplus — HR-only. */
+const HR_ONLY_BREAKDOWN_LABELS = new Set(['Previous Month Carry', 'Combined Carry-Forward'])
+
+/**
+ * Strip carry-forward detail that would reveal a faculty member's surplus hours
+ * (extra hours worked beyond their monthly quota) from a salary result headed to
+ * the faculty themselves. HR sees the full picture via the HR dashboard's
+ * hoursProgress.surplus; faculty must only ever see their own shortfall
+ * (monthBalance, floored at 0), never how far over quota they went.
+ */
+export function redactForFacultyView(result: SalaryResult): SalaryResult {
+  return {
+    ...result,
+    breakdown: result.breakdown.filter((row) => !HR_ONLY_BREAKDOWN_LABELS.has(row.label)),
+    carryForward: undefined,
+  }
+}

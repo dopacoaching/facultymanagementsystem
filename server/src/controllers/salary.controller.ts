@@ -6,7 +6,7 @@ import { AuditLog } from '../models/AuditLog'
 import { CarryForwardBalance } from '../models/CarryForwardBalance'
 import { Session } from '../models/Session'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
-import { calculateMonthlySalary } from '../services/salary/calculator'
+import { calculateMonthlySalary, redactForFacultyView } from '../services/salary/calculator'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { validateObjectId } from '../utils/objectId'
@@ -44,7 +44,8 @@ export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) =
   }
 
   const result = await calculateMonthlySalary(facultyId, Number(month), Number(year))
-  res.json(result)
+  // Faculty may never see surplus/carry-forward detail — only HR does (via the dashboard).
+  res.json(req.user!.role === 'FACULTY' ? redactForFacultyView(result) : result)
 })
 
 export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response) => {
