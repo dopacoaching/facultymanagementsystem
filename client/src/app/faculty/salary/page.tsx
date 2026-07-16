@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { calculate, getMyHoursSummary } from '@/services/salary.service'
-import type { MonthlyHoursSummary } from '@/services/salary.service'
+import type { HoursSummaryResponse } from '@/services/salary.service'
 import type { SalaryResult } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 
@@ -16,7 +16,7 @@ export default function FacultySalaryPage() {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
-  const [hoursSummary, setHoursSummary]         = useState<MonthlyHoursSummary[]>([])
+  const [hoursSummary, setHoursSummary]         = useState<HoursSummaryResponse | null>(null)
   const [hoursLoading, setHoursLoading]         = useState(true)
 
   useEffect(() => {
@@ -97,20 +97,51 @@ export default function FacultySalaryPage() {
           {(result.status === 'OK' || result.status === 'HR_REVIEW') && (
             <>
               <div className="stats-grid" style={{ marginBottom: '1.25rem' }}>
-                {result.hoursLogged != null && (
-                  <div className="stat-card">
+                {([
+                  ['Hours This Month', result.hoursLogged  != null ? `${result.hoursLogged} hrs` : null, '⏱'],
+                  ['Total Hours (All Time)', hoursSummary != null ? `${hoursSummary.allTimeTotalHours.toFixed(1)} hrs` : null, '📊'],
+                  ['Balance Hours (to reach quota)', result.monthBalance != null ? `${result.monthBalance} hrs` : null, '⚖️'],
+                ] as [string, string | null, string][]).filter(([, v]) => v != null).map(([label, value, icon]) => (
+                  <div key={label} className="stat-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div>
-                        <div className="stat-label">Hours This Month</div>
+                        <div className="stat-label">{label}</div>
                         <div style={{ fontWeight: 700, fontSize: '1.375rem', marginTop: '0.25rem', color: 'var(--color-primary)' }}>
-                          {result.hoursLogged} hrs
+                          {value}
                         </div>
                       </div>
-                      <span style={{ fontSize: '1.4rem', opacity: 0.5 }}>⏱</span>
+                      <span style={{ fontSize: '1.4rem', opacity: 0.5 }}>{icon}</span>
                     </div>
                   </div>
-                )}
+                ))}
               </div>
+
+              {/* ── Pay breakdown — itemized payment details, most useful for temporary/hourly faculty ── */}
+              {result.breakdown && result.breakdown.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <p className="section-label">Payment Details</p>
+                  <div className="table-wrapper">
+                    <table>
+                      <tbody>
+                        {result.breakdown.map((row, i) => (
+                          <tr key={i}>
+                            <td style={{ color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                              {row.isDeduction ? '− ' : ''}{row.label}
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: 600, color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                              {/\bhours?\b|\bhrs\b|\bquota\b/i.test(row.label)
+                                ? `${row.amount % 1 === 0 ? row.amount : row.amount.toFixed(1)} hrs`
+                                : (Number.isInteger(row.amount) || row.amount > 100
+                                    ? `₹${row.amount.toLocaleString('en-IN')}`
+                                    : row.amount.toFixed(1))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -154,37 +185,42 @@ export default function FacultySalaryPage() {
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
             <span className="spinner" style={{ width: 24, height: 24 }} />
           </div>
-        ) : hoursSummary.length === 0 ? (
+        ) : !hoursSummary || hoursSummary.months.length === 0 ? (
           <div className="empty-state" style={{ padding: '2rem' }}>
             <div className="empty-state-icon">📅</div>
             <h3>No completed sessions yet</h3>
             <p>Your monthly hours will appear here once sessions are recorded</p>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Month</th>
-                  <th style={{ textAlign: 'right' }}>Sessions</th>
-                  <th style={{ textAlign: 'right' }}>Total Hours</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hoursSummary.map((row) => (
-                  <tr key={`${row.year}-${row.month}`}>
-                    <td style={{ fontWeight: 600 }}>{MONTHS[row.month - 1]} {row.year}</td>
-                    <td style={{ textAlign: 'right', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                      {row.sessionCount}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                      {row.totalHours.toFixed(1)} hrs
-                    </td>
+          <>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem' }}>
+              All time: <strong style={{ color: 'var(--color-text)' }}>{hoursSummary.allTimeTotalHours.toFixed(1)} hrs</strong> across {hoursSummary.allTimeSessionCount} session{hoursSummary.allTimeSessionCount === 1 ? '' : 's'}
+            </div>
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th style={{ textAlign: 'right' }}>Sessions</th>
+                    <th style={{ textAlign: 'right' }}>Total Hours</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {hoursSummary.months.map((row) => (
+                    <tr key={`${row.year}-${row.month}`}>
+                      <td style={{ fontWeight: 600 }}>{MONTHS[row.month - 1]} {row.year}</td>
+                      <td style={{ textAlign: 'right', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+                        {row.sessionCount}
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                        {row.totalHours.toFixed(1)} hrs
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

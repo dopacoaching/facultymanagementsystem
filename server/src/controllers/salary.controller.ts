@@ -332,30 +332,41 @@ export const getMyHoursSummary = asyncHandler(async (req: AuthRequest, res: Resp
   cutoff.setMonth(cutoff.getMonth() - 11)
   cutoff.setHours(0, 0, 0, 0)
 
-  const agg = await Session.aggregate([
-    {
-      $match: {
-        facultyId: new Types.ObjectId(facultyId),
-        status: 'COMPLETED',
-        sessionDate: { $gte: cutoff },
+  const [agg, allTime] = await Promise.all([
+    Session.aggregate([
+      {
+        $match: {
+          facultyId: new Types.ObjectId(facultyId),
+          status: 'COMPLETED',
+          sessionDate: { $gte: cutoff },
+        },
       },
-    },
-    {
-      $group: {
-        _id: { year: { $year: '$sessionDate' }, month: { $month: '$sessionDate' } },
-        totalHours: { $sum: '$durationHours' },
-        sessionCount: { $sum: 1 },
+      {
+        $group: {
+          _id: { year: { $year: '$sessionDate' }, month: { $month: '$sessionDate' } },
+          totalHours: { $sum: '$durationHours' },
+          sessionCount: { $sum: 1 },
+        },
       },
-    },
-    { $sort: { '_id.year': -1, '_id.month': -1 } },
+      { $sort: { '_id.year': -1, '_id.month': -1 } },
+    ]),
+    // All-time totals — no date filter, covers every completed session ever logged.
+    Session.aggregate([
+      { $match: { facultyId: new Types.ObjectId(facultyId), status: 'COMPLETED' } },
+      { $group: { _id: null, totalHours: { $sum: '$durationHours' }, sessionCount: { $sum: 1 } } },
+    ]),
   ])
 
-  res.json(agg.map((item) => ({
-    year: item._id.year,
-    month: item._id.month,
-    totalHours: item.totalHours,
-    sessionCount: item.sessionCount,
-  })))
+  res.json({
+    months: agg.map((item) => ({
+      year: item._id.year,
+      month: item._id.month,
+      totalHours: item.totalHours,
+      sessionCount: item.sessionCount,
+    })),
+    allTimeTotalHours:   allTime[0]?.totalHours   ?? 0,
+    allTimeSessionCount: allTime[0]?.sessionCount ?? 0,
+  })
 })
 
 // ─── Contract CRUD ─────────────────────────────────────────────────────────────

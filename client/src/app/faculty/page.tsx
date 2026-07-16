@@ -4,7 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll as getSessions } from '@/services/session.service'
 import { getById as getFacultyById } from '@/services/faculty.service'
 import { calculate, getMyHoursSummary } from '@/services/salary.service'
-import type { MonthlyHoursSummary } from '@/services/salary.service'
+import type { HoursSummaryResponse } from '@/services/salary.service'
 import type { Session } from '@/types'
 import type { Faculty } from '@/types'
 import type { SalaryResult } from '@/types'
@@ -30,7 +30,7 @@ export default function FacultyDashboard() {
   const [faculty,       setFaculty]       = useState<Faculty | null>(null)
   const [sessions,      setSessions]      = useState<Session[]>([])
   const [salary,        setSalary]        = useState<SalaryResult | null>(null)
-  const [hoursSummary,  setHoursSummary]  = useState<MonthlyHoursSummary[]>([])
+  const [hoursSummary,  setHoursSummary]  = useState<HoursSummaryResponse | null>(null)
   const [loading,       setLoading]       = useState(true)
 
   useEffect(() => {
@@ -45,13 +45,13 @@ export default function FacultyDashboard() {
       // from this capped list.
       getSessions({ facultyId, limit: 50 } as Parameters<typeof getSessions>[0], accessToken).catch(() => [] as Session[]),
       calculate(facultyId, month, year, accessToken).catch(() => null),
-      getMyHoursSummary(accessToken).catch(() => [] as MonthlyHoursSummary[]),
+      getMyHoursSummary(accessToken).catch(() => null),
     ])
       .then(([fac, sess, sal, hrs]) => {
         setFaculty(fac)
         setSessions(sess as Session[])
         setSalary(sal)
-        setHoursSummary(hrs as MonthlyHoursSummary[])
+        setHoursSummary(hrs)
       })
       .finally(() => setLoading(false))
   }, [accessToken, facultyId]) // eslint-disable-line
@@ -65,6 +65,7 @@ export default function FacultyDashboard() {
   // Use server-aggregated hoursLogged from the salary calculation as the authoritative
   // hours total — it covers ALL sessions, not just the ones in the capped fetch above.
   const totalHours  = salary?.hoursLogged ?? completed.reduce((sum, s) => sum + s.durationHours, 0)
+  const allTimeHours = hoursSummary?.allTimeTotalHours
 
   if (loading) {
     return (
@@ -115,6 +116,7 @@ export default function FacultyDashboard() {
         {[
           { label: 'Sessions This Month', value: completed.length,       icon: '✅', color: 'var(--color-success)' },
           { label: 'Hours This Month',    value: `${totalHours.toFixed(1)} hrs`, icon: '⏱', color: 'var(--color-primary)' },
+          { label: 'Total Hours (All Time)', value: allTimeHours != null ? `${allTimeHours.toFixed(1)} hrs` : '—', icon: '📊', color: 'var(--color-primary)' },
           { label: 'Upcoming',            value: upcoming.length,        icon: '⏳', color: 'var(--color-accent)' },
           { label: 'Est. Salary',
             value: salary?.finalPayable != null
@@ -149,6 +151,7 @@ export default function FacultyDashboard() {
             {([
               ['Hours Logged', salary.hoursLogged != null ? `${salary.hoursLogged} hrs` : null, '⏱'],
               ['Days Worked',  salary.daysWorked  != null ? `${salary.daysWorked} days` : null, '📅'],
+              ['Balance Hours (to reach quota)', salary.monthBalance != null ? `${salary.monthBalance} hrs` : null, '⚖️'],
               ['Base Salary',  salary.baseSalary  != null ? `₹${salary.baseSalary.toLocaleString('en-IN')}` : null, '💰'],
               ['Deductions',   salary.penalties   ? `−₹${salary.penalties.toLocaleString('en-IN')}` : null, '📉'],
             ] as [string, string | null, string][]).filter(([, v]) => v != null).map(([label, value, icon]) => (
@@ -163,6 +166,34 @@ export default function FacultyDashboard() {
               </div>
             ))}
           </div>
+
+          {/* ── Pay breakdown — itemized payment details, most useful for temporary/hourly faculty ── */}
+          {salary.breakdown && salary.breakdown.length > 0 && (
+            <div style={{ marginTop: '1.25rem' }}>
+              <p className="section-label">Payment Details</p>
+              <div className="table-wrapper">
+                <table>
+                  <tbody>
+                    {salary.breakdown.map((row, i) => (
+                      <tr key={i}>
+                        <td style={{ color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                          {row.isDeduction ? '− ' : ''}{row.label}
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                          {/\bhours?\b|\bhrs\b|\bquota\b/i.test(row.label)
+                            ? `${row.amount % 1 === 0 ? row.amount : row.amount.toFixed(1)} hrs`
+                            : (Number.isInteger(row.amount) || row.amount > 100
+                                ? `₹${row.amount.toLocaleString('en-IN')}`
+                                : row.amount.toFixed(1))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div style={{
             marginTop: '1.25rem',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -186,13 +217,16 @@ export default function FacultyDashboard() {
       )}
 
       {/* ── Monthly Hours ──────────────────────────────────────────────────── */}
-      {hoursSummary.length > 0 && (
+      {hoursSummary && hoursSummary.months.length > 0 && (
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <div className="card-header">
             <h2>Monthly Class Hours</h2>
             <Link href="/faculty/salary" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
               Full history →
             </Link>
+          </div>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem' }}>
+            All time: <strong style={{ color: 'var(--color-text)' }}>{hoursSummary.allTimeTotalHours.toFixed(1)} hrs</strong> across {hoursSummary.allTimeSessionCount} session{hoursSummary.allTimeSessionCount === 1 ? '' : 's'}
           </div>
           <div className="table-wrapper">
             <table>
@@ -204,7 +238,7 @@ export default function FacultyDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {hoursSummary.slice(0, 6).map((row) => (
+                {hoursSummary.months.slice(0, 6).map((row) => (
                   <tr key={`${row.year}-${row.month}`}>
                     <td style={{ fontWeight: 600 }}>{MONTHS[row.month - 1]} {row.year}</td>
                     <td style={{ textAlign: 'right', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>

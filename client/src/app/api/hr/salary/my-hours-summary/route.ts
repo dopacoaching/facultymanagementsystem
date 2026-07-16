@@ -26,32 +26,43 @@ export async function GET(req: NextRequest) {
     cutoff.setMonth(cutoff.getMonth() - 11)
     cutoff.setHours(0, 0, 0, 0)
 
-    const agg = await Session.aggregate([
-      {
-        $match: {
-          facultyId: new Types.ObjectId(facultyId),
-          status:    'COMPLETED',
-          sessionDate: { $gte: cutoff },
+    const [agg, allTime] = await Promise.all([
+      Session.aggregate([
+        {
+          $match: {
+            facultyId: new Types.ObjectId(facultyId),
+            status:    'COMPLETED',
+            sessionDate: { $gte: cutoff },
+          },
         },
-      },
-      {
-        $group: {
-          _id:          { year: { $year: '$sessionDate' }, month: { $month: '$sessionDate' } },
-          totalHours:   { $sum: '$durationHours' },
-          sessionCount: { $sum: 1 },
+        {
+          $group: {
+            _id:          { year: { $year: '$sessionDate' }, month: { $month: '$sessionDate' } },
+            totalHours:   { $sum: '$durationHours' },
+            sessionCount: { $sum: 1 },
+          },
         },
-      },
-      { $sort: { '_id.year': -1, '_id.month': -1 } },
+        { $sort: { '_id.year': -1, '_id.month': -1 } },
+      ]),
+      // All-time totals — no date filter, covers every completed session ever logged.
+      Session.aggregate([
+        { $match: { facultyId: new Types.ObjectId(facultyId), status: 'COMPLETED' } },
+        { $group: { _id: null, totalHours: { $sum: '$durationHours' }, sessionCount: { $sum: 1 } } },
+      ]),
     ])
 
-    const result = agg.map((row: { _id: { year: number; month: number }; totalHours: number; sessionCount: number }) => ({
+    const months = agg.map((row: { _id: { year: number; month: number }; totalHours: number; sessionCount: number }) => ({
       year:         row._id.year,
       month:        row._id.month,
       totalHours:   row.totalHours,
       sessionCount: row.sessionCount,
     }))
 
-    return withToken(json(result), refreshedToken)
+    return withToken(json({
+      months,
+      allTimeTotalHours:   allTime[0]?.totalHours   ?? 0,
+      allTimeSessionCount: allTime[0]?.sessionCount ?? 0,
+    }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/hr/salary/my-hours-summary]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

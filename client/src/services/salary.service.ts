@@ -89,8 +89,14 @@ export interface MonthlyHoursSummary {
   sessionCount: number
 }
 
-export async function getMyHoursSummary(token: string): Promise<MonthlyHoursSummary[]> {
-  return apiFetch<MonthlyHoursSummary[]>('/hr/salary/my-hours-summary', { token })
+export interface HoursSummaryResponse {
+  months: MonthlyHoursSummary[]
+  allTimeTotalHours: number
+  allTimeSessionCount: number
+}
+
+export async function getMyHoursSummary(token: string): Promise<HoursSummaryResponse> {
+  return apiFetch<HoursSummaryResponse>('/hr/salary/my-hours-summary', { token })
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
