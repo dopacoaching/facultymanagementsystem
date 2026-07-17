@@ -1,0 +1,5 @@
+export * from './types'
+export { SalaryFields } from './SalaryFields'
+export { ConfigurePayModal } from './ConfigurePayModal'
+export { FacultyTable } from './FacultyTable'
+export { FacultyEditModal } from './FacultyEditModal'

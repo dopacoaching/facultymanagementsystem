@@ -1,5 +1,4 @@
 'use client'
-import { todayLocal } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
@@ -9,58 +8,10 @@ import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
-
-const MINUTE_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
-
-interface FormState {
-  batchId: string
-  facultyId: string
-  subject: string
-  chapter: string
-  syllabusChapterId?: string
-  startTime: string
-  durationHours: number
-  durationMinutes: number
-  sessionDate: string
-}
-
-const MONTH_NAMES: Record<number, string> = {
-  6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
-}
-
-const NEET_SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY']
-
-interface BatchChapter {
-  _id: string
-  subject: string
-  chapterName: string
-  syllabusChapterId?: string
-  videoComplete: boolean
-  facultyClassDone: boolean
-}
-
-interface SyllabusChapter {
-  _id: string
-  subject: string
-  chapterName: string
-  scheduledMonth: number
-  chapterOrder: number
-  isSplitPart: boolean
-  splitPartNumber?: number
-}
-
-const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
-  batchId:           defaultBatchId,
-  facultyId:         '',
-  subject:           '',
-  chapter:           '',
-  syllabusChapterId: undefined,
-  startTime:         '',
-  durationHours:     1,
-  durationMinutes:   0,
-  sessionDate:       todayLocal(),
-})
+import {
+  BatchChapter, EMPTY_FORM, FormState, NEET_SUBJECTS, SyllabusChapter,
+  BatchSelector, ChapterSelector, DurationDateFields,
+} from '@/components/coordinator/log-session'
 
 export default function LogSessionPage() {
   const { accessToken, batchId: assignedBatchId } = useAppSelector((s) => s.auth)
@@ -242,41 +193,14 @@ export default function LogSessionPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-          {/* Campus / Batch */}
-          <div className="form-group">
-            <label className="label">Campus / Batch</label>
-            {batchLocked ? (
-              <div style={{
-                padding: '0.6rem 0.875rem',
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                fontSize: '0.9375rem',
-                color: 'var(--color-text)',
-                fontWeight: 500,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span>{assignedBatch?.name ?? 'Your assigned campus'}</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', fontWeight: 400 }}>
-                  {assignedBatch?.type ?? ''}
-                  {needsVideoFirst && <span style={{ marginLeft: '0.5rem', color: 'var(--color-warning)' }}>🎬 Video-first</span>}
-                </span>
-              </div>
-            ) : (
-              <select
-                className="input"
-                value={form.batchId}
-                onChange={(e) => setField('batchId', e.target.value)}
-              >
-                <option value="">— select campus/batch —</option>
-                {batches.map((b) => (
-                  <option key={b._id} value={b._id}>
-                    {b.name} ({b.type}{isVideoFirstBatch(b.type) ? ' 🎬' : ''})
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+          <BatchSelector
+            batchLocked={batchLocked}
+            assignedBatch={assignedBatch}
+            needsVideoFirst={needsVideoFirst}
+            batches={batches}
+            value={form.batchId}
+            onChange={(v) => setField('batchId', v)}
+          />
 
           {needsVideoFirst && (
             <div className="alert" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', color: 'var(--color-warning)', padding: '0.75rem 1rem' }}>
@@ -286,7 +210,6 @@ export default function LogSessionPage() {
             </div>
           )}
 
-          {/* Faculty */}
           <div className="form-group">
             <label className="label">Faculty</label>
             <select
@@ -301,7 +224,6 @@ export default function LogSessionPage() {
             </select>
           </div>
 
-          {/* Subject */}
           <div className="form-group">
             <label className="label">Subject</label>
             <select className="input" value={form.subject} onChange={(e) => setField('subject', e.target.value as FormState['subject'])}>
@@ -312,97 +234,28 @@ export default function LogSessionPage() {
             </select>
           </div>
 
-          {/* Chapter / Topic */}
-          <div className="form-group">
-            <label className="label">Chapter / Topic</label>
-            {(loadingCh || loadingSyllabus) ? (
-              <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
-            ) : syllabusChapters.length > 0 ? (
-              <>
-                <select className="input" value={form.chapter} onChange={(e) => selectChapter(e.target.value)}>
-                  <option value="">— select chapter —</option>
-                  {Object.entries(syllabusChaptersByMonth)
-                    .sort(([a], [b]) => +a - +b)
-                    .map(([month, chs]) => (
-                      <optgroup key={month} label={MONTH_NAMES[+month] ?? `Month ${month}`}>
-                        {chs.map((ch) => {
-                          const bc = chapters.find((b) =>
-                            (b.syllabusChapterId && b.syllabusChapterId === ch._id) ||
-                            b.chapterName === ch.chapterName
-                          )
-                          const done     = bc?.facultyClassDone
-                          const videoOk  = !needsVideoFirst || bc?.videoComplete
-                          const disabled = Boolean(done) || (needsVideoFirst && !videoOk)
-                          const suffix   = done ? ' ✓' : needsVideoFirst && !videoOk ? ' 🔒' : ''
-                          return (
-                            <option key={ch._id} value={ch.chapterName} disabled={disabled}>
-                              {ch.chapterName}{suffix}
-                            </option>
-                          )
-                        })}
-                      </optgroup>
-                    ))}
-                </select>
-                {needsVideoFirst && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: '0.25rem 0 0' }}>
-                    🔒 Video not yet complete &nbsp;·&nbsp; ✓ Already logged
-                  </p>
-                )}
-              </>
-            ) : (
-              <div style={{ padding: '0.75rem 1rem', background: 'rgba(59,130,246,.06)', border: '1px solid rgba(59,130,246,.2)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--color-muted)' }}>
-                {form.subject ? 'No syllabus chapters found for this subject.' : 'Select a subject to load chapters.'}
-              </div>
-            )}
-          </div>
+          <ChapterSelector
+            loadingCh={loadingCh}
+            loadingSyllabus={loadingSyllabus}
+            syllabusChapters={syllabusChapters}
+            syllabusChaptersByMonth={syllabusChaptersByMonth}
+            chapters={chapters}
+            needsVideoFirst={needsVideoFirst}
+            subject={form.subject}
+            value={form.chapter}
+            onSelect={selectChapter}
+          />
 
-          {/* Start Time + Duration + Date */}
-          <div className="input-group">
-            <div className="form-group">
-              <label className="label">Start Time</label>
-              <input
-                type="time"
-                className="input"
-                value={form.startTime}
-                onChange={(e) => setField('startTime', e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label className="label">Duration</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="number"
-                  className="input"
-                  min={0}
-                  max={12}
-                  style={{ width: '5rem' }}
-                  value={form.durationHours}
-                  onChange={(e) => setField('durationHours', +e.target.value)}
-                  placeholder="hrs"
-                />
-                <select
-                  className="input"
-                  style={{ width: '5rem' }}
-                  value={form.durationMinutes}
-                  onChange={(e) => setField('durationMinutes', +e.target.value)}
-                >
-                  {MINUTE_OPTIONS.map((m) => (
-                    <option key={m} value={m}>{m}m</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="label">Session Date</label>
-              <input
-                type="date"
-                className="input"
-                value={form.sessionDate}
-                max={todayLocal()}
-                onChange={(e) => setField('sessionDate', e.target.value)}
-              />
-            </div>
-          </div>
+          <DurationDateFields
+            startTime={form.startTime}
+            onStartTimeChange={(v) => setField('startTime', v)}
+            durationHours={form.durationHours}
+            onDurationHoursChange={(v) => setField('durationHours', v)}
+            durationMinutes={form.durationMinutes}
+            onDurationMinutesChange={(v) => setField('durationMinutes', v)}
+            sessionDate={form.sessionDate}
+            onSessionDateChange={(v) => setField('sessionDate', v)}
+          />
 
         </div>
 
