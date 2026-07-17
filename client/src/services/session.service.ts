@@ -28,6 +28,7 @@ export async function create(
     durationHours: number
     sessionDate: string
     facultyId: string
+    sessionCategory?: 'CLASS' | 'DOUBT_CLEARANCE'
   },
   token: string
 ): Promise<Session> {

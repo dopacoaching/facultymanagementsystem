@@ -178,6 +178,8 @@ export interface FacultyContract {
   variableComponent?: number
   cancellationPenaltyPerClass?: number
   minHoursRequirement?: number
+  shortfallRatePerHour?: number
+  classRatePerHour?: number
   isConfigured: boolean
   configurablePayJson?: Record<string, unknown>
   notes?: string

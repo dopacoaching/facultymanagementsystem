@@ -14,7 +14,7 @@ const FACULTY_WRITABLE = [
   'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'monthlyDayQuota',
   'overtimeThreshold', 'overtimeRate', 'fixedComponent', 'variableComponent',
   'totalContractDays', 'monthlyLeaveAllowance', 'aprilLeaveAllowance',
-  'minDaysNormal', 'minDaysDryMonth', 'configurablePayJson',
+  'minDaysNormal', 'minDaysDryMonth', 'configurablePayJson', 'requiresSessionCategory',
 ] as const
 
 type FacultyWritable = (typeof FACULTY_WRITABLE)[number]
@@ -41,9 +41,11 @@ export const getAllFaculty = asyncHandler(async (req: AuthRequest, res: Response
     return
   }
 
-  // Non-HR roles (Coordinator, Academics): name/subject only — no salary data
+  // Non-HR roles (Coordinator, Academics): name/subject only — no salary data.
+  // requiresSessionCategory is included here (not salary data) so the session
+  // logging form knows when to show the Class/Doubt Clearance picker.
   const isHR = req.user!.role === 'HR_MANAGER' || req.user!.role === 'ADMIN'
-  const projection = isHR ? '' : 'name subject type isActive'
+  const projection = isHR ? '' : 'name subject type isActive requiresSessionCategory'
   const faculty = await Faculty.find(filter).select(projection).sort({ name: 1 })
   res.json(faculty)
 })

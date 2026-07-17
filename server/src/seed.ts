@@ -123,19 +123,19 @@ async function seed() {
   //   Anoop K           → Physics   (was Chemistry)
   const facultyDocs = await Faculty.insertMany([
     // 1 – Ashraf AC
-    { name: 'Ashraf AC', subject: 'Chemistry', type: 'PERMANENT', salaryModel: 'FIXED_WITH_QUOTA', fixedMonthlySalary: e('SALARY_ASHRAF_FIXED', 400000), monthlyHourQuota: e('SALARY_ASHRAF_QUOTA_HRS', 120) },
+    { name: 'Ashraf AC', subject: 'Chemistry', type: 'PERMANENT', salaryModel: 'FIXED_WITH_QUOTA', fixedMonthlySalary: e('SALARY_ASHRAF_FIXED', 400000), monthlyHourQuota: e('SALARY_ASHRAF_QUOTA_HRS', 120), minDaysNormal: e('SALARY_ASHRAF_MIN_DAYS', 26) },
     // 2 – Abdul Adil VK
     { name: 'Abdul Adil VK', subject: 'Biology', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_ADIL_RATE', 1100) },
     // 3 – Dr. Sanoop Sebastian
     { name: 'Dr. Sanoop Sebastian', subject: 'Mathematics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_SANOOP_RATE', 750) },
     // 4 – Fahad T
     { name: 'Fahad T', subject: 'English', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_FAHAD_FIXED', 17000), monthlyDayQuota: e('SALARY_FAHAD_MIN_DAYS', 8) },
-    // 5 – Muhammed Ashique EK
-    { name: 'Muhammed Ashique EK', subject: 'Mathematics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_ASHIQUE_FIXED', 75000), monthlyLeaveAllowance: e('SALARY_ASHIQUE_MONTHLY_LEAVE', 8), aprilLeaveAllowance: e('SALARY_ASHIQUE_APRIL_LEAVE', 4) },
+    // 5 – Muhammed Ashique EK — 22-day minimum model (was leave-allowance based)
+    { name: 'Muhammed Ashique EK', subject: 'Mathematics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_ASHIQUE_FIXED', 75000), minDaysNormal: e('SALARY_ASHIQUE_MIN_DAYS', 22) },
     // 6 – Hisham Abdul Kadir NP
-    { name: 'Hisham Abdul Kadir NP', subject: 'Physics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_HISHAM_RATE', 900) },
+    { name: 'Hisham Abdul Kadir NP', subject: 'Physics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_HISHAM_RATE', 1050) },
     // 7 – Muneeb Haneefa C
-    { name: 'Muneeb Haneefa C', subject: 'Physics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_MUNEEB_RATE', 1150), minDaysNormal: e('SALARY_MUNEEB_MIN_DAYS', 22), minDaysDryMonth: e('SALARY_MUNEEB_MIN_DAYS_DRY', 10) },
+    { name: 'Muneeb Haneefa C', subject: 'Physics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_MUNEEB_RATE', 1250), minDaysNormal: e('SALARY_MUNEEB_MIN_DAYS', 22), minDaysDryMonth: e('SALARY_MUNEEB_MIN_DAYS_DRY', 10) },
     // 8 – Fahim BM
     { name: 'Fahim BM', subject: 'Chemistry', type: 'PERMANENT', salaryModel: 'FIXED_WITH_QUOTA', fixedMonthlySalary: e('SALARY_FAHIM_FIXED', 40000), monthlyHourQuota: e('SALARY_FAHIM_OT_THRESHOLD', 50), overtimeThreshold: e('SALARY_FAHIM_OT_THRESHOLD', 50), overtimeRate: e('SALARY_FAHIM_OT_RATE', 850) },
     // 9 – Muhsin AV
@@ -146,8 +146,18 @@ async function seed() {
     { name: 'Habid PP', subject: 'Chemistry', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_HABID_RATE', 1100) },
     // 12 – Dr. Dunoonul Shibli
     { name: 'Dr. Dunoonul Shibli', subject: 'Biology', type: 'PERMANENT', salaryModel: 'SPLIT_FIXED_VARIABLE', fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000), variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000), monthlyDayQuota: e('SALARY_SHIBLI_MIN_DAYS', 16), monthlyHourQuota: e('SALARY_SHIBLI_MIN_HOURS', 96) },
-    // 13 – Anoop K
-    { name: 'Anoop K', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000), monthlyDayQuota: e('SALARY_ANOOP_MIN_DAYS', 16) },
+    // 13 – Anoop K — now SPLIT_FIXED_VARIABLE (fixedComponent 0, all ₹2L subject to
+    // the day-shortfall/cancellation penalty, same rules as Shibli)
+    { name: 'Anoop K', subject: 'Physics', type: 'PERMANENT', salaryModel: 'SPLIT_FIXED_VARIABLE', fixedComponent: e('SALARY_ANOOP_FIXED_COMP', 0), variableComponent: e('SALARY_ANOOP_VAR_COMP', 200000), minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16) },
+    // 14 – Jidhu
+    { name: 'Jidhu', subject: 'Biology', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_JIDHU_FIXED', 110000), minDaysNormal: e('SALARY_JIDHU_MIN_DAYS', 18) },
+    // 15 – Promod — at/above 135h: fixed + overtime; below 135h: pure hourly at a higher rate
+    { name: 'Promod', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_PROMOD_FIXED', 20000), overtimeThreshold: e('SALARY_PROMOD_THRESHOLD', 135), overtimeRate: e('SALARY_PROMOD_OT_RATE', 1800) },
+    // 16-18 – Parvathy, Thamanna, Manju — doubt-clearance staff (Class vs Doubt Clearance rates)
+    { name: 'Parvathy', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300), requiresSessionCategory: true },
+    { name: 'Thamanna', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300), requiresSessionCategory: true },
+    { name: 'Manju', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300), requiresSessionCategory: true },
+    // Pending (subject/rule not yet specified): Afsal Safwan, Shahid, Theertha
   ])
 
   // Map names → ObjectIds for contract seeding
@@ -155,19 +165,24 @@ async function seed() {
 
   // ── PermanentFacultyContracts ──────────────────────────────────────────────
   await PermanentFacultyContract.insertMany([
-    { facultyId: byName['Ashraf AC'],          contractType: 'FIXED_QUOTA_CARRYFORWARD', fixedMonthlySalary: e('SALARY_ASHRAF_FIXED', 400000),         monthlyHourQuota: e('SALARY_ASHRAF_QUOTA_HRS', 120),       hasCarryForward: true, notes: 'Full salary paid regardless of hours. Quota deficit written to CarryForwardBalance each month.' },
+    { facultyId: byName['Ashraf AC'],          contractType: 'FIXED_QUOTA_CARRYFORWARD', fixedMonthlySalary: e('SALARY_ASHRAF_FIXED', 400000),         monthlyHourQuota: e('SALARY_ASHRAF_QUOTA_HRS', 120),       hasCarryForward: true, minDaysNormal: e('SALARY_ASHRAF_MIN_DAYS', 26), notes: 'Full salary paid regardless of hours. Quota deficit written to CarryForwardBalance each month. 26-day minimum is warning-only (no deduction).' },
     { facultyId: byName['Abdul Adil VK'],      contractType: 'HOURLY',                   hourlyRate: e('SALARY_ADIL_RATE', 1100),                        notes: 'Biology. ₹' + es('SALARY_ADIL_RATE', '1100') + '/hr' },
     { facultyId: byName['Dr. Sanoop Sebastian'],contractType: 'HOURLY',                  hourlyRate: e('SALARY_SANOOP_RATE', 750),                       notes: 'Mathematics. ₹' + es('SALARY_SANOOP_RATE', '750') + '/hr' },
     { facultyId: byName['Fahad T'],            contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_FAHAD_FIXED', 17000),             minDaysNormal: e('SALARY_FAHAD_MIN_DAYS', 8),              notes: 'English. Fixed monthly; HR_REVIEW if < min days.' },
-    { facultyId: byName['Muhammed Ashique EK'],contractType: 'FIXED_MONTHLY_LEAVE',      fixedMonthlySalary: e('SALARY_ASHIQUE_FIXED', 75000),           monthlyLeaveAllowance: e('SALARY_ASHIQUE_MONTHLY_LEAVE', 8), aprilLeaveAllowance: e('SALARY_ASHIQUE_APRIL_LEAVE', 4), notes: 'Mathematics. Pro-rata deduction for excess leaves.' },
-    { facultyId: byName['Hisham Abdul Kadir NP'],contractType: 'HOURLY',                 hourlyRate: e('SALARY_HISHAM_RATE', 900),                       notes: 'Physics. ₹' + es('SALARY_HISHAM_RATE', '900') + '/hr' },
-    { facultyId: byName['Muneeb Haneefa C'],   contractType: 'HOURLY_MIN_DAYS',          hourlyRate: e('SALARY_MUNEEB_RATE', 1150),                      minDaysNormal: e('SALARY_MUNEEB_MIN_DAYS', 22),           minDaysDryMonths: e('SALARY_MUNEEB_MIN_DAYS_DRY', 10), dryMonths: [2, 3, 5], notes: 'Physics. Dry months = Feb/Mar/May.' },
+    { facultyId: byName['Muhammed Ashique EK'],contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_ASHIQUE_FIXED', 75000),           minDaysNormal: e('SALARY_ASHIQUE_MIN_DAYS', 22),           notes: 'Mathematics. Fixed monthly; HR_REVIEW if < 22-day min (replaces the old leave-allowance model).' },
+    { facultyId: byName['Hisham Abdul Kadir NP'],contractType: 'HOURLY',                 hourlyRate: e('SALARY_HISHAM_RATE', 1050),                      notes: 'Physics. ₹' + es('SALARY_HISHAM_RATE', '1050') + '/hr' },
+    { facultyId: byName['Muneeb Haneefa C'],   contractType: 'HOURLY_MIN_DAYS',          hourlyRate: e('SALARY_MUNEEB_RATE', 1250),                      minDaysNormal: e('SALARY_MUNEEB_MIN_DAYS', 22),           minDaysDryMonths: e('SALARY_MUNEEB_MIN_DAYS_DRY', 10), dryMonths: [2, 3, 5], notes: 'Physics. Dry months = Feb/Mar/May.' },
     { facultyId: byName['Fahim BM'],           contractType: 'BASE_OVERTIME',            fixedMonthlySalary: e('SALARY_FAHIM_FIXED', 40000),             monthlyHourQuota: e('SALARY_FAHIM_OT_THRESHOLD', 50),     overtimeThresholdHours: e('SALARY_FAHIM_OT_THRESHOLD', 50), overtimeRatePerHour: e('SALARY_FAHIM_OT_RATE', 850), notes: 'Chemistry. Base covers quota; overtime beyond.' },
     { facultyId: byName['Muhsin AV'],          contractType: 'HOURLY',                   hourlyRate: e('SALARY_MUHSIN_RATE', 1000),                      notes: 'Biology. ₹' + es('SALARY_MUHSIN_RATE', '1000') + '/hr' },
     { facultyId: byName['Anand K'],            contractType: 'FIXED_QUOTA_NOCARRY',      fixedMonthlySalary: e('SALARY_ANAND_FIXED', 120000),            monthlyHourQuota: e('SALARY_ANAND_QUOTA_HRS', 135),        hasCarryForward: false, notes: 'Biology. Balance display only; no DB carry-forward.' },
     { facultyId: byName['Habid PP'],           contractType: 'HOURLY',                   hourlyRate: e('SALARY_HABID_RATE', 1100),                       notes: 'Chemistry. ₹' + es('SALARY_HABID_RATE', '1100') + '/hr' },
-    { facultyId: byName['Dr. Dunoonul Shibli'],contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),           variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000),   cancellationPenaltyPerClass: e('SALARY_SHIBLI_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_SHIBLI_MIN_DAYS', 16), minHoursRequirement: e('SALARY_SHIBLI_MIN_HOURS', 96), notes: 'Biology. Variable reduced by penalty per faculty-cancelled class.' },
-    { facultyId: byName['Anoop K'],            contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_ANOOP_FIXED', 200000),            minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16),             notes: 'Physics. Fixed monthly; HR_REVIEW if < min days.' },
+    { facultyId: byName['Dr. Dunoonul Shibli'],contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),           variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000),   cancellationPenaltyPerClass: e('SALARY_SHIBLI_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_SHIBLI_MIN_DAYS', 16), minHoursRequirement: e('SALARY_SHIBLI_MIN_HOURS', 96), notes: 'Biology. Variable reduced by ₹9,000 per faculty-cancelled class OR per day short of the 16-day minimum.' },
+    { facultyId: byName['Anoop K'],            contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_ANOOP_FIXED_COMP', 0),                variableComponent: e('SALARY_ANOOP_VAR_COMP', 200000),    cancellationPenaltyPerClass: e('SALARY_ANOOP_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16), minHoursRequirement: e('SALARY_ANOOP_MIN_HOURS', 96), notes: 'Physics. Same rules as Shibli: ₹9,000 per cancelled class OR per day short of the 16-day minimum.' },
+    { facultyId: byName['Jidhu'],              contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_JIDHU_FIXED', 110000),            minDaysNormal: e('SALARY_JIDHU_MIN_DAYS', 18),             minHoursRequirement: e('SALARY_JIDHU_MIN_HOURS', 108), notes: 'Biology. Fixed monthly; HR_REVIEW if < 18 days or < 108 hours.' },
+    { facultyId: byName['Promod'],             contractType: 'BASE_OVERTIME_SHORTFALL',  fixedMonthlySalary: e('SALARY_PROMOD_FIXED', 20000),            overtimeThresholdHours: e('SALARY_PROMOD_THRESHOLD', 135), overtimeRatePerHour: e('SALARY_PROMOD_OT_RATE', 1800), shortfallRatePerHour: e('SALARY_PROMOD_SHORTFALL_RATE', 2000), notes: 'Physics. At/above 135h: ₹20,000 + ₹1,800/hr overtime. Below 135h: hoursLogged × ₹2,000/hr instead.' },
+    { facultyId: byName['Parvathy'],           contractType: 'DOUBT_CLEARANCE_SPLIT_RATE', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000),           overtimeThresholdHours: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_DOUBT_OT_RATE', 300), classRatePerHour: e('SALARY_DOUBT_CLASS_RATE', 550), notes: 'Doubt clearance. ₹20,000 flat for up to 18 doubt hours, ₹300/hr beyond; ₹550/hr for every class hour.' },
+    { facultyId: byName['Thamanna'],           contractType: 'DOUBT_CLEARANCE_SPLIT_RATE', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000),           overtimeThresholdHours: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_DOUBT_OT_RATE', 300), classRatePerHour: e('SALARY_DOUBT_CLASS_RATE', 550), notes: 'Doubt clearance. ₹20,000 flat for up to 18 doubt hours, ₹300/hr beyond; ₹550/hr for every class hour.' },
+    { facultyId: byName['Manju'],              contractType: 'DOUBT_CLEARANCE_SPLIT_RATE', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000),           overtimeThresholdHours: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_DOUBT_OT_RATE', 300), classRatePerHour: e('SALARY_DOUBT_CLASS_RATE', 550), notes: 'Doubt clearance. ₹20,000 flat for up to 18 doubt hours, ₹300/hr beyond; ₹550/hr for every class hour.' },
   ])
 
   // ── Users ─────────────────────────────────────────────────────────────────

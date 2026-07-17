@@ -11,7 +11,8 @@ const CONTRACT_WRITABLE = [
   'minDaysNormal', 'minDaysDryMonths', 'dryMonths', 'monthlyLeaveAllowance',
   'aprilLeaveAllowance', 'overtimeThresholdHours', 'overtimeRatePerHour',
   'fixedComponent', 'variableComponent', 'cancellationPenaltyPerClass',
-  'minHoursRequirement', 'isConfigured', 'configurablePayJson', 'notes',
+  'minHoursRequirement', 'shortfallRatePerHour', 'classRatePerHour',
+  'isConfigured', 'configurablePayJson', 'notes',
 ] as const
 
 /** GET /api/hr/contract/:facultyId */

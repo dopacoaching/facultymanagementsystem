@@ -10,7 +10,7 @@ const FACULTY_WRITABLE = [
   'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'monthlyDayQuota',
   'overtimeThreshold', 'overtimeRate', 'fixedComponent', 'variableComponent',
   'totalContractDays', 'monthlyLeaveAllowance', 'aprilLeaveAllowance',
-  'minDaysNormal', 'minDaysDryMonth', 'configurablePayJson',
+  'minDaysNormal', 'minDaysDryMonth', 'configurablePayJson', 'requiresSessionCategory',
 ] as const
 
 function pickFacultyFields(body: Record<string, unknown>): Record<string, unknown> {
@@ -41,9 +41,11 @@ export async function GET(req: NextRequest) {
       return withToken(json(own ? [own] : []), refreshedToken)
     }
 
-    // Non-HR roles (Coordinator, Academics): name/subject only — no salary data
+    // Non-HR roles (Coordinator, Academics): name/subject only — no salary data.
+    // requiresSessionCategory is included here (not salary data) so the session
+    // logging form knows when to show the Class/Doubt Clearance picker.
     const isHR = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
-    const projection = isHR ? undefined : 'name subject type isActive _id'
+    const projection = isHR ? undefined : 'name subject type isActive requiresSessionCategory _id'
     const faculty = await Faculty.find(filter).select(projection ?? '').sort({ name: 1 })
     return withToken(json(faculty), refreshedToken)
   } catch (err) {

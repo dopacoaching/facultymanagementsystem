@@ -18,7 +18,8 @@ const CONTRACT_WRITABLE = [
   'minDaysNormal', 'minDaysDryMonths', 'dryMonths', 'monthlyLeaveAllowance',
   'aprilLeaveAllowance', 'overtimeThresholdHours', 'overtimeRatePerHour',
   'fixedComponent', 'variableComponent', 'cancellationPenaltyPerClass',
-  'minHoursRequirement', 'isConfigured', 'configurablePayJson', 'notes',
+  'minHoursRequirement', 'shortfallRatePerHour', 'classRatePerHour',
+  'isConfigured', 'configurablePayJson', 'notes',
 ] as const
 
 export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) => {

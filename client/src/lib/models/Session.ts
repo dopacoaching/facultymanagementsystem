@@ -14,6 +14,10 @@ export interface ISession extends Document {
   cancellationInitiator?: CancellationInitiator
   cancellationReason?: string
   loggedByUserId: Types.ObjectId
+  /** CLASS = regular teaching hours; DOUBT_CLEARANCE = doubt-clearing session.
+   *  Only meaningful for faculty on the DOUBT_CLEARANCE_SPLIT_RATE contract type,
+   *  who are paid a different rate per category. Defaults to CLASS for everyone else. */
+  sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE'
 }
 
 const SessionSchema = new Schema<ISession>(
@@ -30,6 +34,7 @@ const SessionSchema = new Schema<ISession>(
     cancellationInitiator: { type: String, enum: ['FACULTY', 'MANAGEMENT', 'STUDENT'] },
     cancellationReason: String,
     loggedByUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    sessionCategory: { type: String, enum: ['CLASS', 'DOUBT_CLEARANCE'], default: 'CLASS' },
   },
   { timestamps: true }
 )

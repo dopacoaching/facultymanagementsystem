@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime } = await req.json()
+    const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime, sessionCategory } = await req.json()
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
       return withToken(json({
@@ -278,6 +278,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (sessionCategory && !['CLASS', 'DOUBT_CLEARANCE'].includes(sessionCategory)) {
+      return withToken(json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }, 400), refreshedToken)
+    }
+
     // All checks passed — create session
     const session = await Session.create({
       facultyId:     facultyOid,
@@ -290,6 +294,7 @@ export async function POST(req: NextRequest) {
       timeSlot:      timeSlot   ?? undefined,
       status:        'SCHEDULED',
       loggedByUserId: new Types.ObjectId(payload.userId),
+      sessionCategory: sessionCategory ?? 'CLASS',
     })
 
     // Auto-mark chapter as facultyClassDone; attach syllabus link if provided

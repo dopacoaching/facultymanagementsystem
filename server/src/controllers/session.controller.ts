@@ -89,7 +89,7 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  *  6. Auto-mark BatchChapter.facultyClassDone = true on success
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, durationHours, sessionDate, timeSlot } = req.body
+  const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, durationHours, sessionDate, timeSlot, sessionCategory } = req.body
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
   if (!facultyId || !batchId || !subject || !chapter || !durationHours || !sessionDate) {
@@ -264,6 +264,10 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     return
   }
 
+  if (sessionCategory && !['CLASS', 'DOUBT_CLEARANCE'].includes(sessionCategory)) {
+    res.status(400).json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }); return
+  }
+
   // ── All checks passed — create session ────────────────────────────────────
   const session = await Session.create({
     facultyId:     facultyOid,
@@ -276,6 +280,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     timeSlot:      timeSlot ?? undefined,
     status:        'SCHEDULED',
     loggedByUserId: new Types.ObjectId(req.user!.userId),
+    sessionCategory: sessionCategory ?? 'CLASS',
   })
 
   // ── 6. AUTO-MARK chapter as facultyClassDone ─────────────────────────────

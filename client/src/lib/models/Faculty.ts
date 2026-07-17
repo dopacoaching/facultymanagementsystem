@@ -21,6 +21,9 @@ export interface IFaculty extends Document {
   minDaysNormal?: number
   minDaysDryMonth?: number
   configurablePayJson?: Record<string, unknown>
+  /** True for faculty on DOUBT_CLEARANCE_SPLIT_RATE contracts — session logging
+   *  UI shows a Class/Doubt Clearance category picker only when this is set. */
+  requiresSessionCategory?: boolean
 }
 
 const FacultySchema = new Schema<IFaculty>(
@@ -48,6 +51,7 @@ const FacultySchema = new Schema<IFaculty>(
     minDaysNormal: Number,
     minDaysDryMonth: Number,
     configurablePayJson: { type: Schema.Types.Mixed },
+    requiresSessionCategory: { type: Boolean, default: false },
   },
   { timestamps: true }
 )

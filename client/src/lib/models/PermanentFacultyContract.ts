@@ -35,11 +35,21 @@ export interface IPermanentFacultyContract extends Document {
   overtimeThresholdHours?: number
   overtimeRatePerHour?: number
 
-  // SPLIT_FIXED_VARIABLE (Dr. Dunoonul Shibli)
+  // SPLIT_FIXED_VARIABLE (Dr. Dunoonul Shibli, Anoop K)
   fixedComponent?: number
   variableComponent?: number
   cancellationPenaltyPerClass?: number
   minHoursRequirement?: number   // combined min-hours gate alongside minDaysNormal
+
+  // BASE_OVERTIME_SHORTFALL (Promod): below overtimeThresholdHours, pay is
+  // hoursLogged × shortfallRatePerHour instead of fixedMonthlySalary + overtime.
+  shortfallRatePerHour?: number
+
+  // DOUBT_CLEARANCE_SPLIT_RATE (Parvathy, Thamanna, Manju): fixedMonthlySalary is
+  // the flat pay for up to overtimeThresholdHours of DOUBT_CLEARANCE-category
+  // hours; overtimeRatePerHour pays extra doubt hours beyond that; classRatePerHour
+  // pays every CLASS-category hour (no threshold, straight hourly).
+  classRatePerHour?: number
 
   // CONFIGURABLE (Dileep — TBD)
   isConfigured: boolean
@@ -62,6 +72,8 @@ const PermanentFacultyContractSchema = new Schema<IPermanentFacultyContract>(
         'FIXED_QUOTA_NOCARRY',
         'BASE_OVERTIME',
         'SPLIT_FIXED_VARIABLE',
+        'BASE_OVERTIME_SHORTFALL',
+        'DOUBT_CLEARANCE_SPLIT_RATE',
         'CONFIGURABLE',
       ],
       required: true,
@@ -81,6 +93,8 @@ const PermanentFacultyContractSchema = new Schema<IPermanentFacultyContract>(
     variableComponent:        Number,
     cancellationPenaltyPerClass: Number,
     minHoursRequirement:      Number,
+    shortfallRatePerHour:     Number,
+    classRatePerHour:         Number,
     // IMPORTANT: defaults to false — must be explicitly set to true via PATCH /hr/contract/:facultyId
     // after the HR Manager fills in the configurablePayJson and any other required fields.
     // The salary calculator returns PENDING_CONFIG until isConfigured === true.

@@ -25,6 +25,7 @@ export interface Faculty {
   monthlyLeaveAllowance?: number
   aprilLeaveAllowance?: number
   configurablePayJson?: Record<string, unknown>
+  requiresSessionCategory?: boolean
 }
 
 export interface Session {
@@ -37,6 +38,7 @@ export interface Session {
   sessionDate: string
   status: string
   cancellationInitiator?: string
+  sessionCategory?: 'CLASS' | 'DOUBT_CLEARANCE'
 }
 
 // ── Salary result types ────────────────────────────────────────────────────

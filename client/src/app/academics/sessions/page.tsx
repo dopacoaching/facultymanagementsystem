@@ -68,6 +68,7 @@ export default function SessionsPage() {
     durationHours: 1,
     durationMinutes: 0,
     sessionDate: todayLocal(),
+    sessionCategory: 'CLASS' as 'CLASS' | 'DOUBT_CLEARANCE',
   })
   const [saving, setSaving]           = useState(false)
   const [cancelInitiator, setCancelInitiator] = useState<Record<string, string>>({})
@@ -98,6 +99,9 @@ export default function SessionsPage() {
   // Derived: is the form's selected batch requiring video-first?
   const formBatchType = getBatchType(form.batchId, batches)
   const needsVideoFirst = formBatchType ? isVideoFirstBatch(formBatchType) : false
+  // Derived: does the selected faculty need a Class/Doubt Clearance category picker?
+  const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
+  const needsSessionCategory = Boolean(selectedFaculty?.requiresSessionCategory)
 
   const load = () => {
     if (accessToken) {
@@ -195,6 +199,7 @@ export default function SessionsPage() {
         durationHours:     totalDuration,
         startTime:         form.startTime || undefined,
         syllabusChapterId: form.syllabusChapterId ?? undefined,
+        sessionCategory:   needsSessionCategory ? form.sessionCategory : undefined,
       }, accessToken)
       toast.success('Session created', `${form.subject} session has been logged.`)
       setShowForm(false); load()
@@ -347,6 +352,16 @@ export default function SessionsPage() {
                     {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
                   </select>
                 </div>
+                {needsSessionCategory && (
+                  <div className="form-group">
+                    <label className="label">Session Category</label>
+                    <select className="input" value={form.sessionCategory}
+                      onChange={(e) => setForm({ ...form, sessionCategory: e.target.value as 'CLASS' | 'DOUBT_CLEARANCE' })}>
+                      <option value="CLASS">Class</option>
+                      <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
+                    </select>
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="label">Batch</label>
                   <select className="input" value={form.batchId} onChange={(e) => setForm({ ...form, batchId: e.target.value, subject: '', chapter: '', syllabusChapterId: undefined })}>
