@@ -8,45 +8,12 @@ import { apiFetch } from '@/services/api'
 import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Session, Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
-import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
-
-const STATUS_BADGE: Record<string, string> = {
-  SCHEDULED:     'badge-blue',
-  COMPLETED:     'badge-green',
-  CANCELLED:     'badge-red',
-  NOT_COMPLETED: 'badge-yellow',
-}
-
-const STATUS_OPTIONS = ['ALL', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPLETED']
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-const MONTH_NAMES: Record<number, string> = {
-  6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
-}
-
-const NEET_SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY']
-
-interface BatchChapter {
-  _id: string
-  subject: string
-  chapterName: string
-  syllabusChapterId?: string
-  videoComplete: boolean
-  facultyClassDone: boolean
-}
-
-interface SyllabusChapter {
-  _id: string
-  subject: string
-  chapterName: string
-  scheduledMonth: number
-  chapterOrder: number
-  isSplitPart: boolean
-  splitPartNumber?: number
-}
+import {
+  BatchChapter, EditSessionForm, NewSessionForm, NEET_SUBJECTS, SyllabusChapter,
+  SessionFilterBar, NewSessionModal, EditSessionModal, SessionsTable,
+} from '@/components/academics/sessions'
 
 function getBatchType(batchId: string, batches: Batch[]): string {
   return batches.find((b) => b._id === batchId)?.type ?? ''
@@ -61,14 +28,14 @@ export default function SessionsPage() {
   const [loading, setLoading]         = useState(true)
   const [showForm, setShowForm]       = useState(false)
   const [cancelling, setCancelling]   = useState('')
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<NewSessionForm>({
     facultyId: '', batchId: '', subject: '', chapter: '',
-    syllabusChapterId: undefined as string | undefined,
+    syllabusChapterId: undefined,
     startTime: '',
     durationHours: 1,
     durationMinutes: 0,
     sessionDate: todayLocal(),
-    sessionCategory: 'CLASS' as 'CLASS' | 'DOUBT_CLEARANCE',
+    sessionCategory: 'CLASS',
   })
   const [saving, setSaving]           = useState(false)
   const [cancelInitiator, setCancelInitiator] = useState<Record<string, string>>({})
@@ -90,7 +57,7 @@ export default function SessionsPage() {
 
   // Edit modal
   const [editing, setEditing]         = useState<Session | null>(null)
-  const [editForm, setEditForm]       = useState({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '', durationHours: 1 })
+  const [editForm, setEditForm]       = useState<EditSessionForm>({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '', durationHours: 1 })
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
 
@@ -264,12 +231,6 @@ export default function SessionsPage() {
     } finally { setEditSaving(false) }
   }
 
-  const BATCH_TYPE_BADGE: Record<string, string> = {
-    RESIDENTIAL: 'badge-purple',
-    ONLINE:      'badge-blue',
-    OFFLINE:     'badge-gray',
-  }
-
   return (
     <div>
       <div className="page-header">
@@ -289,325 +250,54 @@ export default function SessionsPage() {
         </div>
       )}
 
-      {/* ── Filters ───────────────────────────────────────────────────────────── */}
-      <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.25rem' }}>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: '1 1 220px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)', pointerEvents: 'none' }}>🔍</span>
-            <input className="input" placeholder="Search faculty, subject, chapter…" value={search}
-              onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: '2.25rem' }} />
-          </div>
-          <select className="input" value={filterBatch} onChange={(e) => setFilterBatch(e.target.value)} style={{ minWidth: 160 }}>
-            <option value="">All Batches</option>
-            {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
-          </select>
-          <select className="input" value={statusFilter} onChange={(e) => setStatus(e.target.value)} style={{ minWidth: 140 }}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s === 'ALL' ? 'All Statuses' : s.replace(/_/g, ' ')}</option>
-            ))}
-          </select>
-          <select className="input" value={filterMonth} onChange={(e) => setFilterMonth(+e.target.value)} style={{ minWidth: 110 }}>
-            <option value={0}>All Months</option>
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-          <select className="input" value={filterYear} onChange={(e) => setFilterYear(+e.target.value)} style={{ minWidth: 100 }}>
-            <option value={0}>All Years</option>
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-          {(search || statusFilter !== 'ALL' || filterMonth > 0 || filterYear > 0 || filterBatch) && (
-            <button className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setStatus('ALL'); setFilterMonth(0); setFilterYear(0); setFilterBatch('') }}>
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
+      <SessionFilterBar
+        search={search} onSearchChange={setSearch}
+        filterBatch={filterBatch} onBatchChange={setFilterBatch} batches={batches}
+        statusFilter={statusFilter} onStatusChange={setStatus}
+        filterMonth={filterMonth} onMonthChange={setFilterMonth}
+        filterYear={filterYear} onYearChange={setFilterYear} years={years}
+        onClear={() => { setSearch(''); setStatus('ALL'); setFilterMonth(0); setFilterYear(0); setFilterBatch('') }}
+      />
 
-      {/* ── New Session Modal ─────────────────────────────────────────────────── */}
       {showForm && (
-        <div
-          role="dialog" aria-modal="true" aria-label="Log New Session"
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setShowForm(false); setError('') } }}
-        >
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 620, border: '1px solid var(--color-border)' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontWeight: 700, margin: 0 }}>Log New Session</h2>
-              <button onClick={() => { setShowForm(false); setError('') }} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
-            </div>
-            <div style={{ padding: '1.5rem' }}>
-              {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
-
-              {needsVideoFirst && (
-                <div className="alert" style={{ marginBottom: '1rem', background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', color: 'var(--color-warning)', padding: '0.75rem 1rem' }}>
-                  <span style={{ marginRight: '0.5rem' }}>🎬</span>
-                  <strong>{formBatchType}</strong> batch — only video-complete chapters can be logged.
-                </div>
-              )}
-
-              <div className="input-group">
-                <div className="form-group">
-                  <label className="label">Faculty</label>
-                  <select className="input" autoFocus value={form.facultyId} onChange={(e) => setForm({ ...form, facultyId: e.target.value })}>
-                    <option value="">— select —</option>
-                    {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
-                  </select>
-                </div>
-                {needsSessionCategory && (
-                  <div className="form-group">
-                    <label className="label">Session Category</label>
-                    <select className="input" value={form.sessionCategory}
-                      onChange={(e) => setForm({ ...form, sessionCategory: e.target.value as 'CLASS' | 'DOUBT_CLEARANCE' })}>
-                      <option value="CLASS">Class</option>
-                      <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
-                    </select>
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Batch</label>
-                  <select className="input" value={form.batchId} onChange={(e) => setForm({ ...form, batchId: e.target.value, subject: '', chapter: '', syllabusChapterId: undefined })}>
-                    <option value="">— select —</option>
-                    {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="label">Subject</label>
-                  <select className="input" value={form.subject}
-                    onChange={(e) => setForm({ ...form, subject: e.target.value, chapter: '', syllabusChapterId: undefined })}>
-                    <option value="">— select subject —</option>
-                    <option value="PHYSICS">Physics</option>
-                    <option value="CHEMISTRY">Chemistry</option>
-                    <option value="BIOLOGY">Biology</option>
-                    {otherSubjects.map((s) => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="label">Chapter</label>
-                  {(loadingCh || loadingSyllabus) ? (
-                    <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
-                  ) : syllabusChapters.length > 0 ? (
-                    <>
-                      <select className="input" value={form.chapter}
-                        onChange={(e) => {
-                          const ch = syllabusChapters.find((c) => c.chapterName === e.target.value)
-                          setForm({ ...form, chapter: e.target.value, syllabusChapterId: ch?._id ?? undefined })
-                        }}>
-                        <option value="">— select chapter —</option>
-                        {Object.entries(syllabusChaptersByMonth)
-                          .sort(([a], [b]) => +a - +b)
-                          .map(([month, chs]) => (
-                            <optgroup key={month} label={MONTH_NAMES[+month] ?? `Month ${month}`}>
-                              {chs.map((ch) => {
-                                const bc = chapters.find((b) =>
-                                  (b.syllabusChapterId && b.syllabusChapterId === ch._id) ||
-                                  b.chapterName === ch.chapterName
-                                )
-                                const done     = bc?.facultyClassDone
-                                const videoOk  = !needsVideoFirst || bc?.videoComplete
-                                const disabled = Boolean(done) || (needsVideoFirst && !videoOk)
-                                const suffix   = done ? ' ✓' : needsVideoFirst && !videoOk ? ' 🔒' : ''
-                                return (
-                                  <option key={ch._id} value={ch.chapterName} disabled={disabled}>
-                                    {ch.chapterName}{suffix}
-                                  </option>
-                                )
-                              })}
-                            </optgroup>
-                          ))}
-                      </select>
-                      {needsVideoFirst && (
-                        <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: '0.25rem 0 0' }}>
-                          🔒 Video not yet complete &nbsp;·&nbsp; ✓ Already logged
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <input className="input" value={form.chapter}
-                      onChange={(e) => setForm({ ...form, chapter: e.target.value })}
-                      placeholder={form.subject ? 'Enter chapter or topic' : 'Select a subject first'} />
-                  )}
-                </div>
-                <div className="form-group">
-                  <label className="label">Start Time</label>
-                  <input type="time" className="input" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="label">Duration</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input
-                      type="number" className="input" min={0} max={12} style={{ width: '5rem' }}
-                      value={form.durationHours}
-                      onChange={(e) => setForm({ ...form, durationHours: Math.max(0, +e.target.value) })}
-                      aria-label="Duration hours" placeholder="hrs"
-                    />
-                    <select
-                      className="input" style={{ width: '5rem' }}
-                      value={form.durationMinutes}
-                      onChange={(e) => setForm({ ...form, durationMinutes: +e.target.value })}
-                      aria-label="Duration minutes"
-                    >
-                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-                        <option key={m} value={m}>{m}m</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="label">Session Date</label>
-                  <input type="date" className="input" value={form.sessionDate} max={todayLocal()} onChange={(e) => setForm({ ...form, sessionDate: e.target.value })} />
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn btn-ghost" onClick={() => { setShowForm(false); setError('') }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCreate} disabled={saving || (needsVideoFirst && !form.chapter)}>
-                {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Create Session'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <NewSessionModal
+          form={form} setForm={setForm}
+          facultyList={facultyList} batches={batches} otherSubjects={otherSubjects}
+          needsVideoFirst={needsVideoFirst} formBatchType={formBatchType}
+          needsSessionCategory={needsSessionCategory}
+          loadingCh={loadingCh} loadingSyllabus={loadingSyllabus}
+          syllabusChapters={syllabusChapters} syllabusChaptersByMonth={syllabusChaptersByMonth}
+          chapters={chapters}
+          error={error} saving={saving}
+          onClose={() => { setShowForm(false); setError('') }}
+          onSubmit={handleCreate}
+        />
       )}
 
-      {/* ── Edit Session Modal ────────────────────────────────────────────────── */}
       {editing && (
-        <div
-          role="dialog" aria-modal="true" aria-label="Edit Session"
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
-          onKeyDown={(e) => { if (e.key === 'Escape') setEditing(null) }}
-        >
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 580, border: '1px solid var(--color-border)' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontWeight: 700, margin: 0 }}>Edit Session</h2>
-              <button onClick={() => setEditing(null)} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
-            </div>
-            <div style={{ padding: '1.5rem' }}>
-              {editError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{editError}</div>}
-              <div className="input-group-3">
-                <div className="form-group">
-                  <label className="label">Faculty</label>
-                  <select className="input" value={editForm.facultyId} onChange={(e) => setEditForm({ ...editForm, facultyId: e.target.value })}>
-                    <option value="">— select —</option>
-                    {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="label">Batch</label>
-                  <select className="input" value={editForm.batchId} onChange={(e) => setEditForm({ ...editForm, batchId: e.target.value })}>
-                    <option value="">— select —</option>
-                    {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label className="label">Subject</label>
-                  <input className="input" value={editForm.subject} onChange={(e) => setEditForm({ ...editForm, subject: e.target.value })} />
-                </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="label">Chapter</label>
-                  <input className="input" value={editForm.chapter} onChange={(e) => setEditForm({ ...editForm, chapter: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="label">Session Date</label>
-                  <input type="date" className="input" value={editForm.sessionDate} max={todayLocal()} onChange={(e) => setEditForm({ ...editForm, sessionDate: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="label">Duration (hours)</label>
-                  <input type="number" className="input" min={0.25} max={12} step={0.25}
-                    value={editForm.durationHours}
-                    onChange={(e) => setEditForm({ ...editForm, durationHours: +e.target.value })} />
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
-                {editSaving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditSessionModal
+          form={editForm} setForm={setEditForm}
+          facultyList={facultyList} batches={batches}
+          error={editError} saving={editSaving}
+          onClose={() => setEditing(null)}
+          onSubmit={handleEditSave}
+        />
       )}
 
-      {/* ── Sessions table ────────────────────────────────────────────────────── */}
-      <div className="card">
-        {loading ? (
-          <SkeletonTable rows={8} cols={8} />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            icon="📅"
-            title={sessions.length === 0 ? 'No sessions logged yet' : 'No sessions match your filters'}
-            description={sessions.length === 0 ? 'Log the first session to start tracking class history.' : 'Try adjusting the search or filters above.'}
-            action={sessions.length === 0 ? { label: '+ New Session', onClick: () => { setShowForm(true); setError('') } } : undefined}
-          />
-        ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Faculty</th>
-                  <th>Batch</th>
-                  <th>Subject</th>
-                  <th>Chapter</th>
-                  <th>Hrs</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((s) => {
-                  const bType = getBatchType(s.batchId ?? '', batches)
-                  return (
-                    <tr key={s._id}>
-                      <td style={{ fontWeight: 600 }}>
-                        {(typeof s.facultyId === 'object' ? s.facultyId?.name : s.facultyId) ?? '—'}
-                      </td>
-                      <td>
-                        {bType && <span className={`badge ${BATCH_TYPE_BADGE[bType] ?? 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>{bType}</span>}
-                      </td>
-                      <td>{s.subject}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>{s.chapter}</td>
-                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>{s.durationHours}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
-                        {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td>
-                        <span className={`badge ${STATUS_BADGE[s.status] ?? 'badge-gray'}`}>
-                          {s.status.replace(/_/g, ' ')}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'nowrap' }}>
-                          {canEdit && s.status !== 'CANCELLED' && (
-                            <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)} title="Edit session">✎</button>
-                          )}
-                          {/* Mark Complete only makes sense for legacy SCHEDULED sessions */}
-                          {s.status === 'SCHEDULED' && (
-                            <button className="btn btn-success btn-sm" onClick={() => handleMarkComplete(s._id)} disabled={cancelling === s._id} title="Mark Completed">✓</button>
-                          )}
-                          {/* Cancel is available for any non-cancelled session */}
-                          {(s.status === 'SCHEDULED' || s.status === 'COMPLETED' || s.status === 'NOT_COMPLETED') && (
-                            <>
-                              <select className="input" style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem', width: 105 }}
-                                value={cancelInitiator[s._id] ?? ''} onChange={(e) => setCancelInitiator({ ...cancelInitiator, [s._id]: e.target.value })}>
-                                <option value="">initiator</option>
-                                <option value="FACULTY">Faculty</option>
-                                <option value="STUDENT">Student</option>
-                                <option value="MANAGEMENT">Management</option>
-                              </select>
-                              <button className="btn btn-danger btn-sm" disabled={cancelling === s._id} onClick={() => handleCancel(s._id)} title="Cancel session">
-                                {cancelling === s._id ? '…' : '✕'}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <SessionsTable
+        loading={loading}
+        filtered={filtered}
+        totalCount={sessions.length}
+        batches={batches}
+        canEdit={canEdit}
+        cancelling={cancelling}
+        cancelInitiator={cancelInitiator}
+        onCancelInitiatorChange={(id, value) => setCancelInitiator((prev) => ({ ...prev, [id]: value }))}
+        onEdit={openEdit}
+        onMarkComplete={handleMarkComplete}
+        onCancel={handleCancel}
+        onNewSession={() => { setShowForm(true); setError('') }}
+      />
     </div>
   )
 }
