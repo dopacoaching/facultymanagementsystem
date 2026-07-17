@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { Batch, IBatch } from '@/lib/models/Batch'
+import { Faculty } from '@/lib/models/Faculty'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
@@ -152,6 +153,14 @@ export async function POST(req: NextRequest) {
     // ACADEMICS_MANAGER batch type scope guard
     if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType && batch.type !== payload.batchType) {
       return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+    }
+
+    // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
+    // sessionCategory explicitly specified — silently defaulting to CLASS would
+    // misclassify their hours and pay them at the wrong rate.
+    const facultyDoc = await Faculty.findById(facultyOid).select('requiresSessionCategory')
+    if (facultyDoc?.requiresSessionCategory && !sessionCategory) {
+      return withToken(json({ error: 'sessionCategory (Class or Doubt Clearance) is required for this faculty' }, 400), refreshedToken)
     }
 
     // Coordinator batch ownership gate

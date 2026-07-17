@@ -122,6 +122,14 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
   }
 
+  // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
+  // sessionCategory explicitly specified — silently defaulting to CLASS would
+  // misclassify their hours and pay them at the wrong rate.
+  const facultyDoc = await Faculty.findById(facultyOid).select('requiresSessionCategory')
+  if (facultyDoc?.requiresSessionCategory && !sessionCategory) {
+    res.status(400).json({ error: 'sessionCategory (Class or Doubt Clearance) is required for this faculty' }); return
+  }
+
   // ── M-7: Coordinator batch ownership gate (before any DB queries) ────────
   if (isCoordinator(req.user!.role)) {
     if (!req.user!.batchId || req.user!.batchId !== batchId) {

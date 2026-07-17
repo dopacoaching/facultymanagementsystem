@@ -375,6 +375,9 @@ async function calcBaseOvertime(
 async function calcBaseOvertimeShortfall(
   contract: IPermanentFacultyContract,
   hoursLogged: number,
+  facultyId: string,
+  facultyName: string,
+  persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const base = contract.fixedMonthlySalary ?? 0
   const threshold = contract.overtimeThresholdHours ?? 0
@@ -400,11 +403,23 @@ async function calcBaseOvertimeShortfall(
         code: 'OVERTIME_EARNED',
         message: `${overtimeHours} overtime hour(s) earned at ${fmt(rate)}/hr = ${fmt(overtimePay)}.`,
       })
+      if (persist) {
+        await writeAuditLog({
+          category: 'HR', eventType: 'OVERTIME_ADDED',
+          actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+          targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+          facultyId, facultyName, amount: overtimePay,
+          description: `Overtime added: ${overtimeHours} hrs at ${fmt(rate)}/hr`,
+        })
+      }
     }
     return { baseSalary: base, overtimeHours, overtimePay, finalPayable, breakdown, alerts }
   }
 
   // Below threshold: hourly-at-shortfall-rate mode replaces the flat salary.
+  // baseSalary is intentionally left unset — there is no flat component actually
+  // paid in this mode, so reporting one would be misleading (unlike finalPayable,
+  // which is what's paid).
   const finalPayable = hoursLogged * shortfallRate
   const breakdown: SalaryBreakdown[] = [
     { label: 'Hour Threshold', amount: threshold },
@@ -417,16 +432,18 @@ async function calcBaseOvertimeShortfall(
     code: 'BELOW_THRESHOLD_HOURLY',
     message: `Logged ${hoursLogged}h, below the ${threshold}h threshold — paid at ${fmt(shortfallRate)}/hr instead of the flat ${fmt(base)} base.`,
   })
-  return { baseSalary: finalPayable, overtimeHours: 0, overtimePay: 0, finalPayable, breakdown, alerts }
+  return { overtimeHours: 0, overtimePay: 0, finalPayable, breakdown, alerts }
 }
 
 /** SPLIT_FIXED_VARIABLE — Dr. Dunoonul Shibli, Anoop K
- *  Fixed component is always paid. Variable component is reduced by penalties.
- *  Min 16 days AND min 96 hours. Missing the day minimum now ALSO deducts
- *  penaltyPerClass for each missing day, on top of the per-cancellation penalty
- *  (same pool, same rate — e.g. Shibli/Anoop: ₹9,000 per cancelled class OR
- *  per day short of the minimum). Missing the hours minimum stays a
- *  warning-only HR_REVIEW gate with no monetary effect.
+ *  Fixed component is always paid. Variable component is reduced by a penalty.
+ *  Min 16 days AND min 96 hours. The penalty is ₹9,000 per faculty-cancelled
+ *  class OR ₹9,000 per day short of the minimum — whichever is greater, NOT
+ *  both summed. A faculty-cancelled class with no other session that day both
+ *  reduces daysWorked and counts as a cancellation, so summing would charge the
+ *  same missed day twice; taking the greater of the two avoids that.
+ *  Missing the hours minimum stays a warning-only HR_REVIEW gate with no
+ *  monetary effect.
  */
 async function calcSplitFixedVariable(
   contract: IPermanentFacultyContract,
@@ -446,20 +463,20 @@ async function calcSplitFixedVariable(
   const cancellationPenalty = facultyCancellations * penaltyPerClass
   const dayShortfall = Math.max(0, minDays - daysWorked)
   const dayShortfallPenalty = dayShortfall * penaltyPerClass
-  const totalPenaltyAmount = cancellationPenalty + dayShortfallPenalty
-  const effectiveVariable = Math.max(0, variable - totalPenaltyAmount)
+  const rawPenalty = Math.max(cancellationPenalty, dayShortfallPenalty)
+  const effectiveVariable = Math.max(0, variable - rawPenalty)
   // Report only the penalty actually deducted — the variable component floors at 0,
-  // so a raw totalPenaltyAmount larger than `variable` would overstate the deduction.
-  const appliedPenalty = Math.min(totalPenaltyAmount, variable)
+  // so a raw penalty larger than `variable` would overstate the deduction.
+  const appliedPenalty = Math.min(rawPenalty, variable)
   const baseSalary = fixed + variable
   const finalPayable = fixed + effectiveVariable
   const alerts: SalaryAlert[] = []
 
   if (dayShortfall > 0) {
     alerts.push({
-      level: 'INFO',
+      level: 'WARNING',
       code: 'MIN_DAYS_NOT_MET',
-      message: `Worked ${daysWorked} day(s) — minimum required is ${minDays}. ${fmt(dayShortfallPenalty)} deducted (${dayShortfall} day(s) short × ${fmt(penaltyPerClass)}).`,
+      message: `Worked ${daysWorked} day(s) — minimum required is ${minDays}. HR review needed (a penalty may already be reflected below).`,
     })
   }
   if (hoursLogged < minHours) {
@@ -475,26 +492,23 @@ async function calcSplitFixedVariable(
     { label: 'Variable Component (before penalty)', amount: variable },
   ]
   if (cancellationPenalty > 0) {
-    breakdown.push({ label: `Cancellation Penalty (${facultyCancellations} × ${fmt(penaltyPerClass)})`, amount: cancellationPenalty, isDeduction: true })
-    if (persist) {
-      await writeAuditLog({
-        category: 'HR', eventType: 'PENALTY_APPLIED',
-        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
-        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
-        facultyId, facultyName, amount: cancellationPenalty,
-        description: `Cancellation penalty: ${facultyCancellations} class(es) cancelled × ${fmt(penaltyPerClass)}`,
-      })
-    }
+    breakdown.push({ label: `Faculty Cancellations (${facultyCancellations} × ${fmt(penaltyPerClass)})`, amount: cancellationPenalty })
   }
   if (dayShortfallPenalty > 0) {
-    breakdown.push({ label: `Day Shortfall Penalty (${dayShortfall} × ${fmt(penaltyPerClass)})`, amount: dayShortfallPenalty, isDeduction: true })
+    breakdown.push({ label: `Day Shortfall (${dayShortfall} × ${fmt(penaltyPerClass)})`, amount: dayShortfallPenalty })
+  }
+  if (appliedPenalty > 0) {
+    const reason = cancellationPenalty >= dayShortfallPenalty
+      ? `${facultyCancellations} class(es) cancelled`
+      : `${dayShortfall} day(s) short of the ${minDays}-day minimum`
+    breakdown.push({ label: `Penalty Applied (greater of the two above, capped at the variable component) — ${reason}`, amount: appliedPenalty, isDeduction: true })
     if (persist) {
       await writeAuditLog({
         category: 'HR', eventType: 'PENALTY_APPLIED',
         actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
         targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
-        facultyId, facultyName, amount: dayShortfallPenalty,
-        description: `Day shortfall penalty: ${dayShortfall} day(s) short of ${minDays}-day minimum × ${fmt(penaltyPerClass)}`,
+        facultyId, facultyName, amount: appliedPenalty,
+        description: `Penalty applied: ${reason} × ${fmt(penaltyPerClass)}`,
       })
     }
   }
@@ -693,7 +707,7 @@ export async function calculateMonthlySalary(
         partial = await calcSplitFixedVariable(contract, hoursLogged, daysWorked, facultyCancellations, facultyId, faculty.name, persist)
         break
       case 'BASE_OVERTIME_SHORTFALL':
-        partial = await calcBaseOvertimeShortfall(contract, hoursLogged)
+        partial = await calcBaseOvertimeShortfall(contract, hoursLogged, facultyId, faculty.name, persist)
         break
       case 'DOUBT_CLEARANCE_SPLIT_RATE':
         partial = await calcDoubtClearanceSplitRate(contract, classHoursLogged, doubtHoursLogged)

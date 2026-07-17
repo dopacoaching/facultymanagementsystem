@@ -20,11 +20,21 @@ import { connectDB } from '../config/db'
 import { Faculty } from '../models/Faculty'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 
-async function updateExistingContract(name: string, contractSet: Record<string, unknown>) {
+async function updateExistingContract(
+  name: string,
+  contractSet: Record<string, unknown>,
+  facultySet: Record<string, unknown> = {},
+) {
   const faculty = await Faculty.findOne({ name })
   if (!faculty) {
     console.warn(`  SKIP: faculty "${name}" not found — cannot update contract`)
     return
+  }
+  // Keep the Faculty document's own salaryModel/fixed-pay fields in sync whenever
+  // the contract type changes — otherwise the HR faculty-edit screen (which
+  // branches its fields on Faculty.salaryModel) shows the wrong field set.
+  if (Object.keys(facultySet).length > 0) {
+    await Faculty.updateOne({ _id: faculty._id }, { $set: facultySet })
   }
   const contract = await PermanentFacultyContract.findOneAndUpdate(
     { facultyId: faculty._id },
@@ -94,6 +104,10 @@ async function main() {
     cancellationPenaltyPerClass: 9000,
     minDaysNormal: 16,
     minHoursRequirement: 96,
+  }, {
+    salaryModel: 'SPLIT_FIXED_VARIABLE',
+    fixedComponent: 0,
+    variableComponent: 200000,
   })
 
   // Muhammed Ashique EK — contract type changes from leave-allowance model to a

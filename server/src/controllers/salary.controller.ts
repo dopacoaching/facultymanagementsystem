@@ -413,6 +413,16 @@ export const updateContract = asyncHandler(async (req: AuthRequest, res: Respons
   )
   if (!contract) { res.status(404).json({ error: 'No contract found for this faculty' }); return }
 
+  // Keep Faculty.requiresSessionCategory in lockstep with contractType so the
+  // two never drift apart — contractType isn't in CONTRACT_WRITABLE today (it
+  // can only change via an admin script), but this guards against future drift
+  // the moment it is exposed for editing here.
+  if ('contractType' in safeUpdate) {
+    await Faculty.findByIdAndUpdate(fid, {
+      requiresSessionCategory: safeUpdate.contractType === 'DOUBT_CLEARANCE_SPLIT_RATE',
+    })
+  }
+
   const faculty = await Faculty.findById(fid)
   await writeAuditLog({
     category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
