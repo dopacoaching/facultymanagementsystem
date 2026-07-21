@@ -11,9 +11,9 @@ Two parallel backends exist — **keep them in sync** when changing business log
    serves API routes from `client/src/app/api/**` which talk to MongoDB Atlas
    directly via `client/src/lib/{models,services}`. `NEXT_PUBLIC_API_URL` is empty
    in production (same-origin `/api`).
-2. **`server/`** — Express + Mongoose MVC. Used for local dev against
-   `NEXT_PUBLIC_API_URL=http://localhost:5000` and for the alternative
-   Netlify + Render deployment (see `DEPLOYMENT.md`).
+2. **`server/`** — Express + Mongoose MVC. Local-dev only (run against
+   `NEXT_PUBLIC_API_URL=http://localhost:5000`); it is never deployed. See
+   `DEPLOYMENT.md` for the single-target Vercel deployment.
 
 Shared logic that is duplicated and must stay identical:
 - `salary/calculator.ts` (server `src/services` ↔ client `src/lib/services`)

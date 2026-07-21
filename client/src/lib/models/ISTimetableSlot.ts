@@ -29,7 +29,7 @@ const ISTimetableSlotSchema = new Schema<IISTimetableSlot>(
     subject:       { type: String, required: true },
     chapter:       { type: String, required: true },
     startTime:     { type: String, match: /^\d{2}:\d{2}$/ },
-    durationHours: { type: Number },
+    durationHours: { type: Number, min: 0 },
     timeSlot:      { type: String, enum: ['SESSION_1', 'SESSION_2', 'SESSION_3'], required: true },
     sessionType:   { type: String, enum: ['LIVE_SESSION', 'WEEKLY_EXAM', 'MONTHLY_EXAM'], default: 'LIVE_SESSION' },
     status:        { type: String, enum: ['PLANNED', 'COMPLETED', 'CANCELLED'], default: 'PLANNED' },

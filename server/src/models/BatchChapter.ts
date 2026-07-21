@@ -24,7 +24,7 @@ const BatchChapterSchema = new Schema<IBatchChapter>(
     chapterName:        { type: String, required: true },
     chapterOrder:       { type: Number, required: true },
     syllabusChapterId:  { type: Schema.Types.ObjectId, ref: 'SyllabusChapter' },
-    scheduledMonth:     { type: Number, min: 1, max: 12 },
+    scheduledMonth:     { type: Number, min: 6, max: 12 },
     totalVideos:        { type: Number, min: 0 },
     videosWatched:      { type: Number, default: 0, min: 0 },
     videoComplete:      { type: Boolean, default: false },

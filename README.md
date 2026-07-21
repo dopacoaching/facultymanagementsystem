@@ -9,23 +9,36 @@ timetabling.
 | Layer    | Tech |
 |----------|------|
 | Frontend | Next.js 15 (App Router) · Redux Toolkit · React Hook Form · TypeScript |
-| Backend  | Express · Mongoose · JWT auth · TypeScript |
+| Backend  | Next.js API routes (`client/src/app/api`) talking to MongoDB via Mongoose · JWT auth |
 | Database | MongoDB (Atlas in production) |
-| Hosting  | Netlify (client) · Render/Railway (API) · MongoDB Atlas (DB) |
+| Hosting  | Vercel (single Next.js deployment) · MongoDB Atlas (DB) |
 
 ## Project structure
 
 ```
 faculty-management-system/
-├── client/       # Next.js frontend
-├── server/       # Express API
-├── netlify.toml  # Netlify build config (client)
+├── client/       # Next.js app — UI + API routes; the production deployment
+├── server/       # Express API — local-dev mirror only (see AGENTS.md)
 └── DEPLOYMENT.md
 ```
 
+Production runs entirely out of `client/` on Vercel (`NEXT_PUBLIC_API_URL` empty,
+same-origin `/api`). `server/` is an Express+Mongoose mirror used for local
+development and must be kept logically in sync with `client/src/lib` — see
+`AGENTS.md` for which files are duplicated.
+
 ## Local development
 
-### 1. Server
+### Option A — Next.js only (matches production)
+
+```bash
+cd client
+cp .env.local.example .env.local   # fill in MONGODB_URI, JWT secrets, seed values
+npm install
+npm run dev                 # http://localhost:3000, API routes at /api
+```
+
+### Option B — Express server + Next.js client (dual backend)
 
 ```bash
 cd server
@@ -35,11 +48,9 @@ npm run seed                # creates users + faculty + chapters
 npm run dev                 # http://localhost:5000
 ```
 
-### 2. Client
-
 ```bash
 cd client
-cp .env.local.example .env.local   # set NEXT_PUBLIC_API_URL + coordinator token
+cp .env.local.example .env.local   # set NEXT_PUBLIC_API_URL=http://localhost:5000
 npm install
 npm run dev                 # http://localhost:3000
 ```
@@ -60,7 +71,7 @@ policy (8–64 chars, upper, lower, digit, special char).
 
 ## Deployment
 
-See **[DEPLOYMENT.md](DEPLOYMENT.md)** for full Netlify + Render + MongoDB Atlas steps.
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the Vercel + MongoDB Atlas steps.
 
 ## Security
 
