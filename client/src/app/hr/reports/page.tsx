@@ -2,45 +2,10 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getReports } from '@/services/salary.service'
-import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
-
-interface ReportRow {
-  facultyId: string
-  name: string
-  subject: string
-  month: number
-  year: number
-  finalPayable: number
-  status: string
-  approvedAt: string
-}
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
-function exportToCSV(rows: ReportRow[], month: number, year: number) {
-  if (!rows.length) return
-  const headers = ['Faculty', 'Subject', 'Period', 'Final Payable (₹)', 'Status', 'Approved At']
-  const csvRows = rows.map((r) => [
-    `"${r.name}"`,
-    `"${r.subject}"`,
-    `"${MONTHS[r.month - 1]} ${r.year}"`,
-    r.finalPayable ?? 0,
-    r.status,
-    `"${new Date(r.approvedAt).toLocaleString('en-IN')}"`,
-  ])
-  // Total row
-  const total = rows.reduce((sum, r) => sum + (r.finalPayable ?? 0), 0)
-  csvRows.push([`"Total Payroll — ${MONTHS[month - 1]} ${year}"`, '', '', total, '', ''])
-
-  const csv = [headers.join(','), ...csvRows.map((r) => r.join(','))].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href = url
-  a.download = `salary-report-${MONTHS[month - 1].toLowerCase()}-${year}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
+import { ErrorAlert } from '@/components/ui/Skeleton'
+import {
+  ReportRow, MONTHS, exportToCSV, ReportsFilterBar, ReportsSummaryStats, ReportsTable,
+} from '@/components/hr/reports'
 
 export default function ReportsPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
@@ -87,101 +52,11 @@ export default function ReportsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div className="form-group">
-            <label className="label">Month</label>
-            <select className="input" value={month} onChange={(e) => setMonth(+e.target.value)} style={{ minWidth: 100 }}>
-              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="label">Year</label>
-            <input type="number" className="input" value={year} onChange={(e) => setYear(+e.target.value)} style={{ width: 100 }} />
-          </div>
-          <button className="btn btn-ghost" onClick={load} disabled={loading} style={{ alignSelf: 'flex-end' }}>
-            {loading ? <><span className="spinner" /> Loading…</> : '↻ Refresh'}
-          </button>
-        </div>
-      </div>
+      <ReportsFilterBar month={month} onMonthChange={setMonth} year={year} onYearChange={setYear} loading={loading} onRefresh={load} />
 
-      {/* Summary stat */}
-      {rows.length > 0 && (
-        <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
-          <div className="stat-card">
-            <div className="stat-label">Approved Salaries</div>
-            <div className="stat-value" style={{ color: 'var(--color-primary)' }}>{rows.length}</div>
-            <div className="stat-sub">{MONTHS[month - 1]} {year}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Payable</div>
-            <div className="stat-value" style={{ color: 'var(--color-success)', fontSize: '1.5rem' }}>
-              ₹{total.toLocaleString('en-IN')}
-            </div>
-            <div className="stat-sub">{MONTHS[month - 1]} {year}</div>
-          </div>
-        </div>
-      )}
+      <ReportsSummaryStats count={rows.length} total={total} month={month} year={year} />
 
-      {/* Table */}
-      <div className="card">
-        {loading ? (
-          <SkeletonTable rows={5} cols={6} />
-        ) : rows.length === 0 ? (
-          <EmptyState
-            icon="📊"
-            title="No approved salaries"
-            description={`No salaries have been approved for ${MONTHS[month - 1]} ${year}. Calculate and approve salaries from the Salary Calculator.`}
-          />
-        ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Faculty</th>
-                  <th>Subject</th>
-                  <th>Period</th>
-                  <th style={{ textAlign: 'right' }}>Final Payable</th>
-                  <th>Status</th>
-                  <th>Approved At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ fontWeight: 600 }}>{r.name}</td>
-                    <td style={{ color: 'var(--color-text-secondary)' }}>{r.subject}</td>
-                    <td style={{ color: 'var(--color-text-secondary)' }}>{MONTHS[r.month - 1]} {r.year}</td>
-                    <td style={{ fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                      ₹{r.finalPayable?.toLocaleString('en-IN')}
-                    </td>
-                    <td><span className="badge badge-green">{r.status}</span></td>
-                    <td style={{ fontSize: '0.8rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
-                      {new Date(r.approvedAt).toLocaleString('en-IN', {
-                        day: '2-digit', month: 'short',
-                        hour: '2-digit', minute: '2-digit',
-                      })}
-                    </td>
-                  </tr>
-                ))}
-                {rows.length > 0 && (
-                  <tr style={{ background: 'rgba(79,70,229,.04)' }}>
-                    <td colSpan={3} style={{ fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-                      Total Payroll — {MONTHS[month - 1]} {year}
-                    </td>
-                    <td style={{ fontWeight: 800, textAlign: 'right', fontSize: '1rem', color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                      ₹{total.toLocaleString('en-IN')}
-                    </td>
-                    <td colSpan={2} />
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <ReportsTable loading={loading} rows={rows} total={total} month={month} year={year} />
     </div>
   )
 }
-
