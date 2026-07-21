@@ -64,7 +64,7 @@ npm run dev                 # http://localhost:3000
 | Academics Manager | `/login` | `repeaters` |
 | IS Academics Manager | `/login` | `academicis` |
 | Coordinators | `/login` | `coordinator_calicut`, `coordinator_melmuri`, `coordinator_ayikk` |
-| Faculty | `/login` | `ashraf_ac` … `dileep` |
+| Faculty | `/login` | one per faculty, created via Admin → Users (e.g. `ashraf_ac`) |
 
 Passwords are set via `SEED_*_PASSWORD` env vars and must meet the complexity
 policy (8–64 chars, upper, lower, digit, special char).

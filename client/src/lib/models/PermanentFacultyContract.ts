@@ -51,7 +51,7 @@ export interface IPermanentFacultyContract extends Document {
   // pays every CLASS-category hour (no threshold, straight hourly).
   classRatePerHour?: number
 
-  // CONFIGURABLE (Dileep — TBD)
+  // CONFIGURABLE — pay structure configured by HR per faculty
   isConfigured: boolean
   configurablePayJson?: Record<string, unknown>
 
