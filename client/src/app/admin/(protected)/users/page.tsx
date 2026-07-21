@@ -8,49 +8,9 @@ import type { AppUser, CreateUserPayload } from '@/services/user.service'
 import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import type { Faculty } from '@/types'
-import PasswordInput from '@/components/ui/PasswordInput'
-import { SkeletonTable, ErrorAlert, EmptyState } from '@/components/ui/Skeleton'
+import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
-
-/** Client-side mirror of the server's validatePasswordComplexity rule. */
-function validatePasswordComplexity(pw: string): string | null {
-  if (!pw || pw.length < 8)  return 'Password must be at least 8 characters'
-  if (pw.length > 64)         return 'Password must be at most 64 characters'
-  if (!/[A-Z]/.test(pw))     return 'Password must contain at least one uppercase letter'
-  if (!/[a-z]/.test(pw))     return 'Password must contain at least one lowercase letter'
-  if (!/[0-9]/.test(pw))     return 'Password must contain at least one digit'
-  if (!/[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(pw))
-    return 'Password must contain at least one special character (!@#$%^&* etc.)'
-  return null
-}
-
-const ALL_ROLES: UserRole[] = [
-  'ADMIN', 'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
-  'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
-]
-
-const ROLE_BADGE: Record<string, string> = {
-  ADMIN:                'badge-red',
-  HR_MANAGER:           'badge-yellow',
-  ACADEMICS_MANAGER:    'badge-blue',
-  IG_ACADEMICS_MANAGER: 'badge-blue',
-  COORDINATOR:          'badge-green',
-  IG_COORDINATOR:       'badge-green',
-  FACULTY:              'badge-gray',
-}
-
-const ROLE_DISPLAY: Record<string, string> = {
-  ADMIN:                'Admin',
-  HR_MANAGER:           'HR Manager',
-  ACADEMICS_MANAGER:    'Academics Manager',
-  IG_ACADEMICS_MANAGER: 'IG Academics Manager',
-  COORDINATOR:          'Class Teacher',
-  IG_COORDINATOR:       'IG Class Teacher',
-  FACULTY:              'Faculty',
-}
-function getRoleLabel(role: string) {
-  return ROLE_DISPLAY[role] ?? role.replace(/_/g, ' ')
-}
+import { validatePasswordComplexity, CreateUserModal, EditUserModal, UsersTable } from '@/components/admin/users'
 
 export default function AdminUsersPage() {
   const { accessToken, userId: selfId } = useAppSelector((s) => s.auth)
@@ -95,7 +55,7 @@ export default function AdminUsersPage() {
     load()
     getBatches(accessToken).then(setBatches).catch(console.error)
     getFaculty(accessToken, true).then(setFacultyList).catch(console.error)
-  }, [accessToken])
+  }, [accessToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleCreate() {
     if (!accessToken) return
@@ -186,228 +146,48 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ── Create User Modal ──────────────────────────────────────────────────── */}
       {showCreate && (
-        <div
-          role="dialog" aria-modal="true" aria-label="Create User"
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
-          onKeyDown={(e) => { if (e.key === 'Escape') { setShowCreate(false); setCreateError('') } }}
-        >
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, border: '1px solid var(--color-border)' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontWeight: 700, margin: 0 }}>Create User</h2>
-              <button onClick={() => { setShowCreate(false); setCreateError('') }}
-                aria-label="Close"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
-            </div>
-            <div style={{ padding: '1.5rem' }}>
-              {createError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{createError}</div>}
-              <div className="input-group">
-                <div className="form-group">
-                  <label className="label">Username</label>
-                  <input className="input" autoFocus value={createForm.username}
-                    onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
-                    autoComplete="off" placeholder="e.g. john_doe" />
-                </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="label">Password</label>
-                  <PasswordInput
-                    value={createForm.password}
-                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                    autoComplete="new-password"
-                    placeholder="Min 8 chars · upper · lower · digit · symbol"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="label">Role</label>
-                  <select className="input" value={createForm.role}
-                    onChange={(e) => setCreateForm({ ...createForm, role: e.target.value as UserRole, batchType: '' })}>
-                    {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
-                  </select>
-                </div>
-                {createForm.role === 'ACADEMICS_MANAGER' && (
-                  <div className="form-group">
-                    <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>
-                    <select className="input" value={createForm.batchType}
-                      onChange={(e) => setCreateForm({ ...createForm, batchType: e.target.value })}>
-                      <option value="">— All batch types —</option>
-                      <option value="RESIDENTIAL">Residential</option>
-                      <option value="OFFLINE">Offline</option>
-                      <option value="ONLINE">Online</option>
-                    </select>
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Batch (optional)</label>
-                  <select className="input" value={createForm.batchId}
-                    onChange={(e) => setCreateForm({ ...createForm, batchId: e.target.value })}>
-                    <option value="">— none —</option>
-                    {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
-                  </select>
-                </div>
-                {createForm.role === 'FACULTY' && (
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="label">Link Faculty Profile (optional)</label>
-                    <select className="input" value={createForm.facultyId}
-                      onChange={(e) => setCreateForm({ ...createForm, facultyId: e.target.value })}>
-                      <option value="">— none —</option>
-                      {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name} ({f.subject})</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn btn-ghost" onClick={() => { setShowCreate(false); setCreateError('') }}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleCreate} disabled={creating}>
-                {creating ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Creating…</> : 'Create User'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreateUserModal
+          form={createForm}
+          setForm={setCreateForm}
+          batches={batches}
+          facultyList={facultyList}
+          error={createError}
+          saving={creating}
+          onClose={() => { setShowCreate(false); setCreateError('') }}
+          onSubmit={handleCreate}
+        />
       )}
 
-      {/* ── Edit User Modal ────────────────────────────────────────────────────── */}
       {editTarget && (
-        <div
-          role="dialog" aria-modal="true" aria-label="Edit User"
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
-          onKeyDown={(e) => { if (e.key === 'Escape') setEditTarget(null) }}
-        >
-          <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, border: '1px solid var(--color-border)' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{ fontWeight: 700, margin: 0 }}>Edit User</h2>
-                <p style={{ margin: '0.125rem 0 0', fontSize: '0.875rem', color: 'var(--color-muted)' }}>@{editTarget.username}</p>
-              </div>
-              <button onClick={() => setEditTarget(null)}
-                aria-label="Close"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
-            </div>
-            <div style={{ padding: '1.5rem' }}>
-              {editError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{editError}</div>}
-              <div className="input-group">
-                <div className="form-group">
-                  <label className="label">Role</label>
-                  <select className="input" value={editRole}
-                    onChange={(e) => { setEditRole(e.target.value as UserRole); setEditBatchType('') }}>
-                    {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
-                  </select>
-                </div>
-                {editRole === 'ACADEMICS_MANAGER' && (
-                  <div className="form-group">
-                    <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>
-                    <select className="input" value={editBatchType}
-                      onChange={(e) => setEditBatchType(e.target.value)}>
-                      <option value="">— All batch types —</option>
-                      <option value="RESIDENTIAL">Residential</option>
-                      <option value="OFFLINE">Offline</option>
-                      <option value="ONLINE">Online</option>
-                    </select>
-                  </div>
-                )}
-                <div className="form-group">
-                  <label className="label">Batch (optional)</label>
-                  <select className="input" value={editBatchId}
-                    onChange={(e) => setEditBatchId(e.target.value)}>
-                    <option value="">— none —</option>
-                    {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="label">Reset Password <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank to keep current)</span></label>
-                  <PasswordInput
-                    value={editPw}
-                    onChange={(e) => setEditPw(e.target.value)}
-                    autoComplete="new-password"
-                    placeholder="Min 8 chars · upper · lower · digit · symbol"
-                    showStrength={editPw.length > 0}
-                  />
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button className="btn btn-ghost" onClick={() => setEditTarget(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleEditSave} disabled={editSaving}>
-                {editSaving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditUserModal
+          editTarget={editTarget}
+          editRole={editRole}
+          onRoleChange={setEditRole}
+          editBatchId={editBatchId}
+          onBatchIdChange={setEditBatchId}
+          editBatchType={editBatchType}
+          onBatchTypeChange={setEditBatchType}
+          editPw={editPw}
+          onPwChange={setEditPw}
+          batches={batches}
+          error={editError}
+          saving={editSaving}
+          onClose={() => setEditTarget(null)}
+          onSubmit={handleEditSave}
+        />
       )}
 
-      {/* ── Users Table ────────────────────────────────────────────────────────── */}
       <div className="card">
-        {loading ? (
-          <SkeletonTable rows={5} cols={5} />
-        ) : users.length === 0 ? (
-          <EmptyState
-            icon="🔐"
-            title="No users yet"
-            description="Create the first user account to give staff access to the system."
-            action={{ label: '+ New User', onClick: () => setShowCreate(true) }}
-          />
-        ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Faculty / Batch</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u._id} style={{ opacity: u.isActive ? 1 : 0.5 }}>
-                    <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                      @{u.username}
-                      {u._id === selfId && (
-                        <span className="badge badge-blue" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>you</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`badge ${ROLE_BADGE[u.role] ?? 'badge-gray'}`}>
-                        {getRoleLabel(u.role)}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                      {u.facultyId && typeof u.facultyId === 'object'
-                        ? <span title="Linked faculty">👤 {u.facultyId.name}</span>
-                        : null}
-                      {u.batchId && typeof u.batchId === 'object'
-                        ? <span title="Assigned batch" style={{ marginLeft: u.facultyId ? '0.5rem' : 0 }}>🗂 {u.batchId.name}</span>
-                        : null}
-                      {!u.facultyId && !u.batchId ? '—' : null}
-                    </td>
-                    <td>
-                      <span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>
-                        {u.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'nowrap' }}>
-                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(u)} title="Edit user">✎</button>
-                        {u._id !== selfId && (
-                          <button
-                            className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-success'}`}
-                            onClick={() => handleToggleActive(u)}
-                            disabled={toggling === u._id}
-                            title={u.isActive ? 'Deactivate' : 'Reactivate'}
-                          >
-                            {toggling === u._id ? '…' : u.isActive ? '⏸' : '▶'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <UsersTable
+          loading={loading}
+          users={users}
+          selfId={selfId}
+          toggling={toggling}
+          onEdit={openEdit}
+          onToggleActive={handleToggleActive}
+          onNewUser={() => setShowCreate(true)}
+        />
       </div>
     </div>
   )
