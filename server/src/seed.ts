@@ -149,15 +149,21 @@ async function seed() {
     // 13 – Anoop K — now SPLIT_FIXED_VARIABLE (fixedComponent 0, all ₹2L subject to
     // the day-shortfall/cancellation penalty, same rules as Shibli)
     { name: 'Anoop K', subject: 'Physics', type: 'PERMANENT', salaryModel: 'SPLIT_FIXED_VARIABLE', fixedComponent: e('SALARY_ANOOP_FIXED_COMP', 0), variableComponent: e('SALARY_ANOOP_VAR_COMP', 200000), minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16) },
-    // 14 – Jidhu
-    { name: 'Jidhu', subject: 'Biology', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_JIDHU_FIXED', 110000), minDaysNormal: e('SALARY_JIDHU_MIN_DAYS', 18) },
+    // 14 – Jidhu — base covers first 108h; extra pay beyond that; ₹ penalty per
+    // shortfall day (below 18-day min) or faculty cancellation, whichever is greater
+    { name: 'Jidhu', subject: 'Biology', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_JIDHU_FIXED', 110000), minDaysNormal: e('SALARY_JIDHU_MIN_DAYS', 18), overtimeThreshold: e('SALARY_JIDHU_OT_THRESHOLD', 108), overtimeRate: e('SALARY_JIDHU_OT_RATE', 1200) },
     // 15 – Promod — at/above 135h: fixed + overtime; below 135h: pure hourly at a higher rate
     { name: 'Promod', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_PROMOD_FIXED', 200000), overtimeThreshold: e('SALARY_PROMOD_THRESHOLD', 135), overtimeRate: e('SALARY_PROMOD_OT_RATE', 1800) },
     // 16-18 – Parvathy, Thamanna, Manju — doubt-clearance staff (Class vs Doubt Clearance rates)
     { name: 'Parvathy', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300), requiresSessionCategory: true },
     { name: 'Thamanna', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300), requiresSessionCategory: true },
     { name: 'Manju', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300), requiresSessionCategory: true },
-    // Pending (subject/rule not yet specified): Afsal Safwan, Shahid, Theertha
+    // 19 – Afsal Safwan
+    { name: 'Afsal Safwan', subject: 'Physics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_AFSAL_RATE', 1000) },
+    // 20 – Shahid — fixed monthly, 80-hour minimum (warning-only, no day minimum)
+    { name: 'Shahid', subject: 'Chemistry', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_SHAHID_FIXED', 55000) },
+    // 21 – Theertha — base covers first 18h, extra pay beyond that
+    { name: 'Theertha', subject: 'Chemistry', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_THEERTHA_FIXED', 15000), overtimeThreshold: e('SALARY_THEERTHA_OT_THRESHOLD', 18), overtimeRate: e('SALARY_THEERTHA_OT_RATE', 200) },
   ])
 
   // Map names → ObjectIds for contract seeding
@@ -178,11 +184,14 @@ async function seed() {
     { facultyId: byName['Habid PP'],           contractType: 'HOURLY',                   hourlyRate: e('SALARY_HABID_RATE', 1100),                       notes: 'Chemistry. ₹' + es('SALARY_HABID_RATE', '1100') + '/hr' },
     { facultyId: byName['Dr. Dunoonul Shibli'],contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_SHIBLI_FIXED_COMP', 50000),           variableComponent: e('SALARY_SHIBLI_VAR_COMP', 150000),   cancellationPenaltyPerClass: e('SALARY_SHIBLI_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_SHIBLI_MIN_DAYS', 16), minHoursRequirement: e('SALARY_SHIBLI_MIN_HOURS', 96), notes: 'Biology. Variable reduced by ₹9,000 per faculty-cancelled class OR per day short of the 16-day minimum.' },
     { facultyId: byName['Anoop K'],            contractType: 'SPLIT_FIXED_VARIABLE',     fixedComponent: e('SALARY_ANOOP_FIXED_COMP', 0),                variableComponent: e('SALARY_ANOOP_VAR_COMP', 200000),    cancellationPenaltyPerClass: e('SALARY_ANOOP_CANCEL_PENALTY', 9000), minDaysNormal: e('SALARY_ANOOP_MIN_DAYS', 16), minHoursRequirement: e('SALARY_ANOOP_MIN_HOURS', 96), notes: 'Physics. Same rules as Shibli: ₹9,000 per cancelled class OR per day short of the 16-day minimum.' },
-    { facultyId: byName['Jidhu'],              contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_JIDHU_FIXED', 110000),            minDaysNormal: e('SALARY_JIDHU_MIN_DAYS', 18),             minHoursRequirement: e('SALARY_JIDHU_MIN_HOURS', 108), notes: 'Biology. Fixed monthly; HR_REVIEW if < 18 days or < 108 hours.' },
+    { facultyId: byName['Jidhu'],              contractType: 'BASE_OVERTIME_PENALTY',    fixedMonthlySalary: e('SALARY_JIDHU_FIXED', 110000),            overtimeThresholdHours: e('SALARY_JIDHU_OT_THRESHOLD', 108), overtimeRatePerHour: e('SALARY_JIDHU_OT_RATE', 1200), cancellationPenaltyPerClass: e('SALARY_JIDHU_PENALTY', 7200), minDaysNormal: e('SALARY_JIDHU_MIN_DAYS', 18), notes: 'Biology. ₹1,10,000 base covering first 108 hrs; +₹1,200/hr beyond that. ₹7,200 penalty per day short of the 18-day minimum OR per faculty-cancelled class (greater of the two, capped at the base).' },
     { facultyId: byName['Promod'],             contractType: 'BASE_OVERTIME_SHORTFALL',  fixedMonthlySalary: e('SALARY_PROMOD_FIXED', 200000),           overtimeThresholdHours: e('SALARY_PROMOD_THRESHOLD', 135), overtimeRatePerHour: e('SALARY_PROMOD_OT_RATE', 1800), shortfallRatePerHour: e('SALARY_PROMOD_SHORTFALL_RATE', 2000), notes: 'Physics. At/above 135h: ₹2,00,000 + ₹1,800/hr overtime. Below 135h: hoursLogged × ₹2,000/hr instead.' },
     { facultyId: byName['Parvathy'],           contractType: 'DOUBT_CLEARANCE_SPLIT_RATE', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000),           overtimeThresholdHours: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_DOUBT_OT_RATE', 300), classRatePerHour: e('SALARY_DOUBT_CLASS_RATE', 550), notes: 'Doubt clearance. ₹20,000 flat for up to 18 doubt hours, ₹300/hr beyond; ₹550/hr for every class hour.' },
     { facultyId: byName['Thamanna'],           contractType: 'DOUBT_CLEARANCE_SPLIT_RATE', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000),           overtimeThresholdHours: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_DOUBT_OT_RATE', 300), classRatePerHour: e('SALARY_DOUBT_CLASS_RATE', 550), notes: 'Doubt clearance. ₹20,000 flat for up to 18 doubt hours, ₹300/hr beyond; ₹550/hr for every class hour.' },
     { facultyId: byName['Manju'],              contractType: 'DOUBT_CLEARANCE_SPLIT_RATE', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000),           overtimeThresholdHours: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_DOUBT_OT_RATE', 300), classRatePerHour: e('SALARY_DOUBT_CLASS_RATE', 550), notes: 'Doubt clearance. ₹20,000 flat for up to 18 doubt hours, ₹300/hr beyond; ₹550/hr for every class hour.' },
+    { facultyId: byName['Afsal Safwan'],       contractType: 'HOURLY',                   hourlyRate: e('SALARY_AFSAL_RATE', 1000),                       notes: 'Physics. ₹' + es('SALARY_AFSAL_RATE', '1000') + '/hr' },
+    { facultyId: byName['Shahid'],             contractType: 'FIXED_MONTHLY_MIN_DAYS',   fixedMonthlySalary: e('SALARY_SHAHID_FIXED', 55000),            minHoursRequirement: e('SALARY_SHAHID_MIN_HOURS', 80), notes: 'Chemistry. ₹55,000 fixed monthly; HR_REVIEW if < 80 hours logged (warning-only, no deduction).' },
+    { facultyId: byName['Theertha'],           contractType: 'BASE_OVERTIME',            fixedMonthlySalary: e('SALARY_THEERTHA_FIXED', 15000),          overtimeThresholdHours: e('SALARY_THEERTHA_OT_THRESHOLD', 18), overtimeRatePerHour: e('SALARY_THEERTHA_OT_RATE', 200), notes: 'Chemistry. ₹15,000 base covers first 18 hrs; +₹200/hr beyond that.' },
   ])
 
   // ── Users ─────────────────────────────────────────────────────────────────

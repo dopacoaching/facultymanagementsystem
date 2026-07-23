@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
 
       let quota: number | null = null
       if (contract) {
-        quota = contract.monthlyHourQuota ?? contract.minHoursRequirement ?? null
+        quota = contract.monthlyHourQuota ?? contract.minHoursRequirement ?? contract.overtimeThresholdHours ?? null
       }
 
       const pct     = quota != null && quota > 0 ? Math.round((logged / quota) * 100) : null

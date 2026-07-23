@@ -60,8 +60,10 @@ async function calcHourly(
 }
 
 /** FIXED_MONTHLY_MIN_DAYS — Fahad T (min 8 days), Muhammed Ashique EK (min 22 days),
- *  Jidhu (min 18 days & min 108 hours). Hours check only applies when minHoursRequirement
- *  is set on the contract — display/warning only, no monetary effect either way. */
+ *  Shahid (min 80 hours only, no day minimum). Hours check only applies when
+ *  minHoursRequirement is set on the contract — display/warning only, no
+ *  monetary effect either way; likewise the days check only applies when
+ *  minDaysNormal is set. */
 async function calcFixedMonthlyMinDays(
   contract: IPermanentFacultyContract,
   daysWorked: number,

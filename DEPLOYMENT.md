@@ -47,7 +47,7 @@ git ls-files | grep ".env"     # should show ONLY *.env.example / .env.local.exa
 2. Set **Root Directory** to `client` (Vercel auto-detects the Next.js framework —
    `client/vercel.json` already declares `"framework": "nextjs"`).
 3. Add **Environment Variables** (Project Settings → Environment Variables) —
-   see `client/.env.local.example` for the full list:
+   only these are ever read by the running app:
 
    | Key | Value |
    |-----|-------|
@@ -56,9 +56,6 @@ git ls-files | grep ".env"     # should show ONLY *.env.example / .env.local.exa
    | `JWT_REFRESH_SECRET` | *(different 64-char random)* |
    | `JWT_EXPIRES_IN` | `15m` |
    | `JWT_REFRESH_EXPIRES_IN` | `7d` |
-   | `SEED_ADMIN_USERNAME` | `it@dopacoaching.com` |
-   | `SEED_ADMIN_PASSWORD` | *(strong, meets complexity)* |
-   | `SALARY_*` | *(all salary values — see `.env.local.example`)* |
    | `NEXT_PUBLIC_API_URL` | *(leave empty — same-origin)* |
 
    Generate JWT secrets locally:
@@ -66,15 +63,28 @@ git ls-files | grep ".env"     # should show ONLY *.env.example / .env.local.exa
    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    ```
 
+   `SEED_ADMIN_USERNAME`, `SEED_ADMIN_PASSWORD`, and every `SALARY_*` variable
+   in `client/.env.local.example` are **not** used by the deployed app —
+   they're read only by `server/src/seed.ts`, a one-off script you run from
+   your own machine (see Step 5 below). Don't add them to Vercel; they'd just
+   be dead config.
+
 4. Deploy. Vercel builds and redeploys automatically on every push to `main`.
 
-5. **Seed the database once** — run locally with `MONGODB_URI` pointed at Atlas:
+5. **Seed the database once** — run locally with `MONGODB_URI` (and, if you
+   want non-default values, `SEED_*`/`SALARY_*`) pointed at Atlas:
    ```bash
    cd server
-   MONGODB_URI="<atlas-uri>" npm run seed
+   cp .env.example .env   # fill in MONGODB_URI (Atlas) + SEED_*/SALARY_* overrides
+   npm run seed
    ```
    (The seed script lives in `server/`, but it writes to whatever `MONGODB_URI`
-   you point it at — it doesn't need the Express server running.)
+   is in `server/.env` — it doesn't need the Express server running, and
+   nothing here needs to be set in Vercel.) Faculty added or changed after the
+   initial seed go through the non-destructive scripts in
+   `server/src/scripts/update-faculty-contracts-*.ts` instead — `npm run seed`
+   is destructive (wipes and rebuilds Users/Faculty/Batches/Chapters) and
+   should only be used once, against a fresh database.
 
 ---
 

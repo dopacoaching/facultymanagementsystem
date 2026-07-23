@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     const hoursMap    = new Map(hoursAgg.map((h: { _id: Types.ObjectId; totalHours: number; sessionCount: number }) => [h._id.toString(), h]))
 
     // Panel 1 + 2: Hours Progress (quota-based faculty only)
-    const QUOTA_TYPES = ['FIXED_QUOTA_CARRYFORWARD', 'FIXED_QUOTA_NOCARRY', 'BASE_OVERTIME']
+    const QUOTA_TYPES = ['FIXED_QUOTA_CARRYFORWARD', 'FIXED_QUOTA_NOCARRY', 'BASE_OVERTIME', 'BASE_OVERTIME_PENALTY']
     const hoursProgress = faculty
       .map((f) => {
         const contract = contractMap.get(f._id.toString())

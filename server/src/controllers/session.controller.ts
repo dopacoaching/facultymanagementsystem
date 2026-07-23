@@ -543,6 +543,7 @@ export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res:
     if (contract) {
       quota = contract.monthlyHourQuota
         ?? contract.minHoursRequirement
+        ?? contract.overtimeThresholdHours
         ?? null
     }
 
