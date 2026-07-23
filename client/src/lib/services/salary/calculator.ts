@@ -574,6 +574,109 @@ async function calcDoubtClearanceSplitRate(
   }
 }
 
+/** BASE_OVERTIME_PENALTY — Jidhu
+ *  Fixed monthly salary (fixedMonthlySalary) plus overtime pay for hours beyond
+ *  overtimeThresholdHours at overtimeRatePerHour. Separately, the base salary
+ *  itself is exposed to a penalty of cancellationPenaltyPerClass per day short
+ *  of minDaysNormal OR per faculty-initiated cancellation — whichever is
+ *  greater, NOT both summed (same "take the bigger one" logic as
+ *  SPLIT_FIXED_VARIABLE, for the same reason: a faculty-cancelled class with no
+ *  other session that day both reduces daysWorked and counts as a
+ *  cancellation, so summing would charge the same missed day twice). The
+ *  overtime pay is always added on top, even in a month with a penalty.
+ */
+async function calcBaseOvertimePenalty(
+  contract: IPermanentFacultyContract,
+  hoursLogged: number,
+  daysWorked: number,
+  facultyCancellations: number,
+  facultyId: string,
+  facultyName: string,
+  persist: boolean,
+): Promise<Partial<SalaryResult>> {
+  const base = contract.fixedMonthlySalary ?? 0
+  const threshold = contract.overtimeThresholdHours ?? 0
+  const rate = contract.overtimeRatePerHour ?? 0
+  const penaltyPerUnit = contract.cancellationPenaltyPerClass ?? 0
+  const minDays = contract.minDaysNormal ?? 0
+
+  const overtimeHours = Math.max(0, hoursLogged - threshold)
+  const overtimePay = overtimeHours * rate
+
+  const dayShortfall = Math.max(0, minDays - daysWorked)
+  const dayShortfallPenalty = dayShortfall * penaltyPerUnit
+  const cancellationPenalty = facultyCancellations * penaltyPerUnit
+  const rawPenalty = Math.max(cancellationPenalty, dayShortfallPenalty)
+  const effectiveBase = Math.max(0, base - rawPenalty)
+  // Report only the penalty actually deducted — the base floors at 0, so a raw
+  // penalty larger than `base` would overstate the deduction.
+  const appliedPenalty = Math.min(rawPenalty, base)
+  const finalPayable = effectiveBase + overtimePay
+  const alerts: SalaryAlert[] = []
+
+  const breakdown: SalaryBreakdown[] = [
+    { label: 'Base Salary', amount: base },
+    { label: 'Hour Threshold', amount: threshold },
+    { label: 'Hours Logged', amount: hoursLogged },
+  ]
+
+  if (overtimeHours > 0) {
+    breakdown.push({ label: `Overtime Hours (₹${rate}/hr)`, amount: overtimeHours })
+    breakdown.push({ label: 'Overtime Pay', amount: overtimePay })
+    alerts.push({
+      level: 'INFO',
+      code: 'OVERTIME_EARNED',
+      message: `${overtimeHours} overtime hour(s) earned at ${fmt(rate)}/hr = ${fmt(overtimePay)}.`,
+    })
+    if (persist) {
+      await writeAuditLog({
+        category: 'HR', eventType: 'OVERTIME_ADDED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: overtimePay,
+        description: `Overtime added: ${overtimeHours} hrs at ${fmt(rate)}/hr`,
+      })
+    }
+  }
+
+  if (dayShortfall > 0) {
+    alerts.push({
+      level: 'WARNING',
+      code: 'MIN_DAYS_NOT_MET',
+      message: `Worked ${daysWorked} day(s) — minimum required is ${minDays}. HR review needed (a penalty may already be reflected below).`,
+    })
+  }
+
+  if (appliedPenalty > 0) {
+    const reason = cancellationPenalty >= dayShortfallPenalty
+      ? `${facultyCancellations} class(es) cancelled`
+      : `${dayShortfall} day(s) short of the ${minDays}-day minimum`
+    breakdown.push({ label: `Penalty Applied (greater of the two, capped at base salary) — ${reason}`, amount: appliedPenalty, isDeduction: true })
+    if (persist) {
+      await writeAuditLog({
+        category: 'HR', eventType: 'PENALTY_APPLIED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: appliedPenalty,
+        description: `Penalty applied: ${reason} × ${fmt(penaltyPerUnit)}`,
+      })
+    }
+  }
+
+  breakdown.push({ label: 'Total Payable', amount: finalPayable })
+
+  return {
+    baseSalary: base,
+    overtimeHours,
+    overtimePay,
+    penalties: appliedPenalty,
+    finalPayable,
+    breakdown,
+    alerts,
+    status: alerts.some((a) => a.level === 'WARNING') ? 'HR_REVIEW' : undefined,
+  }
+}
+
 /** CONFIGURABLE — fully custom salary structure configured by HR per faculty */
 async function calcConfigurable(
   contract: IPermanentFacultyContract,
@@ -711,6 +814,9 @@ export async function calculateMonthlySalary(
         break
       case 'DOUBT_CLEARANCE_SPLIT_RATE':
         partial = await calcDoubtClearanceSplitRate(contract, classHoursLogged, doubtHoursLogged)
+        break
+      case 'BASE_OVERTIME_PENALTY':
+        partial = await calcBaseOvertimePenalty(contract, hoursLogged, daysWorked, facultyCancellations, facultyId, faculty.name, persist)
         break
       case 'CONFIGURABLE':
         partial = await calcConfigurable(contract, hoursLogged)

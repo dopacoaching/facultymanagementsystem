@@ -31,13 +31,15 @@ export interface IPermanentFacultyContract extends Document {
   monthlyLeaveAllowance?: number
   aprilLeaveAllowance?: number
 
-  // BASE_OVERTIME (Fahim BM)
+  // BASE_OVERTIME (Fahim BM) / BASE_OVERTIME_PENALTY (Jidhu)
   overtimeThresholdHours?: number
   overtimeRatePerHour?: number
 
   // SPLIT_FIXED_VARIABLE (Dr. Dunoonul Shibli, Anoop K)
   fixedComponent?: number
   variableComponent?: number
+  // Also used by BASE_OVERTIME_PENALTY (Jidhu), where it applies against
+  // fixedMonthlySalary instead of variableComponent — see calculator.ts.
   cancellationPenaltyPerClass?: number
   minHoursRequirement?: number   // combined min-hours gate alongside minDaysNormal
 
@@ -74,6 +76,7 @@ const PermanentFacultyContractSchema = new Schema<IPermanentFacultyContract>(
         'SPLIT_FIXED_VARIABLE',
         'BASE_OVERTIME_SHORTFALL',
         'DOUBT_CLEARANCE_SPLIT_RATE',
+        'BASE_OVERTIME_PENALTY',
         'CONFIGURABLE',
       ],
       required: true,

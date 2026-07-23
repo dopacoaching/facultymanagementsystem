@@ -27,6 +27,7 @@ export type ContractType =
   | 'SPLIT_FIXED_VARIABLE'
   | 'BASE_OVERTIME_SHORTFALL'
   | 'DOUBT_CLEARANCE_SPLIT_RATE'
+  | 'BASE_OVERTIME_PENALTY'
   | 'CONFIGURABLE'
 
 export type BatchType = 'RESIDENTIAL' | 'OFFLINE' | 'ONLINE' | 'IG'
