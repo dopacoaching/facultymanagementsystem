@@ -12,8 +12,7 @@
     "seed:ig-neet-jee": "tsx --env-file=../.env src/scripts/seed-ig-neet-jee.ts",
     "set-ig-stream": "tsx --env-file=../.env src/scripts/set-ig-batch-stream.ts",
     "update:faculty-contracts-2026": "tsx --env-file=../.env src/scripts/update-faculty-contracts-2026.ts",
-    "update:faculty-contracts-2026-07": "tsx --env-file=../.env src/scripts/update-faculty-contracts-2026-07.ts",
-    "remove:faculty-dileep": "tsx --env-file=../.env src/scripts/remove-faculty-dileep.ts"
+    "update:faculty-contracts-2026-07": "tsx --env-file=../.env src/scripts/update-faculty-contracts-2026-07.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
