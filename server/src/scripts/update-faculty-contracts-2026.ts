@@ -143,13 +143,13 @@ async function main() {
     },
   )
 
-  // Promod — Physics. At/above 135h: ₹20,000 + ₹1,800/hr overtime.
-  // Below 135h: pay is hoursLogged × ₹2,000/hr instead (replaces the flat ₹20,000).
+  // Promod — Physics. At/above 135h: ₹2,00,000 + ₹1,800/hr overtime.
+  // Below 135h: pay is hoursLogged × ₹2,000/hr instead (replaces the flat ₹2,00,000).
   await upsertNewFaculty(
     { name: 'Promod', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY' },
     {
       contractType: 'BASE_OVERTIME_SHORTFALL',
-      fixedMonthlySalary: 20000,
+      fixedMonthlySalary: 200000,
       overtimeThresholdHours: 135,
       overtimeRatePerHour: 1800,
       shortfallRatePerHour: 2000,
