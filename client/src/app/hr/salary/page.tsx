@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/faculty.service'
-import { calculate, approve } from '@/services/salary.service'
+import { calculate, approve, setPayableDays } from '@/services/salary.service'
 import type { Faculty, SalaryResult } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
@@ -21,6 +21,7 @@ export default function SalaryPage() {
   const [approving, setApproving]   = useState(false)
   const [error, setError]           = useState('')
   const [approved, setApproved]     = useState(false)
+  const [savingPayableDays, setSavingPayableDays] = useState(false)
 
   useEffect(() => {
     if (accessToken) getAll(accessToken, false).then((list) => {
@@ -38,6 +39,17 @@ export default function SalaryPage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Calculation failed')
     } finally { setLoading(false) }
+  }
+
+  async function handleSavePayableDays(payableDays: number) {
+    if (!accessToken || !selectedId) return
+    setSavingPayableDays(true); setError('')
+    try {
+      await setPayableDays(selectedId, month, year, payableDays, accessToken)
+      await handleCalculate()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save Payable Days')
+    } finally { setSavingPayableDays(false) }
   }
 
   async function handleApprove() {
@@ -93,6 +105,8 @@ export default function SalaryPage() {
           canApprove={canApprove}
           onApprove={handleApprove}
           onPrint={() => selectedFaculty && printSalarySlip(selectedFaculty, month, year, result, setError)}
+          savingPayableDays={savingPayableDays}
+          onSavePayableDays={handleSavePayableDays}
         />
       )}
 

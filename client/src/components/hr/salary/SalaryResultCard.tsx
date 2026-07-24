@@ -4,6 +4,7 @@ import { PayrollAlerts } from './PayrollAlerts'
 import { CarryForwardGrid } from './CarryForwardGrid'
 import { PayBreakdownTable } from './PayBreakdownTable'
 import { SalarySummaryStats } from './SalarySummaryStats'
+import { PayableDaysEntry } from './PayableDaysEntry'
 
 interface SalaryResultCardProps {
   result: SalaryResult
@@ -15,10 +16,13 @@ interface SalaryResultCardProps {
   canApprove: boolean
   onApprove: () => void
   onPrint: () => void
+  savingPayableDays?: boolean
+  onSavePayableDays?: (payableDays: number) => void
 }
 
 export function SalaryResultCard({
   result, selectedFaculty, month, year, approved, approving, canApprove, onApprove, onPrint,
+  savingPayableDays, onSavePayableDays,
 }: SalaryResultCardProps) {
   return (
     <div className="card">
@@ -42,6 +46,10 @@ export function SalaryResultCard({
             <div style={{ marginTop: '0.2rem', fontWeight: 400 }}>{result.reason}</div>
           </div>
         </div>
+      )}
+
+      {result.needsPayableDays && onSavePayableDays && (
+        <PayableDaysEntry saving={!!savingPayableDays} onSave={onSavePayableDays} />
       )}
 
       {result.alerts && <PayrollAlerts alerts={result.alerts} />}

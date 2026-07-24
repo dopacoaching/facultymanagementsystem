@@ -4,6 +4,7 @@ import { Faculty } from '../models/Faculty'
 import { SalaryRecord } from '../models/SalaryRecord'
 import { AuditLog } from '../models/AuditLog'
 import { CarryForwardBalance } from '../models/CarryForwardBalance'
+import { PayableDays } from '../models/PayableDays'
 import { Session } from '../models/Session'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { calculateMonthlySalary, redactForFacultyView } from '../services/salary/calculator'
@@ -140,6 +141,51 @@ export const getCarryForward = asyncHandler(async (req: AuthRequest, res: Respon
   if (!fid) return
   const balances = await CarryForwardBalance.find({ facultyId: fid }).sort({ year: -1, month: -1 })
   res.json(balances)
+})
+
+/** GET /hr/salary/payable-days?facultyId=&month=&year= */
+export const getPayableDays = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { facultyId, month, year } = req.query as { facultyId?: string; month?: string; year?: string }
+  const fid = validateObjectId(facultyId, 'facultyId', res)
+  if (!fid) return
+  if (!month || !year) { res.status(400).json({ error: 'facultyId, month, year required' }); return }
+
+  const record = await PayableDays.findOne({ facultyId: fid, month: Number(month), year: Number(year) })
+  res.json({ payableDays: record?.payableDays ?? null })
+})
+
+/** POST /hr/salary/payable-days — { facultyId, month, year, payableDays } */
+export const setPayableDaysCtrl = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { facultyId, month, year, payableDays } = req.body as {
+    facultyId?: string; month?: number; year?: number; payableDays?: number
+  }
+  const fid = validateObjectId(facultyId, 'facultyId', res)
+  if (!fid) return
+  if (!month || !year || payableDays === undefined) {
+    res.status(400).json({ error: 'facultyId, month, year, payableDays required' }); return
+  }
+  if (isNaN(month) || month < 1 || month > 12 || isNaN(year) || isNaN(payableDays) || payableDays < 0 || payableDays > 31) {
+    res.status(400).json({ error: 'Invalid month, year, or payableDays' }); return
+  }
+
+  const faculty = await Faculty.findById(fid)
+  if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
+
+  const record = await PayableDays.findOneAndUpdate(
+    { facultyId: fid, month, year },
+    { payableDays, enteredByUserId: new Types.ObjectId(req.user!.userId) },
+    { upsert: true, new: true, runValidators: true },
+  )
+
+  await writeAuditLog({
+    category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    targetType: 'Faculty', targetId: String(fid), targetName: faculty.name,
+    facultyId: String(fid), facultyName: faculty.name, amount: 0,
+    description: `Payable Days set for ${faculty.name} — ${month}/${year}: ${payableDays} day(s)`,
+  })
+
+  res.json(record)
 })
 
 export const getSalaryReports = asyncHandler(async (req: AuthRequest, res: Response) => {

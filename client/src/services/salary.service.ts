@@ -192,3 +192,19 @@ export async function getContract(facultyId: string, token: string): Promise<Fac
 export async function updateContract(facultyId: string, data: Partial<FacultyContract>, token: string): Promise<FacultyContract> {
   return apiFetch<FacultyContract>(`/hr/contract/${facultyId}`, { method: 'PATCH', body: data, token })
 }
+
+// ─── Payable Days (OFFICE_STAFF_LEAVE_BASED) ─────────────────────────────────
+
+export async function setPayableDays(
+  facultyId: string,
+  month: number,
+  year: number,
+  payableDays: number,
+  token: string
+): Promise<void> {
+  await apiFetch('/hr/salary/payable-days', {
+    method: 'POST',
+    body: { facultyId, month, year, payableDays },
+    token,
+  })
+}

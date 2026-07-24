@@ -64,6 +64,7 @@ export interface SalaryCarryForward {
 export interface SalaryResult {
   status: 'OK' | 'BLOCKED' | 'PENDING_CONFIG' | 'HR_REVIEW'
   reason?: string
+  needsPayableDays?: boolean
   hoursLogged?: number
   daysWorked?: number
   leavesTaken?: number

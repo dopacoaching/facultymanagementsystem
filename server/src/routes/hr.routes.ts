@@ -5,7 +5,7 @@ import {
 } from '../controllers/faculty.controller'
 import {
   calcSalary, approveSalary, getAuditLog, getCarryForward, getSalaryReports, getMyHistory,
-  getMyHoursSummary, getDashboard, getContract, updateContract,
+  getMyHoursSummary, getDashboard, getContract, updateContract, getPayableDays, setPayableDaysCtrl,
 } from '../controllers/salary.controller'
 
 const router = Router()
@@ -27,6 +27,8 @@ router.get('/salary', authorize('HR_MANAGER', 'ADMIN', 'FACULTY'), calcSalary)
 router.post('/salary/approve', authorize('HR_MANAGER', 'ADMIN'), approveSalary)
 router.get('/salary/reports', authorize('HR_MANAGER', 'ADMIN'), getSalaryReports)
 router.get('/salary/carry-forward', authorize('HR_MANAGER', 'ADMIN'), getCarryForward)
+router.get('/salary/payable-days', authorize('HR_MANAGER', 'ADMIN'), getPayableDays)
+router.post('/salary/payable-days', authorize('HR_MANAGER', 'ADMIN'), setPayableDaysCtrl)
 // Faculty-only: view own salary history
 router.get('/salary/history', authorize('FACULTY'), getMyHistory)
 // Faculty-only: monthly hours summary from completed sessions

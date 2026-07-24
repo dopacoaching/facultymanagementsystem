@@ -11,6 +11,7 @@ import { Types } from 'mongoose'
 import { Faculty, IFaculty } from '../../models/Faculty'
 import { Session } from '../../models/Session'
 import { CarryForwardBalance } from '../../models/CarryForwardBalance'
+import { PayableDays } from '../../models/PayableDays'
 import { PermanentFacultyContract, IPermanentFacultyContract } from '../../models/PermanentFacultyContract'
 import { writeAuditLog } from './audit'
 import {
@@ -36,6 +37,11 @@ function getWorkingDays(year: number, month: number): number {
 /** Return the (month, year) pair for the month immediately before the given one. */
 function prevMonth(month: number, year: number): { month: number; year: number } {
   return month === 1 ? { month: 12, year: year - 1 } : { month: month - 1, year }
+}
+
+/** Total calendar days in a given month (28–31). */
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate()
 }
 
 function fmt(n: number): string {
@@ -193,7 +199,7 @@ async function calcHourlyMinDays(
   }
 }
 
-/** FIXED_QUOTA_CARRYFORWARD — Ashraf AC
+/** FIXED_QUOTA_CARRYFORWARD — Ashraf AC, Anand K
  *  Pays full fixed salary regardless of hours.
  *  Hour deficit carries forward to next month (written to DB).
  *  Returns three carry-forward numbers: previous, current, combined.
@@ -285,7 +291,7 @@ async function calcFixedQuotaCarryForward(
   }
 }
 
-/** FIXED_QUOTA_NOCARRY — Anand K
+/** FIXED_QUOTA_NOCARRY — no current example (Anand K moved to FIXED_QUOTA_CARRYFORWARD); kept as a valid type for a future no-carry-quota faculty
  *  Pays full fixed salary. Displays balance but does NOT write to DB.
  */
 async function calcFixedQuotaNoCarry(
@@ -444,16 +450,21 @@ async function calcBaseOvertimeShortfall(
  *  both summed. A faculty-cancelled class with no other session that day both
  *  reduces daysWorked and counts as a cancellation, so summing would charge the
  *  same missed day twice; taking the greater of the two avoids that.
- *  Missing the hours minimum stays a warning-only HR_REVIEW gate with no
- *  monetary effect.
+ *  The hours minimum carries forward like FIXED_QUOTA_CARRYFORWARD: a
+ *  shortfall this month rolls into next month's balance (surplus reduces an
+ *  accumulated deficit); HR sees the full carry-forward detail, faculty only
+ *  ever sees their own shortfall via redactForFacultyView.
  */
 async function calcSplitFixedVariable(
   contract: IPermanentFacultyContract,
   hoursLogged: number,
   daysWorked: number,
   facultyCancellations: number,
+  month: number,
+  year: number,
   facultyId: string,
   facultyName: string,
+  fId: Types.ObjectId,
   persist: boolean,
 ): Promise<Partial<SalaryResult>> {
   const fixed = contract.fixedComponent ?? 0
@@ -481,12 +492,39 @@ async function calcSplitFixedVariable(
       message: `Worked ${daysWorked} day(s) — minimum required is ${minDays}. HR review needed (a penalty may already be reflected below).`,
     })
   }
-  if (hoursLogged < minHours) {
+
+  // Hour-quota carry-forward — negative net means surplus (over-delivery); positive means shortfall.
+  const currentMonthNet = minHours - hoursLogged
+  const prev = prevMonth(month, year)
+  const prevRecord = await CarryForwardBalance.findOne({ facultyId: fId, month: prev.month, year: prev.year })
+  const previousMonthBalance = prevRecord?.balanceHours ?? 0
+  const combinedTotal = previousMonthBalance + currentMonthNet
+  const currentMonthBalance = Math.max(0, currentMonthNet)
+
+  if (currentMonthBalance > 0) {
     alerts.push({
-      level: 'WARNING',
-      code: 'MIN_HOURS_NOT_MET',
-      message: `Logged ${hoursLogged} hour(s) — minimum required is ${minHours}. HR review needed.`,
+      level: 'INFO',
+      code: 'QUOTA_SHORTFALL',
+      message: `${currentMonthBalance.toFixed(1)} hr(s) short of ${minHours}h quota this month. Balance carried forward.`,
     })
+    if (persist) {
+      await writeAuditLog({
+        category: 'HR', eventType: 'BALANCE_CARRY_FORWARD',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: 0,
+        description: `Hour deficit carried forward: ${currentMonthBalance.toFixed(1)} hrs short of ${minHours}h quota (previous: ${previousMonthBalance.toFixed(1)} hrs)`,
+      })
+    }
+  }
+
+  // Persist current month balance — ONLY on approval, never on preview.
+  if (persist) {
+    await CarryForwardBalance.findOneAndUpdate(
+      { facultyId: fId, month, year },
+      { balanceHours: combinedTotal },
+      { upsert: true, new: true }
+    )
   }
 
   const breakdown: SalaryBreakdown[] = [
@@ -515,15 +553,22 @@ async function calcSplitFixedVariable(
     }
   }
   breakdown.push({ label: 'Effective Variable Component', amount: effectiveVariable })
+  breakdown.push({ label: 'Monthly Hour Quota', amount: minHours })
+  breakdown.push({ label: 'Hours Logged This Month', amount: hoursLogged })
+  breakdown.push({ label: 'This Month Hour Deficit', amount: currentMonthBalance })
+  breakdown.push({ label: 'Previous Month Carry', amount: previousMonthBalance })
+  breakdown.push({ label: 'Combined Carry-Forward', amount: combinedTotal })
   breakdown.push({ label: 'Total Payable', amount: finalPayable })
 
   return {
     baseSalary,
     penalties: appliedPenalty,
+    monthBalance: currentMonthBalance,
     finalPayable,
     breakdown,
     alerts,
     status: alerts.some((a) => a.level === 'WARNING') ? 'HR_REVIEW' : undefined,
+    carryForward: { previousMonthBalance, currentMonthBalance, combinedTotal },
   }
 }
 
@@ -678,6 +723,144 @@ async function calcBaseOvertimePenalty(
   }
 }
 
+/** OFFICE_STAFF_LEAVE_BASED — Shahid, Manju, Thamanna, Parvathy, Theertha
+ *  Office staff paid a fixed monthly base whether or not they take classes,
+ *  but with attendance-based deductions HR enters by hand (there's no
+ *  automatic attendance source for staff who may be present with zero logged
+ *  sessions on a given day — see PayableDays.ts). Payroll is blocked entirely
+ *  until HR enters that month's Payable Days figure.
+ *
+ *  Deduction: dailyRate = fixedMonthlySalary / daysInMonth; any day beyond
+ *  Payable Days is unpaid, deducted at dailyRate from the base.
+ *
+ *  Extra-hours pay layers on top of the leave-adjusted base, unaffected by
+ *  the leave deduction: when classRatePerHour is configured (Manju, Thamanna,
+ *  Parvathy) hours split doubt-vs-class exactly like DOUBT_CLEARANCE_SPLIT_RATE;
+ *  otherwise (Shahid, Theertha) every hour beyond overtimeThresholdHours earns
+ *  overtimeRatePerHour, exactly like BASE_OVERTIME.
+ */
+async function calcOfficeStaffLeaveBased(
+  contract: IPermanentFacultyContract,
+  hoursLogged: number,
+  doubtHoursLogged: number,
+  classHoursLogged: number,
+  month: number,
+  year: number,
+  fId: Types.ObjectId,
+  facultyId: string,
+  facultyName: string,
+  persist: boolean,
+): Promise<Partial<SalaryResult>> {
+  const payableRecord = await PayableDays.findOne({ facultyId: fId, month, year })
+  if (!payableRecord) {
+    return {
+      status: 'PENDING_CONFIG',
+      reason: `Payable Days for ${month}/${year} have not been entered yet. Enter them below to calculate salary.`,
+      needsPayableDays: true,
+      alerts: [{
+        level: 'BLOCK',
+        code: 'PAYABLE_DAYS_NOT_ENTERED',
+        message: 'HR must enter Payable Days for this month before payroll can be generated.',
+      }],
+      breakdown: [],
+    }
+  }
+
+  const base = contract.fixedMonthlySalary ?? 0
+  const totalDays = daysInMonth(year, month)
+  const dailyRate = totalDays > 0 ? base / totalDays : 0
+  const unpaidDays = Math.max(0, totalDays - payableRecord.payableDays)
+  // Round to whole rupees — fractional rupees cannot be disbursed via bank transfer.
+  const leaveDeduction = Math.round(unpaidDays * dailyRate)
+  const leaveAdjustedBase = base - leaveDeduction
+
+  const alerts: SalaryAlert[] = []
+  const breakdown: SalaryBreakdown[] = [
+    { label: 'Fixed Monthly Salary', amount: base },
+    { label: `Days in Month (${totalDays})`, amount: totalDays },
+    { label: 'Payable Days (HR-entered)', amount: payableRecord.payableDays },
+  ]
+
+  if (unpaidDays > 0) {
+    breakdown.push({ label: `Unpaid Leave (${unpaidDays} × ${fmt(Math.round(dailyRate))}/day)`, amount: leaveDeduction, isDeduction: true })
+    alerts.push({
+      level: 'INFO',
+      code: 'UNPAID_LEAVE_DEDUCTED',
+      message: `${unpaidDays} day(s) beyond Payable Days — ${fmt(leaveDeduction)} deducted from base.`,
+    })
+    if (persist) {
+      await writeAuditLog({
+        category: 'HR', eventType: 'PENALTY_APPLIED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: leaveDeduction,
+        description: `Unpaid leave deduction: ${unpaidDays} day(s) beyond ${payableRecord.payableDays} Payable Days × ${fmt(Math.round(dailyRate))}/day`,
+      })
+    }
+  }
+  breakdown.push({ label: 'Base After Leave Adjustment', amount: leaveAdjustedBase })
+
+  // Extra-hours pay — split doubt/class if classRatePerHour is configured, else a single overtime pool.
+  const threshold = contract.overtimeThresholdHours ?? 0
+  const rate = contract.overtimeRatePerHour ?? 0
+  const classRate = contract.classRatePerHour
+
+  let extraHours = 0
+  let extraPay = 0
+  if (classRate != null) {
+    const doubtOvertimeHours = Math.max(0, doubtHoursLogged - threshold)
+    const doubtOvertimePay = doubtOvertimeHours * rate
+    const classPay = classHoursLogged * classRate
+    extraHours = doubtOvertimeHours
+    extraPay = doubtOvertimePay + classPay
+    breakdown.push({ label: 'Doubt Hours Logged', amount: doubtHoursLogged })
+    if (doubtOvertimeHours > 0) {
+      breakdown.push({ label: `Extra Doubt Hours (₹${rate}/hr)`, amount: doubtOvertimeHours })
+      breakdown.push({ label: 'Extra Doubt Pay', amount: doubtOvertimePay })
+    }
+    breakdown.push({ label: 'Class Hours Logged', amount: classHoursLogged })
+    breakdown.push({ label: `Class Pay (₹${classRate}/hr)`, amount: classPay })
+  } else {
+    extraHours = Math.max(0, hoursLogged - threshold)
+    extraPay = extraHours * rate
+    breakdown.push({ label: 'Hours Logged', amount: hoursLogged })
+    if (extraHours > 0) {
+      breakdown.push({ label: `Extra Hours (₹${rate}/hr)`, amount: extraHours })
+      breakdown.push({ label: 'Extra Hours Pay', amount: extraPay })
+    }
+  }
+
+  if (extraPay > 0) {
+    alerts.push({
+      level: 'INFO',
+      code: 'OVERTIME_EARNED',
+      message: `${extraHours} extra hour(s) earned = ${fmt(extraPay)}.`,
+    })
+    if (persist) {
+      await writeAuditLog({
+        category: 'HR', eventType: 'OVERTIME_ADDED',
+        actorUserId: 'SYSTEM', actorRole: 'SYSTEM',
+        targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+        facultyId, facultyName, amount: extraPay,
+        description: `Extra-hours pay added: ${extraHours} hr(s) = ${fmt(extraPay)}`,
+      })
+    }
+  }
+
+  const finalPayable = leaveAdjustedBase + extraPay
+  breakdown.push({ label: 'Total Payable', amount: finalPayable })
+
+  return {
+    baseSalary: base,
+    penalties: leaveDeduction,
+    overtimeHours: extraHours,
+    overtimePay: extraPay,
+    finalPayable,
+    breakdown,
+    alerts,
+  }
+}
+
 /** CONFIGURABLE — fully custom salary structure configured by HR per faculty */
 async function calcConfigurable(
   contract: IPermanentFacultyContract,
@@ -809,7 +992,7 @@ export async function calculateMonthlySalary(
         partial = await calcBaseOvertime(contract, hoursLogged, facultyId, faculty.name, persist)
         break
       case 'SPLIT_FIXED_VARIABLE':
-        partial = await calcSplitFixedVariable(contract, hoursLogged, daysWorked, facultyCancellations, facultyId, faculty.name, persist)
+        partial = await calcSplitFixedVariable(contract, hoursLogged, daysWorked, facultyCancellations, month, year, facultyId, faculty.name, fId, persist)
         break
       case 'BASE_OVERTIME_SHORTFALL':
         partial = await calcBaseOvertimeShortfall(contract, hoursLogged, facultyId, faculty.name, persist)
@@ -819,6 +1002,9 @@ export async function calculateMonthlySalary(
         break
       case 'BASE_OVERTIME_PENALTY':
         partial = await calcBaseOvertimePenalty(contract, hoursLogged, daysWorked, facultyCancellations, facultyId, faculty.name, persist)
+        break
+      case 'OFFICE_STAFF_LEAVE_BASED':
+        partial = await calcOfficeStaffLeaveBased(contract, hoursLogged, doubtHoursLogged, classHoursLogged, month, year, fId, facultyId, faculty.name, persist)
         break
       case 'CONFIGURABLE':
         partial = await calcConfigurable(contract, hoursLogged)
@@ -849,6 +1035,7 @@ export async function calculateMonthlySalary(
     alerts,
     breakdown: partial.breakdown ?? [],
     carryForward: partial.carryForward,
+    needsPayableDays: partial.needsPayableDays,
   }
 }
 

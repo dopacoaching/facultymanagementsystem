@@ -47,11 +47,20 @@ export interface IPermanentFacultyContract extends Document {
   // hoursLogged × shortfallRatePerHour instead of fixedMonthlySalary + overtime.
   shortfallRatePerHour?: number
 
-  // DOUBT_CLEARANCE_SPLIT_RATE (Parvathy, Thamanna, Manju): fixedMonthlySalary is
-  // the flat pay for up to overtimeThresholdHours of DOUBT_CLEARANCE-category
-  // hours; overtimeRatePerHour pays extra doubt hours beyond that; classRatePerHour
-  // pays every CLASS-category hour (no threshold, straight hourly).
+  // DOUBT_CLEARANCE_SPLIT_RATE (Parvathy, Thamanna, Manju) / OFFICE_STAFF_LEAVE_BASED
+  // when set (see below): fixedMonthlySalary is the flat pay for up to
+  // overtimeThresholdHours of DOUBT_CLEARANCE-category hours; overtimeRatePerHour
+  // pays extra doubt hours beyond that; classRatePerHour pays every CLASS-category
+  // hour (no threshold, straight hourly).
   classRatePerHour?: number
+
+  // OFFICE_STAFF_LEAVE_BASED (Shahid, Manju, Thamanna, Parvathy, Theertha):
+  // fixedMonthlySalary is the base, reduced day-by-day for any day beyond the
+  // PayableDays HR enters for that month (see PayableDays.ts — payroll blocks
+  // until entered). Extra-hours pay layers on top exactly like DOUBT_CLEARANCE_
+  // SPLIT_RATE when classRatePerHour is set (Manju/Thamanna/Parvathy: split
+  // doubt-vs-class hours), or like BASE_OVERTIME when it isn't (Shahid,
+  // Theertha: every hour beyond overtimeThresholdHours at overtimeRatePerHour).
 
   // CONFIGURABLE — pay structure configured by HR per faculty
   isConfigured: boolean
@@ -77,6 +86,7 @@ const PermanentFacultyContractSchema = new Schema<IPermanentFacultyContract>(
         'BASE_OVERTIME_SHORTFALL',
         'DOUBT_CLEARANCE_SPLIT_RATE',
         'BASE_OVERTIME_PENALTY',
+        'OFFICE_STAFF_LEAVE_BASED',
         'CONFIGURABLE',
       ],
       required: true,

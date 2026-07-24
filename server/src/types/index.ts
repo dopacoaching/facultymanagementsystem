@@ -39,6 +39,7 @@ export type ContractType =
   | 'BASE_OVERTIME_SHORTFALL'
   | 'DOUBT_CLEARANCE_SPLIT_RATE'
   | 'BASE_OVERTIME_PENALTY'
+  | 'OFFICE_STAFF_LEAVE_BASED'
   | 'CONFIGURABLE'
 
 export type BatchType = 'RESIDENTIAL' | 'OFFLINE' | 'ONLINE' | 'IG'
@@ -136,6 +137,8 @@ export interface SalaryResult {
    */
   status: 'OK' | 'BLOCKED' | 'PENDING_CONFIG' | 'HR_REVIEW'
   reason?: string
+  /** true → OFFICE_STAFF_LEAVE_BASED contract with no PayableDays entered yet for this month */
+  needsPayableDays?: boolean
 
   // Core metrics
   hoursLogged?: number
