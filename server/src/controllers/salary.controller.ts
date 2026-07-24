@@ -258,10 +258,11 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
   const startDate = new Date(year, month - 1, 1)
   const endDate   = new Date(year, month,     1)
 
-  const [faculty, contracts, salaryRecords, cancelledSessions, hoursAgg] = await Promise.all([
+  const [faculty, contracts, salaryRecords, payableDaysRecords, cancelledSessions, hoursAgg] = await Promise.all([
     Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
     PermanentFacultyContract.find({}).lean(),
     SalaryRecord.find({ month, year }).lean(),
+    PayableDays.find({ month, year }).lean(),
     Session.find({
       status: 'CANCELLED',
       sessionDate: { $gte: startDate, $lt: endDate },
@@ -290,14 +291,15 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
   const contractMap = new Map(contracts.map((c) => [c.facultyId.toString(), c]))
   const recordMap   = new Map(salaryRecords.map((r) => [r.facultyId.toString(), r]))
   const hoursMap    = new Map(hoursAgg.map((h: { _id: Types.ObjectId; totalHours: number; sessionCount: number }) => [h._id.toString(), h]))
+  const payableDaysSet = new Set(payableDaysRecords.map((p) => p.facultyId.toString()))
 
   // Panel 1 + 2: Hours Progress (quota-based faculty only)
-  const QUOTA_TYPES = ['FIXED_QUOTA_CARRYFORWARD', 'FIXED_QUOTA_NOCARRY', 'BASE_OVERTIME', 'BASE_OVERTIME_PENALTY']
+  const QUOTA_TYPES = ['FIXED_QUOTA_CARRYFORWARD', 'FIXED_QUOTA_NOCARRY', 'BASE_OVERTIME', 'BASE_OVERTIME_PENALTY', 'SPLIT_FIXED_VARIABLE']
   const hoursProgress = faculty
     .map((f) => {
       const contract = contractMap.get(f._id.toString())
       if (!contract || !QUOTA_TYPES.includes(contract.contractType)) return null
-      const quota  = (contract.monthlyHourQuota ?? contract.overtimeThresholdHours ?? 0) as number
+      const quota  = (contract.monthlyHourQuota ?? contract.overtimeThresholdHours ?? contract.minHoursRequirement ?? 0) as number
       const logged = (hoursMap.get(f._id.toString())?.totalHours ?? 0) as number
       const pct    = quota > 0 ? Math.round((logged / quota) * 100) : 100
       const deficit = Math.max(0, quota - logged)
@@ -322,6 +324,8 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
       penaltiesApplied = record.penaltiesApplied
       overtimePay      = record.overtimePay
     } else if (contract?.contractType === 'CONFIGURABLE' && !contract.isConfigured) {
+      status = 'BLOCKED'
+    } else if (contract?.contractType === 'OFFICE_STAFF_LEAVE_BASED' && !payableDaysSet.has(f._id.toString())) {
       status = 'BLOCKED'
     }
     return { facultyId: f._id, name: f.name, subject: f.subject, salaryModel: f.salaryModel, status, finalPayable, penaltiesApplied, overtimePay }
