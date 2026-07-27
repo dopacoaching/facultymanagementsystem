@@ -95,6 +95,8 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
       penaltiesApplied: result.penalties ?? 0,
       totalDeductions: result.penalties ?? 0,
       finalPayable: result.finalPayable ?? 0,
+      tds: result.tds ?? 0,
+      netPayable: result.netPayable ?? 0,
       monthBalance: result.monthBalance ?? 0,
       status: 'APPROVED',
       approvedByUserId: new Types.ObjectId(req.user!.userId),
@@ -105,7 +107,7 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
 
   await writeAuditLog({
     category: 'HR', eventType: 'SALARY_APPROVED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
     targetType: 'Faculty', targetId: String(facultyId), targetName: faculty.name,
     facultyId, facultyName: faculty.name, amount: result.finalPayable ?? 0,
     description: `Salary approved for ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
@@ -179,7 +181,7 @@ export const setPayableDaysCtrl = asyncHandler(async (req: AuthRequest, res: Res
 
   await writeAuditLog({
     category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
     targetType: 'Faculty', targetId: String(fid), targetName: faculty.name,
     facultyId: String(fid), facultyName: faculty.name, amount: 0,
     description: `Payable Days set for ${faculty.name} — ${month}/${year}: ${payableDays} day(s)`,
@@ -476,7 +478,7 @@ export const updateContract = asyncHandler(async (req: AuthRequest, res: Respons
   const faculty = await Faculty.findById(fid)
   await writeAuditLog({
     category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
     targetType: 'Faculty', targetId: fid.toString(), targetName: faculty?.name ?? 'Unknown',
     facultyId: fid.toString(), facultyName: faculty?.name ?? 'Unknown',
     description: `Contract updated (${Object.keys(safeUpdate).join(', ')})`,

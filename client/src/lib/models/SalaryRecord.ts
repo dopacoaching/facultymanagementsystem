@@ -14,6 +14,8 @@ export interface ISalaryRecord extends Document {
   totalDeductions: number
   penaltiesApplied: number
   finalPayable: number
+  tds: number
+  netPayable: number
   monthBalance: number
   status: PayrollStatus
   approvedByUserId?: Types.ObjectId
@@ -34,6 +36,8 @@ const SalaryRecordSchema = new Schema<ISalaryRecord>(
     totalDeductions: { type: Number, default: 0 },
     penaltiesApplied: { type: Number, default: 0 },
     finalPayable: { type: Number, default: 0 },
+    tds: { type: Number, default: 0 },
+    netPayable: { type: Number, default: 0 },
     monthBalance: { type: Number, default: 0 },
     status: { type: String, enum: ['PENDING', 'APPROVED', 'BLOCKED'], default: 'PENDING' },
     approvedByUserId: { type: Schema.Types.ObjectId, ref: 'User' },

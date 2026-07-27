@@ -1020,6 +1020,20 @@ export async function calculateMonthlySalary(
   const status = partial.status
     ?? (hasBlock ? 'BLOCKED' : hasWarning ? 'HR_REVIEW' : 'OK')
 
+  // TDS (Tax Deducted at Source) — flat 10% of the gross payable amount, applied
+  // once here for every contract type rather than duplicated per handler. Only
+  // computed when a handler actually produced a finalPayable (BLOCKED /
+  // PENDING_CONFIG paths return before this point without one).
+  const breakdown = partial.breakdown ?? []
+  let tds: number | undefined
+  let netPayable: number | undefined
+  if (typeof partial.finalPayable === 'number') {
+    tds = Math.round(partial.finalPayable * 0.10)
+    netPayable = partial.finalPayable - tds
+    breakdown.push({ label: 'TDS (10%)', amount: tds, isDeduction: true })
+    breakdown.push({ label: 'Net Payable (after TDS)', amount: netPayable })
+  }
+
   return {
     status,
     reason: partial.reason,
@@ -1032,8 +1046,10 @@ export async function calculateMonthlySalary(
     penalties: partial.penalties,
     monthBalance: partial.monthBalance,
     finalPayable: partial.finalPayable,
+    tds,
+    netPayable,
     alerts,
-    breakdown: partial.breakdown ?? [],
+    breakdown,
     carryForward: partial.carryForward,
     needsPayableDays: partial.needsPayableDays,
   }
@@ -1105,8 +1121,11 @@ async function calcLegacyFallback(
 
 // ─── Faculty-facing redaction ───────────────────────────────────────────────────
 
-/** Breakdown rows that reveal accumulated carry-forward surplus — HR-only. */
-const HR_ONLY_BREAKDOWN_LABELS = new Set(['Previous Month Carry', 'Combined Carry-Forward'])
+/** Breakdown rows that reveal accumulated carry-forward surplus, or TDS detail — HR-only. */
+const HR_ONLY_BREAKDOWN_LABELS = new Set([
+  'Previous Month Carry', 'Combined Carry-Forward',
+  'TDS (10%)', 'Net Payable (after TDS)',
+])
 
 /**
  * Strip carry-forward detail that would reveal a faculty member's surplus hours
@@ -1114,11 +1133,16 @@ const HR_ONLY_BREAKDOWN_LABELS = new Set(['Previous Month Carry', 'Combined Carr
  * the faculty themselves. HR sees the full picture via the HR dashboard's
  * hoursProgress.surplus; faculty must only ever see their own shortfall
  * (monthBalance, floored at 0), never how far over quota they went.
+ *
+ * Also strips TDS/netPayable — the 10% deduction is an HR/Admin-only view;
+ * faculty continue to see finalPayable as their one payable figure.
  */
 export function redactForFacultyView(result: SalaryResult): SalaryResult {
   return {
     ...result,
     breakdown: result.breakdown.filter((row) => !HR_ONLY_BREAKDOWN_LABELS.has(row.label)),
     carryForward: undefined,
+    tds: undefined,
+    netPayable: undefined,
   }
 }

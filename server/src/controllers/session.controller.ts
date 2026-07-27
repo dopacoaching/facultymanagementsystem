@@ -463,7 +463,7 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
 
     await writeAuditLog({
       category: 'HR', eventType: 'PENALTY_APPLIED',
-      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
       targetType: 'Faculty', targetId: facultyOid.toString(), targetName: facultyName,
       facultyId: facultyOid.toString(), facultyName, amount: penaltyAmount,
       description: `Class cancelled by faculty on ${session.sessionDate.toDateString()}` +
@@ -475,7 +475,7 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
     const initiatorLabel = cancellationInitiator === 'STUDENT' ? 'student' : 'management'
     await writeAuditLog({
       category: 'ACADEMICS', eventType: 'SESSION_CANCELLED',
-      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
       targetType: 'Session', targetId: session._id.toString(), targetName: facultyName,
       facultyId: facultyOid.toString(), facultyName,
       description: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +

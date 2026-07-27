@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     await writeAuditLog({
       category: 'HR', eventType: 'FACULTY_CREATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
       facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
       description: `Faculty profile created: ${faculty.name} (${faculty.subject})`,

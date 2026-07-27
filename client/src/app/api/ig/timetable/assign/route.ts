@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_TIMETABLE_ASSIGNED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Timetable', targetId: slot._id.toString(),
       targetName: `${subject} — ${resolvedChapter}`,
       description: `IG timetable slot assigned: ${subject} "${resolvedChapter}" on ${slotDate.toDateString()} (${timeSlot})`,

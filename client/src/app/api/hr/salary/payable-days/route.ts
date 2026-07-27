@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     await writeAuditLog({
       category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Faculty', targetId: facultyId, targetName: faculty.name,
       facultyId, facultyName: faculty.name, amount: 0,
       description: `Payable Days set for ${faculty.name} — ${month}/${year}: ${payableDays} day(s)`,

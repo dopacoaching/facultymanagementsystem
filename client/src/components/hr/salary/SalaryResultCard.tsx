@@ -56,15 +56,18 @@ export function SalaryResultCard({
 
       {result.carryForward && <CarryForwardGrid carryForward={result.carryForward} />}
 
-      {result.breakdown && <PayBreakdownTable breakdown={result.breakdown} />}
+      {/* TDS/Net Payable are shown in the highlighted total box below, not duplicated here */}
+      {result.breakdown && (
+        <PayBreakdownTable
+          breakdown={result.breakdown.filter((row) => row.label !== 'TDS (10%)' && row.label !== 'Net Payable (after TDS)')}
+        />
+      )}
 
       {(result.status === 'OK' || result.status === 'HR_REVIEW') && (
         <>
           <SalarySummaryStats result={result} />
 
           <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            flexWrap: 'wrap', gap: '0.75rem',
             padding: '1.25rem 1.5rem',
             background: result.status === 'HR_REVIEW'
               ? 'linear-gradient(135deg, #92400e, #b45309)'
@@ -76,20 +79,33 @@ export function SalaryResultCard({
               ? '0 4px 16px rgba(180,83,9,.3)'
               : '0 4px 16px rgba(79,70,229,.3)',
           }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', opacity: 0.9 }}>Final Payable</div>
-              {result.status === 'HR_REVIEW' && (
-                <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.2rem' }}>
-                  ⚠️ Pending HR review — approve with caution
-                </div>
-              )}
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
-                ₹{result.finalPayable?.toLocaleString('en-IN')}
+            {result.status === 'HR_REVIEW' && (
+              <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.75rem' }}>
+                ⚠️ Pending HR review — approve with caution
               </div>
-              <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.2rem' }}>
-                {MONTHS[month - 1]} {year}
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9 }}>
+              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Total (Gross)</span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>₹{result.finalPayable?.toLocaleString('en-IN')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9, marginTop: '0.4rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>− TDS (10%)</span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>−₹{result.tds?.toLocaleString('en-IN')}</span>
+            </div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexWrap: 'wrap', gap: '0.75rem',
+              marginTop: '0.75rem', paddingTop: '0.75rem',
+              borderTop: '1px solid rgba(255,255,255,0.3)',
+            }}>
+              <div style={{ fontWeight: 700, fontSize: '1rem' }}>Net Payable</div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
+                  ₹{result.netPayable?.toLocaleString('en-IN')}
+                </div>
+                <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.2rem' }}>
+                  {MONTHS[month - 1]} {year}
+                </div>
               </div>
             </div>
           </div>

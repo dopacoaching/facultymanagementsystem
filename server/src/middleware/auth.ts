@@ -36,6 +36,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
       {
         userId:    payload.userId,
         role:      payload.role,
+        ...(payload.username  != null ? { username:  payload.username  } : {}),
         ...(payload.facultyId != null ? { facultyId: payload.facultyId } : {}),
         ...(payload.batchId   != null ? { batchId:   payload.batchId   } : {}),
         ...(payload.batchType != null ? { batchType: payload.batchType } : {}),

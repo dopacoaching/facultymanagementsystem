@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
       await writeAuditLog({
         category: 'ACADEMICS', eventType: 'PENALTY_APPLIED',
-        actorUserId: payload.userId, actorRole: payload.role,
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Session', targetId: session._id.toString(),
         targetName: `${session.subject} — ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: penaltyAmount,
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
       const initiatorLabel = cancellationInitiator === 'STUDENT' ? 'student' : 'management'
       await writeAuditLog({
         category: 'ACADEMICS', eventType: 'SESSION_CANCELLED',
-        actorUserId: payload.userId, actorRole: payload.role,
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Session', targetId: session._id.toString(),
         targetName: `${session.subject} — ${session.chapter}`,
         facultyId: facultyOid, facultyName, amount: 0,

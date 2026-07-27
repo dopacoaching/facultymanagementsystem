@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     // Audit: user account created
     await writeAuditLog({
       category: 'ADMIN', eventType: 'USER_ACCOUNT_CREATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'User', targetId: user._id.toString(), targetName: username.trim().toLowerCase(),
       description: `User account created: "${username.trim().toLowerCase()}" with role ${role}`,
       metadata: { role, facultyId, batchId },

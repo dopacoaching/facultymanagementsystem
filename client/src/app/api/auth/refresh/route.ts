@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
     const newPayload = {
       userId:    payload.userId,
       role:      payload.role,
+      username:  payload.username,
       facultyId: payload.facultyId,
       batchId:   payload.batchId,
       batchType: payload.batchType,

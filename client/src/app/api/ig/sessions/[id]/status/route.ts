@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_SESSION_STATUS_CHANGED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: id,
       targetName: `${session.subject} — ${session.chapter}`,
       description: `IG session marked ${status}: ${session.subject} "${session.chapter}"`,

@@ -41,7 +41,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_CHAPTER_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Chapter', targetId: id,
       targetName: chapter.chapterName,
       description: `IG chapter updated: "${chapter.chapterName}" (${chapter.subject})${status ? ` → ${status}` : ''}`,

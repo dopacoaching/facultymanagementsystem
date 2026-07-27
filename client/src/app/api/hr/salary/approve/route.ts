@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
         penaltiesApplied: result.penalties      ?? 0,
         totalDeductions:  result.penalties      ?? 0,
         finalPayable:     result.finalPayable   ?? 0,
+        tds:              result.tds            ?? 0,
+        netPayable:       result.netPayable     ?? 0,
         monthBalance:     result.monthBalance   ?? 0,
         status:           'APPROVED',
         approvedByUserId: new Types.ObjectId(payload.userId),
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     await writeAuditLog({
       category: 'HR', eventType: 'SALARY_APPROVED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Faculty', targetId: facultyId, targetName: faculty.name,
       facultyId, facultyName: faculty.name, amount: result.finalPayable ?? 0,
       description: `Salary approved for ${faculty.name} — ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,

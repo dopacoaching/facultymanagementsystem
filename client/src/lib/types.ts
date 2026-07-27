@@ -142,6 +142,11 @@ export interface SalaryResult {
   monthBalance?: number
   finalPayable?: number
 
+  // TDS (Tax Deducted at Source) — 10% of finalPayable. HR/Admin view only;
+  // stripped from the faculty-facing response by redactForFacultyView().
+  tds?: number
+  netPayable?: number
+
   // Rich output
   alerts: SalaryAlert[]
   breakdown: SalaryBreakdown[]

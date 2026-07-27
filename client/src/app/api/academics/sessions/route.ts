@@ -328,7 +328,7 @@ export async function POST(req: NextRequest) {
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SESSION_LOGGED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: session._id.toString(),
       targetName: `${subject} — ${chapter}`,
       description: `Session logged: ${subject} "${chapter}" for batch on ${date.toDateString()}`,

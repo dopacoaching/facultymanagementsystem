@@ -94,7 +94,7 @@ export const createFaculty = asyncHandler(async (req: AuthRequest, res: Response
 
   await writeAuditLog({
     category: 'HR', eventType: 'FACULTY_CREATED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
     targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
     facultyId: faculty._id.toString(), facultyName: faculty.name,
     description: 'Faculty profile created',
@@ -121,7 +121,7 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
   if (SALARY_FIELDS.some((f) => f in safeData)) {
     await writeAuditLog({
       category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
-      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
       targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
       facultyId: faculty._id.toString(), facultyName: faculty.name,
       description: `Pay config updated (${Object.keys(safeData).join(', ')})`,
@@ -129,7 +129,7 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
   } else {
     await writeAuditLog({
       category: 'HR', eventType: 'FACULTY_UPDATED',
-      actorUserId: req.user!.userId, actorRole: req.user!.role,
+      actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
       targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
       facultyId: faculty._id.toString(), facultyName: faculty.name,
       description: `Profile updated (${Object.keys(safeData).join(', ')})`,

@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     writeAuditLog({
       category: 'AUTH', eventType: 'PASSWORD_CHANGED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'User', targetId: resolvedUserId, targetName: user.username,
       description: resolvedUserId === payload.userId
         ? `User "${user.username}" changed their own password`

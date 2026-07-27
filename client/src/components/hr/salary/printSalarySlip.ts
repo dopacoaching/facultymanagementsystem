@@ -16,7 +16,9 @@ export function printSalarySlip(faculty: Faculty, month: number, year: number, r
   const win = window.open('', '_blank', 'width=900,height=700,scrollbars=yes')
   if (!win) { onError('Popups are blocked — please allow popups for this site to print salary slips.'); return }
 
-  const breakdown = (result.breakdown ?? []).map((row) => `
+  const breakdown = (result.breakdown ?? [])
+    .filter((row) => row.label !== 'TDS (10%)' && row.label !== 'Net Payable (after TDS)')
+    .map((row) => `
     <tr class="${row.isDeduction ? 'ded' : ''}">
       <td>${row.isDeduction ? '&minus; ' : ''}${escapeHtml(row.label)}</td>
       <td>${/\bhours?\b|\bhrs\b|\bquota\b/i.test(row.label) ? escapeHtml(row.amount % 1 === 0 ? row.amount : row.amount.toFixed(1)) + ' hrs' : (Number.isInteger(row.amount) || row.amount > 100 ? '&#8377;' + escapeHtml(row.amount.toLocaleString('en-IN')) : escapeHtml(row.amount.toFixed(1)))}</td>
@@ -84,7 +86,11 @@ tr.ded td{color:#dc2626}
   </div>
   ${alertsHtml ? `<div class="section-title">Notes</div><div class="alerts">${alertsHtml}</div>` : ''}
   ${carryHtml}
-  ${breakdown ? `<div class="section-title">Pay Breakdown</div><table><tbody>${breakdown}<tr class="total-row"><td>Net Payable</td><td>&#8377;${escapeHtml(result.finalPayable?.toLocaleString('en-IN') ?? '0')}</td></tr></tbody></table>` : ''}
+  ${breakdown ? `<div class="section-title">Pay Breakdown</div><table><tbody>${breakdown}
+    <tr><td>Total (Gross)</td><td>&#8377;${escapeHtml(result.finalPayable?.toLocaleString('en-IN') ?? '0')}</td></tr>
+    <tr class="ded"><td>&minus; TDS (10%)</td><td>&#8377;${escapeHtml(result.tds?.toLocaleString('en-IN') ?? '0')}</td></tr>
+    <tr class="total-row"><td>Net Payable</td><td>&#8377;${escapeHtml(result.netPayable?.toLocaleString('en-IN') ?? '0')}</td></tr>
+  </tbody></table>` : ''}
   <div class="footer">
     <div class="sig">Prepared by HR</div>
     <div class="sig">Faculty Signature</div>

@@ -102,7 +102,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (SALARY_FIELDS.some((f) => f in safeData)) {
       await writeAuditLog({
         category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
-        actorUserId: payload.userId, actorRole: payload.role,
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
         facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
         description: `Pay config updated for ${faculty.name}: ${Object.keys(safeData).join(', ')}`,
@@ -111,7 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     } else {
       await writeAuditLog({
         category: 'HR', eventType: 'FACULTY_UPDATED',
-        actorUserId: payload.userId, actorRole: payload.role,
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
         facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
         description: `Faculty profile updated for ${faculty.name}: ${Object.keys(safeData).join(', ')}`,

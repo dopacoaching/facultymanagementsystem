@@ -32,7 +32,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SCHEDULE_DELETED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Schedule', targetId: id,
       description: `Draft schedule deleted for week of ${weekStr}`,
     }).catch(() => null)

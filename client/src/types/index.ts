@@ -74,6 +74,8 @@ export interface SalaryResult {
   penalties?: number
   monthBalance?: number
   finalPayable?: number
+  tds?: number
+  netPayable?: number
   alerts: SalaryAlert[]
   breakdown: SalaryBreakdown[]
   carryForward?: SalaryCarryForward

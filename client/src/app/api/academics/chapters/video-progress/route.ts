@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'CHAPTER_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Chapter', targetId: chapter._id.toString(),
       targetName: syllabus.chapterName,
       description: `Videos watched updated: ${clampedWatched}/${syllabus.totalVideos} for "${syllabus.chapterName}" (${syllabus.subject})${nowComplete ? ' — video complete' : ''}`,

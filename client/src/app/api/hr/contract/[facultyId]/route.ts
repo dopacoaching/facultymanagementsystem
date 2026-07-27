@@ -99,7 +99,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ fa
     const faculty = await Faculty.findById(fid)
     await writeAuditLog({
       category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Faculty', targetId: fid.toString(), targetName: faculty?.name ?? 'Unknown',
       facultyId: fid.toString(), facultyName: faculty?.name ?? 'Unknown', amount: 0,
       description: `Pay contract updated for ${faculty?.name ?? 'Unknown'}: ${Object.keys(safeUpdate).join(', ')}`,

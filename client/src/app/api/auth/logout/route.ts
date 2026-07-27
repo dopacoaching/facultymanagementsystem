@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     if (actor) {
       writeAuditLog({
         category: 'AUTH', eventType: 'USER_LOGGED_OUT',
-        actorUserId: actor.userId, actorRole: actor.role,
-        description: `User (${actor.role}) signed out`,
+        actorUserId: actor.userId, actorRole: actor.role, actorUsername: actor.username,
+        description: `User "${actor.username ?? actor.userId}" (${actor.role}) signed out`,
       }).catch(() => null)
     }
 

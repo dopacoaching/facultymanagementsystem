@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 export interface JWTPayload {
   userId: string
   role: string
+  username?: string
   facultyId?: string
   batchId?: string
   batchType?: string
@@ -59,6 +60,7 @@ export function authenticate(req: Request): { payload: JWTPayload; refreshedToke
   const refreshedToken = signAccessToken({
     userId: payload.userId,
     role: payload.role,
+    ...(payload.username  ? { username:  payload.username  } : {}),
     ...(payload.facultyId ? { facultyId: payload.facultyId } : {}),
     ...(payload.batchId   ? { batchId:   payload.batchId   } : {}),
     ...(payload.batchType ? { batchType: payload.batchType } : {}),

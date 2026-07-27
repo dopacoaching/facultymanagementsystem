@@ -84,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SESSION_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: id,
       targetName: `${session.subject} — ${session.chapter}`,
       description: `Session updated: ${session.subject} "${session.chapter}"`,

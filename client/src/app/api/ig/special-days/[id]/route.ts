@@ -23,7 +23,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     writeAuditLog({
       category: 'IG', eventType: 'SPECIAL_DAY_DELETED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'SpecialDay', targetId: id,
       targetName: `${day.type} on ${new Date(day.date).toDateString()}`,
       description: `Special day deleted: ${day.type} on ${new Date(day.date).toDateString()}`,

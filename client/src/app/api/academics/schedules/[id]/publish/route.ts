@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SCHEDULE_PUBLISHED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Schedule', targetId: id,
       description: `Schedule published for week of ${new Date(schedule.weekStartDate).toDateString()}`,
     }).catch(() => null)

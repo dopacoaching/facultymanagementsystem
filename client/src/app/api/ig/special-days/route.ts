@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       const campusName = (populated.campusId as unknown as { name?: string })?.name ?? 'All campuses'
       writeAuditLog({
         category: 'IG', eventType: 'SPECIAL_DAY_ADDED',
-        actorUserId: payload.userId, actorRole: payload.role,
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'SpecialDay', targetId: day._id.toString(),
         targetName: `${type} on ${new Date(date).toDateString()}`,
         description: `Special day added: ${type} on ${new Date(date).toDateString()} for ${campusName}`,

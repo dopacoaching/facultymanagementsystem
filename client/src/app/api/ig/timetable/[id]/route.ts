@@ -123,7 +123,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_TIMETABLE_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Timetable', targetId: id,
       targetName: `${slot.subject} — ${slot.chapter}`,
       description: `IG timetable slot updated: ${slot.subject} "${slot.chapter}" on ${new Date(slot.date).toDateString()}`,
@@ -173,7 +173,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_TIMETABLE_DELETED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Timetable', targetId: id,
       targetName: `${slot.subject} — ${slot.chapter}`,
       description: `IG timetable slot deleted: ${slot.subject} "${slot.chapter}" on ${new Date(slot.date).toDateString()}`,

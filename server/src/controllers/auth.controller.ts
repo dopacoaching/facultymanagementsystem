@@ -62,6 +62,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
   const payload: JWTPayload = {
     userId: user._id.toString(),
     role: user.role,
+    username: user.username,
     facultyId: user.facultyId?.toString(),
     batchId: user.batchId?.toString(),
     batchType: user.batchType,
@@ -115,7 +116,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     await RefreshToken.deleteOne({ tokenHash: hashToken(raw) })
 
     const newRefreshToken = signRefresh({
-      userId: payload.userId, role: payload.role,
+      userId: payload.userId, role: payload.role, username: payload.username,
       facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
     })
     await RefreshToken.create({
@@ -126,7 +127,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
 
     // Re-stamp lastActive so the session inactivity clock resets on refresh
     const accessToken = signAccess({
-      userId: payload.userId, role: payload.role,
+      userId: payload.userId, role: payload.role, username: payload.username,
       facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
     })
 

@@ -10,13 +10,20 @@ interface UsersTableProps {
   onEdit: (u: AppUser) => void
   onToggleActive: (u: AppUser) => void
   onNewUser: () => void
+  hasHiddenUsers?: boolean
 }
 
-export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleActive, onNewUser }: UsersTableProps) {
+export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleActive, onNewUser, hasHiddenUsers }: UsersTableProps) {
   if (loading) return <SkeletonTable rows={5} cols={5} />
 
   if (users.length === 0) {
-    return (
+    return hasHiddenUsers ? (
+      <EmptyState
+        icon="🔍"
+        title="No matching users"
+        description="No users match the current search or role filter."
+      />
+    ) : (
       <EmptyState
         icon="🔐"
         title="No users yet"

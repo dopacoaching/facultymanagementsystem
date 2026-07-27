@@ -54,7 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SCHEDULE_REVISED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Schedule', targetId: id,
       description: `Revision draft created for week of ${new Date(original.weekStartDate).toDateString()}`,
       metadata: { revisionId: revision._id.toString() },

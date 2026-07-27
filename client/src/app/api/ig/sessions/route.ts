@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_SESSION_LOGGED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: session._id.toString(),
       targetName: `${subject} — ${chapter}`,
       description: `IG session logged: ${subject} "${chapter}" on ${date.toDateString()}`,

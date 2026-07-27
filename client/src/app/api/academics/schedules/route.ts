@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
       ).populate('classEntries.facultyId', 'name subject')
       writeAuditLog({
         category: 'ACADEMICS', eventType: 'SCHEDULE_UPDATED',
-        actorUserId: payload.userId, actorRole: payload.role,
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Schedule', targetId: revisionDraft._id.toString(),
         description: `Revision draft updated for week of ${startDate.toDateString()}`,
         metadata: { batchId, weekStartDate, entries: (classEntries ?? []).length },
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: isNew ? 'SCHEDULE_CREATED' : 'SCHEDULE_UPDATED',
-      actorUserId: payload.userId, actorRole: payload.role,
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Schedule', targetId: schedule._id.toString(),
       description: `Schedule ${isNew ? 'created' : 'updated'} for week of ${startDate.toDateString()}`,
       metadata: { batchId, weekStartDate, entries: (classEntries ?? []).length },

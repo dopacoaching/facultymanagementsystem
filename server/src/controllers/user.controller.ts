@@ -69,7 +69,7 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
   // Audit: user account created
   await writeAuditLog({
     category: 'ADMIN', eventType: 'USER_ACCOUNT_CREATED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
     targetType: 'User', targetId: user._id.toString(),
     targetName: username.trim().toLowerCase(),
     description: `User account created with role ${role} by admin ${req.user!.userId}`,
@@ -144,7 +144,7 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
   // Audit: user account changed
   await writeAuditLog({
     category: 'ADMIN', eventType: 'USER_ACCOUNT_UPDATED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role,
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
     targetType: 'User', targetId: String(id),
     targetName: user.username,
     description: `User account updated: ${auditReasons.join(', ')} — by admin ${req.user!.userId}`,

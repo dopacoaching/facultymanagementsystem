@@ -10,7 +10,7 @@ import type { Batch } from '@/services/faculty.service'
 import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
-import { validatePasswordComplexity, CreateUserModal, EditUserModal, UsersTable } from '@/components/admin/users'
+import { validatePasswordComplexity, CreateUserModal, EditUserModal, UsersTable, UsersFilterBar } from '@/components/admin/users'
 
 export default function AdminUsersPage() {
   const { accessToken, userId: selfId } = useAppSelector((s) => s.auth)
@@ -38,6 +38,10 @@ export default function AdminUsersPage() {
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
   const [toggling, setToggling]       = useState('')
+
+  // Filters
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('ALL')
 
   const load = async () => {
     if (!accessToken) return
@@ -128,6 +132,12 @@ export default function AdminUsersPage() {
   const activeCount   = users.filter((u) => u.isActive).length
   const inactiveCount = users.length - activeCount
 
+  const filteredUsers = users.filter((u) => {
+    if (roleFilter !== 'ALL' && u.role !== roleFilter) return false
+    if (search.trim() && !u.username.toLowerCase().includes(search.trim().toLowerCase())) return false
+    return true
+  })
+
   return (
     <div>
       <div className="page-header">
@@ -178,15 +188,24 @@ export default function AdminUsersPage() {
         />
       )}
 
+      <UsersFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        role={roleFilter}
+        onRoleChange={setRoleFilter}
+        onClear={() => { setSearch(''); setRoleFilter('ALL') }}
+      />
+
       <div className="card">
         <UsersTable
           loading={loading}
-          users={users}
+          users={filteredUsers}
           selfId={selfId}
           toggling={toggling}
           onEdit={openEdit}
           onToggleActive={handleToggleActive}
           onNewUser={() => setShowCreate(true)}
+          hasHiddenUsers={users.length > 0}
         />
       </div>
     </div>
