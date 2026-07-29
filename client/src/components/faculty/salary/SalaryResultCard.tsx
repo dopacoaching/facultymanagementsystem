@@ -55,14 +55,17 @@ export function SalaryResultCard({ result, month, year, hoursSummary }: SalaryRe
             ))}
           </div>
 
-          {/* Pay breakdown — itemized payment details, most useful for temporary/hourly faculty */}
+          {/* Pay breakdown — itemized payment details, most useful for temporary/hourly faculty.
+              TDS/Net Payable rows are shown in the highlighted total box below, not duplicated here. */}
           {result.breakdown && result.breakdown.length > 0 && (
             <div style={{ marginBottom: '1.25rem' }}>
               <p className="section-label">Payment Details</p>
               <div className="table-wrapper">
                 <table>
                   <tbody>
-                    {result.breakdown.map((row, i) => (
+                    {result.breakdown
+                      .filter((row) => row.label !== 'TDS (10%)' && row.label !== 'Net Payable (after TDS)')
+                      .map((row, i) => (
                       <tr key={i}>
                         <td style={{ color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
                           {row.isDeduction ? '− ' : ''}{row.label}
@@ -83,19 +86,32 @@ export function SalaryResultCard({ result, month, year, hoursSummary }: SalaryRe
           )}
 
           <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            flexWrap: 'wrap', gap: '0.75rem',
             padding: '1.25rem 1.5rem',
             background: 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
             color: '#fff', borderRadius: 'var(--radius-lg)',
             boxShadow: '0 4px 16px rgba(79,70,229,.3)',
           }}>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: '1rem', opacity: 0.9 }}>Estimated Payable</div>
-              <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.15rem' }}>Subject to HR approval</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9 }}>
+              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Total (Gross)</span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>₹{result.finalPayable?.toLocaleString('en-IN')}</span>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
-              ₹{result.finalPayable?.toLocaleString('en-IN')}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9, marginTop: '0.4rem' }}>
+              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>− TDS (10%)</span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>−₹{result.tds?.toLocaleString('en-IN')}</span>
+            </div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexWrap: 'wrap', gap: '0.75rem',
+              marginTop: '0.75rem', paddingTop: '0.75rem',
+              borderTop: '1px solid rgba(255,255,255,0.3)',
+            }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '1rem' }}>Estimated Net Payable</div>
+                <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.15rem' }}>Subject to HR approval</div>
+              </div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
+                ₹{result.netPayable?.toLocaleString('en-IN')}
+              </div>
             </div>
           </div>
         </>

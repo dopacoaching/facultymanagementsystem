@@ -1121,11 +1121,8 @@ async function calcLegacyFallback(
 
 // ─── Faculty-facing redaction ───────────────────────────────────────────────────
 
-/** Breakdown rows that reveal accumulated carry-forward surplus, or TDS detail — HR-only. */
-const HR_ONLY_BREAKDOWN_LABELS = new Set([
-  'Previous Month Carry', 'Combined Carry-Forward',
-  'TDS (10%)', 'Net Payable (after TDS)',
-])
+/** Breakdown rows that reveal accumulated carry-forward surplus — HR-only. */
+const HR_ONLY_BREAKDOWN_LABELS = new Set(['Previous Month Carry', 'Combined Carry-Forward'])
 
 /**
  * Strip carry-forward detail that would reveal a faculty member's surplus hours
@@ -1134,15 +1131,13 @@ const HR_ONLY_BREAKDOWN_LABELS = new Set([
  * hoursProgress.surplus; faculty must only ever see their own shortfall
  * (monthBalance, floored at 0), never how far over quota they went.
  *
- * Also strips TDS/netPayable — the 10% deduction is an HR/Admin-only view;
- * faculty continue to see finalPayable as their one payable figure.
+ * TDS/netPayable are NOT stripped here — faculty see the same TDS breakdown as
+ * HR/Admin (gross → TDS → net payable).
  */
 export function redactForFacultyView(result: SalaryResult): SalaryResult {
   return {
     ...result,
     breakdown: result.breakdown.filter((row) => !HR_ONLY_BREAKDOWN_LABELS.has(row.label)),
     carryForward: undefined,
-    tds: undefined,
-    netPayable: undefined,
   }
 }
