@@ -80,26 +80,24 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  * POST /sessions — Log a new session.
  *
  * Validation gates (in order):
- *  1. Required fields: facultyId, batchId, subject, chapter, durationHours, sessionDate
- *  2. VIDEO-FIRST gate (Residential + Online only):
- *       block if BatchChapter.videoComplete = false for this chapter
- *  3. DUPLICATE check: same faculty + same batch + same calendar day
- *  4. OFFLINE 1-CAMPUS limit: faculty can only appear at one offline campus per day
- *  5. RESIDENTIAL/ONLINE 2-CAMPUS max: block third campus on the same day
- *  6. Auto-mark BatchChapter.facultyClassDone = true on success
+ *  1. Required fields: facultyId, batchId, subject, durationHours, sessionDate (chapter is optional)
+ *  2. DUPLICATE check: same faculty + same batch + same calendar day
+ *  3. OFFLINE 1-CAMPUS limit: faculty can only appear at one offline campus per day
+ *  4. RESIDENTIAL/ONLINE 2-CAMPUS max: block third campus on the same day
+ *  5. Auto-mark BatchChapter.facultyClassDone = true on success (only when a chapter was given)
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, durationHours, sessionDate, timeSlot, sessionCategory } = req.body
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
-  if (!facultyId || !batchId || !subject || !chapter || !durationHours || !sessionDate) {
+  if (!facultyId || !batchId || !subject || !durationHours || !sessionDate) {
     res.status(400).json({
-      error: 'All fields are required: facultyId, batchId, subject, chapter, durationHours, sessionDate',
+      error: 'All fields are required: facultyId, batchId, subject, durationHours, sessionDate',
     })
     return
   }
-  if (Number(durationHours) <= 0) {
-    res.status(400).json({ error: 'durationHours must be a positive number' }); return
+  if (Number(durationHours) < 0.5) {
+    res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return
   }
 
   let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
@@ -134,31 +132,6 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (isCoordinator(req.user!.role)) {
     if (!req.user!.batchId || req.user!.batchId !== batchId) {
       res.status(403).json({ error: 'You can only log sessions for your assigned batch.' }); return
-    }
-  }
-
-  // ── 2. VIDEO-FIRST GATE (Residential + Online only) ──────────────────────
-  if (isVideoFirstBatch(batch.type)) {
-    // Normalise subject to uppercase so the lookup always matches seeded data
-    // (gate 6 normalises the same way when upserting the BatchChapter record).
-    const chapterRecord = await BatchChapter.findOne({
-      batchId: batchOid,
-      subject: subject.toUpperCase(),
-      chapterName: chapter,
-    })
-    // Only block when a record EXISTS with videoComplete=false.
-    // Chapters with totalVideos===0 (e.g. Experimental Skills, Practical Chemistry)
-    // have no video classes and bypass the gate automatically.
-    // Legacy records (totalVideos undefined) default to gated behaviour.
-    const hasVideos = typeof chapterRecord?.totalVideos === 'number'
-      ? chapterRecord.totalVideos > 0
-      : true
-    if (chapterRecord && hasVideos && !chapterRecord.videoComplete) {
-      res.status(422).json({
-        error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
-        code: 'VIDEO_NOT_COMPLETE',
-      })
-      return
     }
   }
 
@@ -281,7 +254,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     facultyId:     facultyOid,
     batchId:       batchOid,
     subject,
-    chapter,
+    chapter:       chapter || undefined,
     startTime:     startTime ?? undefined,
     durationHours: Number(durationHours),
     sessionDate:   date,
@@ -291,29 +264,32 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     sessionCategory: sessionCategory ?? 'CLASS',
   })
 
-  // ── 6. AUTO-MARK chapter as facultyClassDone ─────────────────────────────
+  // ── 5. AUTO-MARK chapter as facultyClassDone ─────────────────────────────
+  // Only meaningful when a chapter was actually given — the chapters/syllabus workflow.
   // Upsert: if chapter record doesn't exist (not pre-seeded), create it.
   // Reuse the syllabusChapter doc already fetched in gate 2b — no second query.
   // Normalise subject to uppercase so it matches SyllabusChapter enum values.
-  const normalisedSubject = subject.toUpperCase()
+  if (chapter) {
+    const normalisedSubject = subject.toUpperCase()
 
-  const bcSet: Record<string, unknown> = {
-    facultyClassDone:   true,
-    facultyClassDoneAt: date,
-    sessionId:          session._id,
+    const bcSet: Record<string, unknown> = {
+      facultyClassDone:   true,
+      facultyClassDoneAt: date,
+      sessionId:          session._id,
+    }
+    if (resolvedSyllabusOid)          bcSet.syllabusChapterId = resolvedSyllabusOid
+    if (resolvedSyllabusChapter)      bcSet.scheduledMonth    = resolvedSyllabusChapter.scheduledMonth
+    if (resolvedSyllabusChapter)      bcSet.totalVideos       = resolvedSyllabusChapter.totalVideos
+
+    await BatchChapter.findOneAndUpdate(
+      { batchId: batchOid, subject: normalisedSubject, chapterName: chapter },
+      {
+        $set: bcSet,
+        $setOnInsert: { chapterOrder: 0, videoComplete: false },
+      },
+      { upsert: true }
+    )
   }
-  if (resolvedSyllabusOid)          bcSet.syllabusChapterId = resolvedSyllabusOid
-  if (resolvedSyllabusChapter)      bcSet.scheduledMonth    = resolvedSyllabusChapter.scheduledMonth
-  if (resolvedSyllabusChapter)      bcSet.totalVideos       = resolvedSyllabusChapter.totalVideos
-
-  await BatchChapter.findOneAndUpdate(
-    { batchId: batchOid, subject: normalisedSubject, chapterName: chapter },
-    {
-      $set: bcSet,
-      $setOnInsert: { chapterOrder: 0, videoComplete: false },
-    },
-    { upsert: true }
-  )
 
   res.status(201).json(session)
 })

@@ -6,6 +6,7 @@ import {
 import {
   calcSalary, approveSalary, getAuditLog, getCarryForward, getSalaryReports, getMyHistory,
   getMyHoursSummary, getDashboard, getContract, updateContract, getPayableDays, setPayableDaysCtrl,
+  getFacultyHoursBySubject,
 } from '../controllers/salary.controller'
 
 const router = Router()
@@ -26,6 +27,7 @@ router.delete('/faculty/:id', authorize('HR_MANAGER', 'ADMIN'), deactivateFacult
 router.get('/salary', authorize('HR_MANAGER', 'ADMIN', 'FACULTY'), calcSalary)
 router.post('/salary/approve', authorize('HR_MANAGER', 'ADMIN'), approveSalary)
 router.get('/salary/reports', authorize('HR_MANAGER', 'ADMIN'), getSalaryReports)
+router.get('/reports/faculty-hours-by-subject', authorize('HR_MANAGER', 'ADMIN'), getFacultyHoursBySubject)
 router.get('/salary/carry-forward', authorize('HR_MANAGER', 'ADMIN'), getCarryForward)
 router.get('/salary/payable-days', authorize('HR_MANAGER', 'ADMIN'), getPayableDays)
 router.post('/salary/payable-days', authorize('HR_MANAGER', 'ADMIN'), setPayableDaysCtrl)

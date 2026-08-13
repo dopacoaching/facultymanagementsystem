@@ -78,8 +78,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       category: 'ACADEMICS', eventType: 'SESSION_STATUS_CHANGED',
       actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: id,
-      targetName: `${session.subject} — ${session.chapter}`,
-      description: `Session marked ${status}: ${session.subject} "${session.chapter}"`,
+      targetName: session.chapter ? `${session.subject} — ${session.chapter}` : session.subject,
+      description: session.chapter
+        ? `Session marked ${status}: ${session.subject} "${session.chapter}"`
+        : `Session marked ${status}: ${session.subject}`,
       metadata: { newStatus: status },
     }).catch(() => null)
 

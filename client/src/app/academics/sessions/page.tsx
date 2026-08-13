@@ -5,7 +5,6 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll, create, cancel } from '@/services/session.service'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
-import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Session, Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
@@ -14,10 +13,6 @@ import {
   BatchChapter, EditSessionForm, NewSessionForm, NEET_SUBJECTS, SyllabusChapter,
   SessionFilterBar, NewSessionModal, EditSessionModal, SessionsTable,
 } from '@/components/academics/sessions'
-
-function getBatchType(batchId: string, batches: Batch[]): string {
-  return batches.find((b) => b._id === batchId)?.type ?? ''
-}
 
 export default function SessionsPage() {
   const { accessToken, role, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
@@ -63,9 +58,6 @@ export default function SessionsPage() {
 
   const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER'
 
-  // Derived: is the form's selected batch requiring video-first?
-  const formBatchType = getBatchType(form.batchId, batches)
-  const needsVideoFirst = formBatchType ? isVideoFirstBatch(formBatchType) : false
   // Derived: does the selected faculty need a Class/Doubt Clearance category picker?
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = Boolean(selectedFaculty?.requiresSessionCategory)
@@ -152,8 +144,8 @@ export default function SessionsPage() {
       setError('All fields are required'); return
     }
     const totalDuration = form.durationHours + form.durationMinutes / 60
-    if (totalDuration <= 0) {
-      setError('Duration must be greater than 0'); return
+    if (totalDuration < 0.5) {
+      setError('Duration must be at least 30 minutes'); return
     }
     setSaving(true); setError('')
     try {
@@ -171,12 +163,7 @@ export default function SessionsPage() {
       toast.success('Session created', `${form.subject} session has been logged.`)
       setShowForm(false); load()
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to create session'
-      if (msg.includes('video lessons not yet marked complete')) {
-        setError(msg + ' → Go to the Chapters page to mark video complete first.')
-      } else {
-        setError(msg)
-      }
+      setError(e instanceof Error ? e.message : 'Failed to create session')
     } finally { setSaving(false) }
   }
 
@@ -263,7 +250,6 @@ export default function SessionsPage() {
         <NewSessionModal
           form={form} setForm={setForm}
           facultyList={facultyList} batches={batches} otherSubjects={otherSubjects}
-          needsVideoFirst={needsVideoFirst} formBatchType={formBatchType}
           needsSessionCategory={needsSessionCategory}
           loadingCh={loadingCh} loadingSyllabus={loadingSyllabus}
           syllabusChapters={syllabusChapters} syllabusChaptersByMonth={syllabusChaptersByMonth}

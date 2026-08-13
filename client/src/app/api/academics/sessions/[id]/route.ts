@@ -86,8 +86,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       category: 'ACADEMICS', eventType: 'SESSION_UPDATED',
       actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: id,
-      targetName: `${session.subject} — ${session.chapter}`,
-      description: `Session updated: ${session.subject} "${session.chapter}"`,
+      targetName: session.chapter ? `${session.subject} — ${session.chapter}` : session.subject,
+      description: session.chapter
+        ? `Session updated: ${session.subject} "${session.chapter}"`
+        : `Session updated: ${session.subject}`,
       metadata: { updated: Object.keys(update) },
     }).catch(() => null)
 

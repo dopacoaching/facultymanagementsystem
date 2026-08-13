@@ -65,6 +65,26 @@ export async function getReports(
   return apiFetch<SalaryReport[]>(`/hr/salary/reports?month=${month}&year=${year}`, { token })
 }
 
+export interface SubjectHoursRanking {
+  subject: string
+  faculty: {
+    facultyId: string
+    name: string
+    type: string
+    totalHours: number
+    sessionCount: number
+  }[]
+}
+
+export async function getFacultyHoursBySubject(
+  month: number | null,
+  year: number | null,
+  token: string
+): Promise<{ month: number | null; year: number | null; subjects: SubjectHoursRanking[] }> {
+  const qs = month && year ? `?month=${month}&year=${year}` : ''
+  return apiFetch(`/hr/reports/faculty-hours-by-subject${qs}`, { token })
+}
+
 export interface SalaryHistoryRecord {
   _id: string
   month: number

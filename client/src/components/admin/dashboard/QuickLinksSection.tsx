@@ -40,33 +40,20 @@ export function QuickLinksSection() {
             HR &amp; Payroll
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.625rem' }}>
-            <QuickLink href="/hr/faculty"     icon="👥" label="Faculty"    desc="Manage faculty profiles" />
-            <QuickLink href="/hr/salary"       icon="₹"  label="Salary"     desc="Calculate &amp; approve pay" />
-            <QuickLink href="/hr/reports"      icon="📊" label="Reports"    desc="Salary history &amp; exports" />
-            <QuickLink href="/admin/audit-log" icon="📋" label="Audit Log"  desc="View all system events" />
+            <QuickLink href="/hr/faculty"              icon="👥" label="Faculty"       desc="Manage faculty profiles" />
+            <QuickLink href="/hr/salary"                icon="₹"  label="Salary"        desc="Calculate &amp; approve pay" />
+            <QuickLink href="/hr/reports"                icon="📊" label="Reports"       desc="Salary history &amp; exports" />
+            <QuickLink href="/hr/reports/faculty-hours"  icon="📈" label="Faculty Hours" desc="Hours taught, ranked by subject" />
+            <QuickLink href="/admin/audit-log"           icon="📋" label="Audit Log"     desc="View all system events" />
           </div>
         </div>
 
         <div>
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: '0.625rem' }}>
-            Academics (Repeaters)
+            Class Hours
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.625rem' }}>
-            <QuickLink href="/academics/sessions" icon="📅" label="Sessions"   desc="Log &amp; view class sessions" />
-            <QuickLink href="/academics/schedule" icon="🗓" label="Schedule"   desc="Weekly class schedule" />
-            <QuickLink href="/academics/exams"    icon="📝" label="Exam Topics" desc="Monday &amp; Friday exam topics" />
-            <QuickLink href="/academics/syllabus" icon="📋" label="Syllabus"   desc="Annual syllabus plan" />
-          </div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: '0.625rem' }}>
-            Integrated School
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.625rem' }}>
-            <QuickLink href="/ig/sessions"  icon="🏫" label="IG Sessions"  desc="Log &amp; view IG sessions" />
-            <QuickLink href="/ig/timetable" icon="⏱"  label="IG Timetable" desc="Daily class assignments" />
-            <QuickLink href="/ig/chapters"  icon="📖" label="IG Chapters"  desc="Chapter scheduling progress" />
+            <QuickLink href="/academics/sessions" icon="📅" label="Sessions" desc="Hours logged by class teachers" />
           </div>
         </div>
       </div>

@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         category: 'ACADEMICS', eventType: 'PENALTY_APPLIED',
         actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Session', targetId: session._id.toString(),
-        targetName: `${session.subject} — ${session.chapter}`,
+        targetName: session.chapter ? `${session.subject} — ${session.chapter}` : session.subject,
         facultyId: facultyOid, facultyName, amount: penaltyAmount,
         description: `Session cancelled by faculty on ${session.sessionDate.toDateString()}` +
           (penaltyAmount > 0 ? ` — penalty ₹${penaltyAmount.toLocaleString('en-IN')}` : ' — no penalty'),
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
         category: 'ACADEMICS', eventType: 'SESSION_CANCELLED',
         actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Session', targetId: session._id.toString(),
-        targetName: `${session.subject} — ${session.chapter}`,
+        targetName: session.chapter ? `${session.subject} — ${session.chapter}` : session.subject,
         facultyId: facultyOid, facultyName, amount: 0,
         description: `Session on ${session.sessionDate.toDateString()} cancelled by ${initiatorLabel}` +
           (cancellationReason ? ` — ${cancellationReason}` : ''),

@@ -246,6 +246,69 @@ export const getMyHistory = asyncHandler(async (req: AuthRequest, res: Response)
   res.json(records)
 })
 
+/**
+ * GET /hr/reports/faculty-hours-by-subject?month=M&year=Y
+ * Ranks faculty by total hours taught, per subject. HR_MANAGER and ADMIN only.
+ */
+export const getFacultyHoursBySubject = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const monthParam = req.query.month as string | undefined
+  const yearParam  = req.query.year  as string | undefined
+
+  const dateFilter: Record<string, unknown> = { status: 'COMPLETED' }
+  let month: number | null = null
+  let year: number | null = null
+  if (monthParam && yearParam) {
+    month = Number(monthParam)
+    year  = Number(yearParam)
+    if (isNaN(month) || isNaN(year)) {
+      res.status(400).json({ error: 'month and year must be numbers' }); return
+    }
+    dateFilter.sessionDate = { $gte: new Date(year, month - 1, 1), $lt: new Date(year, month, 1) }
+  }
+
+  const [agg, facultyList] = await Promise.all([
+    Session.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id:          { subject: '$subject', facultyId: '$facultyId' },
+          totalHours:   { $sum: '$durationHours' },
+          sessionCount: { $sum: 1 },
+        },
+      },
+    ]),
+    Faculty.find({}).select('name type').lean(),
+  ])
+
+  const facultyMap = new Map(facultyList.map((f) => [f._id.toString(), f]))
+
+  const bySubject = new Map<string, { facultyId: string; name: string; type: string; totalHours: number; sessionCount: number }[]>()
+  for (const row of agg as { _id: { subject: string; facultyId: Types.ObjectId }; totalHours: number; sessionCount: number }[]) {
+    const facultyId = row._id.facultyId.toString()
+    const fac = facultyMap.get(facultyId)
+    if (!fac) continue // faculty deleted since session was logged
+    const subject = row._id.subject
+    const list = bySubject.get(subject) ?? []
+    list.push({
+      facultyId,
+      name:         fac.name,
+      type:         fac.type,
+      totalHours:   row.totalHours,
+      sessionCount: row.sessionCount,
+    })
+    bySubject.set(subject, list)
+  }
+
+  const subjects = Array.from(bySubject.entries())
+    .map(([subject, faculty]) => ({
+      subject,
+      faculty: faculty.sort((a, b) => b.totalHours - a.totalHours),
+    }))
+    .sort((a, b) => a.subject.localeCompare(b.subject))
+
+  res.json({ month, year, subjects })
+})
+
 // ─── HR Dashboard ──────────────────────────────────────────────────────────────
 
 /**

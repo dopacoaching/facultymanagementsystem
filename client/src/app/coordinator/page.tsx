@@ -1,16 +1,15 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
-import { isVideoFirstBatch } from '@/utils/batchUtils'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import {
-  BatchChapter, EMPTY_FORM, FormState, NEET_SUBJECTS, SyllabusChapter,
-  BatchSelector, ChapterSelector, DurationDateFields,
+  EMPTY_FORM, FormState,
+  BatchSelector, DurationDateFields,
 } from '@/components/coordinator/log-session'
 
 export default function LogSessionPage() {
@@ -24,15 +23,8 @@ export default function LogSessionPage() {
   const [error,       setError]       = useState('')
   const [success,     setSuccess]     = useState(false)
 
-  const [chapters,         setChapters]         = useState<BatchChapter[]>([])
-  const [loadingCh,        setLoadingCh]        = useState(false)
-  const [syllabusChapters, setSyllabusChapters] = useState<SyllabusChapter[]>([])
-  const [loadingSyllabus,  setLoadingSyllabus]  = useState(false)
-
-  const batchLocked     = Boolean(assignedBatchId)
-  const selectedBatch   = batches.find((b) => b._id === form.batchId)
-  const needsVideoFirst = selectedBatch ? isVideoFirstBatch(selectedBatch.type) : false
-  const assignedBatch   = batches.find((b) => b._id === assignedBatchId)
+  const batchLocked   = Boolean(assignedBatchId)
+  const assignedBatch = batches.find((b) => b._id === assignedBatchId)
 
   useEffect(() => {
     if (!accessToken) return
@@ -44,62 +36,16 @@ export default function LogSessionPage() {
     if (assignedBatchId) setForm((prev) => ({ ...prev, batchId: assignedBatchId }))
   }, [assignedBatchId])
 
-  // Load per-batch chapter status for all batch types
-  useEffect(() => {
-    if (!accessToken || !form.batchId || !form.subject) { setChapters([]); return }
-    let cancelled = false
-    setLoadingCh(true)
-    const url = `/academics/chapters?batchId=${form.batchId}&subject=${encodeURIComponent(form.subject.toUpperCase())}`
-    apiFetch<BatchChapter[]>(url, { token: accessToken })
-      .then((data) => { if (!cancelled) setChapters(data) })
-      .catch(console.error)
-      .finally(() => { if (!cancelled) setLoadingCh(false) })
-    return () => { cancelled = true }
-  }, [accessToken, form.batchId, form.subject])
-
-  // Load syllabus chapters (monthly plan) when subject is a NEET subject
-  useEffect(() => {
-    const subjUp = form.subject.toUpperCase()
-    if (!accessToken || !NEET_SUBJECTS.includes(subjUp)) { setSyllabusChapters([]); return }
-    setLoadingSyllabus(true)
-    apiFetch<SyllabusChapter[]>(`/academics/syllabus/chapters?subject=${subjUp}`, { token: accessToken })
-      .then(setSyllabusChapters).catch(console.error).finally(() => setLoadingSyllabus(false))
-  }, [accessToken, form.subject])
-
-  // Syllabus chapters grouped by month
-  const syllabusChaptersByMonth = useMemo(() => {
-    const map: Record<number, SyllabusChapter[]> = {}
-    for (const ch of syllabusChapters) {
-      if (!map[ch.scheduledMonth]) map[ch.scheduledMonth] = []
-      map[ch.scheduledMonth].push(ch)
-    }
-    return map
-  }, [syllabusChapters])
-
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
       const updated = { ...prev, [key]: value }
-      if (key === 'subject') { updated.chapter = ''; updated.syllabusChapterId = undefined }
       // Auto-fill subject from the selected faculty's profile
       if (key === 'facultyId') {
         const fac = facultyList.find((f) => f._id === (value as string))
-        if (fac?.subject) {
-          updated.subject = fac.subject.toUpperCase()
-          updated.chapter = ''
-          updated.syllabusChapterId = undefined
-        }
+        if (fac?.subject) updated.subject = fac.subject.toUpperCase()
       }
       return updated
     })
-  }
-
-  function selectChapter(chapterName: string) {
-    const ch = syllabusChapters.find((c) => c.chapterName === chapterName)
-    setForm((prev) => ({
-      ...prev,
-      chapter:           chapterName,
-      syllabusChapterId: ch?._id ?? undefined,
-    }))
   }
 
   async function handleSubmit() {
@@ -107,21 +53,9 @@ export default function LogSessionPage() {
     if (!form.batchId)           { setError('Campus/Batch is not configured for your account'); return }
     if (!form.facultyId)         { setError('Select the faculty who took the session'); return }
     if (!form.subject.trim())    { setError('Subject is required'); return }
-    if (!form.chapter.trim())    { setError('Chapter / topic is required'); return }
     if (!form.sessionDate)       { setError('Session date is required'); return }
-    if (form.durationHours <= 0) { setError('Duration must be greater than 0'); return }
-
-    if (needsVideoFirst) {
-      const ch = chapters.find((c) => c.subject === form.subject && c.chapterName === form.chapter)
-      if (!ch) {
-        setError(`"${form.chapter}" is not found in chapter records for this batch. Ask your Academics Manager to add it.`)
-        return
-      }
-      if (!ch.videoComplete) {
-        setError(`"${form.chapter}" video is not yet marked complete. Mark it in Chapter Progress before logging this session.`)
-        return
-      }
-    }
+    const totalHours = form.durationHours + form.durationMinutes / 60
+    if (totalHours < 0.5) { setError('Duration must be at least 30 minutes'); return }
 
     setSaving(true)
     try {
@@ -129,14 +63,13 @@ export default function LogSessionPage() {
         method: 'POST',
         token: accessToken!,
         body: {
-          batchId:           form.batchId,
-          facultyId:         form.facultyId,
-          subject:           form.subject.trim(),
-          chapter:           form.chapter.trim(),
-          syllabusChapterId: form.syllabusChapterId ?? undefined,
-          startTime:         form.startTime || undefined,
-          durationHours:     form.durationHours + form.durationMinutes / 60,
-          sessionDate:       form.sessionDate,
+          batchId:       form.batchId,
+          facultyId:     form.facultyId,
+          subject:       form.subject.trim(),
+          chapter:       form.chapter.trim() || undefined,
+          startTime:     form.startTime || undefined,
+          durationHours: totalHours,
+          sessionDate:   form.sessionDate,
         },
       })
       toast.success('Session logged', 'The session has been recorded. The form has been reset.')
@@ -144,15 +77,9 @@ export default function LogSessionPage() {
       setTimeout(() => {
         setSuccess(false)
         setForm(EMPTY_FORM(assignedBatchId ?? ''))
-        setChapters([])
       }, 2000)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to submit session'
-      if (msg.includes('video lessons not yet marked complete')) {
-        setError(msg + ' → Go to "Chapters" in the sidebar to mark it complete first.')
-      } else {
-        setError(msg)
-      }
+      setError(e instanceof Error ? e.message : 'Failed to submit session')
     } finally {
       setSaving(false)
     }
@@ -196,19 +123,10 @@ export default function LogSessionPage() {
           <BatchSelector
             batchLocked={batchLocked}
             assignedBatch={assignedBatch}
-            needsVideoFirst={needsVideoFirst}
             batches={batches}
             value={form.batchId}
             onChange={(v) => setField('batchId', v)}
           />
-
-          {needsVideoFirst && (
-            <div className="alert" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', color: 'var(--color-warning)', padding: '0.75rem 1rem' }}>
-              <span style={{ marginRight: '0.5rem' }}>🎬</span>
-              <strong>Video-first batch.</strong> Only chapters with video marked complete can be logged.
-              Use the <strong>Chapters</strong> page to mark videos done before logging sessions.
-            </div>
-          )}
 
           <div className="form-group">
             <label className="label">Faculty</label>
@@ -234,17 +152,16 @@ export default function LogSessionPage() {
             </select>
           </div>
 
-          <ChapterSelector
-            loadingCh={loadingCh}
-            loadingSyllabus={loadingSyllabus}
-            syllabusChapters={syllabusChapters}
-            syllabusChaptersByMonth={syllabusChaptersByMonth}
-            chapters={chapters}
-            needsVideoFirst={needsVideoFirst}
-            subject={form.subject}
-            value={form.chapter}
-            onSelect={selectChapter}
-          />
+          <div className="form-group">
+            <label className="label">Topic / Notes (optional)</label>
+            <input
+              type="text"
+              className="input"
+              value={form.chapter}
+              onChange={(e) => setField('chapter', e.target.value)}
+              placeholder="e.g. what was covered in this class"
+            />
+          </div>
 
           <DurationDateFields
             startTime={form.startTime}
@@ -262,7 +179,7 @@ export default function LogSessionPage() {
         <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <button
             className="btn btn-ghost"
-            onClick={() => { setForm(EMPTY_FORM(assignedBatchId ?? '')); setError(''); setChapters([]) }}
+            onClick={() => { setForm(EMPTY_FORM(assignedBatchId ?? '')); setError('') }}
             disabled={saving}
           >
             Reset
@@ -270,7 +187,7 @@ export default function LogSessionPage() {
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={saving || (needsVideoFirst && !form.chapter)}
+            disabled={saving}
           >
             {saving
               ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</>

@@ -118,14 +118,14 @@ export async function POST(req: NextRequest) {
 
     const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime, sessionCategory } = await req.json()
 
-    if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
+    if (!facultyId || !batchId || !subject || !sessionDate) {
       return withToken(json({
-        error: 'All fields are required: facultyId, batchId, subject, chapter, sessionDate',
+        error: 'All fields are required: facultyId, batchId, subject, sessionDate',
       }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
-    if (!durationHours || isNaN(parsedDuration) || parsedDuration <= 0) {
-      return withToken(json({ error: 'durationHours must be a positive number' }, 400), refreshedToken)
+    if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
+      return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
     }
 
     let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
@@ -167,27 +167,6 @@ export async function POST(req: NextRequest) {
     if (isCoordinator(payload.role)) {
       if (!payload.batchId || payload.batchId !== batchId) {
         return withToken(json({ error: 'You can only log sessions for your assigned batch.' }, 403), refreshedToken)
-      }
-    }
-
-    // VIDEO-FIRST GATE (Residential + Online only)
-    // Only blocks when the chapter record EXISTS with videoComplete=false.
-    // Chapters with totalVideos===0 (e.g. Experimental Skills, Practical Chemistry)
-    // have no video classes and bypass the gate automatically.
-    if (isVideoFirstBatch(batch.type)) {
-      const chapterRecord = await BatchChapter.findOne({
-        batchId:     batchOid,
-        subject:     subject.toUpperCase(),
-        chapterName: chapter,
-      })
-      const hasVideos = typeof chapterRecord?.totalVideos === 'number'
-        ? chapterRecord.totalVideos > 0
-        : true  // legacy records (totalVideos undefined) default to gated
-      if (chapterRecord && hasVideos && !chapterRecord.videoComplete) {
-        return withToken(json({
-          error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
-          code:  'VIDEO_NOT_COMPLETE',
-        }, 422), refreshedToken)
       }
     }
 
@@ -296,7 +275,7 @@ export async function POST(req: NextRequest) {
       facultyId:     facultyOid,
       batchId:       batchOid,
       subject,
-      chapter,
+      chapter:       chapter || undefined,
       startTime:     startTime  ?? undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,
@@ -307,31 +286,36 @@ export async function POST(req: NextRequest) {
     })
 
     // Auto-mark chapter as facultyClassDone; attach syllabus link if provided
-    const normSubject = subject.toUpperCase()
-    const bcSet: Record<string, unknown> = {
-      facultyClassDone:   true,
-      facultyClassDoneAt: date,
-      sessionId:          session._id,
-    }
-    if (resolvedSyllabusOid)  bcSet.syllabusChapterId = resolvedSyllabusOid
-    if (resolvedSyllabus)     bcSet.scheduledMonth    = resolvedSyllabus.scheduledMonth
-    if (resolvedSyllabus)     bcSet.totalVideos       = resolvedSyllabus.totalVideos
+    // (only meaningful when a chapter was actually given — the chapters/syllabus workflow)
+    if (chapter) {
+      const normSubject = subject.toUpperCase()
+      const bcSet: Record<string, unknown> = {
+        facultyClassDone:   true,
+        facultyClassDoneAt: date,
+        sessionId:          session._id,
+      }
+      if (resolvedSyllabusOid)  bcSet.syllabusChapterId = resolvedSyllabusOid
+      if (resolvedSyllabus)     bcSet.scheduledMonth    = resolvedSyllabus.scheduledMonth
+      if (resolvedSyllabus)     bcSet.totalVideos       = resolvedSyllabus.totalVideos
 
-    await BatchChapter.findOneAndUpdate(
-      { batchId: batchOid, subject: normSubject, chapterName: chapter },
-      {
-        $set: bcSet,
-        $setOnInsert: { chapterOrder: 0, videoComplete: false },
-      },
-      { upsert: true }
-    )
+      await BatchChapter.findOneAndUpdate(
+        { batchId: batchOid, subject: normSubject, chapterName: chapter },
+        {
+          $set: bcSet,
+          $setOnInsert: { chapterOrder: 0, videoComplete: false },
+        },
+        { upsert: true }
+      )
+    }
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SESSION_LOGGED',
       actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'Session', targetId: session._id.toString(),
-      targetName: `${subject} — ${chapter}`,
-      description: `Session logged: ${subject} "${chapter}" for batch on ${date.toDateString()}`,
+      targetName: chapter ? `${subject} — ${chapter}` : subject,
+      description: chapter
+        ? `Session logged: ${subject} "${chapter}" for batch on ${date.toDateString()}`
+        : `Session logged: ${subject} for batch on ${date.toDateString()}`,
       metadata: { batchId: batchId, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
     }).catch(() => null)
 

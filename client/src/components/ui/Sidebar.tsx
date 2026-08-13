@@ -35,37 +35,23 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Faculty',     href: '/hr/faculty',      icon: '👥' },
   { label: 'Salary',      href: '/hr/salary',       icon: '₹'  },
   { label: 'Reports',     href: '/hr/reports',      icon: '📊' },
+  { label: 'Faculty Hours', href: '/hr/reports/faculty-hours', icon: '📈' },
   { type: 'section', label: 'Academics' },
   { label: 'Sessions',     href: '/academics/sessions',          icon: '📅' },
-  { label: 'Availability', href: '/academics/availability',      icon: '🗓' },
-  { label: 'Chapters',     href: '/academics/chapters',          icon: '📚' },
-  { label: 'Schedule',     href: '/academics/schedule',          icon: '📆' },
-  { label: 'Syllabus',     href: '/academics/syllabus',          icon: '📋' },
-  { label: 'Progress',     href: '/academics/syllabus/progress', icon: '📈' },
-  { label: 'Reports',      href: '/academics/reports',           icon: '📊' },
-  { type: 'section', label: 'Integrated School' },
-  { label: 'Sessions',    href: '/ig/sessions',  icon: '🏫' },
-  { label: 'Timetable',   href: '/ig/timetable', icon: '⏱'  },
-  { label: 'Chapters',    href: '/ig/chapters',  icon: '📖' },
 ]
 
 const HR_NAV: NavItem[] = [
-  { label: 'Dashboard',  href: '/hr',         icon: '◈' },
-  { label: 'Faculty',    href: '/hr/faculty', icon: '👥' },
-  { label: 'Salary',     href: '/hr/salary',  icon: '₹' },
-  { label: 'Reports',    href: '/hr/reports', icon: '📊' },
+  { label: 'Dashboard',      href: '/hr',                    icon: '◈' },
+  { label: 'Faculty',        href: '/hr/faculty',             icon: '👥' },
+  { label: 'Salary',         href: '/hr/salary',              icon: '₹' },
+  { label: 'Reports',        href: '/hr/reports',             icon: '📊' },
+  { label: 'Faculty Hours',  href: '/hr/reports/faculty-hours', icon: '📈' },
 ]
 
 // ACADEMICS_MANAGER: Repeaters/DOPA sessions only — no IS sections
 const ACADEMICS_NAV: NavItem[] = [
   { label: 'Dashboard',    href: '/academics',                    icon: '◈' },
   { label: 'Sessions',     href: '/academics/sessions',           icon: '📅' },
-  { label: 'Availability', href: '/academics/availability',       icon: '🗓' },
-  { label: 'Chapters',     href: '/academics/chapters',           icon: '📚' },
-  { label: 'Schedule',     href: '/academics/schedule',           icon: '📆' },
-  { label: 'Syllabus',     href: '/academics/syllabus',           icon: '📋' },
-  { label: 'Progress',     href: '/academics/syllabus/progress',  icon: '📈' },
-  { label: 'Reports',      href: '/academics/reports',            icon: '📊' },
 ]
 
 // IG_ACADEMICS_MANAGER: IG (Integrated Grades) only — no Repeaters sections
@@ -76,12 +62,9 @@ const IS_ACADEMICS_NAV: NavItem[] = [
   { label: 'IG Chapters', href: '/ig/chapters',  icon: '📖' },
 ]
 
-// COORDINATOR: Session logging + Chapter progress view
+// COORDINATOR (Class Teacher): Session/hours logging only
 const COORDINATOR_NAV: NavItem[] = [
-  { label: 'Log Session', href: '/coordinator',                  icon: '📝' },
-  { label: 'Chapters',    href: '/academics/chapters',           icon: '📚' },
-  { label: 'Syllabus',    href: '/academics/syllabus',           icon: '📋' },
-  { label: 'Progress',    href: '/academics/syllabus/progress',  icon: '📈' },
+  { label: 'Log Session', href: '/coordinator', icon: '📝' },
 ]
 
 const FACULTY_NAV: NavItem[] = [

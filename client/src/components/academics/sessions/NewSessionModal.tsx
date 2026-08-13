@@ -9,8 +9,6 @@ interface NewSessionModalProps {
   facultyList: Faculty[]
   batches: Batch[]
   otherSubjects: string[]
-  needsVideoFirst: boolean
-  formBatchType: string
   needsSessionCategory: boolean
   loadingCh: boolean
   loadingSyllabus: boolean
@@ -24,7 +22,7 @@ interface NewSessionModalProps {
 }
 
 export function NewSessionModal({
-  form, setForm, facultyList, batches, otherSubjects, needsVideoFirst, formBatchType,
+  form, setForm, facultyList, batches, otherSubjects,
   needsSessionCategory, loadingCh, loadingSyllabus, syllabusChapters, syllabusChaptersByMonth,
   chapters, error, saving, onClose, onSubmit,
 }: NewSessionModalProps) {
@@ -41,13 +39,6 @@ export function NewSessionModal({
         </div>
         <div style={{ padding: '1.5rem' }}>
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
-
-          {needsVideoFirst && (
-            <div className="alert" style={{ marginBottom: '1rem', background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.3)', color: 'var(--color-warning)', padding: '0.75rem 1rem' }}>
-              <span style={{ marginRight: '0.5rem' }}>🎬</span>
-              <strong>{formBatchType}</strong> batch — only video-complete chapters can be logged.
-            </div>
-          )}
 
           <div className="input-group">
             <div className="form-group">
@@ -106,12 +97,10 @@ export function NewSessionModal({
                               (b.syllabusChapterId && b.syllabusChapterId === ch._id) ||
                               b.chapterName === ch.chapterName
                             )
-                            const done     = bc?.facultyClassDone
-                            const videoOk  = !needsVideoFirst || bc?.videoComplete
-                            const disabled = Boolean(done) || (needsVideoFirst && !videoOk)
-                            const suffix   = done ? ' ✓' : needsVideoFirst && !videoOk ? ' 🔒' : ''
+                            const done   = bc?.facultyClassDone
+                            const suffix = done ? ' ✓' : ''
                             return (
-                              <option key={ch._id} value={ch.chapterName} disabled={disabled}>
+                              <option key={ch._id} value={ch.chapterName} disabled={Boolean(done)}>
                                 {ch.chapterName}{suffix}
                               </option>
                             )
@@ -119,11 +108,6 @@ export function NewSessionModal({
                         </optgroup>
                       ))}
                   </select>
-                  {needsVideoFirst && (
-                    <p style={{ fontSize: '0.75rem', color: 'var(--color-muted)', margin: '0.25rem 0 0' }}>
-                      🔒 Video not yet complete &nbsp;·&nbsp; ✓ Already logged
-                    </p>
-                  )}
                 </>
               ) : (
                 <input className="input" value={form.chapter}
@@ -164,7 +148,7 @@ export function NewSessionModal({
         </div>
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={onSubmit} disabled={saving || (needsVideoFirst && !form.chapter)}>
+          <button className="btn btn-primary" onClick={onSubmit} disabled={saving}>
             {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Create Session'}
           </button>
         </div>

@@ -5,7 +5,7 @@ export interface ISession extends Document {
   facultyId: Types.ObjectId
   batchId: Types.ObjectId
   subject: string
-  chapter: string
+  chapter?: string
   startTime?: string
   durationHours: number
   sessionDate: Date
@@ -25,7 +25,7 @@ const SessionSchema = new Schema<ISession>(
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty', required: true },
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
     subject:    { type: String, required: true },
-    chapter:    { type: String, required: true },
+    chapter:    { type: String },
     startTime:  { type: String, match: /^\d{2}:\d{2}$/ },
     durationHours: { type: Number, required: true, min: 0.5 },
     sessionDate: { type: Date, required: true },
