@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
@@ -8,8 +8,8 @@ import type { Batch } from '@/services/faculty.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import {
-  EMPTY_FORM, FormState,
-  BatchSelector, DurationDateFields,
+  EMPTY_FORM, FormState, computeDuration,
+  BatchSelector, TimeRangeFields,
 } from '@/components/coordinator/log-session'
 
 export default function LogSessionPage() {
@@ -25,6 +25,10 @@ export default function LogSessionPage() {
 
   const batchLocked   = Boolean(assignedBatchId)
   const assignedBatch = batches.find((b) => b._id === assignedBatchId)
+  const duration = useMemo(
+    () => computeDuration(form.startTime, form.endTime, form.breakMinutes),
+    [form.startTime, form.endTime, form.breakMinutes]
+  )
 
   useEffect(() => {
     if (!accessToken) return
@@ -54,8 +58,7 @@ export default function LogSessionPage() {
     if (!form.facultyId)         { setError('Select the faculty who took the session'); return }
     if (!form.subject.trim())    { setError('Subject is required'); return }
     if (!form.sessionDate)       { setError('Session date is required'); return }
-    const totalHours = form.durationHours + form.durationMinutes / 60
-    if (totalHours < 0.5) { setError('Duration must be at least 30 minutes'); return }
+    if (duration.error)          { setError(duration.error); return }
 
     setSaving(true)
     try {
@@ -67,8 +70,10 @@ export default function LogSessionPage() {
           facultyId:     form.facultyId,
           subject:       form.subject.trim(),
           chapter:       form.chapter.trim() || undefined,
-          startTime:     form.startTime || undefined,
-          durationHours: totalHours,
+          startTime:     form.startTime,
+          endTime:       form.endTime,
+          breakMinutes:  duration.breakMinutes,
+          durationHours: duration.hours,
           sessionDate:   form.sessionDate,
         },
       })
@@ -163,15 +168,16 @@ export default function LogSessionPage() {
             />
           </div>
 
-          <DurationDateFields
+          <TimeRangeFields
             startTime={form.startTime}
             onStartTimeChange={(v) => setField('startTime', v)}
-            durationHours={form.durationHours}
-            onDurationHoursChange={(v) => setField('durationHours', v)}
-            durationMinutes={form.durationMinutes}
-            onDurationMinutesChange={(v) => setField('durationMinutes', v)}
+            endTime={form.endTime}
+            onEndTimeChange={(v) => setField('endTime', v)}
+            breakMinutes={form.breakMinutes}
+            onBreakMinutesChange={(v) => setField('breakMinutes', v)}
             sessionDate={form.sessionDate}
             onSessionDateChange={(v) => setField('sessionDate', v)}
+            duration={duration}
           />
 
         </div>

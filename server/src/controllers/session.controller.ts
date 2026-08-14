@@ -87,7 +87,7 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  *  5. Auto-mark BatchChapter.facultyClassDone = true on success (only when a chapter was given)
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, durationHours, sessionDate, timeSlot, sessionCategory } = req.body
+  const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, endTime, breakMinutes, durationHours, sessionDate, timeSlot, sessionCategory } = req.body
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
   if (!facultyId || !batchId || !subject || !durationHours || !sessionDate) {
@@ -256,6 +256,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     subject,
     chapter:       chapter || undefined,
     startTime:     startTime ?? undefined,
+    endTime:       endTime   ?? undefined,
+    breakMinutes:  breakMinutes != null ? Number(breakMinutes) : undefined,
     durationHours: Number(durationHours),
     sessionDate:   date,
     timeSlot:      timeSlot ?? undefined,

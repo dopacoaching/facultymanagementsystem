@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime, sessionCategory } = await req.json()
+    const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime, endTime, breakMinutes, sessionCategory } = await req.json()
 
     if (!facultyId || !batchId || !subject || !sessionDate) {
       return withToken(json({
@@ -277,6 +277,8 @@ export async function POST(req: NextRequest) {
       subject,
       chapter:       chapter || undefined,
       startTime:     startTime  ?? undefined,
+      endTime:       endTime    ?? undefined,
+      breakMinutes:  breakMinutes != null ? Number(breakMinutes) : undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,
       timeSlot:      timeSlot   ?? undefined,
