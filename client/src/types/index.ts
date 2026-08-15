@@ -31,9 +31,16 @@ export interface Faculty {
 export interface Session {
   _id: string
   facultyId: { _id: string; name: string; subject: string } | string
-  batchId: string
+  batchId?: string
+  campusName?: string
+  classMode?: 'ONLINE' | 'OFFLINE'
   subject: string
   chapter: string
+  scheduledTime?: string
+  updatedByName?: string
+  startTime?: string
+  endTime?: string
+  breakMinutes?: number
   durationHours: number
   sessionDate: string
   status: string

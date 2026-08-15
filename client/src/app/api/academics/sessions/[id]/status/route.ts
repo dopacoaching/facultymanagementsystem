@@ -34,11 +34,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await connectDB()
 
-    // Coordinator batch ownership guard — must match assigned batch
+    // Coordinator ownership guard — must match own campus (or assigned batch, legacy)
     if (payload.role === 'COORDINATOR' || payload.role === 'IG_COORDINATOR') {
       const target = await Session.findById(oid).lean()
       if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      if (!payload.batchId || target.batchId.toString() !== payload.batchId) {
+      if (target.campusName) {
+        if (!payload.campusName || target.campusName !== payload.campusName) {
+          return withToken(json({ error: 'You can only update sessions for your own campus.' }, 403), refreshedToken)
+        }
+      } else if (!payload.batchId || !target.batchId || target.batchId.toString() !== payload.batchId) {
         return withToken(json({ error: 'You can only update sessions for your assigned batch.' }, 403), refreshedToken)
       }
       // State-machine guard: coordinators cannot revert a COMPLETED session back to SCHEDULED.

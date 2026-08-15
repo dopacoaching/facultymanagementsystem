@@ -1,3 +1,4 @@
 export * from './types'
-export { BatchSelector } from './BatchSelector'
 export { TimeRangeFields } from './TimeRangeFields'
+export { SubjectField } from './SubjectField'
+export { ChapterField } from './ChapterField'

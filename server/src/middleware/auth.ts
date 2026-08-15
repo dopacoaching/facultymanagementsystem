@@ -40,6 +40,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
         ...(payload.facultyId != null ? { facultyId: payload.facultyId } : {}),
         ...(payload.batchId   != null ? { batchId:   payload.batchId   } : {}),
         ...(payload.batchType != null ? { batchType: payload.batchType } : {}),
+        ...(payload.campusName != null ? { campusName: payload.campusName } : {}),
         lastActive: Date.now(),
       },
       process.env.JWT_SECRET!,

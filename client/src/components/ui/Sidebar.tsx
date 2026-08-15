@@ -36,6 +36,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Salary',      href: '/hr/salary',       icon: '₹'  },
   { label: 'Reports',     href: '/hr/reports',      icon: '📊' },
   { label: 'Faculty Hours', href: '/hr/reports/faculty-hours', icon: '📈' },
+  { label: 'Class Sessions', href: '/hr/reports/class-sessions', icon: '📝' },
   { type: 'section', label: 'Academics' },
   { label: 'Sessions',     href: '/academics/sessions',          icon: '📅' },
 ]
@@ -46,6 +47,7 @@ const HR_NAV: NavItem[] = [
   { label: 'Salary',         href: '/hr/salary',              icon: '₹' },
   { label: 'Reports',        href: '/hr/reports',             icon: '📊' },
   { label: 'Faculty Hours',  href: '/hr/reports/faculty-hours', icon: '📈' },
+  { label: 'Class Sessions', href: '/hr/reports/class-sessions', icon: '📝' },
 ]
 
 // ACADEMICS_MANAGER: Repeaters/DOPA sessions only — no IS sections

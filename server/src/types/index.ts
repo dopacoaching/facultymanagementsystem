@@ -99,6 +99,8 @@ export interface JWTPayload {
   batchId?: string
   /** Restricts ACADEMICS_MANAGER to a single batch type (RESIDENTIAL | OFFLINE | ONLINE) */
   batchType?: string
+  /** Shared campus login (COORDINATOR): which of the fixed campus list this account logs sessions for. */
+  campusName?: string
   /** Unix timestamp (ms) of the last verified request — used for inactivity timeout */
   lastActive?: number
 }

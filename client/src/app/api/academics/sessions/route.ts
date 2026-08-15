@@ -99,7 +99,17 @@ export async function GET(req: NextRequest) {
       .sort({ sessionDate: -1 })
       .limit(requestedLimit)
 
-    return withToken(json(sessions), refreshedToken)
+    // scheduledTime (lateness tracking) is HR/Admin-only — strip it for every other role.
+    const canSeeScheduledTime = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
+    const responseBody = canSeeScheduledTime
+      ? sessions
+      : sessions.map((s) => {
+          const obj = s.toObject()
+          delete obj.scheduledTime
+          return obj
+        })
+
+    return withToken(json(responseBody), refreshedToken)
   } catch (err) {
     console.error('[GET /api/academics/sessions]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -116,24 +126,36 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { facultyId, batchId, subject, chapter, syllabusChapterId, durationHours, sessionDate, timeSlot, startTime, endTime, breakMinutes, sessionCategory } = await req.json()
+    const {
+      facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
+      scheduledTime, updatedByName, durationHours, sessionDate, timeSlot, startTime, endTime, breakMinutes, sessionCategory,
+    } = await req.json()
 
-    if (!facultyId || !batchId || !subject || !sessionDate) {
+    if (!facultyId || !subject || !sessionDate) {
       return withToken(json({
-        error: 'All fields are required: facultyId, batchId, subject, sessionDate',
+        error: 'All fields are required: facultyId, subject, sessionDate',
       }, 400), refreshedToken)
+    }
+    if (!batchId && !campusName) {
+      return withToken(json({ error: 'Either batchId or campusName is required' }, 400), refreshedToken)
+    }
+    if (campusName && !batchId && !['ONLINE', 'OFFLINE'].includes(classMode)) {
+      return withToken(json({ error: 'classMode must be ONLINE or OFFLINE' }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
     if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
       return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
     }
 
-    let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
+    let facultyOid: Types.ObjectId
+    let batchOid: Types.ObjectId | undefined
     try { facultyOid = new Types.ObjectId(facultyId) } catch {
       return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
     }
-    try { batchOid = new Types.ObjectId(batchId) } catch {
-      return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
+    if (batchId) {
+      try { batchOid = new Types.ObjectId(batchId) } catch {
+        return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
+      }
     }
 
     const date = new Date(sessionDate)
@@ -147,12 +169,17 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    const batch = await Batch.findById(batchOid)
-    if (!batch) return withToken(json({ error: 'Batch not found' }, 404), refreshedToken)
+    // batch is only relevant to the legacy Batch-linked flow — the campus-login
+    // class-teacher flow (campusName, no batchId) skips all Batch-dependent checks.
+    let batch: IBatch | null = null
+    if (batchOid) {
+      batch = await Batch.findById(batchOid)
+      if (!batch) return withToken(json({ error: 'Batch not found' }, 404), refreshedToken)
 
-    // ACADEMICS_MANAGER batch type scope guard
-    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType && batch.type !== payload.batchType) {
-      return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+      // ACADEMICS_MANAGER batch type scope guard
+      if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType && batch.type !== payload.batchType) {
+        return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+      }
     }
 
     // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
@@ -163,29 +190,35 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'sessionCategory (Class or Doubt Clearance) is required for this faculty' }, 400), refreshedToken)
     }
 
-    // Coordinator batch ownership gate
+    // Coordinator ownership gate — locked to their own campus (new flow) or batch (legacy)
     if (isCoordinator(payload.role)) {
-      if (!payload.batchId || payload.batchId !== batchId) {
-        return withToken(json({ error: 'You can only log sessions for your assigned batch.' }, 403), refreshedToken)
+      if (campusName) {
+        if (!payload.campusName || payload.campusName !== campusName) {
+          return withToken(json({ error: 'You can only log sessions for your own campus.' }, 403), refreshedToken)
+        }
+      } else if (batchId) {
+        if (!payload.batchId || payload.batchId !== batchId) {
+          return withToken(json({ error: 'You can only log sessions for your assigned batch.' }, 403), refreshedToken)
+        }
       }
     }
 
-    // DUPLICATE SESSION CHECK
+    // DUPLICATE SESSION CHECK — keyed by batch when present, else by campus
     const dup = await Session.findOne({
       facultyId: facultyOid,
-      batchId:   batchOid,
+      ...(batchOid ? { batchId: batchOid } : { campusName }),
       sessionDate: { $gte: dayStart, $lte: dayEnd },
       status:    { $ne: 'CANCELLED' },
     })
     if (dup) {
       return withToken(json({
-        error: 'Duplicate session: a session is already logged for this faculty in this batch on this date.',
+        error: 'Duplicate session: a session is already logged for this faculty on this date.',
         code:  'DUPLICATE_SESSION',
       }, 409), refreshedToken)
     }
 
-    // OFFLINE 1-CAMPUS LIMIT
-    if (batch.type === 'OFFLINE') {
+    // OFFLINE 1-CAMPUS LIMIT (legacy Batch flow only)
+    if (batch?.type === 'OFFLINE') {
       const todaySessions = await Session.find({
         facultyId:   facultyOid,
         sessionDate: { $gte: dayStart, $lte: dayEnd },
@@ -193,8 +226,8 @@ export async function POST(req: NextRequest) {
       }).populate<{ batchId: IBatch }>('batchId', 'type campusId')
 
       const offlineOtherCampus = todaySessions.find((s) => {
-        const b = s.batchId as unknown as IBatch
-        return b.type === 'OFFLINE' && b.campusId.toString() !== batch.campusId.toString()
+        const b = s.batchId as unknown as IBatch | undefined
+        return b && b.type === 'OFFLINE' && b.campusId.toString() !== batch!.campusId.toString()
       })
       if (offlineOtherCampus) {
         return withToken(json({
@@ -204,8 +237,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK
-    if (isVideoFirstBatch(batch.type)) {
+    // RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK (legacy Batch flow only)
+    if (batch && isVideoFirstBatch(batch.type)) {
       const todaySessions = await Session.find({
         facultyId:   facultyOid,
         sessionDate: { $gte: dayStart, $lte: dayEnd },
@@ -213,7 +246,7 @@ export async function POST(req: NextRequest) {
       }).populate<{ batchId: IBatch }>('batchId', 'campusId')
 
       const campusesToday = new Set(
-        todaySessions.map((s) => (s.batchId as unknown as IBatch).campusId.toString())
+        todaySessions.filter((s) => s.batchId).map((s) => (s.batchId as unknown as IBatch).campusId.toString())
       )
       if (!campusesToday.has(batch.campusId.toString()) && campusesToday.size >= 2) {
         return withToken(json({
@@ -274,8 +307,12 @@ export async function POST(req: NextRequest) {
     const session = await Session.create({
       facultyId:     facultyOid,
       batchId:       batchOid,
+      campusName:    campusName || undefined,
+      classMode:     classMode  || undefined,
       subject,
       chapter:       chapter || undefined,
+      scheduledTime: scheduledTime || undefined,
+      updatedByName: updatedByName || undefined,
       startTime:     startTime  ?? undefined,
       endTime:       endTime    ?? undefined,
       breakMinutes:  breakMinutes != null ? Number(breakMinutes) : undefined,
@@ -288,8 +325,9 @@ export async function POST(req: NextRequest) {
     })
 
     // Auto-mark chapter as facultyClassDone; attach syllabus link if provided
-    // (only meaningful when a chapter was actually given — the chapters/syllabus workflow)
-    if (chapter) {
+    // (only meaningful when a chapter was given AND this is the legacy Batch flow —
+    // the campus-login flow doesn't participate in the chapters/syllabus workflow)
+    if (chapter && batchOid) {
       const normSubject = subject.toUpperCase()
       const bcSet: Record<string, unknown> = {
         facultyClassDone:   true,
@@ -316,9 +354,9 @@ export async function POST(req: NextRequest) {
       targetType: 'Session', targetId: session._id.toString(),
       targetName: chapter ? `${subject} — ${chapter}` : subject,
       description: chapter
-        ? `Session logged: ${subject} "${chapter}" for batch on ${date.toDateString()}`
-        : `Session logged: ${subject} for batch on ${date.toDateString()}`,
-      metadata: { batchId: batchId, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
+        ? `Session logged: ${subject} "${chapter}" on ${date.toDateString()}`
+        : `Session logged: ${subject} on ${date.toDateString()}`,
+      metadata: { batchId, campusName, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
     }).catch(() => null)
 
     return withToken(json(session, 201), refreshedToken)

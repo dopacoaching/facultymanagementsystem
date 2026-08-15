@@ -45,7 +45,7 @@ interface ShellProps {
 }
 
 export default function Shell({ children, loginPath = '/login' }: ShellProps) {
-  const { accessToken, role, userId, facultyId, batchId, batchType } = useAppSelector((s) => s.auth)
+  const { accessToken, role, userId, facultyId, batchId, batchType, campusName } = useAppSelector((s) => s.auth)
   const dispatch = useAppDispatch()
   const router = useRouter()
   const pathname = usePathname()
@@ -66,6 +66,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
           facultyId:   facultyId ?? null,
           batchId:     batchId   ?? null,
           batchType:   batchType ?? null,
+          campusName:  campusName ?? null,
         }))
       })
       .catch(() => { if (!cancelled) router.replace(loginPath) })

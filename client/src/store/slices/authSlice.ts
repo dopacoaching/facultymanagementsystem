@@ -7,16 +7,17 @@ interface AuthState {
   facultyId: string | null
   batchId: string | null
   batchType: string | null
+  campusName: string | null
 }
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState: { accessToken: null, role: null, userId: null, facultyId: null, batchId: null, batchType: null } as AuthState,
+  initialState: { accessToken: null, role: null, userId: null, facultyId: null, batchId: null, batchType: null, campusName: null } as AuthState,
   reducers: {
     setCredentials: (state, action: PayloadAction<AuthState>) => { Object.assign(state, action.payload) },
     clearCredentials: (state) => {
       state.accessToken = null; state.role = null; state.userId = null
-      state.facultyId = null; state.batchId = null; state.batchType = null
+      state.facultyId = null; state.batchId = null; state.batchType = null; state.campusName = null
     },
   },
 })

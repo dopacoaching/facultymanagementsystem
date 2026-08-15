@@ -73,7 +73,17 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     .sort({ sessionDate: -1 })
     .limit(requestedLimit)
 
-  res.json(sessions)
+  // scheduledTime (lateness tracking) is HR/Admin-only — strip it for every other role.
+  const canSeeScheduledTime = req.user!.role === 'HR_MANAGER' || req.user!.role === 'ADMIN'
+  const responseBody = canSeeScheduledTime
+    ? sessions
+    : sessions.map((s) => {
+        const obj = s.toObject()
+        delete obj.scheduledTime
+        return obj
+      })
+
+  res.json(responseBody)
 })
 
 /**
@@ -87,22 +97,34 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  *  5. Auto-mark BatchChapter.facultyClassDone = true on success (only when a chapter was given)
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, batchId, subject, chapter, syllabusChapterId, startTime, endTime, breakMinutes, durationHours, sessionDate, timeSlot, sessionCategory } = req.body
+  const {
+    facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
+    scheduledTime, updatedByName, startTime, endTime, breakMinutes, durationHours, sessionDate, timeSlot, sessionCategory,
+  } = req.body
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
-  if (!facultyId || !batchId || !subject || !durationHours || !sessionDate) {
+  if (!facultyId || !subject || !durationHours || !sessionDate) {
     res.status(400).json({
-      error: 'All fields are required: facultyId, batchId, subject, durationHours, sessionDate',
+      error: 'All fields are required: facultyId, subject, durationHours, sessionDate',
     })
     return
+  }
+  if (!batchId && !campusName) {
+    res.status(400).json({ error: 'Either batchId or campusName is required' }); return
+  }
+  if (campusName && !batchId && !['ONLINE', 'OFFLINE'].includes(classMode)) {
+    res.status(400).json({ error: 'classMode must be ONLINE or OFFLINE' }); return
   }
   if (Number(durationHours) < 0.5) {
     res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return
   }
 
-  let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
+  let facultyOid: Types.ObjectId
+  let batchOid: Types.ObjectId | undefined
   try { facultyOid = new Types.ObjectId(facultyId) } catch { res.status(400).json({ error: 'Invalid facultyId' }); return }
-  try { batchOid = new Types.ObjectId(batchId) } catch { res.status(400).json({ error: 'Invalid batchId' }); return }
+  if (batchId) {
+    try { batchOid = new Types.ObjectId(batchId) } catch { res.status(400).json({ error: 'Invalid batchId' }); return }
+  }
 
   const date = new Date(sessionDate)
   if (isNaN(date.getTime())) { res.status(400).json({ error: 'Invalid sessionDate' }); return }
@@ -111,13 +133,17 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   const dayStart = new Date(date)
   const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999)
 
-  // Fetch batch so we know its type and campusId
-  const batch = await Batch.findById(batchOid)
-  if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
+  // batch is only relevant to the legacy Batch-linked flow — the campus-login
+  // class-teacher flow (campusName, no batchId) skips all Batch-dependent checks.
+  let batch: IBatch | null = null
+  if (batchOid) {
+    batch = await Batch.findById(batchOid)
+    if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
 
-  // ACADEMICS_MANAGER batch type scope guard
-  if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType && batch.type !== req.user!.batchType) {
-    res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+    // ACADEMICS_MANAGER batch type scope guard
+    if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType && batch.type !== req.user!.batchType) {
+      res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+    }
   }
 
   // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
@@ -128,10 +154,16 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'sessionCategory (Class or Doubt Clearance) is required for this faculty' }); return
   }
 
-  // ── M-7: Coordinator batch ownership gate (before any DB queries) ────────
+  // ── M-7: Coordinator ownership gate — own campus (new flow) or batch (legacy) ──
   if (isCoordinator(req.user!.role)) {
-    if (!req.user!.batchId || req.user!.batchId !== batchId) {
-      res.status(403).json({ error: 'You can only log sessions for your assigned batch.' }); return
+    if (campusName) {
+      if (!req.user!.campusName || req.user!.campusName !== campusName) {
+        res.status(403).json({ error: 'You can only log sessions for your own campus.' }); return
+      }
+    } else if (batchId) {
+      if (!req.user!.batchId || req.user!.batchId !== batchId) {
+        res.status(403).json({ error: 'You can only log sessions for your assigned batch.' }); return
+      }
     }
   }
 
@@ -174,23 +206,23 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  // ── 3. DUPLICATE SESSION CHECK ────────────────────────────────────────────
+  // ── 3. DUPLICATE SESSION CHECK — keyed by batch when present, else by campus ──
   const dup = await Session.findOne({
     facultyId: facultyOid,
-    batchId: batchOid,
+    ...(batchOid ? { batchId: batchOid } : { campusName }),
     sessionDate: { $gte: dayStart, $lte: dayEnd },
     status: { $ne: 'CANCELLED' },
   })
   if (dup) {
     res.status(409).json({
-      error: 'Duplicate session: a session is already logged for this faculty in this batch on this date.',
+      error: 'Duplicate session: a session is already logged for this faculty on this date.',
       code: 'DUPLICATE_SESSION',
     })
     return
   }
 
-  // ── 4. OFFLINE 1-CAMPUS LIMIT ─────────────────────────────────────────────
-  if (batch.type === 'OFFLINE') {
+  // ── 4. OFFLINE 1-CAMPUS LIMIT (legacy Batch flow only) ────────────────────
+  if (batch?.type === 'OFFLINE') {
     const todaySessions = await Session.find({
       facultyId: facultyOid,
       sessionDate: { $gte: dayStart, $lte: dayEnd },
@@ -198,8 +230,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }).populate<{ batchId: IBatch }>('batchId', 'type campusId')
 
     const offlineOtherCampus = todaySessions.find((s) => {
-      const b = s.batchId as unknown as IBatch
-      return b.type === 'OFFLINE' && b.campusId.toString() !== batch.campusId.toString()
+      const b = s.batchId as unknown as IBatch | undefined
+      return b && b.type === 'OFFLINE' && b.campusId.toString() !== batch!.campusId.toString()
     })
     if (offlineOtherCampus) {
       res.status(409).json({
@@ -210,8 +242,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  // ── 5. RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK ─────────────────────────────
-  if (isVideoFirstBatch(batch.type)) {
+  // ── 5. RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK (legacy Batch flow only) ─────
+  if (batch && isVideoFirstBatch(batch.type)) {
     const todaySessions = await Session.find({
       facultyId: facultyOid,
       sessionDate: { $gte: dayStart, $lte: dayEnd },
@@ -219,7 +251,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }).populate<{ batchId: IBatch }>('batchId', 'campusId')
 
     const campusesToday = new Set(
-      todaySessions.map((s) => (s.batchId as unknown as IBatch).campusId.toString())
+      todaySessions.filter((s) => s.batchId).map((s) => (s.batchId as unknown as IBatch).campusId.toString())
     )
     if (!campusesToday.has(batch.campusId.toString()) && campusesToday.size >= 2) {
       res.status(409).json({
@@ -253,8 +285,12 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   const session = await Session.create({
     facultyId:     facultyOid,
     batchId:       batchOid,
+    campusName:    campusName || undefined,
+    classMode:     classMode  || undefined,
     subject,
     chapter:       chapter || undefined,
+    scheduledTime: scheduledTime || undefined,
+    updatedByName: updatedByName || undefined,
     startTime:     startTime ?? undefined,
     endTime:       endTime   ?? undefined,
     breakMinutes:  breakMinutes != null ? Number(breakMinutes) : undefined,
@@ -267,11 +303,12 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   })
 
   // ── 5. AUTO-MARK chapter as facultyClassDone ─────────────────────────────
-  // Only meaningful when a chapter was actually given — the chapters/syllabus workflow.
+  // Only meaningful when a chapter was given AND this is the legacy Batch flow —
+  // the campus-login flow doesn't participate in the chapters/syllabus workflow.
   // Upsert: if chapter record doesn't exist (not pre-seeded), create it.
   // Reuse the syllabusChapter doc already fetched in gate 2b — no second query.
   // Normalise subject to uppercase so it matches SyllabusChapter enum values.
-  if (chapter) {
+  if (chapter && batchOid) {
     const normalisedSubject = subject.toUpperCase()
 
     const bcSet: Record<string, unknown> = {
@@ -332,7 +369,11 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(409).json({ error: 'Cannot edit a cancelled session' }); return
   }
 
-  const allowed = ['facultyId', 'batchId', 'subject', 'chapter', 'startTime', 'durationHours', 'sessionDate', 'timeSlot']
+  const allowed = [
+    'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
+    'scheduledTime', 'updatedByName', 'startTime', 'endTime', 'breakMinutes',
+    'durationHours', 'sessionDate', 'timeSlot',
+  ]
   const update: Record<string, unknown> = {}
 
   for (const key of allowed) {
@@ -396,11 +437,15 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
     return
   }
 
-  // M-7: Coordinators may only cancel sessions for their assigned batch.
+  // M-7: Coordinators may only cancel sessions for their own campus (or assigned batch, legacy).
   if (isCoordinator(req.user!.role)) {
     const targetSession = await Session.findById(sessionId).lean()
     if (!targetSession) { res.status(404).json({ error: 'Session not found' }); return }
-    if (!req.user!.batchId || targetSession.batchId.toString() !== req.user!.batchId) {
+    if (targetSession.campusName) {
+      if (!req.user!.campusName || targetSession.campusName !== req.user!.campusName) {
+        res.status(403).json({ error: 'You can only cancel sessions for your own campus.' }); return
+      }
+    } else if (!req.user!.batchId || !targetSession.batchId || targetSession.batchId.toString() !== req.user!.batchId) {
       res.status(403).json({ error: 'You can only cancel sessions for your assigned batch.' }); return
     }
   }

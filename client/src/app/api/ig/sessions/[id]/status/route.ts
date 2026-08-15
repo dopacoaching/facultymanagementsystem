@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (payload.role === 'IG_COORDINATOR' || payload.role === 'COORDINATOR') {
       const target = await Session.findById(oid).lean()
       if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      if (!payload.batchId || target.batchId.toString() !== payload.batchId) {
+      if (!payload.batchId || !target.batchId || target.batchId.toString() !== payload.batchId) {
         return withToken(json({ error: 'You can only update sessions for your assigned batch.' }, 403), refreshedToken)
       }
       // State-machine guard: coordinators cannot revert a COMPLETED session back to SCHEDULED.

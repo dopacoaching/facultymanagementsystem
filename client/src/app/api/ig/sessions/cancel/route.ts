@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     if (isCoordinator(payload.role)) {
       const targetSession = await Session.findById(sessionId).lean()
       if (!targetSession) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      if (!payload.batchId || targetSession.batchId.toString() !== payload.batchId) {
+      if (!payload.batchId || !targetSession.batchId || targetSession.batchId.toString() !== payload.batchId) {
         return withToken(json({ error: 'You can only cancel sessions for your assigned batch.' }, 403), refreshedToken)
       }
     }

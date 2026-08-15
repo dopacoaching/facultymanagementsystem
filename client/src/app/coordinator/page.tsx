@@ -1,30 +1,28 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
-import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
+import { getAll as getFaculty } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
+import { findCampusByName } from '@/lib/constants/campuses'
 import type { Faculty } from '@/types'
-import type { Batch } from '@/services/faculty.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import {
-  EMPTY_FORM, FormState, computeDuration,
-  BatchSelector, TimeRangeFields,
+  EMPTY_FORM, FormState, computeDuration, SUBJECT_OPTIONS,
+  TimeRangeFields, SubjectField, ChapterField,
 } from '@/components/coordinator/log-session'
 
 export default function LogSessionPage() {
-  const { accessToken, batchId: assignedBatchId } = useAppSelector((s) => s.auth)
+  const { accessToken, campusName } = useAppSelector((s) => s.auth)
   const toast = useToast()
 
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
-  const [batches,     setBatches]     = useState<Batch[]>([])
-  const [form,        setForm]        = useState<FormState>(EMPTY_FORM(assignedBatchId ?? ''))
+  const [form,        setForm]        = useState<FormState>(EMPTY_FORM())
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
   const [success,     setSuccess]     = useState(false)
 
-  const batchLocked   = Boolean(assignedBatchId)
-  const assignedBatch = batches.find((b) => b._id === assignedBatchId)
+  const campus = findCampusByName(campusName)
   const duration = useMemo(
     () => computeDuration(form.startTime, form.endTime, form.breakMinutes),
     [form.startTime, form.endTime, form.breakMinutes]
@@ -33,12 +31,7 @@ export default function LogSessionPage() {
   useEffect(() => {
     if (!accessToken) return
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
-    getBatches(accessToken).then(setBatches).catch(console.error)
   }, [accessToken])
-
-  useEffect(() => {
-    if (assignedBatchId) setForm((prev) => ({ ...prev, batchId: assignedBatchId }))
-  }, [assignedBatchId])
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
@@ -46,17 +39,23 @@ export default function LogSessionPage() {
       // Auto-fill subject from the selected faculty's profile
       if (key === 'facultyId') {
         const fac = facultyList.find((f) => f._id === (value as string))
-        if (fac?.subject) updated.subject = fac.subject.toUpperCase()
+        const match = SUBJECT_OPTIONS.find((s) => s.value === fac?.subject?.toUpperCase())
+        if (match) updated.subject = match.value
       }
+      // Chapter options are subject-specific — clear the old selection when subject changes
+      if (key === 'subject' && prev.subject !== value) updated.chapter = ''
       return updated
     })
   }
 
   async function handleSubmit() {
     setError('')
-    if (!form.batchId)           { setError('Campus/Batch is not configured for your account'); return }
+    if (!campusName)             { setError('Your account is not linked to a campus'); return }
     if (!form.facultyId)         { setError('Select the faculty who took the session'); return }
     if (!form.subject.trim())    { setError('Subject is required'); return }
+    if (!form.chapter.trim())    { setError('Chapter is required'); return }
+    if (!form.classMode)         { setError('Select whether the class was online or offline'); return }
+    if (!form.updatedByName)     { setError('Select who is filling in this form'); return }
     if (!form.sessionDate)       { setError('Session date is required'); return }
     if (duration.error)          { setError(duration.error); return }
 
@@ -66,13 +65,16 @@ export default function LogSessionPage() {
         method: 'POST',
         token: accessToken!,
         body: {
-          batchId:       form.batchId,
+          campusName,
+          classMode:     form.classMode,
           facultyId:     form.facultyId,
           subject:       form.subject.trim(),
-          chapter:       form.chapter.trim() || undefined,
+          chapter:       form.chapter.trim(),
+          scheduledTime: form.scheduledTime || undefined,
           startTime:     form.startTime,
           endTime:       form.endTime,
           breakMinutes:  duration.breakMinutes,
+          updatedByName: form.updatedByName,
           durationHours: duration.hours,
           sessionDate:   form.sessionDate,
         },
@@ -81,7 +83,7 @@ export default function LogSessionPage() {
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
-        setForm(EMPTY_FORM(assignedBatchId ?? ''))
+        setForm(EMPTY_FORM())
       }, 2000)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to submit session')
@@ -125,13 +127,20 @@ export default function LogSessionPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-          <BatchSelector
-            batchLocked={batchLocked}
-            assignedBatch={assignedBatch}
-            batches={batches}
-            value={form.batchId}
-            onChange={(v) => setField('batchId', v)}
-          />
+          <div className="form-group">
+            <label className="label">Campus</label>
+            <div style={{
+              padding: '0.6rem 0.875rem',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.9375rem',
+              color: 'var(--color-text)',
+              fontWeight: 500,
+            }}>
+              {campusName ?? 'Not configured for your account'}
+            </div>
+          </div>
 
           <div className="form-group">
             <label className="label">Faculty</label>
@@ -147,28 +156,34 @@ export default function LogSessionPage() {
             </select>
           </div>
 
+          <SubjectField
+            value={form.subject}
+            onChange={(v) => setField('subject', v)}
+          />
+
+          <ChapterField
+            subject={form.subject}
+            accessToken={accessToken}
+            value={form.chapter}
+            onChange={(v) => setField('chapter', v)}
+          />
+
           <div className="form-group">
-            <label className="label">Subject</label>
-            <select className="input" value={form.subject} onChange={(e) => setField('subject', e.target.value as FormState['subject'])}>
-              <option value="">— select subject —</option>
-              <option value="PHYSICS">Physics</option>
-              <option value="CHEMISTRY">Chemistry</option>
-              <option value="BIOLOGY">Biology</option>
+            <label className="label">Class Mode</label>
+            <select
+              className="input"
+              value={form.classMode}
+              onChange={(e) => setField('classMode', e.target.value as FormState['classMode'])}
+            >
+              <option value="">— select —</option>
+              <option value="ONLINE">Online</option>
+              <option value="OFFLINE">Offline</option>
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="label">Topic / Notes (optional)</label>
-            <input
-              type="text"
-              className="input"
-              value={form.chapter}
-              onChange={(e) => setField('chapter', e.target.value)}
-              placeholder="e.g. what was covered in this class"
-            />
-          </div>
-
           <TimeRangeFields
+            scheduledTime={form.scheduledTime}
+            onScheduledTimeChange={(v) => setField('scheduledTime', v)}
             startTime={form.startTime}
             onStartTimeChange={(v) => setField('startTime', v)}
             endTime={form.endTime}
@@ -180,12 +195,26 @@ export default function LogSessionPage() {
             duration={duration}
           />
 
+          <div className="form-group">
+            <label className="label">Updated By</label>
+            <select
+              className="input"
+              value={form.updatedByName}
+              onChange={(e) => setField('updatedByName', e.target.value)}
+            >
+              <option value="">— select who is filling this in —</option>
+              {(campus?.teachers ?? []).map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
         </div>
 
         <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <button
             className="btn btn-ghost"
-            onClick={() => { setForm(EMPTY_FORM(assignedBatchId ?? '')); setError('') }}
+            onClick={() => { setForm(EMPTY_FORM()); setError('') }}
             disabled={saving}
           >
             Reset

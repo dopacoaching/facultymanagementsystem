@@ -1,25 +1,50 @@
 import { todayLocal } from '@/utils/date'
 
+export interface SubjectOption {
+  label: string
+  /** Stored value. Matches the SyllabusChapter subject enum where curriculum data
+   *  exists (Maths/Physics/Chemistry/Biology/English/Malayalam/Arabic), so the
+   *  Chapter field can look up real chapters for those subjects. */
+  value: string
+}
+
+export const SUBJECT_OPTIONS: SubjectOption[] = [
+  { label: 'Mathematics',       value: 'MATHS' },
+  { label: 'Physics',           value: 'PHYSICS' },
+  { label: 'Chemistry',         value: 'CHEMISTRY' },
+  { label: 'Biology',           value: 'BIOLOGY' },
+  { label: 'Psychology',        value: 'PSYCHOLOGY' },
+  { label: 'English',           value: 'ENGLISH' },
+  { label: 'Computer Science',  value: 'COMPUTER SCIENCE' },
+  { label: 'Malayalam',         value: 'MALAYALAM' },
+  { label: 'Arabic',            value: 'ARABIC' },
+  { label: 'Hindi',             value: 'HINDI' },
+]
+
 export interface FormState {
-  batchId: string
   facultyId: string
   subject: string
   chapter: string
+  classMode: 'ONLINE' | 'OFFLINE' | ''
+  scheduledTime: string
   startTime: string
   endTime: string
   breakMinutes: string
+  updatedByName: string
   sessionDate: string
 }
 
-export const EMPTY_FORM = (defaultBatchId = ''): FormState => ({
-  batchId:      defaultBatchId,
-  facultyId:    '',
-  subject:      '',
-  chapter:      '',
-  startTime:    '',
-  endTime:      '',
-  breakMinutes: '',
-  sessionDate:  todayLocal(),
+export const EMPTY_FORM = (): FormState => ({
+  facultyId:     '',
+  subject:       '',
+  chapter:       '',
+  classMode:     '',
+  scheduledTime: '',
+  startTime:     '',
+  endTime:       '',
+  breakMinutes:  '',
+  updatedByName: '',
+  sessionDate:   todayLocal(),
 })
 
 const FREE_BREAK_MINUTES = 15

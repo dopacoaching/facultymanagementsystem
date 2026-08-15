@@ -3,9 +3,18 @@ import { SessionStatus, CancellationInitiator } from '@/lib/types'
 
 export interface ISession extends Document {
   facultyId: Types.ObjectId
-  batchId: Types.ObjectId
+  /** Legacy Repeaters/IG scheduling flow only. The campus-login class-teacher flow
+   *  uses campusName instead — the two are mutually exclusive per session. */
+  batchId?: Types.ObjectId
+  /** Campus-login class-teacher flow only — a fixed campus name, independent of Batch. */
+  campusName?: string
+  classMode?: 'ONLINE' | 'OFFLINE'
   subject: string
   chapter?: string
+  /** What time the class was supposed to start, for lateness tracking. HR/Admin-only visibility. */
+  scheduledTime?: string
+  /** The person (from the campus's teacher list) who actually filled in this entry. */
+  updatedByName?: string
   startTime?: string
   endTime?: string
   /** Raw break length as entered — the first 15 minutes are free; only the excess
@@ -27,9 +36,13 @@ export interface ISession extends Document {
 const SessionSchema = new Schema<ISession>(
   {
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty', required: true },
-    batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
+    batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
+    campusName: { type: String },
+    classMode: { type: String, enum: ['ONLINE', 'OFFLINE'] },
     subject:    { type: String, required: true },
     chapter:    { type: String },
+    scheduledTime: { type: String, match: /^\d{2}:\d{2}$/ },
+    updatedByName: { type: String },
     startTime:  { type: String, match: /^\d{2}:\d{2}$/ },
     endTime:    { type: String, match: /^\d{2}:\d{2}$/ },
     breakMinutes: { type: Number, min: 0 },
@@ -49,5 +62,7 @@ SessionSchema.index({ facultyId: 1, sessionDate: 1 })
 SessionSchema.index({ batchId: 1, sessionDate: 1 })
 SessionSchema.index({ facultyId: 1, batchId: 1, sessionDate: 1 })
 SessionSchema.index({ status: 1, sessionDate: 1 })
+SessionSchema.index({ campusName: 1, sessionDate: 1 })
+SessionSchema.index({ facultyId: 1, campusName: 1, sessionDate: 1 })
 
 export const Session = (models.Session as Model<ISession>) ?? model<ISession>('Session', SessionSchema)

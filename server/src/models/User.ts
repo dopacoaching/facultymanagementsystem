@@ -9,6 +9,8 @@ export interface IUser extends Document {
   batchId?: Types.ObjectId
   /** Restricts ACADEMICS_MANAGER to a single batch type (RESIDENTIAL | OFFLINE | ONLINE) */
   batchType?: string
+  /** Shared campus login (COORDINATOR): which of the fixed campus list this account logs sessions for. */
+  campusName?: string
   isActive: boolean
 }
 
@@ -24,6 +26,7 @@ const UserSchema = new Schema<IUser>(
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty' },
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
     batchType: { type: String, enum: ['RESIDENTIAL', 'OFFLINE', 'ONLINE'] },
+    campusName: { type: String },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

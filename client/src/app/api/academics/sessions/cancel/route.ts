@@ -33,11 +33,15 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    // Coordinators may only cancel sessions for their assigned batch
+    // Coordinators may only cancel sessions for their own campus (or assigned batch, legacy)
     if (isCoordinator(payload.role)) {
       const targetSession = await Session.findById(sessionId).lean()
       if (!targetSession) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      if (!payload.batchId || targetSession.batchId.toString() !== payload.batchId) {
+      if (targetSession.campusName) {
+        if (!payload.campusName || targetSession.campusName !== payload.campusName) {
+          return withToken(json({ error: 'You can only cancel sessions for your own campus.' }, 403), refreshedToken)
+        }
+      } else if (!payload.batchId || !targetSession.batchId || targetSession.batchId.toString() !== payload.batchId) {
         return withToken(json({ error: 'You can only cancel sessions for your assigned batch.' }, 403), refreshedToken)
       }
     }

@@ -2,6 +2,8 @@ import { todayLocal } from '@/utils/date'
 import type { DurationResult } from './types'
 
 interface TimeRangeFieldsProps {
+  scheduledTime: string
+  onScheduledTimeChange: (v: string) => void
   startTime: string
   onStartTimeChange: (v: string) => void
   endTime: string
@@ -20,12 +22,22 @@ function formatHM(totalMinutes: number): string {
 }
 
 export function TimeRangeFields({
+  scheduledTime, onScheduledTimeChange,
   startTime, onStartTimeChange, endTime, onEndTimeChange,
   breakMinutes, onBreakMinutesChange, sessionDate, onSessionDateChange, duration,
 }: TimeRangeFieldsProps) {
   return (
     <>
       <div className="input-group">
+        <div className="form-group">
+          <label className="label">Scheduled Time (optional)</label>
+          <input
+            type="time"
+            className="input"
+            value={scheduledTime}
+            onChange={(e) => onScheduledTimeChange(e.target.value)}
+          />
+        </div>
         <div className="form-group">
           <label className="label">Class Start Time</label>
           <input

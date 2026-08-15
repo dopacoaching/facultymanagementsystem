@@ -66,6 +66,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
     facultyId: user.facultyId?.toString(),
     batchId: user.batchId?.toString(),
     batchType: user.batchType,
+    campusName: user.campusName,
   }
 
   const accessToken  = signAccess(payload)
@@ -80,7 +81,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
   })
 
   res.cookie('refreshToken', refreshToken, refreshCookieOptions)
-  res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType })
+  res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType, campusName: payload.campusName })
 })
 
 export const logout = asyncHandler(async (req: Request & { user?: JWTPayload }, res: Response) => {

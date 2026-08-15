@@ -56,6 +56,7 @@ export default function LoginPage() {
         facultyId:   res.facultyId  ?? null,
         batchId:     res.batchId    ?? null,
         batchType:   res.batchType  ?? null,
+        campusName:  res.campusName ?? null,
       }))
       router.push(roleHome[res.role] ?? '/faculty')
     } catch (e: unknown) {
