@@ -21,6 +21,7 @@ export const CAMPUSES: CampusConfig[] = [
   { campusName: 'Thrissur Offline',          username: 'dopathrissuracc@gmail.com',                teachers: ['Vasannya'] },
   { campusName: 'IG 2',                      username: 'dopamalabar@gmail.com',                    teachers: ['Noushida', 'Rashmi'] },
   { campusName: 'Kottakkal Offline Tamil',   username: 'dopatamilrepeaters@gmail.com',             teachers: ['Hasna', 'Shilpa'] },
+  { campusName: 'Studio',                    username: 'studiodopa5@gmail.com',                    teachers: ['Savin'] },
 ]
 
 export function findCampusByUsername(username: string): CampusConfig | undefined {

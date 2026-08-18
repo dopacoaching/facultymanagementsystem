@@ -36,6 +36,7 @@ const CAMPUSES = [
   { campusName: 'Thrissur Offline',        username: 'dopathrissuracc@gmail.com' },
   { campusName: 'IG 2',                    username: 'dopamalabar@gmail.com' },
   { campusName: 'Kottakkal Offline Tamil', username: 'dopatamilrepeaters@gmail.com' },
+  { campusName: 'Studio',                  username: 'studiodopa5@gmail.com' },
 ]
 
 async function run() {
