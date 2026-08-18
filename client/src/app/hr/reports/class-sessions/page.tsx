@@ -18,6 +18,13 @@ function formatHM(durationHours: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+const CLASS_MODE_LABELS: Record<string, string> = {
+  ONLINE:                  'Online',
+  OFFLINE:                 'Offline',
+  ONLINE_DOUBT_CLEARANCE:  'Online Doubt Clearance',
+  OFFLINE_DOUBT_CLEARANCE: 'Offline Doubt Clearance',
+}
+
 export default function ClassSessionsPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const [sessions, setSessions] = useState<Session[]>([])
@@ -105,8 +112,8 @@ export default function ClassSessionsPage() {
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.campusName}</td>
                       <td>
-                        <span className={`badge ${s.classMode === 'ONLINE' ? 'badge-blue' : 'badge-green'}`}>
-                          {s.classMode}
+                        <span className={`badge ${s.classMode?.startsWith('ONLINE') ? 'badge-blue' : 'badge-green'}`}>
+                          {s.classMode ? CLASS_MODE_LABELS[s.classMode] ?? s.classMode : '—'}
                         </span>
                       </td>
                       {canSeeScheduledTime && (
@@ -119,7 +126,7 @@ export default function ClassSessionsPage() {
                         {formatHM(s.durationHours)}
                       </td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {s.breakMinutes ? `${s.breakMinutes}m` : '—'}
+                        {s.breakMinutes == null ? '—' : s.breakMinutes === 0 ? 'Nil' : `${s.breakMinutes}m`}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
                     </tr>

@@ -8,7 +8,7 @@ import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import {
-  EMPTY_FORM, FormState, computeDuration, SUBJECT_OPTIONS,
+  EMPTY_FORM, FormState, computeDuration, SUBJECT_OPTIONS, CLASS_MODE_OPTIONS,
   TimeRangeFields, SubjectField, ChapterField,
 } from '@/components/coordinator/log-session'
 
@@ -24,8 +24,8 @@ export default function LogSessionPage() {
 
   const campus = findCampusByName(campusName)
   const duration = useMemo(
-    () => computeDuration(form.startTime, form.endTime, form.breakMinutes),
-    [form.startTime, form.endTime, form.breakMinutes]
+    () => computeDuration(form.startTime, form.endTime, form.noBreak, form.breakMinutes),
+    [form.startTime, form.endTime, form.noBreak, form.breakMinutes]
   )
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function LogSessionPage() {
     if (!form.facultyId)         { setError('Select the faculty who took the session'); return }
     if (!form.subject.trim())    { setError('Subject is required'); return }
     if (!form.chapter.trim())    { setError('Chapter is required'); return }
-    if (!form.classMode)         { setError('Select whether the class was online or offline'); return }
+    if (!form.classMode)         { setError('Select the class mode'); return }
     if (!form.updatedByName)     { setError('Select who is filling in this form'); return }
     if (!form.sessionDate)       { setError('Session date is required'); return }
     if (duration.error)          { setError(duration.error); return }
@@ -176,8 +176,9 @@ export default function LogSessionPage() {
               onChange={(e) => setField('classMode', e.target.value as FormState['classMode'])}
             >
               <option value="">— select —</option>
-              <option value="ONLINE">Online</option>
-              <option value="OFFLINE">Offline</option>
+              {CLASS_MODE_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
             </select>
           </div>
 
@@ -188,6 +189,8 @@ export default function LogSessionPage() {
             onStartTimeChange={(v) => setField('startTime', v)}
             endTime={form.endTime}
             onEndTimeChange={(v) => setField('endTime', v)}
+            noBreak={form.noBreak}
+            onNoBreakChange={(v) => setField('noBreak', v)}
             breakMinutes={form.breakMinutes}
             onBreakMinutesChange={(v) => setField('breakMinutes', v)}
             sessionDate={form.sessionDate}

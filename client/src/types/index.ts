@@ -33,7 +33,7 @@ export interface Session {
   facultyId: { _id: string; name: string; subject: string } | string
   batchId?: string
   campusName?: string
-  classMode?: 'ONLINE' | 'OFFLINE'
+  classMode?: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
   subject: string
   chapter: string
   scheduledTime?: string

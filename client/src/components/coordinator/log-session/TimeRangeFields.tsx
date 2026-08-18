@@ -8,6 +8,8 @@ interface TimeRangeFieldsProps {
   onStartTimeChange: (v: string) => void
   endTime: string
   onEndTimeChange: (v: string) => void
+  noBreak: boolean
+  onNoBreakChange: (v: boolean) => void
   breakMinutes: string
   onBreakMinutesChange: (v: string) => void
   sessionDate: string
@@ -24,7 +26,8 @@ function formatHM(totalMinutes: number): string {
 export function TimeRangeFields({
   scheduledTime, onScheduledTimeChange,
   startTime, onStartTimeChange, endTime, onEndTimeChange,
-  breakMinutes, onBreakMinutesChange, sessionDate, onSessionDateChange, duration,
+  noBreak, onNoBreakChange, breakMinutes, onBreakMinutesChange,
+  sessionDate, onSessionDateChange, duration,
 }: TimeRangeFieldsProps) {
   return (
     <>
@@ -57,15 +60,27 @@ export function TimeRangeFields({
           />
         </div>
         <div className="form-group">
-          <label className="label">Break (minutes, optional)</label>
-          <input
-            type="number"
-            className="input"
-            min={0}
-            value={breakMinutes}
-            onChange={(e) => onBreakMinutesChange(e.target.value)}
-            placeholder="e.g. 15"
-          />
+          <label className="label">Break</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input
+              type="number"
+              className="input"
+              min={0}
+              value={breakMinutes}
+              disabled={noBreak}
+              onChange={(e) => onBreakMinutesChange(e.target.value)}
+              placeholder="Minutes"
+              style={{ opacity: noBreak ? 0.5 : 1 }}
+            />
+            <button
+              type="button"
+              className={`btn ${noBreak ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => { onNoBreakChange(!noBreak); if (!noBreak) onBreakMinutesChange('') }}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              Nil
+            </button>
+          </div>
         </div>
         <div className="form-group">
           <label className="label">Session Date</label>

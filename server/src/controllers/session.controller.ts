@@ -112,8 +112,9 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (!batchId && !campusName) {
     res.status(400).json({ error: 'Either batchId or campusName is required' }); return
   }
-  if (campusName && !batchId && !['ONLINE', 'OFFLINE'].includes(classMode)) {
-    res.status(400).json({ error: 'classMode must be ONLINE or OFFLINE' }); return
+  const VALID_CLASS_MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
+  if (campusName && !batchId && !VALID_CLASS_MODES.includes(classMode)) {
+    res.status(400).json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }); return
   }
   if (Number(durationHours) < 0.5) {
     res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return

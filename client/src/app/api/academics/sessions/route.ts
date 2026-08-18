@@ -139,8 +139,9 @@ export async function POST(req: NextRequest) {
     if (!batchId && !campusName) {
       return withToken(json({ error: 'Either batchId or campusName is required' }, 400), refreshedToken)
     }
-    if (campusName && !batchId && !['ONLINE', 'OFFLINE'].includes(classMode)) {
-      return withToken(json({ error: 'classMode must be ONLINE or OFFLINE' }, 400), refreshedToken)
+    const VALID_CLASS_MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
+    if (campusName && !batchId && !VALID_CLASS_MODES.includes(classMode)) {
+      return withToken(json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
     if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {

@@ -21,14 +21,24 @@ export const SUBJECT_OPTIONS: SubjectOption[] = [
   { label: 'Hindi',             value: 'HINDI' },
 ]
 
+export type ClassMode = 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
+
+export const CLASS_MODE_OPTIONS: { label: string; value: ClassMode }[] = [
+  { label: 'Online',                   value: 'ONLINE' },
+  { label: 'Offline',                  value: 'OFFLINE' },
+  { label: 'Online Doubt Clearance',   value: 'ONLINE_DOUBT_CLEARANCE' },
+  { label: 'Offline Doubt Clearance',  value: 'OFFLINE_DOUBT_CLEARANCE' },
+]
+
 export interface FormState {
   facultyId: string
   subject: string
   chapter: string
-  classMode: 'ONLINE' | 'OFFLINE' | ''
+  classMode: ClassMode | ''
   scheduledTime: string
   startTime: string
   endTime: string
+  noBreak: boolean
   breakMinutes: string
   updatedByName: string
   sessionDate: string
@@ -42,6 +52,7 @@ export const EMPTY_FORM = (): FormState => ({
   scheduledTime: '',
   startTime:     '',
   endTime:       '',
+  noBreak:       false,
   breakMinutes:  '',
   updatedByName: '',
   sessionDate:   todayLocal(),
@@ -62,9 +73,11 @@ export interface DurationResult {
   error?: string
 }
 
-/** Computes payable class duration from start/end time and an optional break.
- *  The first 15 minutes of a break are free; only minutes beyond that are deducted. */
-export function computeDuration(startTime: string, endTime: string, breakMinutesInput: string): DurationResult {
+/** Computes payable class duration from start/end time and a break.
+ *  The teacher must either mark "Nil" (no break) or enter break minutes — one
+ *  or the other is required. The first 15 minutes of a break are free; only
+ *  minutes beyond that are deducted. */
+export function computeDuration(startTime: string, endTime: string, noBreak: boolean, breakMinutesInput: string): DurationResult {
   if (!startTime || !endTime) {
     return { hours: 0, totalMinutes: 0, breakMinutes: 0, deductedMinutes: 0, error: 'Enter both start and end time' }
   }
@@ -74,7 +87,10 @@ export function computeDuration(startTime: string, endTime: string, breakMinutes
   if (totalMinutes <= 0) {
     return { hours: 0, totalMinutes: 0, breakMinutes: 0, deductedMinutes: 0, error: 'End time must be after start time' }
   }
-  const breakMinutes = breakMinutesInput.trim() ? Math.max(0, Number(breakMinutesInput)) : 0
+  if (!noBreak && !breakMinutesInput.trim()) {
+    return { hours: 0, totalMinutes, breakMinutes: 0, deductedMinutes: 0, error: 'Enter the break minutes, or mark "Nil" if there was no break' }
+  }
+  const breakMinutes = noBreak ? 0 : Math.max(0, Number(breakMinutesInput))
   const deductedMinutes = breakMinutes > FREE_BREAK_MINUTES ? breakMinutes - FREE_BREAK_MINUTES : 0
   const payableMinutes = totalMinutes - deductedMinutes
   if (payableMinutes < 30) {

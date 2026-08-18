@@ -8,7 +8,7 @@ export interface ISession extends Document {
   batchId?: Types.ObjectId
   /** Campus-login class-teacher flow only — a fixed campus name, independent of Batch. */
   campusName?: string
-  classMode?: 'ONLINE' | 'OFFLINE'
+  classMode?: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
   subject: string
   chapter?: string
   /** What time the class was supposed to start, for lateness tracking. HR/Admin-only visibility. */
@@ -38,7 +38,7 @@ const SessionSchema = new Schema<ISession>(
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty', required: true },
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
     campusName: { type: String },
-    classMode: { type: String, enum: ['ONLINE', 'OFFLINE'] },
+    classMode: { type: String, enum: ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE'] },
     subject:    { type: String, required: true },
     chapter:    { type: String },
     scheduledTime: { type: String, match: /^\d{2}:\d{2}$/ },
