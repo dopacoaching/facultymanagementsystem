@@ -23,6 +23,8 @@ export default function LogSessionPage() {
   const [success,     setSuccess]     = useState(false)
 
   const campus = findCampusByName(campusName)
+  const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
+  const needsSessionCategory = Boolean(selectedFaculty?.requiresSessionCategory)
   const duration = useMemo(
     () => computeDuration(form.startTime, form.endTime, form.noBreak, form.breakMinutes),
     [form.startTime, form.endTime, form.noBreak, form.breakMinutes]
@@ -55,6 +57,7 @@ export default function LogSessionPage() {
     if (!form.subject.trim())    { setError('Subject is required'); return }
     if (!form.chapter.trim())    { setError('Chapter is required'); return }
     if (!form.classMode)         { setError('Select the class mode'); return }
+    if (needsSessionCategory && !form.sessionCategory) { setError('Select whether this was a Class or Doubt Clearance session'); return }
     if (!form.updatedByName)     { setError('Select who is filling in this form'); return }
     if (!form.sessionDate)       { setError('Session date is required'); return }
     if (duration.error)          { setError(duration.error); return }
@@ -77,6 +80,7 @@ export default function LogSessionPage() {
           updatedByName: form.updatedByName,
           durationHours: duration.hours,
           sessionDate:   form.sessionDate,
+          sessionCategory: needsSessionCategory ? form.sessionCategory : undefined,
         },
       })
       toast.success('Session logged', 'The session has been recorded. The form has been reset.')
@@ -155,6 +159,21 @@ export default function LogSessionPage() {
               ))}
             </select>
           </div>
+
+          {needsSessionCategory && (
+            <div className="form-group">
+              <label className="label">Session Category</label>
+              <select
+                className="input"
+                value={form.sessionCategory}
+                onChange={(e) => setField('sessionCategory', e.target.value as FormState['sessionCategory'])}
+              >
+                <option value="">— select —</option>
+                <option value="CLASS">Class</option>
+                <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
+              </select>
+            </div>
+          )}
 
           <SubjectField
             value={form.subject}

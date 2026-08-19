@@ -35,6 +35,7 @@ export interface FormState {
   subject: string
   chapter: string
   classMode: ClassMode | ''
+  sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE' | ''
   scheduledTime: string
   startTime: string
   endTime: string
@@ -45,17 +46,18 @@ export interface FormState {
 }
 
 export const EMPTY_FORM = (): FormState => ({
-  facultyId:     '',
-  subject:       '',
-  chapter:       '',
-  classMode:     '',
-  scheduledTime: '',
-  startTime:     '',
-  endTime:       '',
-  noBreak:       false,
-  breakMinutes:  '',
-  updatedByName: '',
-  sessionDate:   todayLocal(),
+  facultyId:       '',
+  subject:         '',
+  chapter:         '',
+  classMode:       '',
+  sessionCategory: '',
+  scheduledTime:   '',
+  startTime:       '',
+  endTime:         '',
+  noBreak:         false,
+  breakMinutes:    '',
+  updatedByName:   '',
+  sessionDate:     todayLocal(),
 })
 
 const FREE_BREAK_MINUTES = 15
