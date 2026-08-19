@@ -143,6 +143,11 @@ export async function POST(req: NextRequest) {
     if (campusName && !batchId && !VALID_CLASS_MODES.includes(classMode)) {
       return withToken(json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }, 400), refreshedToken)
     }
+    // Campus-flow sessions are keyed by startTime for duplicate detection below —
+    // require it here rather than relying on the coordinator UI's own validation.
+    if (campusName && !batchId && !startTime) {
+      return withToken(json({ error: 'startTime is required for campus-logged sessions' }, 400), refreshedToken)
+    }
     const parsedDuration = Number(durationHours)
     if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
       return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)

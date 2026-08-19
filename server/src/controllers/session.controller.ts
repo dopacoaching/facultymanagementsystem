@@ -116,6 +116,11 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (campusName && !batchId && !VALID_CLASS_MODES.includes(classMode)) {
     res.status(400).json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }); return
   }
+  // Campus-flow sessions are keyed by startTime for duplicate detection below —
+  // require it here rather than relying on the coordinator UI's own validation.
+  if (campusName && !batchId && !startTime) {
+    res.status(400).json({ error: 'startTime is required for campus-logged sessions' }); return
+  }
   if (Number(durationHours) < 0.5) {
     res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return
   }
