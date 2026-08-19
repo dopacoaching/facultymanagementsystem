@@ -204,16 +204,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // DUPLICATE SESSION CHECK — keyed by batch when present, else by campus
+    // DUPLICATE SESSION CHECK — keyed by batch when present, else by campus.
+    // A faculty routinely teaches more than one class at the same campus on
+    // the same day (different batches/timings), so the campus flow also
+    // matches on startTime — same faculty + campus + day + start time is an
+    // accidental resubmission of the same class; a different start time is a
+    // genuinely different session and must not be blocked.
     const dup = await Session.findOne({
       facultyId: facultyOid,
-      ...(batchOid ? { batchId: batchOid } : { campusName }),
+      ...(batchOid ? { batchId: batchOid } : { campusName, startTime }),
       sessionDate: { $gte: dayStart, $lte: dayEnd },
       status:    { $ne: 'CANCELLED' },
     })
     if (dup) {
       return withToken(json({
-        error: 'Duplicate session: a session is already logged for this faculty on this date.',
+        error: batchOid
+          ? 'Duplicate session: a session is already logged for this faculty on this date.'
+          : 'Duplicate session: a session is already logged for this faculty at this start time on this date.',
         code:  'DUPLICATE_SESSION',
       }, 409), refreshedToken)
     }
