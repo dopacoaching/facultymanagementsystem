@@ -32,7 +32,7 @@ const CAMPUSES = [
   { campusName: 'Thrissur Residential',    username: 'dopathrissurresidential@gmail.com' },
   { campusName: 'Calicut Boys',            username: 'dopaaiimsboys@gmail.com' },
   { campusName: 'Kottakkal Girls',         username: 'chattiparambdopa@gmail.com' },
-  { campusName: 'Kottakkal Offline',       username: 'kottakkalofflineaacademics@gmail.com' },
+  { campusName: 'Kottakkal Offline',       username: 'kottakkalofflineacademics@gmail.com' },
   { campusName: 'Thrissur Offline',        username: 'dopathrissuracc@gmail.com' },
   { campusName: 'IG 2',                    username: 'dopamalabar@gmail.com' },
   { campusName: 'Kottakkal Offline Tamil', username: 'dopatamilrepeaters@gmail.com' },
