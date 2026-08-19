@@ -320,7 +320,11 @@ export async function POST(req: NextRequest) {
       durationHours: Number(durationHours),
       sessionDate:   date,
       timeSlot:      timeSlot   ?? undefined,
-      status:        'SCHEDULED',
+      // Campus-login class-teacher flow logs sessions retrospectively (real
+      // start/end times, after the class happened) — COMPLETED immediately.
+      // The legacy Batch flow schedules ahead of time and is marked complete
+      // later via the status PATCH endpoint.
+      status:        (!batchOid && campusName) ? 'COMPLETED' : 'SCHEDULED',
       loggedByUserId: new Types.ObjectId(payload.userId),
       sessionCategory: sessionCategory ?? 'CLASS',
     })

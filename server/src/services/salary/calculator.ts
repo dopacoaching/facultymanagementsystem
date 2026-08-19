@@ -1071,7 +1071,19 @@ async function calcLegacyFallback(
 
   switch (faculty.salaryModel) {
     case 'HOURLY': {
-      const rate = faculty.hourlyRate ?? 0
+      if (faculty.hourlyRate == null) {
+        return {
+          status: 'PENDING_CONFIG',
+          reason: `Hourly rate has not been set for this faculty yet. HR must add it before payroll can be calculated. Hours already logged (${hoursLogged}h) are preserved and will be paid once the rate is entered.`,
+          alerts: [{
+            level: 'BLOCK',
+            code: 'HOURLY_RATE_NOT_SET',
+            message: 'HR must set an hourly rate for this faculty before payroll can be generated.',
+          }],
+          breakdown: [{ label: 'Hours Logged', amount: hoursLogged }],
+        }
+      }
+      const rate = faculty.hourlyRate
       baseSalary = hoursLogged * rate
       breakdown.push({ label: 'Hours Logged', amount: hoursLogged })
       breakdown.push({ label: 'Rate per Hour', amount: rate })
