@@ -7,6 +7,7 @@ export interface EditClassSessionForm {
   updatedByName: string
   startTime: string
   endTime: string
+  noBreak: boolean
   breakMinutes: string
   sessionDate: string
 }
@@ -19,7 +20,12 @@ export function formFromSession(s: Session): EditClassSessionForm {
     updatedByName: s.updatedByName ?? '',
     startTime:     s.startTime ?? '',
     endTime:       s.endTime ?? '',
-    breakMinutes:  s.breakMinutes != null ? String(s.breakMinutes) : '',
+    // A session with breakMinutes recorded as exactly 0 means "Nil" was
+    // explicitly chosen when it was logged; anything else (including no
+    // value recorded) needs the manager to make that choice again here —
+    // never assumed silently.
+    noBreak:       s.breakMinutes === 0,
+    breakMinutes:  s.breakMinutes ? String(s.breakMinutes) : '',
     sessionDate:   s.sessionDate.slice(0, 10),
   }
 }
@@ -91,9 +97,27 @@ export function EditClassSessionModal({
               <input type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="label">Break (minutes)</label>
-              <input type="number" className="input" min={0} value={form.breakMinutes}
-                onChange={(e) => setForm((f) => ({ ...f, breakMinutes: e.target.value }))} />
+              <label className="label">Break</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                  type="number"
+                  className="input"
+                  min={0}
+                  value={form.breakMinutes}
+                  disabled={form.noBreak}
+                  placeholder="Minutes"
+                  style={{ opacity: form.noBreak ? 0.5 : 1 }}
+                  onChange={(e) => setForm((f) => ({ ...f, breakMinutes: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  className={`btn ${form.noBreak ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setForm((f) => ({ ...f, noBreak: !f.noBreak, breakMinutes: !f.noBreak ? '' : f.breakMinutes }))}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  Nil
+                </button>
+              </div>
             </div>
           </div>
         </div>

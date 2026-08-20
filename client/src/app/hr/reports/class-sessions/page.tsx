@@ -53,7 +53,7 @@ export default function ClassSessionsPage() {
 
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
-    const duration = computeDuration(editForm.startTime, editForm.endTime, Number(editForm.breakMinutes) === 0, editForm.breakMinutes)
+    const duration = computeDuration(editForm.startTime, editForm.endTime, editForm.noBreak, editForm.breakMinutes)
     if (duration.error) { setEditError(duration.error); return }
 
     setSaving(true); setEditError('')
@@ -65,7 +65,7 @@ export default function ClassSessionsPage() {
         updatedByName: editForm.updatedByName.trim() || undefined,
         startTime:     editForm.startTime,
         endTime:       editForm.endTime,
-        breakMinutes:  Number(editForm.breakMinutes),
+        breakMinutes:  editForm.noBreak ? 0 : Number(editForm.breakMinutes),
         durationHours: duration.hours,
         sessionDate:   editForm.sessionDate,
       }, accessToken)
