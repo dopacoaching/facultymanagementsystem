@@ -119,6 +119,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     const newRefreshToken = signRefresh({
       userId: payload.userId, role: payload.role, username: payload.username,
       facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
+      campusName: payload.campusName,
     })
     await RefreshToken.create({
       tokenHash: hashToken(newRefreshToken),
@@ -130,6 +131,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     const accessToken = signAccess({
       userId: payload.userId, role: payload.role, username: payload.username,
       facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
+      campusName: payload.campusName,
     })
 
     res.cookie('refreshToken', newRefreshToken, refreshCookieOptions)
