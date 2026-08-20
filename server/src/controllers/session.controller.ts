@@ -19,7 +19,7 @@ function isCoordinator(role: string): boolean {
 }
 
 export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
-  let { facultyId, batchId, batchType, excludeBatchType, month, year } = req.query as Record<string, string | undefined>
+  let { facultyId, campusName, batchId, batchType, excludeBatchType, month, year } = req.query as Record<string, string | undefined>
   const filter: Record<string, unknown> = {}
 
   // FACULTY scope guard — faculty users may only view their own sessions
@@ -29,6 +29,18 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
       res.status(403).json({ error: 'Faculty account not linked to a faculty profile' }); return
     }
     facultyId = theirFacultyId
+  }
+
+  // COORDINATOR scope guard — campus-login coordinators may only view their own campus's sessions
+  if (req.user!.role === 'COORDINATOR' || req.user!.role === 'IG_COORDINATOR') {
+    if (!req.user!.campusName) {
+      res.status(403).json({ error: 'Your account is not linked to a campus' }); return
+    }
+    campusName = req.user!.campusName
+  }
+
+  if (campusName) {
+    filter.campusName = campusName
   }
 
   if (facultyId) { try { filter.facultyId = new Types.ObjectId(facultyId) } catch { res.status(400).json({ error: 'Invalid facultyId' }); return } }

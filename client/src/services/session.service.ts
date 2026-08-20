@@ -4,6 +4,7 @@ import type { Session } from '@/types'
 export interface SessionFilters {
   facultyId?: string
   batchId?: string
+  campusName?: string
   month?: number
   year?: number
 }
@@ -33,6 +34,25 @@ export async function create(
   token: string
 ): Promise<Session> {
   return apiFetch<Session>('/academics/sessions', { method: 'POST', body: data, token })
+}
+
+export async function update(
+  sessionId: string,
+  data: Partial<{
+    facultyId: string
+    subject: string
+    chapter: string
+    classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
+    updatedByName: string
+    startTime: string
+    endTime: string
+    breakMinutes: number
+    durationHours: number
+    sessionDate: string
+  }>,
+  token: string
+): Promise<Session> {
+  return apiFetch<Session>(`/academics/sessions/${sessionId}`, { method: 'PATCH', body: data, token })
 }
 
 export async function cancel(

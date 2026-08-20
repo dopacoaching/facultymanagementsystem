@@ -66,7 +66,8 @@ const IS_ACADEMICS_NAV: NavItem[] = [
 
 // COORDINATOR (Class Teacher): Session/hours logging only
 const COORDINATOR_NAV: NavItem[] = [
-  { label: 'Log Session', href: '/coordinator', icon: '📝' },
+  { label: 'Log Session', href: '/coordinator',         icon: '📝' },
+  { label: 'History',     href: '/coordinator/history', icon: '📜' },
 ]
 
 const FACULTY_NAV: NavItem[] = [

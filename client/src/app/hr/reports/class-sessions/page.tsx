@@ -1,9 +1,12 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
-import { getAll } from '@/services/session.service'
+import { getAll, update } from '@/services/session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { MonthYearSelector } from '@/components/hr/dashboard'
+import { EditClassSessionModal, formFromSession, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
+import { computeDuration } from '@/components/coordinator/log-session'
+import { useToast } from '@/components/ui/Toast'
 import type { Session } from '@/types'
 
 const MONTH_NAMES = [
@@ -27,13 +30,55 @@ const CLASS_MODE_LABELS: Record<string, string> = {
 
 export default function ClassSessionsPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
+  const toast = useToast()
   const [sessions, setSessions] = useState<Session[]>([])
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [editingSession, setEditingSession] = useState<Session | null>(null)
+  const [editForm, setEditForm] = useState<EditClassSessionForm | null>(null)
+  const [editError, setEditError] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const canSeeScheduledTime = role === 'HR_MANAGER' || role === 'ADMIN'
+  const canEdit = role === 'HR_MANAGER' || role === 'ADMIN'
+
+  function openEdit(s: Session) {
+    setEditingSession(s)
+    setEditForm(formFromSession(s))
+    setEditError('')
+  }
+
+  async function saveEdit() {
+    if (!editingSession || !editForm || !accessToken) return
+    const duration = computeDuration(editForm.startTime, editForm.endTime, Number(editForm.breakMinutes) === 0, editForm.breakMinutes)
+    if (duration.error) { setEditError(duration.error); return }
+
+    setSaving(true); setEditError('')
+    try {
+      await update(editingSession._id, {
+        subject:       editForm.subject.trim(),
+        chapter:       editForm.chapter.trim(),
+        classMode:     editForm.classMode || undefined,
+        updatedByName: editForm.updatedByName.trim() || undefined,
+        startTime:     editForm.startTime,
+        endTime:       editForm.endTime,
+        breakMinutes:  Number(editForm.breakMinutes),
+        durationHours: duration.hours,
+        sessionDate:   editForm.sessionDate,
+      }, accessToken)
+      toast.success('Session updated', 'The changes have been saved.')
+      setEditingSession(null)
+      setEditForm(null)
+      await load()
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : 'Failed to update session')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function load() {
     if (!accessToken) return
@@ -97,6 +142,7 @@ export default function ClassSessionsPage() {
                   <th style={{ textAlign: 'right' }}>Time Taken</th>
                   <th style={{ textAlign: 'right' }}>Break</th>
                   <th>Updated By</th>
+                  {canEdit && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -129,6 +175,11 @@ export default function ClassSessionsPage() {
                         {s.breakMinutes == null ? '—' : s.breakMinutes === 0 ? 'Nil' : `${s.breakMinutes}m`}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
+                      {canEdit && (
+                        <td>
+                          <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)}>Edit</button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -136,6 +187,17 @@ export default function ClassSessionsPage() {
             </table>
           </div>
         </div>
+      )}
+
+      {editingSession && editForm && (
+        <EditClassSessionModal
+          form={editForm}
+          setForm={(updater) => setEditForm((f) => (f ? updater(f) : f))}
+          error={editError}
+          saving={saving}
+          onClose={() => { setEditingSession(null); setEditForm(null) }}
+          onSubmit={saveEdit}
+        />
       )}
     </div>
   )

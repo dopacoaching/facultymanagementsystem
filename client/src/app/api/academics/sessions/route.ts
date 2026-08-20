@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     let facultyId        = searchParams.get('facultyId')   ?? undefined
+    let campusName       = searchParams.get('campusName')  ?? undefined
     const batchId        = searchParams.get('batchId')     ?? undefined
     const batchType      = searchParams.get('batchType')   ?? undefined
     const month          = searchParams.get('month')       ?? undefined
@@ -42,6 +43,18 @@ export async function GET(req: NextRequest) {
         return withToken(json({ error: 'Faculty account not linked to a faculty profile' }, 403), refreshedToken)
       }
       facultyId = theirFacultyId
+    }
+
+    // COORDINATOR scope guard — campus-login coordinators may only view their own campus's sessions
+    if (payload.role === 'COORDINATOR' || payload.role === 'IG_COORDINATOR') {
+      if (!payload.campusName) {
+        return withToken(json({ error: 'Your account is not linked to a campus' }, 403), refreshedToken)
+      }
+      campusName = payload.campusName
+    }
+
+    if (campusName) {
+      filter.campusName = campusName
     }
 
     await connectDB()
