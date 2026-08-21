@@ -37,6 +37,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'Reports',     href: '/hr/reports',      icon: '📊' },
   { label: 'Faculty Hours', href: '/hr/reports/faculty-hours', icon: '📈' },
   { label: 'Class Sessions', href: '/hr/reports/class-sessions', icon: '📝' },
+  { label: 'IG Class Sessions', href: '/hr/reports/ig-sessions', icon: '📝' },
   { type: 'section', label: 'Academics' },
   { label: 'Sessions',     href: '/academics/sessions',          icon: '📅' },
 ]
@@ -48,6 +49,7 @@ const HR_NAV: NavItem[] = [
   { label: 'Reports',        href: '/hr/reports',             icon: '📊' },
   { label: 'Faculty Hours',  href: '/hr/reports/faculty-hours', icon: '📈' },
   { label: 'Class Sessions', href: '/hr/reports/class-sessions', icon: '📝' },
+  { label: 'IG Class Sessions', href: '/hr/reports/ig-sessions', icon: '📝' },
 ]
 
 // ACADEMICS_MANAGER: Repeaters/DOPA sessions only — no IS sections
@@ -70,6 +72,12 @@ const COORDINATOR_NAV: NavItem[] = [
   { label: 'History',     href: '/coordinator/history', icon: '📜' },
 ]
 
+// IG_CLASS_TEACHER: Session logging only — same minimal shape as COORDINATOR_NAV
+const IG_CLASS_TEACHER_NAV: NavItem[] = [
+  { label: 'Log Session', href: '/ig/sessions',         icon: '📝' },
+  { label: 'History',     href: '/ig/sessions/history', icon: '📜' },
+]
+
 const FACULTY_NAV: NavItem[] = [
   { label: 'Dashboard',   href: '/faculty',          icon: '◈' },
   { label: 'My Sessions', href: '/faculty/sessions', icon: '📅' },
@@ -81,7 +89,7 @@ function navForRole(role: string | null): NavItem[] {
   if (role === 'HR_MANAGER')          return HR_NAV
   if (role === 'ACADEMICS_MANAGER')   return ACADEMICS_NAV
   if (role === 'IG_ACADEMICS_MANAGER') return IS_ACADEMICS_NAV
-  if (role === 'IG_CLASS_TEACHER')      return IS_ACADEMICS_NAV   // same view, RBAC enforced at API
+  if (role === 'IG_CLASS_TEACHER')      return IG_CLASS_TEACHER_NAV
   if (role === 'CLASS_TEACHER')         return COORDINATOR_NAV
   if (role === 'FACULTY')             return FACULTY_NAV
   return []

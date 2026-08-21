@@ -87,16 +87,23 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, startTime } = await req.json()
+    const {
+      facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot,
+      scheduledTime, startTime, endTime, breakMinutes, updatedByName,
+    } = await req.json()
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
       return withToken(json({
         error: 'All fields are required: facultyId, batchId, subject, chapter, sessionDate',
       }, 400), refreshedToken)
     }
+    const VALID_TIME_SLOTS = ['SESSION_1', 'SESSION_2', 'SESSION_3']
+    if (!timeSlot || !VALID_TIME_SLOTS.includes(timeSlot)) {
+      return withToken(json({ error: 'timeSlot must be SESSION_1, SESSION_2, or SESSION_3' }, 400), refreshedToken)
+    }
     const parsedDuration = Number(durationHours)
-    if (!durationHours || isNaN(parsedDuration) || parsedDuration <= 0) {
-      return withToken(json({ error: 'durationHours must be a positive number' }, 400), refreshedToken)
+    if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
+      return withToken(json({ error: 'durationHours must be at least 0.5' }, 400), refreshedToken)
     }
 
     let facultyOid: Types.ObjectId, batchOid: Types.ObjectId
@@ -159,16 +166,17 @@ export async function POST(req: NextRequest) {
       }, 409), refreshedToken)
     }
 
-    // DUPLICATE SESSION CHECK
+    // DUPLICATE SESSION CHECK — keyed by session slot, so up to 3 sessions/day (one per slot) are allowed
     const dup = await Session.findOne({
       facultyId: facultyOid,
       batchId:   batchOid,
+      timeSlot,
       sessionDate: { $gte: dayStart, $lte: dayEnd },
       status:    { $ne: 'CANCELLED' },
     })
     if (dup) {
       return withToken(json({
-        error: 'Duplicate session: a session is already logged for this faculty in this batch on this date.',
+        error: `Duplicate session: a session is already logged for this faculty in this batch for ${timeSlot} on this date.`,
         code:  'DUPLICATE_SESSION',
       }, 409), refreshedToken)
     }
@@ -197,11 +205,15 @@ export async function POST(req: NextRequest) {
       batchId:       batchOid,
       subject,
       chapter,
-      startTime:     startTime   ?? undefined,
+      scheduledTime: scheduledTime ?? undefined,
+      startTime:     startTime     ?? undefined,
+      endTime:       endTime       ?? undefined,
+      breakMinutes:  breakMinutes  ?? undefined,
+      updatedByName: updatedByName ?? undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,
-      timeSlot:      timeSlot    ?? undefined,
-      status:        'SCHEDULED',
+      timeSlot,
+      status:        'COMPLETED',
       loggedByUserId: new Types.ObjectId(payload.userId),
     })
 

@@ -1,73 +1,81 @@
 'use client'
 import { todayLocal } from '@/utils/date'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
+import { getCampuses } from '@/services/campus.service'
+import { create as createIGSession } from '@/services/ig-session.service'
 import { apiFetch } from '@/services/api'
+import { IG_TEACHERS } from '@/lib/constants/igTeachers'
+import { computeDuration, TimeRangeFields } from '@/components/coordinator/log-session'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import type { Campus } from '@/services/campus.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
-import {
-  EditIGSessionForm, ISBatchChapter, ISession, NewIGSessionForm,
-  IGSessionFilterBar, NewIGSessionModal, EditIGSessionModal, IGSessionsTable,
-} from '@/components/integrated-school/sessions'
+import type { ISBatchChapter } from '@/components/integrated-school/sessions'
 
-export default function IGSessionsPage() {
-  const { accessToken, role, campusId: coordinatorCampusId } = useAppSelector((s) => s.auth)
+type SessionSlot = 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
+
+interface FormState {
+  batchId: string
+  facultyId: string
+  timeSlot: SessionSlot | ''
+  subject: string
+  chapter: string
+  scheduledTime: string
+  startTime: string
+  endTime: string
+  noBreak: boolean
+  breakMinutes: string
+  updatedByName: string
+  sessionDate: string
+}
+
+const EMPTY_FORM = (): FormState => ({
+  batchId:       '',
+  facultyId:     '',
+  timeSlot:      '',
+  subject:       '',
+  chapter:       '',
+  scheduledTime: '',
+  startTime:     '',
+  endTime:       '',
+  noBreak:       false,
+  breakMinutes:  '',
+  updatedByName: '',
+  sessionDate:   todayLocal(),
+})
+
+export default function IGLogSessionPage() {
+  const { accessToken, campusId: coordinatorCampusId } = useAppSelector((s) => s.auth)
   const toast = useToast()
-  const isCoordinator = role === 'IG_CLASS_TEACHER' || role === 'CLASS_TEACHER'
-  const [sessions, setSessions]       = useState<ISession[]>([])
+
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
-  const [showForm, setShowForm]       = useState(false)
-  const [cancelling, setCancelling]   = useState('')
-  const [form, setForm] = useState<NewIGSessionForm>({
-    facultyId:     '',
-    batchId:       '',
-    subject:       '',
-    chapter:       '',
-    startTime:     '',
-    durationHours: '',
-    sessionDate:   todayLocal(),
-  })
-  const [saving, setSaving]                     = useState(false)
-  const [cancelInitiator, setCancelInitiator]   = useState<Record<string, string>>({})
-  const [error, setError]                       = useState('')
+  const [campuses, setCampuses]       = useState<Campus[]>([])
+  const [igChapters, setIgChapters]   = useState<ISBatchChapter[]>([])
+  const [loadingIgCh, setLoadingIgCh] = useState(false)
 
-  // IG batch chapters for subject + chapter dropdowns
-  const [igChapters,   setIgChapters]   = useState<ISBatchChapter[]>([])
-  const [loadingIgCh,  setLoadingIgCh]  = useState(false)
+  const [form, setForm]     = useState<FormState>(EMPTY_FORM())
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+  const [success, setSuccess] = useState(false)
 
-  // Filters
-  const [search, setSearch]           = useState('')
-  const [statusFilter, setStatus]     = useState('ALL')
-  const [filterMonth, setFilterMonth] = useState(0)   // 0 = all months
-  const [filterYear, setFilterYear]   = useState(0)   // 0 = all years
-
-  // Edit modal
-  const [editing, setEditing]       = useState<ISession | null>(null)
-  const [editForm, setEditForm]     = useState<EditIGSessionForm>({ facultyId: '', batchId: '', subject: '', chapter: '', sessionDate: '' })
-  const [editSaving, setEditSaving] = useState(false)
-  const [editError, setEditError]   = useState('')
-
-  // Managers who can do full edits; coordinators can only change status
-  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'IG_ACADEMICS_MANAGER'
-
-  const load = () => {
-    if (accessToken)
-      apiFetch<ISession[]>('/ig/sessions', { token: accessToken })
-        .then(setSessions)
-        .catch(console.error)
-  }
+  const campus = campuses.find((c) => c._id === coordinatorCampusId)
+  const teacherNames = coordinatorCampusId ? (IG_TEACHERS[coordinatorCampusId] ?? []) : []
+  const duration = useMemo(
+    () => computeDuration(form.startTime, form.endTime, form.noBreak, form.breakMinutes),
+    [form.startTime, form.endTime, form.noBreak, form.breakMinutes]
+  )
 
   useEffect(() => {
     if (!accessToken) return
-    load()
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
+    getCampuses(accessToken).then(setCampuses).catch(console.error)
     getBatches(accessToken).then((list) => {
       const isBatches = list.filter((b) => b.type === 'IG')
-      const visible = isCoordinator && coordinatorCampusId
+      const visible = coordinatorCampusId
         ? isBatches.filter((b) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId) === coordinatorCampusId)
         : isBatches
       setBatches(visible)
@@ -83,191 +91,251 @@ export default function IGSessionsPage() {
       .then(setIgChapters).catch(console.error).finally(() => setLoadingIgCh(false))
   }, [accessToken, form.batchId])
 
-  // Unique subjects for this batch's chapters
   const igSubjects = useMemo(
     () => [...new Set(igChapters.map((c) => c.subject))].sort(),
-    [igChapters],
+    [igChapters]
   )
-
-  // Chapters filtered by selected subject, sorted by order
   const igFilteredChapters = useMemo(
     () => igChapters.filter((c) => c.subject === form.subject).sort((a, b) => a.chapterOrder - b.chapterOrder),
-    [igChapters, form.subject],
+    [igChapters, form.subject]
   )
 
-  // ── Derived filter ──────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    let list = sessions
-    if (statusFilter !== 'ALL')  list = list.filter((s) => s.status === statusFilter)
-    if (filterMonth > 0)         list = list.filter((s) => new Date(s.sessionDate).getMonth() + 1 === filterMonth)
-    if (filterYear  > 0)         list = list.filter((s) => new Date(s.sessionDate).getFullYear() === filterYear)
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter((s) =>
-        s.subject.toLowerCase().includes(q) ||
-        s.chapter.toLowerCase().includes(q) ||
-        (typeof s.facultyId === 'object'
-          ? s.facultyId?.name?.toLowerCase().includes(q)
-          : String(s.facultyId).includes(q))
-      )
-    }
-    return list
-  }, [sessions, statusFilter, filterMonth, filterYear, search])
-
-  // ── Derived years for filter ────────────────────────────────────────────────
-  const years = useMemo(() => {
-    const set = new Set(sessions.map((s) => new Date(s.sessionDate).getFullYear()))
-    return Array.from(set).sort((a, b) => b - a)
-  }, [sessions])
-
-  async function handleCreate() {
-    if (!accessToken) return
-    if (!form.facultyId || !form.batchId || !form.subject || !form.chapter) {
-      setError('All fields are required'); return
-    }
-    setSaving(true); setError('')
-    try {
-      await apiFetch('/ig/sessions', {
-        token: accessToken,
-        method: 'POST',
-        body: {
-          facultyId:     form.facultyId,
-          batchId:       form.batchId,
-          subject:       form.subject,
-          chapter:       form.chapter,
-          startTime:     form.startTime || undefined,
-          durationHours: form.durationHours ? Number(form.durationHours) : undefined,
-          sessionDate:   form.sessionDate,
-        },
-      })
-      toast.success('Session created', 'IG session has been logged successfully.')
-      setShowForm(false); load()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Create failed')
-    } finally { setSaving(false) }
-  }
-
-  async function handleMarkComplete(id: string) {
-    if (!accessToken) return
-    try {
-      await apiFetch(`/ig/sessions/${id}/status`, {
-        method: 'PATCH',
-        body: { status: 'COMPLETED' },
-        token: accessToken,
-      })
-      load()
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to mark session complete') }
-  }
-
-  async function handleCancel(id: string) {
-    if (!accessToken) return
-    const initiator = cancelInitiator[id]
-    if (!initiator) { setError('Select a cancellation initiator before cancelling.'); return }
-    setCancelling(id)
-    try {
-      await apiFetch('/ig/sessions/cancel', {
-        method: 'POST',
-        body: { sessionId: id, cancellationInitiator: initiator },
-        token: accessToken,
-      })
-      load()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Cancel failed')
-    } finally { setCancelling('') }
-  }
-
-  function openEdit(s: ISession) {
-    setEditing(s)
-    setEditForm({
-      facultyId:   typeof s.facultyId === 'object' ? (s.facultyId?._id ?? '') : (s.facultyId ?? ''),
-      batchId:     s.batchId ?? '',
-      subject:     s.subject,
-      chapter:     s.chapter,
-      sessionDate: s.sessionDate.slice(0, 10),
+  function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((prev) => {
+      const updated = { ...prev, [key]: value }
+      if (key === 'batchId') { updated.subject = ''; updated.chapter = '' }
+      if (key === 'subject' && prev.subject !== value) updated.chapter = ''
+      return updated
     })
-    setEditError('')
   }
 
-  async function handleEditSave() {
-    if (!accessToken || !editing) return
-    setEditSaving(true); setEditError('')
+  async function handleSubmit() {
+    setError('')
+    if (!coordinatorCampusId) { setError('Your account is not linked to a campus'); return }
+    if (!form.batchId)          { setError('Select the batch'); return }
+    if (!form.facultyId)        { setError('Select the faculty who took the session'); return }
+    if (!form.timeSlot)         { setError('Select the session slot'); return }
+    if (!form.subject.trim())   { setError('Subject is required'); return }
+    if (!form.chapter.trim())   { setError('Chapter is required'); return }
+    if (!form.updatedByName)    { setError('Select who is filling in this form'); return }
+    if (!form.sessionDate)      { setError('Session date is required'); return }
+    if (duration.error)         { setError(duration.error); return }
+
+    setSaving(true)
     try {
-      await apiFetch(`/ig/sessions/${editing._id}`, {
-        method: 'PATCH',
-        body: {
-          facultyId:   editForm.facultyId,
-          batchId:     editForm.batchId,
-          subject:     editForm.subject,
-          chapter:     editForm.chapter,
-          sessionDate: editForm.sessionDate,
-        },
-        token: accessToken,
-      })
-      setEditing(null); load()
+      await createIGSession({
+        facultyId:     form.facultyId,
+        batchId:       form.batchId,
+        timeSlot:      form.timeSlot,
+        subject:       form.subject.trim(),
+        chapter:       form.chapter.trim(),
+        scheduledTime: form.scheduledTime || undefined,
+        startTime:     form.startTime,
+        endTime:       form.endTime,
+        breakMinutes:  duration.breakMinutes,
+        updatedByName: form.updatedByName,
+        durationHours: duration.hours,
+        sessionDate:   form.sessionDate,
+      }, accessToken!)
+      toast.success('Session logged', 'The session has been recorded. The form has been reset.')
+      setSuccess(true)
+      setTimeout(() => {
+        setSuccess(false)
+        setForm((f) => ({ ...EMPTY_FORM(), batchId: f.batchId }))
+      }, 2000)
     } catch (e: unknown) {
-      setEditError(e instanceof Error ? e.message : 'Edit failed')
-    } finally { setEditSaving(false) }
+      setError(e instanceof Error ? e.message : 'Failed to submit session')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>IG Sessions</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            {filtered.length} of {sessions.length} session{sessions.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>+ New Session</button>
+    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+
+      <div style={{ marginBottom: '1.75rem' }}>
+        <h1 style={{ fontWeight: 800, fontSize: '1.375rem', margin: '0 0 0.375rem', color: 'var(--color-text)' }}>
+          Log a Session
+        </h1>
+        <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', margin: 0 }}>
+          Fill in the details of the class that was completed.
+        </p>
       </div>
 
-      {error && !showForm && !editing && (
-        <div style={{ marginBottom: '1rem' }}>
-          <ErrorAlert message={error} onRetry={() => setError('')} />
+      <div style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-md)',
+        padding: '2rem',
+      }}>
+
+        {success && (
+          <div className="alert alert-success" style={{ marginBottom: '1.5rem' }}>
+            <span className="alert-icon">✅</span>
+            Session logged successfully! The form has been reset.
+          </div>
+        )}
+
+        {error && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <ErrorAlert message={error} what="Session could not be submitted" onRetry={() => setError('')} />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+          <div className="form-group">
+            <label className="label">Campus</label>
+            <div style={{
+              padding: '0.6rem 0.875rem',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.9375rem',
+              color: 'var(--color-text)',
+              fontWeight: 500,
+            }}>
+              {campus?.name ?? 'Not configured for your account'}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="label">Batch</label>
+            <select
+              className="input"
+              value={form.batchId}
+              onChange={(e) => setField('batchId', e.target.value)}
+            >
+              <option value="">— select batch —</option>
+              {batches.map((b) => (
+                <option key={b._id} value={b._id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="label">Faculty</label>
+            <select
+              className="input"
+              value={form.facultyId}
+              onChange={(e) => setField('facultyId', e.target.value)}
+            >
+              <option value="">— select faculty —</option>
+              {facultyList.filter((f) => f.isActive).map((f) => (
+                <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="label">Session Slot</label>
+            <select
+              className="input"
+              value={form.timeSlot}
+              onChange={(e) => setField('timeSlot', e.target.value as SessionSlot)}
+            >
+              <option value="">— select session —</option>
+              <option value="SESSION_1">Session 1</option>
+              <option value="SESSION_2">Session 2</option>
+              <option value="SESSION_3">Session 3</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="label">Subject</label>
+            {igSubjects.length > 0 ? (
+              <select className="input" value={form.subject} onChange={(e) => setField('subject', e.target.value)}>
+                <option value="">— select subject —</option>
+                {igSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            ) : (
+              <input
+                className="input"
+                value={form.subject}
+                placeholder={loadingIgCh ? 'Loading…' : 'Type subject'}
+                onChange={(e) => setField('subject', e.target.value)}
+              />
+            )}
+          </div>
+
+          <div className="form-group">
+            <label className="label">Chapter</label>
+            {igFilteredChapters.length > 0 ? (
+              <select className="input" value={form.chapter} onChange={(e) => setField('chapter', e.target.value)}>
+                <option value="">— select chapter —</option>
+                {igFilteredChapters.map((c) => (
+                  <option key={c._id} value={c.chapterName}>
+                    {c.chapterName}{c.status === 'COMPLETED' ? ' ✓' : c.status === 'CANCELLED' ? ' ✗' : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                className="input"
+                value={form.chapter}
+                placeholder={loadingIgCh ? 'Loading…' : 'Type chapter'}
+                onChange={(e) => setField('chapter', e.target.value)}
+              />
+            )}
+          </div>
+
+          <TimeRangeFields
+            scheduledTime={form.scheduledTime}
+            onScheduledTimeChange={(v) => setField('scheduledTime', v)}
+            startTime={form.startTime}
+            onStartTimeChange={(v) => setField('startTime', v)}
+            endTime={form.endTime}
+            onEndTimeChange={(v) => setField('endTime', v)}
+            noBreak={form.noBreak}
+            onNoBreakChange={(v) => setField('noBreak', v)}
+            breakMinutes={form.breakMinutes}
+            onBreakMinutesChange={(v) => setField('breakMinutes', v)}
+            sessionDate={form.sessionDate}
+            onSessionDateChange={(v) => setField('sessionDate', v)}
+            duration={duration}
+          />
+
+          <div className="form-group">
+            <label className="label">Updated By</label>
+            <select
+              className="input"
+              value={form.updatedByName}
+              onChange={(e) => setField('updatedByName', e.target.value)}
+            >
+              <option value="">— select who is filling this in —</option>
+              {teacherNames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
         </div>
-      )}
 
-      <IGSessionFilterBar
-        search={search} onSearchChange={setSearch}
-        statusFilter={statusFilter} onStatusChange={setStatus}
-        filterMonth={filterMonth} onMonthChange={setFilterMonth}
-        filterYear={filterYear} onYearChange={setFilterYear} years={years}
-        onClear={() => { setSearch(''); setStatus('ALL'); setFilterMonth(0); setFilterYear(0) }}
-      />
+        <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button
+            className="btn btn-ghost"
+            onClick={() => { setForm((f) => ({ ...EMPTY_FORM(), batchId: f.batchId })); setError('') }}
+            disabled={saving}
+          >
+            Reset
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={saving}
+          >
+            {saving
+              ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</>
+              : '✓ Submit Session'}
+          </button>
+        </div>
 
-      {showForm && (
-        <NewIGSessionModal
-          form={form} setForm={setForm}
-          facultyList={facultyList} batches={batches} isCoordinator={isCoordinator}
-          loadingIgCh={loadingIgCh} igSubjects={igSubjects} igFilteredChapters={igFilteredChapters}
-          error={error} saving={saving}
-          onClose={() => { setShowForm(false); setError('') }}
-          onSubmit={handleCreate}
-        />
-      )}
+      </div>
 
-      {editing && (
-        <EditIGSessionModal
-          form={editForm} setForm={setEditForm}
-          facultyList={facultyList} batches={batches}
-          error={editError} saving={editSaving}
-          onClose={() => setEditing(null)}
-          onSubmit={handleEditSave}
-        />
-      )}
-
-      <IGSessionsTable
-        filtered={filtered}
-        totalCount={sessions.length}
-        canEdit={canEdit}
-        cancelling={cancelling}
-        cancelInitiator={cancelInitiator}
-        onCancelInitiatorChange={(id, value) => setCancelInitiator((prev) => ({ ...prev, [id]: value }))}
-        onEdit={openEdit}
-        onMarkComplete={handleMarkComplete}
-        onCancel={handleCancel}
-        onNewSession={() => setShowForm(true)}
-      />
+      <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
+        Sessions submitted here are recorded immediately. Contact HR to make corrections.
+      </p>
     </div>
   )
 }

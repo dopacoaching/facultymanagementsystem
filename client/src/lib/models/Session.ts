@@ -22,7 +22,7 @@ export interface ISession extends Document {
   breakMinutes?: number
   durationHours: number
   sessionDate: Date
-  timeSlot?: 'MORNING' | 'AFTERNOON'
+  timeSlot?: 'MORNING' | 'AFTERNOON' | 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
   status: SessionStatus
   cancellationInitiator?: CancellationInitiator
   cancellationReason?: string
@@ -48,7 +48,7 @@ const SessionSchema = new Schema<ISession>(
     breakMinutes: { type: Number, min: 0 },
     durationHours: { type: Number, required: true, min: 0.5 },
     sessionDate: { type: Date, required: true },
-    timeSlot: { type: String, enum: ['MORNING', 'AFTERNOON'] },
+    timeSlot: { type: String, enum: ['MORNING', 'AFTERNOON', 'SESSION_1', 'SESSION_2', 'SESSION_3'] },
     status: { type: String, enum: ['SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPLETED'], default: 'SCHEDULED' },
     cancellationInitiator: { type: String, enum: ['FACULTY', 'MANAGEMENT', 'STUDENT'] },
     cancellationReason: String,

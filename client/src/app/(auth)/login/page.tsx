@@ -21,7 +21,7 @@ const roleHome: Record<string, string> = {
   ACADEMICS_MANAGER:    '/academics',
   IG_ACADEMICS_MANAGER: '/ig',
   CLASS_TEACHER:          '/coordinator',
-  IG_CLASS_TEACHER:       '/ig',
+  IG_CLASS_TEACHER:       '/ig/sessions',
   FACULTY:              '/faculty',
 }
 

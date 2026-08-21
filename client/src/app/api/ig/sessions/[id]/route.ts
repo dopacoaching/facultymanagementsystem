@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -23,7 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const body = await req.json() as Record<string, unknown>
-    const allowed = ['facultyId', 'batchId', 'subject', 'chapter', 'startTime', 'durationHours', 'sessionDate', 'timeSlot']
+    const allowed = [
+      'facultyId', 'batchId', 'subject', 'chapter', 'timeSlot',
+      'scheduledTime', 'startTime', 'endTime', 'breakMinutes', 'updatedByName',
+      'durationHours', 'sessionDate',
+    ]
     const update: Record<string, unknown> = {}
 
     for (const key of allowed) {

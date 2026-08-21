@@ -3,23 +3,18 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
-import { Batch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
-function isCoordinator(role: string): boolean {
-  return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
-}
-
-/** POST /api/ig/sessions/cancel */
+/** POST /api/ig/sessions/cancel — HR/Admin only; class teachers no longer manage lifecycle post-submission */
 export async function POST(req: NextRequest) {
   try {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { sessionId, cancellationInitiator, cancellationReason } = await req.json()
@@ -33,21 +28,6 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB()
-
-    // Coordinators may only cancel sessions for their assigned campus (IG_CLASS_TEACHER) or batch (legacy)
-    if (isCoordinator(payload.role)) {
-      const targetSession = await Session.findById(sessionId).lean()
-      if (!targetSession) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      const ownsByBatch = payload.batchId && targetSession.batchId && targetSession.batchId.toString() === payload.batchId
-      let ownsByCampus = false
-      if (!ownsByBatch && payload.campusId && targetSession.batchId) {
-        const targetBatch = await Batch.findById(targetSession.batchId).select('campusId').lean()
-        ownsByCampus = !!targetBatch && targetBatch.campusId.toString() === payload.campusId
-      }
-      if (!ownsByBatch && !ownsByCampus) {
-        return withToken(json({ error: 'You can only cancel sessions for your assigned campus or batch.' }, 403), refreshedToken)
-      }
-    }
 
     const effectiveInitiator = cancellationInitiator as 'FACULTY' | 'MANAGEMENT' | 'STUDENT'
 

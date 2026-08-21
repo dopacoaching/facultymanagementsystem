@@ -43,6 +43,7 @@ export interface Session {
   breakMinutes?: number
   durationHours: number
   sessionDate: string
+  timeSlot?: 'MORNING' | 'AFTERNOON' | 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
   status: string
   cancellationInitiator?: string
   sessionCategory?: 'CLASS' | 'DOUBT_CLEARANCE'
