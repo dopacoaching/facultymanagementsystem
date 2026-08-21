@@ -9,6 +9,7 @@ export interface AppUser {
   facultyId?: { _id: string; name: string } | null
   batchId?: { _id: string; name: string } | null
   batchType?: string | null
+  campusId?: { _id: string; name: string } | null
   createdAt?: string
 }
 
@@ -19,6 +20,7 @@ export interface CreateUserPayload {
   facultyId?: string
   batchId?: string
   batchType?: string
+  campusId?: string
 }
 
 export interface UpdateUserPayload {
@@ -26,6 +28,7 @@ export interface UpdateUserPayload {
   role?: UserRole
   batchId?: string | null
   batchType?: string | null
+  campusId?: string | null
   password?: string
 }
 

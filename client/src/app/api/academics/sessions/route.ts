@@ -12,7 +12,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
+  return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
 }
 
 /** GET /api/academics/sessions — exclude IS batches when no explicit batchId given */
@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
       facultyId = theirFacultyId
     }
 
-    // COORDINATOR scope guard — campus-login coordinators may only view their own campus's sessions
-    if (payload.role === 'COORDINATOR' || payload.role === 'IG_COORDINATOR') {
+    // CLASS_TEACHER scope guard — campus-login coordinators may only view their own campus's sessions
+    if (payload.role === 'CLASS_TEACHER' || payload.role === 'IG_CLASS_TEACHER') {
       if (!payload.campusName) {
         return withToken(json({ error: 'Your account is not linked to a campus' }, 403), refreshedToken)
       }
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {

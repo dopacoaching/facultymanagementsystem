@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       batchId:   user.batchId?.toString(),
       batchType: user.batchType,
       campusName: user.campusName,
+      campusId:  user.campusId?.toString(),
     }
 
     const accessToken  = signAccessToken(payload)
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
       batchId:   payload.batchId,
       batchType: payload.batchType,
       campusName: payload.campusName,
+      campusId:  payload.campusId,
     })
 
     res.cookies.set('refreshToken', refreshToken, {

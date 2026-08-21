@@ -64,7 +64,7 @@ const IS_ACADEMICS_NAV: NavItem[] = [
   { label: 'IG Chapters', href: '/ig/chapters',  icon: '📖' },
 ]
 
-// COORDINATOR (Class Teacher): Session/hours logging only
+// CLASS_TEACHER (Class Teacher): Session/hours logging only
 const COORDINATOR_NAV: NavItem[] = [
   { label: 'Log Session', href: '/coordinator',         icon: '📝' },
   { label: 'History',     href: '/coordinator/history', icon: '📜' },
@@ -81,8 +81,8 @@ function navForRole(role: string | null): NavItem[] {
   if (role === 'HR_MANAGER')          return HR_NAV
   if (role === 'ACADEMICS_MANAGER')   return ACADEMICS_NAV
   if (role === 'IG_ACADEMICS_MANAGER') return IS_ACADEMICS_NAV
-  if (role === 'IG_COORDINATOR')      return IS_ACADEMICS_NAV   // same view, RBAC enforced at API
-  if (role === 'COORDINATOR')         return COORDINATOR_NAV
+  if (role === 'IG_CLASS_TEACHER')      return IS_ACADEMICS_NAV   // same view, RBAC enforced at API
+  if (role === 'CLASS_TEACHER')         return COORDINATOR_NAV
   if (role === 'FACULTY')             return FACULTY_NAV
   return []
 }
@@ -94,8 +94,8 @@ function roleLabel(role: string | null): string {
     HR_MANAGER:           'HR Manager',
     ACADEMICS_MANAGER:    'Academics',
     IG_ACADEMICS_MANAGER: 'IG Academics',
-    COORDINATOR:          'Class Teacher',
-    IG_COORDINATOR:       'IG Class Teacher',
+    CLASS_TEACHER:          'Class Teacher',
+    IG_CLASS_TEACHER:       'IG Class Teacher',
     FACULTY:              'Faculty',
   }
   return map[role] ?? role.replace(/_/g, ' ')

@@ -9,7 +9,7 @@ import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
   'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
-  'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
+  'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
 ]
 
 /** PATCH /api/admin/users/:id — update a user (password reset, activate/deactivate, role change) */
@@ -45,6 +45,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       update.batchType = body.batchType || undefined
       auditReasons.push(`batchType → ${body.batchType || 'none'}`)
     }
+    if (body.campusId !== undefined) {
+      update.campusId = body.campusId || undefined
+      auditReasons.push('campusId updated')
+    }
+    if ('campusName' in body) {
+      update.campusName = body.campusName || undefined
+      auditReasons.push(`campusName → ${body.campusName || 'none'}`)
+    }
 
     if (body.role) {
       if (![...VALID_ROLES, 'ADMIN'].includes(body.role as string)) {
@@ -71,6 +79,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .select('-passwordHash')
       .populate('facultyId', 'name subject')
       .populate('batchId',   'name type')
+      .populate('campusId',  'name')
 
     if (!user) return withToken(json({ error: 'User not found' }, 404), refreshedToken)
 

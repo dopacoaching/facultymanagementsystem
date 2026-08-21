@@ -9,7 +9,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 /**
  * POST /api/academics/chapters/video-progress
  *
- * Class teacher (COORDINATOR) reports how many videos students have watched
+ * Class teacher (CLASS_TEACHER) reports how many videos students have watched
  * for a chapter. Creates the BatchChapter record if it doesn't exist yet
  * (before any session has been logged).
  *
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { batchId, syllabusChapterId, videosWatched } = await req.json()

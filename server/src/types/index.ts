@@ -14,9 +14,9 @@ export type UserRole =
   | 'HR_MANAGER'
   | 'ACADEMICS_MANAGER'
   | 'IG_ACADEMICS_MANAGER'
-  | 'COORDINATOR'
+  | 'CLASS_TEACHER'
   | 'FACULTY'
-  | 'IG_COORDINATOR'
+  | 'IG_CLASS_TEACHER'
 
 export type FacultyType = 'PERMANENT' | 'TEMPORARY' | 'REGULAR' | 'VISITING' | 'CONTRACTUAL'
 
@@ -99,8 +99,10 @@ export interface JWTPayload {
   batchId?: string
   /** Restricts ACADEMICS_MANAGER to a single batch type (RESIDENTIAL | OFFLINE | ONLINE) */
   batchType?: string
-  /** Shared campus login (COORDINATOR): which of the fixed campus list this account logs sessions for. */
+  /** Shared campus login (CLASS_TEACHER): which of the fixed campus list this account logs sessions for. */
   campusName?: string
+  /** IG_CLASS_TEACHER: which Campus this account manages IG batches/sessions for. */
+  campusId?: string
   /** Unix timestamp (ms) of the last verified request — used for inactivity timeout */
   lastActive?: number
 }

@@ -15,7 +15,7 @@ import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
+  return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
 }
 
 export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -31,8 +31,8 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     facultyId = theirFacultyId
   }
 
-  // COORDINATOR scope guard — campus-login coordinators may only view their own campus's sessions
-  if (req.user!.role === 'COORDINATOR' || req.user!.role === 'IG_COORDINATOR') {
+  // CLASS_TEACHER scope guard — campus-login coordinators may only view their own campus's sessions
+  if (req.user!.role === 'CLASS_TEACHER' || req.user!.role === 'IG_CLASS_TEACHER') {
     if (!req.user!.campusName) {
       res.status(403).json({ error: 'Your account is not linked to a campus' }); return
     }

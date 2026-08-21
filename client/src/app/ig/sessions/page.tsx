@@ -14,9 +14,9 @@ import {
 } from '@/components/integrated-school/sessions'
 
 export default function IGSessionsPage() {
-  const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
+  const { accessToken, role, campusId: coordinatorCampusId } = useAppSelector((s) => s.auth)
   const toast = useToast()
-  const isCoordinator = role === 'IG_COORDINATOR' || role === 'COORDINATOR'
+  const isCoordinator = role === 'IG_CLASS_TEACHER' || role === 'CLASS_TEACHER'
   const [sessions, setSessions]       = useState<ISession[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
@@ -67,8 +67,8 @@ export default function IGSessionsPage() {
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
     getBatches(accessToken).then((list) => {
       const isBatches = list.filter((b) => b.type === 'IG')
-      const visible = isCoordinator && coordinatorBatchId
-        ? isBatches.filter((b) => b._id === coordinatorBatchId)
+      const visible = isCoordinator && coordinatorCampusId
+        ? isBatches.filter((b) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId) === coordinatorCampusId)
         : isBatches
       setBatches(visible)
       if (visible.length) setForm((f) => ({ ...f, batchId: visible[0]._id }))

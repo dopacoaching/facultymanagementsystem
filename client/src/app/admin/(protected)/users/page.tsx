@@ -4,9 +4,11 @@ import { useAppSelector } from '@/store/hooks'
 import { getUsers, createUser, updateUser } from '@/services/user.service'
 import { getBatches } from '@/services/faculty.service'
 import { getAll as getFaculty } from '@/services/faculty.service'
+import { getCampuses } from '@/services/campus.service'
 import type { AppUser, CreateUserPayload } from '@/services/user.service'
 import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import type { Campus } from '@/services/campus.service'
 import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
@@ -17,6 +19,7 @@ export default function AdminUsersPage() {
   const toast = useToast()
   const [users, setUsers]             = useState<AppUser[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
+  const [campuses, setCampuses]       = useState<Campus[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
@@ -24,16 +27,17 @@ export default function AdminUsersPage() {
   // Create modal
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState<CreateUserPayload>({
-    username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '', batchType: '',
+    username: '', password: '', role: 'CLASS_TEACHER', facultyId: '', batchId: '', batchType: '', campusId: '',
   })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
 
   // Edit modal
   const [editTarget, setEditTarget]     = useState<AppUser | null>(null)
-  const [editRole, setEditRole]         = useState<UserRole>('COORDINATOR')
+  const [editRole, setEditRole]         = useState<UserRole>('CLASS_TEACHER')
   const [editBatchId, setEditBatchId]   = useState('')
   const [editBatchType, setEditBatchType] = useState('')
+  const [editCampusId, setEditCampusId] = useState('')
   const [editPw, setEditPw]           = useState('')
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
@@ -58,6 +62,7 @@ export default function AdminUsersPage() {
     if (!accessToken) return
     load()
     getBatches(accessToken).then(setBatches).catch(console.error)
+    getCampuses(accessToken).then(setCampuses).catch(console.error)
     getFaculty(accessToken, true).then(setFacultyList).catch(console.error)
   }, [accessToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -74,10 +79,11 @@ export default function AdminUsersPage() {
       if (!payload.facultyId) delete payload.facultyId
       if (!payload.batchId)   delete payload.batchId
       if (!payload.batchType) delete payload.batchType
+      if (!payload.campusId)  delete payload.campusId
       await createUser(payload, accessToken)
       toast.success('User created', `@${createForm.username} has been added.`)
       setShowCreate(false)
-      setCreateForm({ username: '', password: '', role: 'COORDINATOR', facultyId: '', batchId: '', batchType: '' })
+      setCreateForm({ username: '', password: '', role: 'CLASS_TEACHER', facultyId: '', batchId: '', batchType: '', campusId: '' })
       load()
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : 'Create failed')
@@ -89,6 +95,7 @@ export default function AdminUsersPage() {
     setEditRole(u.role)
     setEditBatchId(typeof u.batchId === 'object' ? (u.batchId?._id ?? '') : (u.batchId ?? ''))
     setEditBatchType(u.batchType ?? '')
+    setEditCampusId(typeof u.campusId === 'object' ? (u.campusId?._id ?? '') : (u.campusId ?? ''))
     setEditPw('')
     setEditError('')
   }
@@ -110,10 +117,11 @@ export default function AdminUsersPage() {
     if (!accessToken || !editTarget) return
     setEditSaving(true); setEditError('')
     try {
-      const payload: { role: UserRole; batchId?: string | null; batchType?: string | null; password?: string } = {
+      const payload: { role: UserRole; batchId?: string | null; batchType?: string | null; campusId?: string | null; password?: string } = {
         role:      editRole,
         batchId:   editBatchId   || null,
         batchType: editRole === 'ACADEMICS_MANAGER' ? (editBatchType || null) : null,
+        campusId:  editRole === 'IG_CLASS_TEACHER'  ? (editCampusId  || null) : null,
       }
       if (editPw) {
         const pwErr = validatePasswordComplexity(editPw)
@@ -161,6 +169,7 @@ export default function AdminUsersPage() {
           form={createForm}
           setForm={setCreateForm}
           batches={batches}
+          campuses={campuses}
           facultyList={facultyList}
           error={createError}
           saving={creating}
@@ -178,9 +187,12 @@ export default function AdminUsersPage() {
           onBatchIdChange={setEditBatchId}
           editBatchType={editBatchType}
           onBatchTypeChange={setEditBatchType}
+          editCampusId={editCampusId}
+          onCampusIdChange={setEditCampusId}
           editPw={editPw}
           onPwChange={setEditPw}
           batches={batches}
+          campuses={campuses}
           error={editError}
           saving={editSaving}
           onClose={() => setEditTarget(null)}

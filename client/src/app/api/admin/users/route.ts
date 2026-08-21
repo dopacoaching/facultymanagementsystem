@@ -5,13 +5,14 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { User } from '@/lib/models/User'
 import { Faculty } from '@/lib/models/Faculty'
 import { Batch } from '@/lib/models/Batch'
+import { Campus } from '@/lib/models/Campus'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
 import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
   'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
-  'COORDINATOR', 'IG_COORDINATOR', 'FACULTY',
+  'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
 ]
 
 /** GET /api/admin/users — list all users */
@@ -30,6 +31,7 @@ export async function GET(req: NextRequest) {
       .select('-passwordHash')
       .populate('facultyId', 'name subject')
       .populate('batchId',   'name type')
+      .populate('campusId',  'name')
       .sort({ role: 1, username: 1 })
 
     return withToken(json(users), refreshedToken)
@@ -49,7 +51,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { username, password, role, facultyId, batchId, batchType } = await req.json()
+    const { username, password, role, facultyId, batchId, batchType, campusId } = await req.json()
 
     if (!username?.trim()) {
       return withToken(json({ error: 'username is required' }, 400), refreshedToken)
@@ -74,6 +76,10 @@ export async function POST(req: NextRequest) {
       const bat = await Batch.findById(batchId)
       if (!bat) return withToken(json({ error: 'batchId does not exist' }, 400), refreshedToken)
     }
+    if (campusId) {
+      const cam = await Campus.findById(campusId)
+      if (!cam) return withToken(json({ error: 'campusId does not exist' }, 400), refreshedToken)
+    }
 
     const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE']
     if (batchType && !VALID_BATCH_TYPES.includes(batchType)) {
@@ -88,6 +94,7 @@ export async function POST(req: NextRequest) {
       facultyId:    facultyId || undefined,
       batchId:      batchId   || undefined,
       batchType:    role === 'ACADEMICS_MANAGER' && batchType ? batchType : undefined,
+      campusId:     role === 'IG_CLASS_TEACHER'  && campusId  ? campusId  : undefined,
     })
 
     // Audit: user account created
@@ -103,6 +110,7 @@ export async function POST(req: NextRequest) {
       .select('-passwordHash')
       .populate('facultyId', 'name subject')
       .populate('batchId',   'name type')
+      .populate('campusId',  'name')
 
     return withToken(json(safe, 201), refreshedToken)
   } catch (err: unknown) {

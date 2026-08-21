@@ -75,8 +75,10 @@ export const ROLE_LABEL: Record<string, string> = {
   HR_MANAGER:           'HR Manager',
   ACADEMICS_MANAGER:    'Academics Mgr',
   IG_ACADEMICS_MANAGER: 'IG Academics Mgr',
-  COORDINATOR:          'Class Teacher',
-  IG_COORDINATOR:       'IG Class Teacher',
+  CLASS_TEACHER:        'Class Teacher',
+  IG_CLASS_TEACHER:     'IG Class Teacher',
+  COORDINATOR:          'Class Teacher',    // legacy actorRole on audit rows predating the CLASS_TEACHER rename
+  IG_COORDINATOR:       'IG Class Teacher', // legacy actorRole on audit rows predating the IG_CLASS_TEACHER rename
   FACULTY:              'Faculty',
   SYSTEM:               'System',
 }

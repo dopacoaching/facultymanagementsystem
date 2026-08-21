@@ -9,7 +9,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
+  return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
 }
 
 /** GET /api/ig/sessions — scoped to IS batches only */
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, startTime } = await req.json()
@@ -124,10 +124,10 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'Sessions can only be logged against IG batches on this endpoint' }, 400), refreshedToken)
     }
 
-    // Coordinator batch ownership gate
+    // Coordinator campus ownership gate
     if (isCoordinator(payload.role)) {
-      if (!payload.batchId || payload.batchId !== batchId) {
-        return withToken(json({ error: 'You can only log sessions for your assigned batch.' }, 403), refreshedToken)
+      if (!payload.campusId || payload.campusId !== batch.campusId.toString()) {
+        return withToken(json({ error: 'You can only log sessions for a batch at your assigned campus.' }, 403), refreshedToken)
       }
     }
 

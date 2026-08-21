@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await connectDB()
 
     // Coordinator ownership guard — must match own campus (or assigned batch, legacy)
-    if (payload.role === 'COORDINATOR' || payload.role === 'IG_COORDINATOR') {
+    if (payload.role === 'CLASS_TEACHER' || payload.role === 'IG_CLASS_TEACHER') {
       const target = await Session.findById(oid).lean()
       if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
       if (target.campusName) {

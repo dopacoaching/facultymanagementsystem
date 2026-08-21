@@ -1,10 +1,10 @@
 /**
- * One-off migration: replace individual class-teacher (COORDINATOR) logins with
+ * One-off migration: replace individual class-teacher (CLASS_TEACHER) logins with
  * 14 shared campus logins — one email + one common password per campus, with the
  * actual person picked from an in-form "Updated by" dropdown instead.
  *
  * Idempotent / safe to re-run: upserts the 14 campus accounts by username, and
- * deactivates (never deletes) any existing COORDINATOR/IG_COORDINATOR account
+ * deactivates (never deletes) any existing CLASS_TEACHER/IG_CLASS_TEACHER account
  * that isn't one of them.
  *
  * Run (from server/, with MONGODB_URI pointed at the target database):
@@ -54,7 +54,7 @@ async function run() {
         $set: {
           username,
           passwordHash,
-          role: 'COORDINATOR',
+          role: 'CLASS_TEACHER',
           campusName: c.campusName,
           isActive: true,
         },
@@ -69,7 +69,7 @@ async function run() {
 
   const deactivated = await User.updateMany(
     {
-      role: { $in: ['COORDINATOR', 'IG_COORDINATOR'] },
+      role: { $in: ['CLASS_TEACHER', 'IG_CLASS_TEACHER'] },
       username: { $nin: createdUsernames },
       isActive: true,
     },

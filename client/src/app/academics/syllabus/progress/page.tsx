@@ -16,7 +16,7 @@ export default function SyllabusProgressPage() {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
 
-  const isCoordinator = role === 'COORDINATOR'
+  const isCoordinator = role === 'CLASS_TEACHER'
 
   useEffect(() => {
     if (!accessToken) { setLoading(false); return }

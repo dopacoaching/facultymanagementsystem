@@ -1,6 +1,7 @@
 import type { AppUser } from '@/services/user.service'
 import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import type { Campus } from '@/services/campus.service'
 import PasswordInput from '@/components/ui/PasswordInput'
 import { ALL_ROLES, getRoleLabel } from './types'
 
@@ -12,9 +13,12 @@ interface EditUserModalProps {
   onBatchIdChange: (id: string) => void
   editBatchType: string
   onBatchTypeChange: (t: string) => void
+  editCampusId: string
+  onCampusIdChange: (id: string) => void
   editPw: string
   onPwChange: (pw: string) => void
   batches: Batch[]
+  campuses: Campus[]
   error: string
   saving: boolean
   onClose: () => void
@@ -23,7 +27,7 @@ interface EditUserModalProps {
 
 export function EditUserModal({
   editTarget, editRole, onRoleChange, editBatchId, onBatchIdChange, editBatchType, onBatchTypeChange,
-  editPw, onPwChange, batches, error, saving, onClose, onSubmit,
+  editCampusId, onCampusIdChange, editPw, onPwChange, batches, campuses, error, saving, onClose, onSubmit,
 }: EditUserModalProps) {
   return (
     <div
@@ -47,10 +51,20 @@ export function EditUserModal({
             <div className="form-group">
               <label className="label">Role</label>
               <select className="input" value={editRole}
-                onChange={(e) => { onRoleChange(e.target.value as UserRole); onBatchTypeChange('') }}>
+                onChange={(e) => { onRoleChange(e.target.value as UserRole); onBatchTypeChange(''); onCampusIdChange('') }}>
                 {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
               </select>
             </div>
+            {editRole === 'IG_CLASS_TEACHER' && (
+              <div className="form-group">
+                <label className="label">Campus</label>
+                <select className="input" value={editCampusId}
+                  onChange={(e) => onCampusIdChange(e.target.value)}>
+                  <option value="">— none —</option>
+                  {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
             {editRole === 'ACADEMICS_MANAGER' && (
               <div className="form-group">
                 <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>

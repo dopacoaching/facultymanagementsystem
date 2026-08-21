@@ -9,6 +9,7 @@ export interface JWTPayload {
   batchId?: string
   batchType?: string
   campusName?: string
+  campusId?: string
   lastActive?: number
   iat?: number
   exp?: number
@@ -66,6 +67,7 @@ export function authenticate(req: Request): { payload: JWTPayload; refreshedToke
     ...(payload.batchId   ? { batchId:   payload.batchId   } : {}),
     ...(payload.batchType ? { batchType: payload.batchType } : {}),
     ...(payload.campusName ? { campusName: payload.campusName } : {}),
+    ...(payload.campusId  ? { campusId:  payload.campusId  } : {}),
   })
   return { payload, refreshedToken }
 }

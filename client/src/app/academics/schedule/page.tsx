@@ -27,7 +27,7 @@ function currentWeekSaturday(): string {
 export default function SchedulePage() {
   const { accessToken, role, batchId: coordinatorBatchId, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
   const toast = useToast()
-  const isCoordinator = role === 'COORDINATOR'
+  const isCoordinator = role === 'CLASS_TEACHER'
 
   const [schedules, setSchedules]     = useState<Schedule[]>([])
   const [batches,   setBatches]       = useState<Batch[]>([])
@@ -44,8 +44,8 @@ export default function SchedulePage() {
   // Form state
   const [entries, setEntries] = useState<ClassEntry[]>([])
 
-  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'COORDINATOR'
-  const canPublish = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'COORDINATOR'
+  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'CLASS_TEACHER'
+  const canPublish = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'CLASS_TEACHER'
   const canRevise  = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER'
 
   const load = useCallback(() => {

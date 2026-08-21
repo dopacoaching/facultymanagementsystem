@@ -23,9 +23,9 @@ export default function ChaptersPage() {
   const [saving, setSaving]           = useState<Record<string, boolean>>({})
   const [saveError, setSaveError]     = useState('')
 
-  const canMarkVideo = role === 'COORDINATOR' || role === 'ACADEMICS_MANAGER' || role === 'ADMIN'
+  const canMarkVideo = role === 'CLASS_TEACHER' || role === 'ACADEMICS_MANAGER' || role === 'ADMIN'
   const canMarkClass = role === 'ACADEMICS_MANAGER' || role === 'ADMIN' || role === 'HR_MANAGER'
-  const isCoordinator = role === 'COORDINATOR'
+  const isCoordinator = role === 'CLASS_TEACHER'
 
   useEffect(() => {
     if (!accessToken) return

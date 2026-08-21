@@ -20,8 +20,8 @@ const roleHome: Record<string, string> = {
   HR_MANAGER:           '/hr',
   ACADEMICS_MANAGER:    '/academics',
   IG_ACADEMICS_MANAGER: '/ig',
-  COORDINATOR:          '/coordinator',
-  IG_COORDINATOR:       '/ig',
+  CLASS_TEACHER:          '/coordinator',
+  IG_CLASS_TEACHER:       '/ig',
   FACULTY:              '/faculty',
 }
 
@@ -57,6 +57,7 @@ export default function LoginPage() {
         batchId:     res.batchId    ?? null,
         batchType:   res.batchType  ?? null,
         campusName:  res.campusName ?? null,
+        campusId:    res.campusId   ?? null,
       }))
       router.push(roleHome[res.role] ?? '/faculty')
     } catch (e: unknown) {

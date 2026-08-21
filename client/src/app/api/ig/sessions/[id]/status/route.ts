@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'IG_COORDINATOR', 'IG_ACADEMICS_MANAGER', 'COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     await connectDB()
 
     // Coordinator batch ownership guard
-    if (payload.role === 'IG_COORDINATOR' || payload.role === 'COORDINATOR') {
+    if (payload.role === 'IG_CLASS_TEACHER' || payload.role === 'CLASS_TEACHER') {
       const target = await Session.findById(oid).lean()
       if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
       if (!payload.batchId || !target.batchId || target.batchId.toString() !== payload.batchId) {

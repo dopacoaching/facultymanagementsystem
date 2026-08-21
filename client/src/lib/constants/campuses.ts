@@ -13,13 +13,11 @@ export const CAMPUSES: CampusConfig[] = [
   { campusName: 'Narikkuni Girls',           username: 'narikkunigirls@gmail.com',                teachers: ['Vidhya', 'Reshma', 'Asna'] },
   { campusName: 'PVT Girls',                 username: 'pvt1aims@gmail.com',                       teachers: ['Athira', 'Akshaya'] },
   { campusName: 'CLT Offline',               username: 'dopacltoffline102@gmail.com',              teachers: ['Ashiq', 'Naja'] },
-  { campusName: 'IG 1',                      username: 'alpsacademykerala@gmail.com',              teachers: ['Shamna'] },
   { campusName: 'Thrissur Residential',      username: 'dopathrissurresidential@gmail.com',        teachers: ['Reshma', 'Sreeja'] },
   { campusName: 'Calicut Boys',              username: 'dopaaiimsboys@gmail.com',                  teachers: ['Basil', 'Akash'] },
   { campusName: 'Kottakkal Girls',           username: 'chattiparambdopa@gmail.com',               teachers: ['Remya', 'Gopika', 'Nadha'] },
   { campusName: 'Kottakkal Offline',         username: 'kottakkalofflineacademics@gmail.com',      teachers: ['Vijay', 'Sinsina', 'Amrutha'] },
   { campusName: 'Thrissur Offline',          username: 'dopathrissuracc@gmail.com',                teachers: ['Vasannya'] },
-  { campusName: 'IG 2',                      username: 'dopamalabar@gmail.com',                    teachers: ['Noushida', 'Rashmi'] },
   { campusName: 'Kottakkal Offline Tamil',   username: 'dopatamilrepeaters@gmail.com',             teachers: ['Hasna', 'Shilpa'] },
   { campusName: 'Studio',                    username: 'studiodopa5@gmail.com',                    teachers: ['Savin'] },
 ]

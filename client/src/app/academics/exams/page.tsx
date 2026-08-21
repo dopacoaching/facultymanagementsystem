@@ -11,7 +11,7 @@ import { Schedule, ExamTopicCard } from '@/components/academics/exams'
 export default function ExamTopicsPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
-  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'COORDINATOR'
+  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER' || role === 'CLASS_TEACHER'
 
   const [batches,   setBatches]   = useState<Batch[]>([])
   const [batchId,   setBatchId]   = useState('')

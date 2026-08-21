@@ -8,7 +8,7 @@ import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
 function isCoordinator(role: string): boolean {
-  return role === 'COORDINATOR' || role === 'IG_COORDINATOR'
+  return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
 }
 
 /** POST /api/academics/sessions/cancel */
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'COORDINATOR', 'IG_COORDINATOR', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { sessionId, cancellationInitiator, cancellationReason } = await req.json()

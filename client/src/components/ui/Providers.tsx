@@ -25,7 +25,7 @@ function SilentRefresh() {
         .then(async (res) => {
           if (!res.ok) { dispatch(clearCredentials()); return }
           const { accessToken: newToken } = await res.json() as { accessToken: string }
-          const s = store.getState() as { auth: { userId: string | null; facultyId: string | null; batchId: string | null; batchType: string | null; campusName: string | null } }
+          const s = store.getState() as { auth: { userId: string | null; facultyId: string | null; batchId: string | null; batchType: string | null; campusName: string | null; campusId: string | null } }
           dispatch(setCredentials({
             accessToken: newToken,
             role:        role ?? '',
@@ -34,6 +34,7 @@ function SilentRefresh() {
             batchId:     s.auth.batchId    ?? null,
             batchType:   s.auth.batchType  ?? null,
             campusName:  s.auth.campusName ?? null,
+            campusId:    s.auth.campusId   ?? null,
           }))
         })
         .catch(() => dispatch(clearCredentials()))

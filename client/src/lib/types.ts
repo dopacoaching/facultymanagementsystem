@@ -3,9 +3,9 @@
   | 'HR_MANAGER'
   | 'ACADEMICS_MANAGER'
   | 'IG_ACADEMICS_MANAGER'
-  | 'COORDINATOR'
+  | 'CLASS_TEACHER'
   | 'FACULTY'
-  | 'IG_COORDINATOR'   // legacy — kept for JWT backward-compat
+  | 'IG_CLASS_TEACHER'
 
 export type FacultyType = 'PERMANENT' | 'TEMPORARY' | 'REGULAR' | 'VISITING' | 'CONTRACTUAL'
 

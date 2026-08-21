@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'COORDINATOR', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { batchId, weekStartDate, mondayExamTopic, fridayExamTopic, classEntries } = await req.json()

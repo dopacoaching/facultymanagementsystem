@@ -3,9 +3,9 @@ export type UserRole =
   | 'HR_MANAGER'
   | 'ACADEMICS_MANAGER'
   | 'IG_ACADEMICS_MANAGER'
-  | 'COORDINATOR'
+  | 'CLASS_TEACHER'
   | 'FACULTY'
-  | 'IG_COORDINATOR'
+  | 'IG_CLASS_TEACHER'
 
 export interface Faculty {
   _id: string

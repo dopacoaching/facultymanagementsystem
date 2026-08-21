@@ -67,6 +67,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
     batchId: user.batchId?.toString(),
     batchType: user.batchType,
     campusName: user.campusName,
+    campusId: user.campusId?.toString(),
   }
 
   const accessToken  = signAccess(payload)
@@ -81,7 +82,7 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
   })
 
   res.cookie('refreshToken', refreshToken, refreshCookieOptions)
-  res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType, campusName: payload.campusName })
+  res.json({ accessToken, role: user.role, userId: payload.userId, facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType, campusName: payload.campusName, campusId: payload.campusId })
 })
 
 export const logout = asyncHandler(async (req: Request & { user?: JWTPayload }, res: Response) => {
@@ -119,7 +120,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     const newRefreshToken = signRefresh({
       userId: payload.userId, role: payload.role, username: payload.username,
       facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
-      campusName: payload.campusName,
+      campusName: payload.campusName, campusId: payload.campusId,
     })
     await RefreshToken.create({
       tokenHash: hashToken(newRefreshToken),
@@ -131,7 +132,7 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
     const accessToken = signAccess({
       userId: payload.userId, role: payload.role, username: payload.username,
       facultyId: payload.facultyId, batchId: payload.batchId, batchType: payload.batchType,
-      campusName: payload.campusName,
+      campusName: payload.campusName, campusId: payload.campusId,
     })
 
     res.cookie('refreshToken', newRefreshToken, refreshCookieOptions)

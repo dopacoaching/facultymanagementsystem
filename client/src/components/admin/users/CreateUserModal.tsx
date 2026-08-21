@@ -1,6 +1,7 @@
 import type { CreateUserPayload } from '@/services/user.service'
 import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import type { Campus } from '@/services/campus.service'
 import type { Faculty } from '@/types'
 import PasswordInput from '@/components/ui/PasswordInput'
 import { ALL_ROLES, getRoleLabel } from './types'
@@ -9,6 +10,7 @@ interface CreateUserModalProps {
   form: CreateUserPayload
   setForm: (updater: (f: CreateUserPayload) => CreateUserPayload) => void
   batches: Batch[]
+  campuses: Campus[]
   facultyList: Faculty[]
   error: string
   saving: boolean
@@ -16,7 +18,7 @@ interface CreateUserModalProps {
   onSubmit: () => void
 }
 
-export function CreateUserModal({ form, setForm, batches, facultyList, error, saving, onClose, onSubmit }: CreateUserModalProps) {
+export function CreateUserModal({ form, setForm, batches, campuses, facultyList, error, saving, onClose, onSubmit }: CreateUserModalProps) {
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Create User"
@@ -51,10 +53,20 @@ export function CreateUserModal({ form, setForm, batches, facultyList, error, sa
             <div className="form-group">
               <label className="label">Role</label>
               <select className="input" value={form.role}
-                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole, batchType: '' }))}>
+                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole, batchType: '', campusId: '' }))}>
                 {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
               </select>
             </div>
+            {form.role === 'IG_CLASS_TEACHER' && (
+              <div className="form-group">
+                <label className="label">Campus</label>
+                <select className="input" value={form.campusId ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, campusId: e.target.value }))}>
+                  <option value="">— none —</option>
+                  {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
             {form.role === 'ACADEMICS_MANAGER' && (
               <div className="form-group">
                 <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>

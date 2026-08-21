@@ -12,7 +12,7 @@ const CampusSchema = new Schema<ICampus>(
     location: String,
     isActive: { type: Boolean, default: true },
   },
-  { timestamps: true }
+  { timestamps: true, collection: 'campus' } // actual production collection is singular 'campus', not the Mongoose-pluralized default
 )
 
 export const Campus = (models.Campus as Model<ICampus>) ?? model<ICampus>('Campus', CampusSchema)
