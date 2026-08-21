@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { Batch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
@@ -33,12 +34,18 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    // Coordinators may only cancel sessions for their assigned batch
+    // Coordinators may only cancel sessions for their assigned campus (IG_CLASS_TEACHER) or batch (legacy)
     if (isCoordinator(payload.role)) {
       const targetSession = await Session.findById(sessionId).lean()
       if (!targetSession) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      if (!payload.batchId || !targetSession.batchId || targetSession.batchId.toString() !== payload.batchId) {
-        return withToken(json({ error: 'You can only cancel sessions for your assigned batch.' }, 403), refreshedToken)
+      const ownsByBatch = payload.batchId && targetSession.batchId && targetSession.batchId.toString() === payload.batchId
+      let ownsByCampus = false
+      if (!ownsByBatch && payload.campusId && targetSession.batchId) {
+        const targetBatch = await Batch.findById(targetSession.batchId).select('campusId').lean()
+        ownsByCampus = !!targetBatch && targetBatch.campusId.toString() === payload.campusId
+      }
+      if (!ownsByBatch && !ownsByCampus) {
+        return withToken(json({ error: 'You can only cancel sessions for your assigned campus or batch.' }, 403), refreshedToken)
       }
     }
 

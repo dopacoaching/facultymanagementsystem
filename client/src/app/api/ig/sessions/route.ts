@@ -124,10 +124,12 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'Sessions can only be logged against IG batches on this endpoint' }, 400), refreshedToken)
     }
 
-    // Coordinator campus ownership gate
+    // Coordinator ownership gate — campus-scoped (IG_CLASS_TEACHER) or single-batch-scoped (legacy)
     if (isCoordinator(payload.role)) {
-      if (!payload.campusId || payload.campusId !== batch.campusId.toString()) {
-        return withToken(json({ error: 'You can only log sessions for a batch at your assigned campus.' }, 403), refreshedToken)
+      const ownsByCampus = payload.campusId && payload.campusId === batch.campusId.toString()
+      const ownsByBatch  = payload.batchId  && payload.batchId  === batchId
+      if (!ownsByCampus && !ownsByBatch) {
+        return withToken(json({ error: 'You can only log sessions for your assigned campus or batch.' }, 403), refreshedToken)
       }
     }
 

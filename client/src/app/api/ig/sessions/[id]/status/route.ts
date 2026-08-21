@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { Batch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
@@ -34,12 +35,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await connectDB()
 
-    // Coordinator batch ownership guard
+    // Coordinator ownership guard — campus-scoped (IG_CLASS_TEACHER) or single-batch-scoped (legacy)
     if (payload.role === 'IG_CLASS_TEACHER' || payload.role === 'CLASS_TEACHER') {
       const target = await Session.findById(oid).lean()
       if (!target) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-      if (!payload.batchId || !target.batchId || target.batchId.toString() !== payload.batchId) {
-        return withToken(json({ error: 'You can only update sessions for your assigned batch.' }, 403), refreshedToken)
+      const ownsByBatch = payload.batchId && target.batchId && target.batchId.toString() === payload.batchId
+      let ownsByCampus = false
+      if (!ownsByBatch && payload.campusId && target.batchId) {
+        const targetBatch = await Batch.findById(target.batchId).select('campusId').lean()
+        ownsByCampus = !!targetBatch && targetBatch.campusId.toString() === payload.campusId
+      }
+      if (!ownsByBatch && !ownsByCampus) {
+        return withToken(json({ error: 'You can only update sessions for your assigned campus or batch.' }, 403), refreshedToken)
       }
       // State-machine guard: coordinators cannot revert a COMPLETED session back to SCHEDULED.
       if (status === 'SCHEDULED' && target.status === 'COMPLETED') {
