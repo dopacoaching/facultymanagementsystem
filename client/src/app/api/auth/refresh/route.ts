@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
       batchId:   payload.batchId,
       batchType: payload.batchType,
       campusName: payload.campusName,
+      campusId:  payload.campusId,
     }
 
     const newRefreshToken = signRefreshToken(newPayload)
