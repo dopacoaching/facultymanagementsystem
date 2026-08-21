@@ -65,7 +65,7 @@ export default function ClassSessionsPage() {
         updatedByName: editForm.updatedByName.trim() || undefined,
         startTime:     editForm.startTime,
         endTime:       editForm.endTime,
-        breakMinutes:  editForm.noBreak ? 0 : Number(editForm.breakMinutes),
+        breakMinutes:  duration.breakMinutes,
         durationHours: duration.hours,
         sessionDate:   editForm.sessionDate,
       }, accessToken)

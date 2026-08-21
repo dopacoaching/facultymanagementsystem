@@ -45,7 +45,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (batchId) {
+    // Coordinator scope guard — campus-login/batch-scoped teachers can only ever
+    // see their own campus's (or assigned batch's) sessions, regardless of any
+    // batchId query param they pass. HR/Admin/managers are unrestricted below.
+    if (isCoordinator(payload.role)) {
+      let allowedBatchIds: Types.ObjectId[] = []
+      if (payload.campusId) {
+        try {
+          allowedBatchIds = await Batch.find({ type: 'IG', isActive: true, campusId: new Types.ObjectId(payload.campusId) }).distinct('_id')
+        } catch { allowedBatchIds = [] }
+      } else if (payload.batchId) {
+        try { allowedBatchIds = [new Types.ObjectId(payload.batchId)] } catch { allowedBatchIds = [] }
+      }
+      filter.batchId = { $in: allowedBatchIds }
+    } else if (batchId) {
       try { filter.batchId = new Types.ObjectId(batchId) } catch {
         return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)
       }
