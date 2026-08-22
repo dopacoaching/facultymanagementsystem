@@ -14,7 +14,7 @@ const MONTH_NAMES = [
 const SLOT_LABELS: Record<string, string> = {
   SESSION_1: 'Session 1',
   SESSION_2: 'Session 2',
-  SESSION_3: 'Session 3',
+  SESSION_3: 'Other',
 }
 
 function formatHM(durationHours: number): string {

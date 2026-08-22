@@ -29,7 +29,7 @@ export function formFromIGSession(s: Session): EditIGSessionForm {
 const SLOT_OPTIONS = [
   { value: 'SESSION_1', label: 'Session 1' },
   { value: 'SESSION_2', label: 'Session 2' },
-  { value: 'SESSION_3', label: 'Session 3' },
+  { value: 'SESSION_3', label: 'Other' },
 ] as const
 
 interface EditIGSessionReportModalProps {

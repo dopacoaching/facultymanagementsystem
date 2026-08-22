@@ -238,7 +238,7 @@ export default function IGLogSessionPage() {
               <option value="">— select session —</option>
               <option value="SESSION_1">Session 1</option>
               <option value="SESSION_2">Session 2</option>
-              <option value="SESSION_3">Session 3</option>
+              <option value="SESSION_3">Other</option>
             </select>
           </div>
 
