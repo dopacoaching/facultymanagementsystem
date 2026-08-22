@@ -5,15 +5,13 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { getCampuses } from '@/services/campus.service'
 import { create as createIGSession } from '@/services/ig-session.service'
-import { apiFetch } from '@/services/api'
 import { IG_TEACHERS } from '@/lib/constants/igTeachers'
-import { computeDuration, TimeRangeFields } from '@/components/coordinator/log-session'
+import { computeDuration, TimeRangeFields, SubjectField, ChapterField, SUBJECT_OPTIONS } from '@/components/coordinator/log-session'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import type { Campus } from '@/services/campus.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
-import type { ISBatchChapter } from '@/components/integrated-school/sessions'
 
 type SessionSlot = 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
 
@@ -54,8 +52,6 @@ export default function IGLogSessionPage() {
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
   const [batches, setBatches]         = useState<Batch[]>([])
   const [campuses, setCampuses]       = useState<Campus[]>([])
-  const [igChapters, setIgChapters]   = useState<ISBatchChapter[]>([])
-  const [loadingIgCh, setLoadingIgCh] = useState(false)
 
   const [form, setForm]     = useState<FormState>(EMPTY_FORM())
   const [saving, setSaving] = useState(false)
@@ -83,27 +79,16 @@ export default function IGLogSessionPage() {
     }).catch(console.error)
   }, [accessToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load ISBatchChapter list when batch changes (drives subject + chapter dropdowns)
-  useEffect(() => {
-    if (!accessToken || !form.batchId) { setIgChapters([]); return }
-    setLoadingIgCh(true)
-    apiFetch<ISBatchChapter[]>(`/ig/chapters?batchId=${form.batchId}`, { token: accessToken })
-      .then(setIgChapters).catch(console.error).finally(() => setLoadingIgCh(false))
-  }, [accessToken, form.batchId])
-
-  const igSubjects = useMemo(
-    () => [...new Set(igChapters.map((c) => c.subject))].sort(),
-    [igChapters]
-  )
-  const igFilteredChapters = useMemo(
-    () => igChapters.filter((c) => c.subject === form.subject).sort((a, b) => a.chapterOrder - b.chapterOrder),
-    [igChapters, form.subject]
-  )
-
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
       const updated = { ...prev, [key]: value }
-      if (key === 'batchId') { updated.subject = ''; updated.chapter = '' }
+      // Auto-fill subject from the selected faculty's profile
+      if (key === 'facultyId') {
+        const fac = facultyList.find((f) => f._id === (value as string))
+        const match = SUBJECT_OPTIONS.find((s) => s.value === fac?.subject?.toUpperCase())
+        if (match) updated.subject = match.value
+      }
+      // Chapter options are subject-specific — clear the old selection when subject changes
       if (key === 'subject' && prev.subject !== value) updated.chapter = ''
       return updated
     })
@@ -242,43 +227,17 @@ export default function IGLogSessionPage() {
             </select>
           </div>
 
-          <div className="form-group">
-            <label className="label">Subject</label>
-            {igSubjects.length > 0 ? (
-              <select className="input" value={form.subject} onChange={(e) => setField('subject', e.target.value)}>
-                <option value="">— select subject —</option>
-                {igSubjects.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            ) : (
-              <input
-                className="input"
-                value={form.subject}
-                placeholder={loadingIgCh ? 'Loading…' : 'Type subject'}
-                onChange={(e) => setField('subject', e.target.value)}
-              />
-            )}
-          </div>
+          <SubjectField
+            value={form.subject}
+            onChange={(v) => setField('subject', v)}
+          />
 
-          <div className="form-group">
-            <label className="label">Chapter</label>
-            {igFilteredChapters.length > 0 ? (
-              <select className="input" value={form.chapter} onChange={(e) => setField('chapter', e.target.value)}>
-                <option value="">— select chapter —</option>
-                {igFilteredChapters.map((c) => (
-                  <option key={c._id} value={c.chapterName}>
-                    {c.chapterName}{c.status === 'COMPLETED' ? ' ✓' : c.status === 'CANCELLED' ? ' ✗' : ''}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                className="input"
-                value={form.chapter}
-                placeholder={loadingIgCh ? 'Loading…' : 'Type chapter'}
-                onChange={(e) => setField('chapter', e.target.value)}
-              />
-            )}
-          </div>
+          <ChapterField
+            subject={form.subject}
+            accessToken={accessToken}
+            value={form.chapter}
+            onChange={(v) => setField('chapter', v)}
+          />
 
           <TimeRangeFields
             scheduledTime={form.scheduledTime}
