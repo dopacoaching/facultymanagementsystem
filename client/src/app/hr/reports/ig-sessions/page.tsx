@@ -133,7 +133,6 @@ export default function IGClassSessionsPage() {
       ) : sessions.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon="📝"
             title="No IG sessions logged"
             description={`No IG class-teacher sessions were found for ${MONTH_NAMES[month - 1]} ${year}.`}
           />

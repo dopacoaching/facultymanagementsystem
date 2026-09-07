@@ -18,13 +18,12 @@ export function RecentSessionsCard({ sessions }: RecentSessionsCardProps) {
       </div>
       {sessions.length === 0 ? (
         <EmptyState
-          icon="📅"
           title="No sessions logged yet"
           description="Sessions will appear here once coordinators start logging classes."
         />
       ) : (
         <div className="table-wrapper">
-          <table>
+          <table style={{ minWidth: 380 }}>
             <thead>
               <tr><th>Faculty</th><th>Subject</th><th>Date</th><th>Status</th></tr>
             </thead>

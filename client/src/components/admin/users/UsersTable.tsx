@@ -19,13 +19,11 @@ export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleA
   if (users.length === 0) {
     return hasHiddenUsers ? (
       <EmptyState
-        icon="🔍"
         title="No matching users"
         description="No users match the current search or role filter."
       />
     ) : (
       <EmptyState
-        icon="🔐"
         title="No users yet"
         description="Create the first user account to give staff access to the system."
         action={{ label: '+ New User', onClick: onNewUser }}

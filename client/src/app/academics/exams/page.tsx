@@ -122,7 +122,6 @@ export default function ExamTopicsPage() {
 
       {!loading && schedules.length === 0 && (
         <EmptyState
-          icon="📋"
           title="No schedules found for this batch"
           description="Create a weekly schedule first, then you can set exam topics for each week."
         />

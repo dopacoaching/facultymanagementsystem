@@ -56,7 +56,6 @@ export function AvailabilityEntriesCard({
         </div>
       ) : entries.length === 0 ? (
         <EmptyState
-          icon="📋"
           title="No availability entered yet"
           description="Add dates using the form above to track this faculty member's availability."
         />

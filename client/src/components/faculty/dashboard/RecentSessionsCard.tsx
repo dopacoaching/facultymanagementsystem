@@ -19,7 +19,6 @@ export function RecentSessionsCard({ sessions }: RecentSessionsCardProps) {
 
       {sessions.length === 0 ? (
         <EmptyState
-          icon="📅"
           title="No sessions yet"
           description="Your sessions will appear here once they are logged by the coordinator."
         />

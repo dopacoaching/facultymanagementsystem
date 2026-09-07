@@ -140,7 +140,6 @@ export default function AvailabilityPage() {
       {!selectedFaculty && (
         <div className="card">
           <EmptyState
-            icon="📅"
             title="Select a faculty member"
             description="Choose a faculty member from the dropdown above to view and manage their monthly availability."
           />

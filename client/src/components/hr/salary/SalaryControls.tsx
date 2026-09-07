@@ -43,7 +43,7 @@ export function SalaryControls({
         >
           {loading ? (
             <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Calculating…</>
-          ) : '⚡ Calculate'}
+          ) : 'Calculate'}
         </button>
       </div>
     </div>

@@ -77,7 +77,7 @@ export function SalaryResultCard({
             marginBottom: '1.25rem',
             boxShadow: result.status === 'HR_REVIEW'
               ? '0 4px 16px rgba(180,83,9,.3)'
-              : '0 4px 16px rgba(79,70,229,.3)',
+              : '0 4px 16px rgba(13,148,136,.3)',
           }}>
             {result.status === 'HR_REVIEW' && (
               <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.75rem' }}>

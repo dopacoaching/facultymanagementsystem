@@ -17,7 +17,6 @@ export function PendingVideoReport({ pendingVideoChapters, onExport }: PendingVi
       </div>
       {pendingVideoChapters.length === 0 ? (
         <EmptyState
-          icon="✅"
           title="All videos are complete!"
           description="No pending video chapters for this batch. Great work!"
         />

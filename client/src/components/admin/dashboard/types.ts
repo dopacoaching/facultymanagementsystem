@@ -28,6 +28,6 @@ export const EVENT_BADGE: Record<string, string> = {
 export interface StatItem {
   label: string
   value: number | string
-  icon: string
+  icon?: string
   color: string
 }

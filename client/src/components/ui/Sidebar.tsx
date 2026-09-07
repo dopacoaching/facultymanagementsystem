@@ -1,12 +1,18 @@
 'use client'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { clearCredentials } from '@/store/slices/authSlice'
 import { logout, changePassword } from '@/services/auth.service'
 import PasswordInput from './PasswordInput'
+import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
+
+/** Weekly Scheduling nav entry — dev-only until the feature flag is enabled. */
+const SCHEDULING_NAV: NavItem[] = SCHEDULING_ENABLED
+  ? [{ label: 'Weekly Schedule', href: '/scheduling', icon: '' }]
+  : []
 
 /** Mirror of the server validatePasswordComplexity rule. */
 function validatePasswordComplexity(pw: string): string | null {
@@ -40,6 +46,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: 'IG Class Sessions', href: '/hr/reports/ig-sessions', icon: '📝' },
   { type: 'section', label: 'Academics' },
   { label: 'Sessions',     href: '/academics/sessions',          icon: '📅' },
+  ...SCHEDULING_NAV,
 ]
 
 const HR_NAV: NavItem[] = [
@@ -56,6 +63,7 @@ const HR_NAV: NavItem[] = [
 const ACADEMICS_NAV: NavItem[] = [
   { label: 'Dashboard',    href: '/academics',                    icon: '◈' },
   { label: 'Sessions',     href: '/academics/sessions',           icon: '📅' },
+  ...SCHEDULING_NAV,
 ]
 
 // IG_ACADEMICS_MANAGER: IG (Integrated Grades) only — no Repeaters sections
@@ -64,6 +72,7 @@ const IS_ACADEMICS_NAV: NavItem[] = [
   { label: 'IG Sessions', href: '/ig/sessions',  icon: '📅' },
   { label: 'IG Timetable',href: '/ig/timetable', icon: '⏱' },
   { label: 'IG Chapters', href: '/ig/chapters',  icon: '📖' },
+  ...SCHEDULING_NAV,
 ]
 
 // CLASS_TEACHER (Class Teacher): Session/hours logging only
@@ -109,6 +118,13 @@ function roleLabel(role: string | null): string {
   return map[role] ?? role.replace(/_/g, ' ')
 }
 
+/** Short 1–2 char monogram for the collapsed rail (no icons). */
+function monogram(label: string): string {
+  const words = label.trim().split(/\s+/)
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase()
+  return label.slice(0, 2).toUpperCase()
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -122,6 +138,18 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const dispatch = useAppDispatch()
   const { role, accessToken } = useAppSelector((s) => s.auth)
   const nav = navForRole(role)
+
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem('railCollapsed') === '1') } catch {}
+  }, [])
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      const next = !c
+      try { localStorage.setItem('railCollapsed', next ? '1' : '0') } catch {}
+      return next
+    })
+  }
 
   const [showChangePwd, setShowChangePwd] = useState(false)
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' })
@@ -166,129 +194,83 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
 
   return (
     <>
-      <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}`}>
+      <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
+        {/* Desktop collapse toggle */}
+        <button
+          type="button"
+          className="rail-toggle"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+          title={collapsed ? 'Expand' : 'Collapse'}
+        >
+          {collapsed ? '›' : '‹'}
+        </button>
+
         {/* Logo / Brand */}
-        <div style={{
-          padding: '1.5rem 1.25rem 1.25rem',
-          borderBottom: '1px solid rgba(255,255,255,.12)',
-          marginBottom: '0.5rem',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: 42, height: 42, borderRadius: 10,
-              background: 'rgba(255,255,255,.15)',
-              backdropFilter: 'blur(8px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              border: '1px solid rgba(255,255,255,.25)',
-              overflow: 'hidden',
-            }}>
-              <Image src="/logo.png" alt="DOPA" width={34} height={34} style={{ objectFit: 'contain' }} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '1.0625rem', letterSpacing: '-0.01em', color: '#fff' }}>
-                DOPA FMS
-              </div>
-              <div style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,.6)', fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                {roleLabel(role)}
-              </div>
-            </div>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-logo">
+            <Image src="/logo.png" alt="DOPA" width={28} height={28} style={{ objectFit: 'contain' }} />
           </div>
-          {/* Mobile close button */}
+          <div className="sidebar-brand-text">
+            <span className="sidebar-brand-name">DOPA FMS</span>
+            <span className="sidebar-brand-role">{roleLabel(role)}</span>
+          </div>
           <button
             className="sidebar-close-btn"
             onClick={onClose}
             aria-label="Close menu"
           >×</button>
-          </div>
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.125rem', overflowY: 'auto' }}>
+        <nav className="sidebar-nav">
           {nav.map((item, idx) => {
             if (item.type === 'section') {
               return (
-                <div key={`section-${idx}`} style={{
-                  padding: '0.875rem 0.875rem 0.25rem',
-                  fontSize: '0.6rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,.35)',
-                }}>
+                <div key={`section-${idx}`} className="nav-section">
                   {item.label}
                 </div>
               )
             }
-            // Type-narrowed link item
             const linkItem = item as { label: string; href: string; icon: string }
             const links = nav.filter((n): n is { label: string; href: string; icon: string } => n.type !== 'section')
             const hasChild = links.some((other) => other.href !== linkItem.href && other.href.startsWith(linkItem.href + '/'))
             const isActive = pathname === linkItem.href || (!hasChild && pathname.startsWith(linkItem.href + '/'))
             return (
-              <Link key={linkItem.href} href={linkItem.href} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.625rem',
-                padding: '0.575rem 0.875rem',
-                fontSize: '0.875rem',
-                fontWeight: isActive ? 700 : 500,
-                textDecoration: 'none',
-                borderRadius: '0.625rem',
-                color: isActive ? '#fff' : 'rgba(255,255,255,.72)',
-                background: isActive ? 'rgba(255,255,255,.18)' : 'transparent',
-                transition: 'all 0.15s ease',
-                position: 'relative',
-              }}>
-                {isActive && (
-                  <span style={{
-                    position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-                    width: 3, height: '60%', borderRadius: '0 3px 3px 0',
-                    background: '#fff', boxShadow: '0 0 6px rgba(255,255,255,.7)',
-                  }} />
-                )}
-                <span aria-hidden="true" style={{ fontSize: '1rem', width: '1.25rem', textAlign: 'center', flexShrink: 0 }}>
-                  {linkItem.icon}
-                </span>
-                {linkItem.label}
+              <Link
+                key={linkItem.href}
+                href={linkItem.href}
+                className={`nav-link${isActive ? ' is-active' : ''}`}
+                aria-current={isActive ? 'page' : undefined}
+                title={linkItem.label}
+              >
+                <span aria-hidden="true" className="rail-mono">{monogram(linkItem.label)}</span>
+                <span className="rail-label">{linkItem.label}</span>
               </Link>
             )
           })}
         </nav>
 
         {/* Bottom actions */}
-        <div style={{ padding: '0.875rem 0.75rem', borderTop: '1px solid rgba(255,255,255,.12)', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+        <div className="sidebar-footer">
           <button
+            type="button"
+            className="sidebar-action"
             onClick={() => setShowChangePwd(true)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '0.625rem',
-              padding: '0.6rem 0.875rem', borderRadius: '0.625rem',
-              background: 'transparent', border: '1px solid rgba(255,255,255,.1)',
-              color: 'rgba(255,255,255,.65)', fontSize: '0.8125rem', fontWeight: 500,
-              cursor: 'pointer', transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.08)'; e.currentTarget.style.color = 'rgba(255,255,255,.9)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,.65)' }}
+            title="Change Password"
           >
-            <span style={{ fontSize: '0.9rem' }}>🔑</span>
-            Change Password
+            <span aria-hidden="true" className="rail-mono">PW</span>
+            <span className="rail-label">Change Password</span>
           </button>
 
           <button
+            type="button"
+            className="sidebar-action"
             onClick={handleLogout}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '0.625rem',
-              padding: '0.6rem 0.875rem', borderRadius: '0.625rem',
-              background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.15)',
-              color: 'rgba(255,255,255,.8)', fontSize: '0.875rem', fontWeight: 500,
-              cursor: 'pointer', transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.2)'; e.currentTarget.style.color = '#fff' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.1)'; e.currentTarget.style.color = 'rgba(255,255,255,.8)' }}
+            title="Sign Out"
           >
-            <span style={{ fontSize: '1rem' }}>⎋</span>
-            Sign Out
+            <span aria-hidden="true" className="rail-mono">⇥</span>
+            <span className="rail-label">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -297,30 +279,21 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
       {showChangePwd && (
         <div
           role="dialog" aria-modal="true" aria-label="Change Password"
-          style={{
-            position: 'fixed', inset: 0,
-            background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 100, padding: '1rem',
-          }}
+          className="modal-backdrop"
           onKeyDown={(e) => { if (e.key === 'Escape') closePwdModal() }}
         >
-          <div style={{
-            background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 400,
-            border: '1px solid var(--color-border)',
-          }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontWeight: 700, margin: 0, fontSize: '1.0625rem' }}>Change Password</h2>
-              <button onClick={closePwdModal} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
+          <div className="modal-panel">
+            <div className="modal-header">
+              <h2>Change Password</h2>
+              <button onClick={closePwdModal} aria-label="Close" className="modal-close">×</button>
             </div>
-            <div style={{ padding: '1.5rem' }}>
+            <div className="modal-body">
               {pwdSuccess ? (
                 <div className="alert alert-success"><span className="alert-icon">✅</span>Password changed successfully!</div>
               ) : (
                 <>
                   {pwdError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{pwdError}</div>}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div className="form-stack">
                     {/* Current password — plain input (no strength bar needed) */}
                     <div className="form-group">
                       <label className="label">Current Password</label>
@@ -362,7 +335,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
               )}
             </div>
             {!pwdSuccess && (
-              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div className="modal-footer">
                 <button className="btn btn-ghost" onClick={closePwdModal}>Cancel</button>
                 <button className="btn btn-primary" onClick={handleChangePassword} disabled={pwdSaving}>
                   {pwdSaving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Change Password'}

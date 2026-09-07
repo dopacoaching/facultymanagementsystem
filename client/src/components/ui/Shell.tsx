@@ -22,8 +22,8 @@ function getPageTitle(pathname: string): string {
     '/academics/sessions':       'Sessions',
     '/academics/availability':   'Faculty Availability',
     '/academics/chapters':       'Chapter Progress',
-    '/academics/schedule':       'Weekly Schedule',
     '/academics/reports':        'Academics Reports',
+    '/scheduling':               'Weekly Schedule',
     '/ig':                  'IG Dashboard',
     '/ig/timetable':        'IG Daily Timetable',
     '/ig/sessions':         'IG Sessions',
@@ -101,7 +101,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
       <div className="shell-main">
         {/* Top bar */}
         <header className="shell-topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
             {/* Hamburger — mobile only */}
             <button
               className="hamburger-btn"
@@ -110,9 +110,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
             >
               <span /><span /><span />
             </button>
-            <h1 style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
-              {pageTitle}
-            </h1>
+            <h1>{pageTitle}</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             <span className="role-chip">
@@ -121,19 +119,18 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
             <button
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 34, height: 34,
-                borderRadius: '50%',
-                border: '1.5px solid var(--color-border)',
-                background: 'var(--color-surface-2)',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                transition: 'background 0.2s, border-color 0.2s',
-                flexShrink: 0,
-              }}
+              className="theme-toggle"
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {theme === 'dark' ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                </svg>
+              )}
             </button>
           </div>
         </header>

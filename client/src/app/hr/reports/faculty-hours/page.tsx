@@ -131,7 +131,6 @@ export default function FacultyHoursBySubjectPage() {
       ) : subjects.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon="📊"
             title="No sessions logged"
             description="No completed sessions were found for this month yet."
           />

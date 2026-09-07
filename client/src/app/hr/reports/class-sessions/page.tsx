@@ -120,7 +120,6 @@ export default function ClassSessionsPage() {
       ) : classSessions.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon="📝"
             title="No class sessions logged"
             description={`No class-teacher sessions were found for ${MONTH_NAMES[month - 1]} ${year}.`}
           />

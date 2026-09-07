@@ -23,7 +23,6 @@ export function ChaptersTable({
         <SkeletonTable rows={7} cols={7} />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon="📚"
           title={totalCount === 0 ? 'No chapters found' : 'No chapters match the filter'}
           description={totalCount === 0
             ? 'Select a batch to view the syllabus chapter list.'

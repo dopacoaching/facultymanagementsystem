@@ -30,7 +30,7 @@ export function SessionLogTable({ sessions, filtered, filter, onFilterChange }: 
               background:  filter === key ? 'var(--color-primary)' : 'transparent',
               color:       filter === key ? '#fff' : 'var(--color-text-secondary)',
               border:      `1.5px solid ${filter === key ? 'var(--color-primary)' : 'var(--color-border)'}`,
-              boxShadow:   filter === key ? '0 2px 8px rgba(79,70,229,.25)' : 'none',
+              boxShadow:   filter === key ? '0 2px 8px rgba(13,148,136,.25)' : 'none',
             }}
             onClick={() => onFilterChange(key)}
           >
@@ -41,7 +41,6 @@ export function SessionLogTable({ sessions, filtered, filter, onFilterChange }: 
 
       {filtered.length === 0 ? (
         <EmptyState
-          icon="📅"
           title="No sessions found"
           description={filter === 'ALL' ? 'No sessions recorded yet. Sessions will appear here once logged.' : `No ${filter.toLowerCase().replace('_', ' ')} sessions. Try changing the filter.`}
         />

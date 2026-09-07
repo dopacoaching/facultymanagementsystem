@@ -19,7 +19,6 @@ export function ChapterCompletionReport({ chapters, chapterStats, onExport }: Ch
         </div>
         {chapterStats.length === 0 ? (
           <EmptyState
-            icon="📚"
             title="No chapters yet"
             description="No chapters found for this batch. Log a session to automatically create chapter records."
           />

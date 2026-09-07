@@ -69,9 +69,9 @@ export function AddDatesCard({
               <span key={d} style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
                 padding: '0.25rem 0.625rem', borderRadius: 'var(--radius-full)',
-                background: 'var(--color-primary-dim, rgba(79,70,229,.1))',
+                background: 'var(--color-primary-dim, rgba(13,148,136,.1))',
                 color: 'var(--color-primary)', fontSize: '0.8125rem', fontWeight: 500,
-                border: '1px solid rgba(79,70,229,.2)',
+                border: '1px solid rgba(13,148,136,.2)',
               }}>
                 {fmtDate(d + 'T00:00:00')}
                 <button

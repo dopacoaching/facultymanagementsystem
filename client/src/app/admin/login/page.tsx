@@ -79,11 +79,11 @@ export default function AdminLoginPage() {
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{
             width: 52, height: 52,
-            background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+            background: 'var(--color-primary-dark)',
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 1.25rem',
-            boxShadow: '0 6px 20px rgba(30,27,75,.3)',
+            boxShadow: 'var(--shadow)',
           }}>
             <span style={{ fontSize: '1.5rem' }}>🔐</span>
           </div>
@@ -100,18 +100,11 @@ export default function AdminLoginPage() {
 
         {/* Session-expired banner */}
         {sessionExpired && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
-            padding: '0.75rem 1rem',
-            borderRadius: 'var(--radius)',
-            background: '#fef3c7',
-            border: '1px solid #f59e0b',
-            marginBottom: '1rem',
-          }}>
-            <span style={{ fontSize: '1rem', flexShrink: 0 }}>⏱</span>
+          <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+            <span className="alert-icon">⏱</span>
             <div>
-              <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#92400e' }}>Session timed out</div>
-              <div style={{ fontSize: '0.8rem', color: '#78350f', marginTop: '0.1rem' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Session timed out</div>
+              <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
                 Signed out after 30 minutes of inactivity. Please sign in again.
               </div>
             </div>

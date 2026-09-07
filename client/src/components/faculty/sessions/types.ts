@@ -46,7 +46,7 @@ export const SESSION_BADGE: Record<SessionType, { cls: string; icon: string }> =
 }
 
 export const DAY_COLOR: Record<ClassEntryDay, string> = {
-  MONDAY: '#6366f1', TUESDAY: '#0ea5e9', WEDNESDAY: '#10b981',
+  MONDAY: '#0d9488', TUESDAY: '#0ea5e9', WEDNESDAY: '#10b981',
   THURSDAY: '#f59e0b', FRIDAY: '#ec4899', SATURDAY: '#8b5cf6', SUNDAY: '#ef4444',
 }
 

@@ -32,7 +32,6 @@ export function SessionsTable({
         <SkeletonTable rows={8} cols={8} />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon="📅"
           title={totalCount === 0 ? 'No sessions logged yet' : 'No sessions match your filters'}
           description={totalCount === 0 ? 'Log the first session to start tracking class history.' : 'Try adjusting the search or filters above.'}
           action={totalCount === 0 ? { label: '+ New Session', onClick: onNewSession } : undefined}

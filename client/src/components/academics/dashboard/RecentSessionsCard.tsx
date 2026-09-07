@@ -19,7 +19,6 @@ export function RecentSessionsCard({ sessions, onLogSession }: RecentSessionsCar
       </div>
       {sessions.length === 0 ? (
         <EmptyState
-          icon="📅"
           title="No sessions logged yet"
           description="Log the first session to see recent activity here."
           action={{ label: 'Log Session', onClick: onLogSession }}

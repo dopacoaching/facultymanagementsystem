@@ -54,7 +54,7 @@ export function UpcomingScheduleCard({ schedule: s, today, facultyId }: Upcoming
           borderRadius: 'var(--radius-sm)',
           marginBottom: '0.875rem',
         }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#d97706', width: '100%', marginBottom: '0.1rem' }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-warning)', width: '100%', marginBottom: '0.1rem' }}>
             📝 Weekly Exams
           </div>
           {s.mondayExamTopic && (
@@ -95,9 +95,9 @@ export function UpcomingScheduleCard({ schedule: s, today, facultyId }: Upcoming
                         borderRadius: 'var(--radius-sm)',
                         fontSize: '0.875rem',
                         background: isMe
-                          ? 'linear-gradient(90deg,rgba(99,102,241,.12),rgba(99,102,241,.04))'
+                          ? 'linear-gradient(90deg,rgba(13,148,136,.12),rgba(13,148,136,.04))'
                           : 'var(--color-surface-2)',
-                        border: isMe ? '1px solid rgba(99,102,241,.3)' : '1px solid transparent',
+                        border: isMe ? '1px solid rgba(13,148,136,.3)' : '1px solid transparent',
                       }}>
                         <span className={`badge ${badge.cls}`} style={{ fontSize: '0.68rem', flexShrink: 0 }}>
                           {badge.icon} {SESSION_LABELS[e.sessionType]}

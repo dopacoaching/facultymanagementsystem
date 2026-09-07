@@ -79,7 +79,7 @@ export default function LoginPage() {
         justifyContent: 'center',
         alignItems: 'center',
         flex: '0 0 45%',
-        background: 'linear-gradient(150deg, #312e81 0%, #4f46e5 55%, #6366f1 100%)',
+        background: 'linear-gradient(150deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
         padding: '3rem',
         position: 'relative',
         overflow: 'hidden',
@@ -165,10 +165,10 @@ export default function LoginPage() {
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }} className="login-mobile-logo">
             <div style={{
               width: 72, height: 72, borderRadius: 18,
-              background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+              background: 'var(--color-primary)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1.25rem',
-              boxShadow: '0 8px 24px rgba(79,70,229,.35)',
+              boxShadow: 'var(--shadow-lg)',
             }}>
               <Image
                 src="/logo.png"
@@ -189,18 +189,11 @@ export default function LoginPage() {
 
           {/* Session-expired banner */}
           {sessionExpired && (
-            <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
-              padding: '0.75rem 1rem',
-              borderRadius: 'var(--radius)',
-              background: '#fef3c7',
-              border: '1px solid #f59e0b',
-              marginBottom: '1rem',
-            }}>
-              <span style={{ fontSize: '1rem', flexShrink: 0 }}>⏱</span>
+            <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+              <span className="alert-icon">⏱</span>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#92400e' }}>Session timed out</div>
-                <div style={{ fontSize: '0.8rem', color: '#78350f', marginTop: '0.1rem' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Session timed out</div>
+                <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
                   You were signed out after 30 minutes of inactivity. Please sign in again.
                 </div>
               </div>

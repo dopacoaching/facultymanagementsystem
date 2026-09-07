@@ -22,7 +22,6 @@ export function TodayScheduleCard({ todaySlots }: TodayScheduleCardProps) {
       </div>
       {todaySlots.length === 0 ? (
         <EmptyState
-          icon="⏱"
           title="No classes scheduled today"
           description="Assign classes in the IG Timetable to see today's schedule here."
           action={{ label: 'Manage Timetable', onClick: () => window.location.href = '/ig/timetable' }}

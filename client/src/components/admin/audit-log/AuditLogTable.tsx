@@ -16,7 +16,6 @@ export function AuditLogTable({ loading, logs, expanded, onToggleExpand }: Audit
   if (logs.length === 0) {
     return (
       <EmptyState
-        icon="📋"
         title="No audit events found"
         description="Try adjusting the filters above. Events are recorded automatically as actions are taken in the system."
       />

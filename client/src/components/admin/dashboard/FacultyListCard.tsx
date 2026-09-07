@@ -18,7 +18,6 @@ export function FacultyListCard({ faculty, onAdd }: FacultyListCardProps) {
       </div>
       {faculty.length === 0 ? (
         <EmptyState
-          icon="👥"
           title="No faculty added yet"
           description="Add the first faculty member to get started."
           action={{ label: 'Add Faculty', onClick: onAdd }}
@@ -36,7 +35,7 @@ export function FacultyListCard({ faculty, onAdd }: FacultyListCardProps) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
                 <div style={{
                   width: 30, height: 30, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                  background: 'var(--color-primary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#fff', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0,
                 }}>

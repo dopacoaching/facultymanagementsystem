@@ -70,7 +70,6 @@ export default function CampusHistoryPage() {
       ) : sessions.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon="📝"
             title="No sessions logged yet"
             description={`No sessions were found for ${MONTH_NAMES[month - 1]} ${year}.`}
           />

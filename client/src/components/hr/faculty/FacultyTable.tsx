@@ -16,7 +16,6 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
   if (filtered.length === 0) {
     return (
       <EmptyState
-        icon="👥"
         title={search ? 'No results found' : 'No faculty added yet'}
         description={search ? `No faculty match "${search}". Try a different search term.` : 'Add your first faculty member to get started with payroll and scheduling.'}
         action={search ? undefined : { label: '+ Add Faculty', onClick: onAdd }}
@@ -42,7 +41,7 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
             <tr key={f._id}>
               <td>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #4f46e5, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                     {f.name.charAt(0)}
                   </div>
                   <span style={{ fontWeight: 600 }}>{f.name}</span>

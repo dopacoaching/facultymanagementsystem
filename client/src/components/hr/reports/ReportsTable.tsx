@@ -17,7 +17,6 @@ export function ReportsTable({ loading, rows, total, month, year }: ReportsTable
         <SkeletonTable rows={5} cols={6} />
       ) : rows.length === 0 ? (
         <EmptyState
-          icon="📊"
           title="No approved salaries"
           description={`No salaries have been approved for ${MONTHS[month - 1]} ${year}. Calculate and approve salaries from the Salary Calculator.`}
         />
@@ -53,7 +52,7 @@ export function ReportsTable({ loading, rows, total, month, year }: ReportsTable
                 </tr>
               ))}
               {rows.length > 0 && (
-                <tr style={{ background: 'rgba(79,70,229,.04)' }}>
+                <tr style={{ background: 'rgba(13,148,136,.04)' }}>
                   <td colSpan={3} style={{ fontWeight: 700, color: 'var(--color-text-secondary)' }}>
                     Total Payroll — {MONTHS[month - 1]} {year}
                   </td>

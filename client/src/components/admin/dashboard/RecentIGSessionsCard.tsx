@@ -17,7 +17,6 @@ export function RecentIGSessionsCard({ sessions }: RecentIGSessionsCardProps) {
       </div>
       {sessions.length === 0 ? (
         <EmptyState
-          icon="🏫"
           title="No IG sessions yet"
           description="IG sessions will appear here once they are logged."
         />

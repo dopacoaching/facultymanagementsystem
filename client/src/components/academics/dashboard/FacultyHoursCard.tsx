@@ -43,7 +43,6 @@ export function FacultyHoursCard({ facultyHours, loading, hoursMonth, hoursYear,
         </div>
       ) : facultyHours.length === 0 ? (
         <EmptyState
-          icon="⏱"
           title="No faculty hours for this month"
           description="Hours will appear here once sessions are logged for the selected month."
         />

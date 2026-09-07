@@ -95,7 +95,7 @@ export default function FacultySessionsPage() {
 
       <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted)' }}>
-          📅 Upcoming Schedule
+          Upcoming Schedule
         </span>
         <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
       </div>
@@ -118,7 +118,7 @@ export default function FacultySessionsPage() {
 
       <div style={{ marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted)' }}>
-          🗂 Session Log
+          Session Log
         </span>
         <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
       </div>

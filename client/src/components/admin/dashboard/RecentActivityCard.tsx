@@ -18,7 +18,6 @@ export function RecentActivityCard({ auditLogs }: RecentActivityCardProps) {
       </div>
       {auditLogs.length === 0 ? (
         <EmptyState
-          icon="📋"
           title="No recent activity"
           description="System events will be recorded here as actions are taken."
         />

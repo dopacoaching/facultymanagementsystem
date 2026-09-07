@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 const LINKS = [
   { href: '/hr/faculty', label: '👥 Manage Faculty' },
-  { href: '/hr/salary',  label: '⚡ Salary Calculator' },
+  { href: '/hr/salary',  label: 'Salary Calculator' },
   { href: '/hr/reports', label: '📊 Reports & CSV' },
 ]
 

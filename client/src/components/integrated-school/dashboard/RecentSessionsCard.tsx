@@ -18,7 +18,6 @@ export function RecentSessionsCard({ sessions }: RecentSessionsCardProps) {
       </div>
       {sessions.length === 0 ? (
         <EmptyState
-          icon="📅"
           title="No sessions recorded yet"
           description="Log the first IG session to get started."
           action={{ label: 'Log Session', onClick: () => window.location.href = '/ig/sessions' }}

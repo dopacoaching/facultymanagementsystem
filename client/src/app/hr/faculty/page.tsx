@@ -66,10 +66,7 @@ export default function FacultyPage() {
 
       <div className="card">
         <div style={{ marginBottom: '1.25rem' }}>
-          <div style={{ position: 'relative', maxWidth: 360 }}>
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)', pointerEvents: 'none' }}>🔍</span>
-            <input className="input" placeholder="Search by name or subject…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: '2.25rem' }} />
-          </div>
+          <input className="input" placeholder="Search by name or subject…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 360 }} />
         </div>
 
         <FacultyTable

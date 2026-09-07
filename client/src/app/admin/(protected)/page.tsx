@@ -64,30 +64,28 @@ export default function AdminDashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <QuickLinksSection />
 
-      {/* ── Stats row: HR + class hours side by side ─────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-        <StatsSection
-          title="HR Overview"
-          stats={[
-            { label: 'Total Faculty', value: faculty.length,   icon: '👥', color: 'var(--color-primary)' },
-            { label: 'Active',        value: activeFaculty,    icon: '✅', color: 'var(--color-success)' },
-            { label: 'Inactive',      value: inactiveFaculty,  icon: '⏸',  color: 'var(--color-muted)'   },
-          ]}
-        />
-        <StatsSection
-          title="Class Hours"
-          stats={[
-            { label: 'Total',     value: acSessions.length, icon: '📚', color: 'var(--color-primary)' },
-            { label: "Today",     value: todayAC,           icon: '📅', color: 'var(--color-accent)'  },
-            { label: 'Done',      value: acCompleted,       icon: '✅', color: 'var(--color-success)' },
-            { label: 'Scheduled', value: acScheduled,       icon: '⏳', color: 'var(--color-info)'    },
-            { label: 'Cancelled', value: acCancelled,       icon: '❌', color: 'var(--color-danger)'  },
-          ]}
-        />
-      </div>
+      {/* ── Stats: HR overview, then class hours ─────────────────────────────── */}
+      <StatsSection
+        title="HR Overview"
+        stats={[
+          { label: 'Total Faculty', value: faculty.length,   color: 'var(--color-text)' },
+          { label: 'Active',        value: activeFaculty,    color: 'var(--color-success)' },
+          { label: 'Inactive',      value: inactiveFaculty,  color: 'var(--color-muted)'   },
+        ]}
+      />
+      <StatsSection
+        title="Class Hours"
+        stats={[
+          { label: 'Total',     value: acSessions.length, color: 'var(--color-text)' },
+          { label: "Today",     value: todayAC,           color: 'var(--color-primary)' },
+          { label: 'Done',      value: acCompleted,       color: 'var(--color-success)' },
+          { label: 'Scheduled', value: acScheduled,       color: 'var(--color-info)'    },
+          { label: 'Cancelled', value: acCancelled,       color: 'var(--color-danger)'  },
+        ]}
+      />
 
       {/* ── Details grid ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
         <FacultyListCard faculty={faculty} onAdd={() => router.push('/hr/faculty')} />
         <RecentSessionsCard sessions={acSessions} />
         <RecentActivityCard auditLogs={auditLogs} />

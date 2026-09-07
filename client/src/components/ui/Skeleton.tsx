@@ -169,6 +169,8 @@ export function ErrorAlert({ message, what, onRetry }: ErrorAlertProps) {
 // ── Empty state with CTA ──────────────────────────────────────────────────────
 
 interface EmptyStateProps {
+  /** @deprecated No longer rendered — EmptyState now shows a fixed neutral glyph.
+   *  Accepted (and ignored) for backwards compatibility with older call sites. */
   icon?: string
   title: string
   description?: string
@@ -179,10 +181,16 @@ interface EmptyStateProps {
   children?: ReactNode
 }
 
-export function EmptyState({ icon = '📭', title, description, action, children }: EmptyStateProps) {
+export function EmptyState({ title, description, action, children }: EmptyStateProps) {
   return (
     <div className="empty-state">
-      <div className="empty-state-icon">{icon}</div>
+      <div className="empty-state-icon" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 7l1.5 12.5A2 2 0 0 0 6.5 21h11a2 2 0 0 0 2-1.5L21 7" />
+          <path d="M3 7l3-4h12l3 4" />
+          <path d="M9 12h6" strokeDasharray="0.1 3.6" />
+        </svg>
+      </div>
       <h3>{title}</h3>
       {description && <p>{description}</p>}
       {action && (

@@ -10,17 +10,17 @@ interface WelcomeBannerProps {
 export function WelcomeBanner({ faculty, month, year }: WelcomeBannerProps) {
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #3730a3, #4f46e5 60%, #6366f1)',
+      background: 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
       borderRadius: 'var(--radius-lg)',
       padding: '1.75rem 2rem',
       color: '#fff',
-      marginBottom: '1.75rem',
+      marginBottom: '2rem',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: '1rem',
-      boxShadow: '0 4px 20px rgba(79,70,229,.3)',
+      boxShadow: 'var(--shadow)',
     }}>
       <div>
         <div style={{ fontSize: '0.8125rem', opacity: 0.7, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>

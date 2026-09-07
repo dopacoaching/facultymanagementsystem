@@ -148,7 +148,6 @@ export default function ISChaptersPage() {
       ) : filtered.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon="📚"
             title="No chapters found"
             description="Try selecting a different batch or adjusting the filters. Chapters are seeded from the yearly plan."
           />

@@ -29,7 +29,6 @@ export function FacultyActivityReport({ sessions, facultyActivity, actMonth, act
       </div>
       {facultyActivity.length === 0 ? (
         <EmptyState
-          icon="📊"
           title="No sessions found"
           description="No sessions were logged for the selected period and batch."
         />

@@ -41,7 +41,7 @@ export default function ReportsPage() {
         </div>
         {rows.length > 0 && (
           <button className="btn btn-ghost" onClick={() => exportToCSV(rows, month, year)} title="Export as CSV">
-            ↓ Export CSV
+            Export CSV
           </button>
         )}
       </div>

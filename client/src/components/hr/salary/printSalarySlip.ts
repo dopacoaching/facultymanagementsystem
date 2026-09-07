@@ -46,8 +46,8 @@ export function printSalarySlip(faculty: Faculty, month: number, year: number, r
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;color:#111;background:#fff;font-size:14px}
 .slip{max-width:680px;margin:0 auto;padding:2rem}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #4f46e5;padding-bottom:1.25rem;margin-bottom:1.5rem}
-.org{font-size:1.375rem;font-weight:800;color:#4f46e5;letter-spacing:-.02em}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #0d9488;padding-bottom:1.25rem;margin-bottom:1.5rem}
+.org{font-size:1.375rem;font-weight:800;color:#0d9488;letter-spacing:-.02em}
 .org-sub{font-size:.75rem;color:#64748b;margin-top:.2rem}
 .period-lbl{font-size:.8rem;font-weight:700;color:#64748b;text-align:right}
 .period{font-size:1.25rem;font-weight:800;color:#1e293b;text-align:right}
@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse}
 td{padding:.45rem .5rem;font-size:.875rem;border-bottom:1px solid #f1f5f9}
 td:last-child{text-align:right;font-weight:600}
 tr.ded td{color:#dc2626}
-.total-row td{border-top:2px solid #4f46e5;padding-top:.75rem;font-size:1rem;font-weight:800;color:#4f46e5;border-bottom:none}
+.total-row td{border-top:2px solid #0d9488;padding-top:.75rem;font-size:1rem;font-weight:800;color:#0d9488;border-bottom:none}
 .carry{background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:.75rem 1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.5rem}
 .clabel{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:#92400e;font-weight:600}
 .cval{font-size:.9375rem;font-weight:700;color:#b45309;margin-top:.15rem}
@@ -69,7 +69,7 @@ tr.ded td{color:#dc2626}
 .alert-warn{background:#fffbeb;border-color:#f59e0b;color:#92400e}
 .footer{margin-top:3rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2rem}
 .sig{border-top:1px solid #94a3b8;padding-top:.375rem;font-size:.75rem;color:#64748b;text-align:center}
-.print-btn{position:fixed;bottom:1.5rem;right:1.5rem;background:#4f46e5;color:#fff;border:none;border-radius:50px;padding:.75rem 1.5rem;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(79,70,229,.4)}
+.print-btn{position:fixed;bottom:1.5rem;right:1.5rem;background:#0d9488;color:#fff;border:none;border-radius:50px;padding:.75rem 1.5rem;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(13,148,136,.35)}
 @media print{.print-btn{display:none}}
 </style></head><body>
 <div class="slip">

@@ -364,7 +364,6 @@ export default function ISTimetablePage() {
           {noSlotsAtAll && (
             <div className="card">
               <EmptyState
-                icon="🏫"
                 title="No classes scheduled for this day"
                 description={canManage ? 'No timetable entries for the selected date. Click "Assign Class" to plan a class.' : 'No timetable entries for the selected date.'}
               />
