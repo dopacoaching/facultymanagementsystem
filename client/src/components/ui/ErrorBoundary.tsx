@@ -26,14 +26,15 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="alert alert-error" style={{ margin: '2rem', padding: '1.5rem' }}>
-          <span className="alert-icon">🚨</span>
+          <span className="alert-icon">⚠</span>
           <div>
             <strong>Something went wrong on this page.</strong>
             <div style={{ marginTop: '0.25rem', fontSize: '0.8rem', opacity: 0.85 }}>
               {this.state.message}
             </div>
             <button
-              className="btn btn-ghost btn-sm"
+              type="button"
+              className="btn btn-outline btn-sm"
               style={{ marginTop: '0.75rem' }}
               onClick={() => this.setState({ hasError: false, message: '' })}
             >

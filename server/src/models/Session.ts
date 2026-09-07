@@ -17,9 +17,14 @@ export interface ISession extends Document {
   updatedByName?: string
   startTime?: string          // "HH:MM" 24-hour format, e.g. "09:30"
   endTime?: string
-  /** Raw break length as entered — the first 15 minutes are free; only the excess
-   *  is deducted from durationHours. Kept for audit/display, not itself the deduction. */
+  /** Morning / first break, raw minutes as entered — the first 15 minutes are
+   *  free; only the excess is deducted from durationHours. Audit/display only. */
   breakMinutes?: number
+  /** Lunch break (full-day classes) — subtracted from durationHours in full,
+   *  with no 15-minute grace. Audit/display only. */
+  lunchBreakMinutes?: number
+  /** Afternoon / third break — same 15-minute grace as breakMinutes. */
+  afternoonBreakMinutes?: number
   durationHours: number
   sessionDate: Date
   timeSlot?: 'MORNING' | 'AFTERNOON' | 'SESSION_1' | 'SESSION_2' | 'SESSION_3'
@@ -46,6 +51,8 @@ const SessionSchema = new Schema<ISession>(
     startTime: { type: String, match: /^\d{2}:\d{2}$/ },
     endTime: { type: String, match: /^\d{2}:\d{2}$/ },
     breakMinutes: { type: Number, min: 0 },
+    lunchBreakMinutes: { type: Number, min: 0 },
+    afternoonBreakMinutes: { type: Number, min: 0 },
     durationHours: { type: Number, required: true, min: 0.5 },
     sessionDate: { type: Date, required: true },
     timeSlot: { type: String, enum: ['MORNING', 'AFTERNOON', 'SESSION_1', 'SESSION_2', 'SESSION_3'] },

@@ -7,11 +7,22 @@ import { CarryForwardBalance } from '../models/CarryForwardBalance'
 import { PayableDays } from '../models/PayableDays'
 import { Session } from '../models/Session'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
-import { calculateMonthlySalary, redactForFacultyView } from '../services/salary/calculator'
+import { calculateMonthlySalary, calculateRangeSalary, redactForFacultyView } from '../services/salary/calculator'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { validateObjectId } from '../utils/objectId'
 import { Types } from 'mongoose'
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+
+function parseLocalDate(iso: string): Date | null {
+  const m = DATE_RE.exec(iso ?? '')
+  if (!m) return null
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  return isNaN(dt.getTime()) ? null : dt
+}
+
+const fmtDay = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
 // Whitelisted fields for contract updates — prevents mass assignment of facultyId, _id, etc.
 const CONTRACT_WRITABLE = [
@@ -24,7 +35,8 @@ const CONTRACT_WRITABLE = [
 ] as const
 
 export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) => {
-  let { facultyId, month, year } = req.query as { facultyId?: string; month?: string; year?: string }
+  let { facultyId, month, year, from, to } = req.query as
+    { facultyId?: string; month?: string; year?: string; from?: string; to?: string }
 
   // FACULTY scope guard — a faculty user may only view their own salary
   if (req.user!.role === 'FACULTY') {
@@ -36,7 +48,22 @@ export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) =
     facultyId = theirFacultyId
   }
 
-  if (!facultyId || !month || !year) {
+  if (!facultyId) {
+    res.status(400).json({ error: 'facultyId required' }); return
+  }
+
+  // Date-range mode (TEMPORARY faculty, paid by the week) — the calculator itself
+  // rejects non-temporary faculty.
+  if (from || to) {
+    if (!DATE_RE.test(from ?? '') || !DATE_RE.test(to ?? '')) {
+      res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return
+    }
+    const rangeResult = await calculateRangeSalary(facultyId, from!, to!)
+    res.json(req.user!.role === 'FACULTY' ? redactForFacultyView(rangeResult) : rangeResult)
+    return
+  }
+
+  if (!month || !year) {
     res.status(400).json({ error: 'facultyId, month, year required' }); return
   }
 
@@ -51,16 +78,116 @@ export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) =
 })
 
 export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, month, year } = req.body
-  if (!facultyId || !month || !year) {
+  const { facultyId, month, year, from, to } = req.body
+  if (!facultyId) {
+    res.status(400).json({ error: 'facultyId required' }); return
+  }
+  const fOid = new Types.ObjectId(facultyId)
+
+  const persistRecord = async (
+    result: Awaited<ReturnType<typeof calculateMonthlySalary>>,
+    filter: Record<string, unknown>,
+    extraFields: Record<string, unknown>,
+    periodLabel: string,
+    facultyName: string,
+  ) => {
+    const record = await SalaryRecord.findOneAndUpdate(
+      { ...filter, status: { $ne: 'APPROVED' } },
+      {
+        ...extraFields,
+        hoursLogged: result.hoursLogged ?? 0,
+        daysWorked: result.daysWorked ?? 0,
+        leavesTaken: result.leavesTaken ?? 0,
+        overtimeHours: result.overtimeHours ?? 0,
+        overtimePay: result.overtimePay ?? 0,
+        baseSalary: result.baseSalary ?? 0,
+        penaltiesApplied: result.penalties ?? 0,
+        totalDeductions: result.penalties ?? 0,
+        finalPayable: result.finalPayable ?? 0,
+        tds: result.tds ?? 0,
+        netPayable: result.netPayable ?? 0,
+        monthBalance: result.monthBalance ?? 0,
+        status: 'APPROVED',
+        approvedByUserId: new Types.ObjectId(req.user!.userId),
+        approvedAt: new Date(),
+      },
+      { upsert: true, new: true }
+    )
+
+    await writeAuditLog({
+      category: 'HR', eventType: 'SALARY_APPROVED',
+      actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
+      targetType: 'Faculty', targetId: String(facultyId), targetName: facultyName,
+      facultyId, facultyName, amount: result.finalPayable ?? 0,
+      description: `Salary approved for ${facultyName} — ${periodLabel} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
+    })
+
+    return record
+  }
+
+  // ─── Date-range approval (TEMPORARY faculty, paid by the week) ──────────────
+  if (from != null || to != null) {
+    const fromDate = parseLocalDate(from)
+    const toDate = parseLocalDate(to)
+    if (!fromDate || !toDate) {
+      res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return
+    }
+    if (fromDate.getTime() > toDate.getTime()) {
+      res.status(400).json({ error: 'from date must be on or before to date' }); return
+    }
+
+    const clash = await SalaryRecord.findOne({
+      facultyId: fOid,
+      periodType: 'RANGE',
+      status: 'APPROVED',
+      periodStart: { $lte: toDate },
+      periodEnd: { $gte: fromDate },
+    })
+    if (clash) {
+      res.status(409).json({
+        error: `This faculty already has approved pay for a period overlapping ${fmtDay(fromDate)} – ${fmtDay(toDate)}${
+          clash.periodStart && clash.periodEnd ? ` (${fmtDay(clash.periodStart)} – ${fmtDay(clash.periodEnd)})` : ''
+        }. Re-approval is not allowed.`,
+      })
+      return
+    }
+
+    const result = await calculateRangeSalary(facultyId, from, to)
+    if (result.status === 'BLOCKED' || result.status === 'PENDING_CONFIG') {
+      res.status(422).json({ error: result.reason ?? 'Payroll blocked', blocked: true }); return
+    }
+
+    const faculty = await Faculty.findById(facultyId)
+    if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
+
+    const record = await persistRecord(
+      result,
+      { facultyId: fOid, periodType: 'RANGE', periodStart: fromDate, periodEnd: toDate },
+      {
+        periodType: 'RANGE',
+        periodStart: fromDate,
+        periodEnd: toDate,
+        month: fromDate.getMonth() + 1,
+        year: fromDate.getFullYear(),
+      },
+      `${fmtDay(fromDate)} – ${fmtDay(toDate)}`,
+      faculty.name,
+    )
+    res.json({ success: true, record })
+    return
+  }
+
+  // ─── Calendar-month approval (unchanged) ───────────────────────────────────
+  if (!month || !year) {
     res.status(400).json({ error: 'facultyId, month, year required' }); return
   }
 
   // Guard: prevent re-approval — a salary record already exists and is APPROVED
   const existing = await SalaryRecord.findOne({
-    facultyId: new Types.ObjectId(facultyId),
+    facultyId: fOid,
     month: Number(month),
     year: Number(year),
+    periodType: { $ne: 'RANGE' },
     status: 'APPROVED',
   })
   if (existing) {
@@ -83,35 +210,13 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
   const faculty = await Faculty.findById(facultyId)
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
 
-  const record = await SalaryRecord.findOneAndUpdate(
-    { facultyId: new Types.ObjectId(facultyId), month: Number(month), year: Number(year), status: { $ne: 'APPROVED' } },
-    {
-      hoursLogged: result.hoursLogged ?? 0,
-      daysWorked: result.daysWorked ?? 0,
-      leavesTaken: result.leavesTaken ?? 0,
-      overtimeHours: result.overtimeHours ?? 0,
-      overtimePay: result.overtimePay ?? 0,
-      baseSalary: result.baseSalary ?? 0,
-      penaltiesApplied: result.penalties ?? 0,
-      totalDeductions: result.penalties ?? 0,
-      finalPayable: result.finalPayable ?? 0,
-      tds: result.tds ?? 0,
-      netPayable: result.netPayable ?? 0,
-      monthBalance: result.monthBalance ?? 0,
-      status: 'APPROVED',
-      approvedByUserId: new Types.ObjectId(req.user!.userId),
-      approvedAt: new Date(),
-    },
-    { upsert: true, new: true }
+  const record = await persistRecord(
+    result,
+    { facultyId: fOid, month: Number(month), year: Number(year), periodType: { $ne: 'RANGE' } },
+    { periodType: 'MONTH', month: Number(month), year: Number(year) },
+    `${month}/${year}`,
+    faculty.name,
   )
-
-  await writeAuditLog({
-    category: 'HR', eventType: 'SALARY_APPROVED',
-    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
-    targetType: 'Faculty', targetId: String(facultyId), targetName: faculty.name,
-    facultyId, facultyName: faculty.name, amount: result.finalPayable ?? 0,
-    description: `Salary approved for ${month}/${year} — ₹${result.finalPayable?.toLocaleString('en-IN')}`,
-  })
 
   res.json({ success: true, record })
 })
@@ -212,6 +317,9 @@ export const getSalaryReports = asyncHandler(async (req: AuthRequest, res: Respo
       subject: fac?.subject ?? '',
       month: r.month,
       year: r.year,
+      periodType: r.periodType ?? 'MONTH',
+      periodStart: r.periodStart ?? null,
+      periodEnd: r.periodEnd ?? null,
       hoursLogged: r.hoursLogged,
       daysWorked: r.daysWorked,
       baseSalary: r.baseSalary,

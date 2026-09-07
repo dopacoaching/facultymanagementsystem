@@ -33,10 +33,10 @@ export function TimetableFilterBar({
           </select>
         </div>
         <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-ghost btn-sm"
+          <button type="button" className="btn btn-outline btn-sm"
             onClick={() => onDateChange(addDays(selectedDate, -1))}>‹ Prev</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => onDateChange(today)}>Today</button>
-          <button className="btn btn-ghost btn-sm"
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => onDateChange(today)}>Today</button>
+          <button type="button" className="btn btn-outline btn-sm"
             onClick={() => onDateChange(addDays(selectedDate, 1))}>Next ›</button>
         </div>
       </div>

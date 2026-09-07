@@ -104,6 +104,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
             {/* Hamburger — mobile only */}
             <button
+              type="button"
               className="hamburger-btn"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open menu"
@@ -117,6 +118,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
               {role?.replace(/_/g, ' ') ?? 'User'}
             </span>
             <button
+              type="button"
               onClick={toggleTheme}
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="theme-toggle"

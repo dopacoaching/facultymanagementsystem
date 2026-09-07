@@ -64,7 +64,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <div className="toast-title">{t.title}</div>
                 {t.message && <div className="toast-message">{t.message}</div>}
               </div>
-              <button className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss">×</button>
+              <button type="button" className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss">×</button>
             </div>
           ))}
         </div>

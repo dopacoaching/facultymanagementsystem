@@ -2,11 +2,24 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/faculty.service'
-import { calculate, approve, setPayableDays } from '@/services/salary.service'
+import { calculate, calculateRange, approve, approveRange, setPayableDays } from '@/services/salary.service'
 import type { Faculty, SalaryResult } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { MONTHS, printSalarySlip, SalaryControls, SalaryResultCard } from '@/components/hr/salary'
+
+/** Local YYYY-MM-DD for a Date. */
+function toISO(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/** "01 Oct 2026" from a YYYY-MM-DD string. */
+function fmtISO(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  if (!y || !m || !d) return iso
+  return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 export default function SalaryPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
@@ -16,6 +29,11 @@ export default function SalaryPage() {
   const [selectedId, setSelectedId] = useState('')
   const [month, setMonth]           = useState(new Date().getMonth() + 1)
   const [year, setYear]             = useState(new Date().getFullYear())
+  const [from, setFrom]             = useState(() => {
+    const now = new Date()
+    return toISO(new Date(now.getFullYear(), now.getMonth(), 1))
+  })
+  const [to, setTo]                 = useState(() => toISO(new Date()))
   const [result, setResult]         = useState<SalaryResult | null>(null)
   const [loading, setLoading]       = useState(false)
   const [approving, setApproving]   = useState(false)
@@ -30,11 +48,22 @@ export default function SalaryPage() {
     }).catch(console.error)
   }, [accessToken])
 
+  const selectedFaculty = faculty.find((f) => f._id === selectedId)
+  const isTemp = selectedFaculty?.type === 'TEMPORARY'
+  const mode: 'MONTH' | 'RANGE' = isTemp ? 'RANGE' : 'MONTH'
+  const periodLabel = mode === 'RANGE'
+    ? `${fmtISO(from)} – ${fmtISO(to)}`
+    : `${MONTHS[month - 1]} ${year}`
+
+  const reset = () => { setResult(null); setApproved(false) }
+
   async function handleCalculate() {
     if (!accessToken || !selectedId) return
     setLoading(true); setError(''); setResult(null); setApproved(false)
     try {
-      const res = await calculate(selectedId, month, year, accessToken)
+      const res = mode === 'RANGE'
+        ? await calculateRange(selectedId, from, to, accessToken)
+        : await calculate(selectedId, month, year, accessToken)
       setResult(res)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Calculation failed')
@@ -56,15 +85,18 @@ export default function SalaryPage() {
     if (!accessToken || !selectedId || !result) return
     setApproving(true); setError('')
     try {
-      await approve(selectedId, month, year, accessToken)
-      toast.success('Salary approved', `${selectedFaculty?.name ?? 'Faculty'} salary for ${MONTHS[month - 1]} ${year} has been recorded.`)
+      if (mode === 'RANGE') {
+        await approveRange(selectedId, from, to, accessToken)
+      } else {
+        await approve(selectedId, month, year, accessToken)
+      }
+      toast.success('Salary approved', `${selectedFaculty?.name ?? 'Faculty'} salary for ${periodLabel} has been recorded.`)
       setApproved(true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Approval failed')
     } finally { setApproving(false) }
   }
 
-  const selectedFaculty = faculty.find((f) => f._id === selectedId)
   const canApprove = result?.status === 'OK' || result?.status === 'HR_REVIEW'
 
   // Only HR_MANAGER and ADMIN may access salary data.
@@ -79,11 +111,16 @@ export default function SalaryPage() {
       <SalaryControls
         faculty={faculty}
         selectedId={selectedId}
-        onSelectFaculty={(id) => { setSelectedId(id); setResult(null); setApproved(false) }}
+        onSelectFaculty={(id) => { setSelectedId(id); reset() }}
+        mode={mode}
         month={month}
-        onMonthChange={(m) => { setMonth(m); setResult(null); setApproved(false) }}
+        onMonthChange={(m) => { setMonth(m); reset() }}
         year={year}
-        onYearChange={(y) => { setYear(y); setResult(null); setApproved(false) }}
+        onYearChange={(y) => { setYear(y); reset() }}
+        from={from}
+        to={to}
+        onFromChange={(v) => { setFrom(v); reset() }}
+        onToChange={(v) => { setTo(v); reset() }}
         loading={loading}
         onCalculate={handleCalculate}
       />
@@ -100,11 +137,12 @@ export default function SalaryPage() {
           selectedFaculty={selectedFaculty}
           month={month}
           year={year}
+          periodLabel={periodLabel}
           approved={approved}
           approving={approving}
           canApprove={canApprove}
           onApprove={handleApprove}
-          onPrint={() => selectedFaculty && printSalarySlip(selectedFaculty, month, year, result, setError)}
+          onPrint={() => selectedFaculty && printSalarySlip(selectedFaculty, month, year, result, setError, periodLabel)}
           savingPayableDays={savingPayableDays}
           onSavePayableDays={handleSavePayableDays}
         />

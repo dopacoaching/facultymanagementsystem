@@ -67,13 +67,15 @@ export function ChaptersTable({
                   <td style={{ textAlign: 'center' }}>
                     {canMarkClass && !ch.isStub ? (
                       <button
+                        type="button"
+                        aria-pressed={ch.facultyClassDone}
                         className={`btn btn-sm ${ch.facultyClassDone ? 'btn-success' : 'btn-outline'}`}
                         style={{ minWidth: 64, fontSize: '0.75rem' }}
                         disabled={!!saving[ch._id]}
                         onClick={() => onToggleFacultyClass(ch)}
                         title={ch.facultyClassDone ? 'Mark class as not done' : 'Mark class as done'}
                       >
-                        {ch.facultyClassDone ? '✓ Done' : 'Pending'}
+                        {ch.facultyClassDone ? 'Done' : 'Pending'}
                       </button>
                     ) : (
                       <span style={{ fontSize: '0.8125rem' }}>

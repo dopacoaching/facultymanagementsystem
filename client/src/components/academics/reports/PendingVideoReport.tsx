@@ -12,7 +12,7 @@ export function PendingVideoReport({ pendingVideoChapters, onExport }: PendingVi
       <div className="card-header">
         <h2>Pending Video Chapters ({pendingVideoChapters.length})</h2>
         {pendingVideoChapters.length > 0 && (
-          <button className="btn btn-outline btn-sm" onClick={onExport}>⬇ Export CSV</button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onExport}>Export CSV</button>
         )}
       </div>
       {pendingVideoChapters.length === 0 ? (

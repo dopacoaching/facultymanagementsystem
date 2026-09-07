@@ -227,7 +227,7 @@ export default function SessionsPage() {
             {filtered.length} of {sessions.length} session{sessions.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>+ New Session</button>
+        <button type="button" className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>+ New Session</button>
       </div>
 
       {/* Page-level error (table actions: mark complete, cancel) */}

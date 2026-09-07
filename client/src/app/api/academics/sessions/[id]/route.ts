@@ -26,7 +26,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json() as Record<string, unknown>
     const allowed = [
       'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
-      'scheduledTime', 'updatedByName', 'startTime', 'endTime', 'breakMinutes',
+      'scheduledTime', 'updatedByName', 'startTime', 'endTime',
+      'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
       'durationHours', 'sessionDate', 'timeSlot',
     ]
     const update: Record<string, unknown> = {}

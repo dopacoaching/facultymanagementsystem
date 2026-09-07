@@ -48,11 +48,12 @@ export function VideoCell({ row, canEdit, saving, onSave }: VideoCellProps) {
             )}
             {canEdit && !saving && (
               <button
+                type="button"
                 className="btn btn-ghost btn-sm"
                 style={{ fontSize: '0.7rem', padding: '1px 6px', lineHeight: 1.4 }}
                 onClick={() => { setVal(String(row.videosWatched)); setEditing(true); setTimeout(() => inputRef.current?.select(), 0) }}
               >
-                edit
+                Edit
               </button>
             )}
           </div>
@@ -78,8 +79,8 @@ export function VideoCell({ row, canEdit, saving, onSave }: VideoCellProps) {
           style={{ width: 48, padding: '2px 4px', fontSize: '0.8rem', textAlign: 'center', border: '1px solid var(--color-border)', borderRadius: 4 }}
         />
         <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>/{total}</span>
-        <button type="submit" className="btn btn-primary btn-sm" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>✓</button>
-        <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize: '0.7rem', padding: '2px 6px' }} onClick={() => setEditing(false)}>✕</button>
+        <button type="submit" className="btn btn-primary btn-sm" aria-label="Save videos watched" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>✓</button>
+        <button type="button" className="btn btn-ghost btn-sm" aria-label="Cancel edit" style={{ fontSize: '0.7rem', padding: '2px 6px' }} onClick={() => setEditing(false)}>✕</button>
       </form>
     </td>
   )

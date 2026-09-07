@@ -11,6 +11,8 @@ interface SalaryResultCardProps {
   selectedFaculty?: Faculty
   month: number
   year: number
+  /** Human label for the pay period. Falls back to "{Month} {year}" when omitted. */
+  periodLabel?: string
   approved: boolean
   approving: boolean
   canApprove: boolean
@@ -21,16 +23,17 @@ interface SalaryResultCardProps {
 }
 
 export function SalaryResultCard({
-  result, selectedFaculty, month, year, approved, approving, canApprove, onApprove, onPrint,
+  result, selectedFaculty, month, year, periodLabel, approved, approving, canApprove, onApprove, onPrint,
   savingPayableDays, onSavePayableDays,
 }: SalaryResultCardProps) {
+  const period = periodLabel ?? `${MONTHS[month - 1]} ${year}`
   return (
     <div className="card">
       <div className="card-header">
         <div>
           <h2 style={{ margin: 0 }}>{selectedFaculty?.name}</h2>
           <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: '0.2rem' }}>
-            {MONTHS[month - 1]} {year} · {selectedFaculty?.subject}
+            {period} · {selectedFaculty?.subject}
           </div>
         </div>
         <span className={`badge ${statusBadge(result.status)}`} style={{ fontSize: '0.8rem' }}>
@@ -104,7 +107,7 @@ export function SalaryResultCard({
                   ₹{result.netPayable?.toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.2rem' }}>
-                  {MONTHS[month - 1]} {year}
+                  {period}
                 </div>
               </div>
             </div>
@@ -114,27 +117,29 @@ export function SalaryResultCard({
             {approved ? (
               <div className="alert alert-success" style={{ flex: 1, margin: 0 }}>
                 <span className="alert-icon">✅</span>
-                Salary approved and recorded for {MONTHS[month - 1]} {year}.
+                Salary approved and recorded for {period}.
               </div>
             ) : (
               <button
+                type="button"
                 className="btn btn-success"
                 onClick={onApprove}
                 disabled={approving || !canApprove}
                 style={{ flex: 1 }}
               >
                 {approving ? (
-                  <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Approving…</>
-                ) : '✓ Approve & Record Salary'}
+                  <><span className="spinner" /> Approving…</>
+                ) : 'Approve & Record Salary'}
               </button>
             )}
             {selectedFaculty && (
               <button
-                className="btn btn-ghost"
+                type="button"
+                className="btn btn-outline"
                 onClick={onPrint}
                 title="Open printable salary slip in new window"
               >
-                🖨 Print Slip
+                Print Slip
               </button>
             )}
           </div>

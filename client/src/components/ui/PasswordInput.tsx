@@ -77,7 +77,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             ref={ref}
             type={show ? 'text' : 'password'}
             className={`input ${className ?? ''}`}
-            style={{ paddingRight: '2.75rem', ...style }}
+            style={{ paddingRight: '3.75rem', ...style }}
             value={value ?? ''}
             onChange={handleChange}
           />
@@ -88,12 +88,12 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             style={{
               position: 'absolute', right: '0.625rem', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--color-muted)', fontSize: '1rem', padding: '0.25rem',
+              color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem',
               lineHeight: 1,
             }}
             aria-label={show ? 'Hide password' : 'Show password'}
           >
-            {show ? '🙈' : '👁'}
+            {show ? 'Hide' : 'Show'}
           </button>
         </div>
 

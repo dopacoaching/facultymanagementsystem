@@ -52,21 +52,21 @@ router.patch('/sessions/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMI
 // FACULTY included: the My Sessions page shows published weekly schedules.
 router.get('/schedules', authorize('CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), getSchedules)
 router.get('/schedule',  authorize('CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), getSchedules)
-router.post('/schedules', authorize('ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
-router.post('/schedule', authorize('ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
+router.post('/schedules', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
+router.post('/schedule', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), createOrUpdateSchedule)
 
-// Exam topic update (PATCH — ACADEMICS_MANAGER / ADMIN only)
-router.patch('/schedules/:id/exam-topic', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateExamTopic)
+// Exam topic update (PATCH — ACADEMICS_MANAGER / IG_ACADEMICS_MANAGER / ADMIN)
+router.patch('/schedules/:id/exam-topic', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateExamTopic)
 
 // Publish
-router.post('/schedules/:id/publish', authorize('ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), publishSchedule)
-router.post('/schedule/publish', authorize('ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), publishSchedule)
+router.post('/schedules/:id/publish', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), publishSchedule)
+router.post('/schedule/publish', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), publishSchedule)
 
 // Revise (create revised draft from a published schedule)
-router.post('/schedules/:id/revise', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), reviseSchedule)
+router.post('/schedules/:id/revise', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), reviseSchedule)
 
 // Delete (unpublished drafts/revisions only)
-router.delete('/schedules/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), deleteSchedule)
+router.delete('/schedules/:id', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), deleteSchedule)
 
 // ── Exam topic suggestion ─────────────────────────────────────────────────────
 router.get('/exams/suggest', authorize('CLASS_TEACHER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), suggestTopic)

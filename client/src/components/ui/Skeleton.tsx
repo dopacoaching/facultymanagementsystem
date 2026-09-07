@@ -157,8 +157,8 @@ export function ErrorAlert({ message, what, onRetry }: ErrorAlertProps) {
       </div>
       {onRetry && (
         <div style={{ paddingLeft: '1.625rem' }}>
-          <button className="btn btn-ghost btn-sm" onClick={onRetry} style={{ marginTop: '0.25rem' }}>
-            ↻ Retry
+          <button type="button" className="btn btn-outline btn-sm" onClick={onRetry} style={{ marginTop: '0.25rem' }}>
+            Retry
           </button>
         </div>
       )}
@@ -195,6 +195,7 @@ export function EmptyState({ title, description, action, children }: EmptyStateP
       {description && <p>{description}</p>}
       {action && (
         <button
+          type="button"
           className="btn btn-primary btn-sm"
           onClick={action.onClick}
           style={{ marginTop: '1rem' }}

@@ -83,14 +83,15 @@ const WeeklyScheduleSchema = new Schema<IWeeklySchedule>(
   { timestamps: true }
 )
 
+// Schedule week runs Tuesday → Monday.
 const DAY_OFFSETS: Record<string, number> = {
-  SATURDAY: 0,
-  SUNDAY: 1,
-  MONDAY: 2,
-  TUESDAY: 3,
-  WEDNESDAY: 4,
-  THURSDAY: 5,
-  FRIDAY: 6,
+  TUESDAY: 0,
+  WEDNESDAY: 1,
+  THURSDAY: 2,
+  FRIDAY: 3,
+  SATURDAY: 4,
+  SUNDAY: 5,
+  MONDAY: 6,
 }
 
 WeeklyScheduleSchema.pre('validate', function (this: IWeeklySchedule) {

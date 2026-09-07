@@ -37,7 +37,7 @@ export function UsersFilterBar({ search, onSearchChange, role, onRoleChange, onC
 
         {/* Clear */}
         {hasFilters && (
-          <button className="btn btn-ghost btn-sm" onClick={onClear}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
             Clear filters
           </button>
         )}

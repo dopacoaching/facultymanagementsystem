@@ -95,16 +95,17 @@ export function AvailabilityEntriesCard({
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button
+                        type="button"
                         className="btn btn-ghost btn-sm"
                         onClick={() => onStartEdit(entry)}
-                        style={{ marginRight: '0.375rem', fontSize: '0.75rem' }}
+                        style={{ marginRight: '0.375rem' }}
                       >
                         Edit
                       </button>
                       <button
-                        className="btn btn-ghost btn-sm"
+                        type="button"
+                        className="btn btn-danger-ghost btn-sm"
                         onClick={() => onDelete(entry._id)}
-                        style={{ fontSize: '0.75rem', color: 'var(--color-danger)' }}
                       >
                         Remove
                       </button>
@@ -145,10 +146,10 @@ export function AvailabilityEntriesCard({
                             <div style={{ width: '100%', color: 'var(--color-danger)', fontSize: '0.8125rem' }}>{editError}</div>
                           )}
                           <div style={{ display: 'flex', gap: '0.5rem', alignSelf: 'flex-end' }}>
-                            <button className="btn btn-primary btn-sm" onClick={onSaveEdit} disabled={editSaving} style={{ fontSize: '0.8125rem' }}>
+                            <button type="button" className="btn btn-primary btn-sm" onClick={onSaveEdit} disabled={editSaving}>
                               {editSaving ? 'Saving…' : 'Save'}
                             </button>
-                            <button className="btn btn-ghost btn-sm" onClick={onCancelEdit} style={{ fontSize: '0.8125rem' }}>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancelEdit}>
                               Cancel
                             </button>
                           </div>

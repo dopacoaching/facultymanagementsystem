@@ -6,7 +6,8 @@ import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import { getCampuses } from '@/services/campus.service'
 import { create as createIGSession } from '@/services/ig-session.service'
 import { IG_TEACHERS } from '@/lib/constants/igTeachers'
-import { computeDuration, TimeRangeFields, SubjectField, ChapterField, SUBJECT_OPTIONS } from '@/components/coordinator/log-session'
+import { computeDuration, emptyBreaks, TimeRangeFields, SubjectField, ChapterField, SUBJECT_OPTIONS } from '@/components/coordinator/log-session'
+import type { BreaksInput } from '@/components/coordinator/log-session'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import type { Campus } from '@/services/campus.service'
@@ -24,8 +25,7 @@ interface FormState {
   scheduledTime: string
   startTime: string
   endTime: string
-  noBreak: boolean
-  breakMinutes: string
+  breaks: BreaksInput
   updatedByName: string
   sessionDate: string
 }
@@ -39,8 +39,7 @@ const EMPTY_FORM = (): FormState => ({
   scheduledTime: '',
   startTime:     '',
   endTime:       '',
-  noBreak:       false,
-  breakMinutes:  '',
+  breaks:        emptyBreaks(),
   updatedByName: '',
   sessionDate:   todayLocal(),
 })
@@ -61,8 +60,8 @@ export default function IGLogSessionPage() {
   const campus = campuses.find((c) => c._id === coordinatorCampusId)
   const teacherNames = coordinatorCampusId ? (IG_TEACHERS[coordinatorCampusId] ?? []) : []
   const duration = useMemo(
-    () => computeDuration(form.startTime, form.endTime, form.noBreak, form.breakMinutes),
-    [form.startTime, form.endTime, form.noBreak, form.breakMinutes]
+    () => computeDuration(form.startTime, form.endTime, form.breaks),
+    [form.startTime, form.endTime, form.breaks]
   )
 
   useEffect(() => {
@@ -95,6 +94,7 @@ export default function IGLogSessionPage() {
   }
 
   async function handleSubmit() {
+    if (saving || success) return
     setError('')
     if (!coordinatorCampusId) { setError('Your account is not linked to a campus'); return }
     if (!form.batchId)          { setError('Select the batch'); return }
@@ -117,7 +117,9 @@ export default function IGLogSessionPage() {
         scheduledTime: form.scheduledTime || undefined,
         startTime:     form.startTime,
         endTime:       form.endTime,
-        breakMinutes:  duration.breakMinutes,
+        breakMinutes:          duration.morningBreak,
+        lunchBreakMinutes:     duration.lunchBreak,
+        afternoonBreakMinutes: duration.afternoonBreak,
         updatedByName: form.updatedByName,
         durationHours: duration.hours,
         sessionDate:   form.sessionDate,
@@ -157,7 +159,7 @@ export default function IGLogSessionPage() {
 
         {success && (
           <div className="alert alert-success" style={{ marginBottom: '1.5rem' }}>
-            <span className="alert-icon">✅</span>
+            <span className="alert-icon">✓</span>
             Session logged successfully! The form has been reset.
           </div>
         )}
@@ -168,7 +170,10 @@ export default function IGLogSessionPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
 
           <div className="form-group">
             <label className="label">Campus</label>
@@ -246,10 +251,8 @@ export default function IGLogSessionPage() {
             onStartTimeChange={(v) => setField('startTime', v)}
             endTime={form.endTime}
             onEndTimeChange={(v) => setField('endTime', v)}
-            noBreak={form.noBreak}
-            onNoBreakChange={(v) => setField('noBreak', v)}
-            breakMinutes={form.breakMinutes}
-            onBreakMinutesChange={(v) => setField('breakMinutes', v)}
+            breaks={form.breaks}
+            onBreaksChange={(b) => setField('breaks', b)}
             sessionDate={form.sessionDate}
             onSessionDateChange={(v) => setField('sessionDate', v)}
             duration={duration}
@@ -269,10 +272,9 @@ export default function IGLogSessionPage() {
             </select>
           </div>
 
-        </div>
-
         <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
           <button
+            type="button"
             className="btn btn-ghost"
             onClick={() => { setForm((f) => ({ ...EMPTY_FORM(), batchId: f.batchId })); setError('') }}
             disabled={saving}
@@ -280,15 +282,17 @@ export default function IGLogSessionPage() {
             Reset
           </button>
           <button
+            type="submit"
             className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={saving}
+            disabled={saving || success}
           >
             {saving
               ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</>
-              : '✓ Submit Session'}
+              : 'Submit Session'}
           </button>
         </div>
+
+        </form>
 
       </div>
 

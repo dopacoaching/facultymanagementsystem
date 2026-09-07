@@ -25,7 +25,7 @@ export function ExamTopicCard({ schedule: s, topic: t, canEdit, saving, onFieldC
               {s.isPublished ? '✓ Published' : 'Draft'}
             </span>
             {hasTopics && (
-              <span className="badge badge-orange" style={{ fontSize: '0.7rem' }}>📝 Topics set</span>
+              <span className="badge badge-orange" style={{ fontSize: '0.7rem' }}>Topics set</span>
             )}
           </div>
         </div>
@@ -54,6 +54,7 @@ export function ExamTopicCard({ schedule: s, topic: t, canEdit, saving, onFieldC
             />
           </div>
           <button
+            type="button"
             className="btn btn-outline btn-sm"
             disabled={saving}
             onClick={onSave}
@@ -61,7 +62,7 @@ export function ExamTopicCard({ schedule: s, topic: t, canEdit, saving, onFieldC
           >
             {saving
               ? <><span className="spinner" style={{ width: '0.8rem', height: '0.8rem' }} /> Saving…</>
-              : '💾 Save Topics'}
+              : 'Save Topics'}
           </button>
         </div>
       ) : (

@@ -50,7 +50,7 @@ export function SessionFilterBar({
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
         {hasActiveFilter && (
-          <button className="btn btn-ghost btn-sm" onClick={onClear}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
             Clear
           </button>
         )}

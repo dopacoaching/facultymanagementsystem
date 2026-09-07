@@ -33,7 +33,7 @@ export function ChaptersFilterBar({
           </select>
         </div>
         {subjectFilter && (
-          <button className="btn btn-ghost btn-sm" onClick={() => onSubjectChange('')}>Clear</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => onSubjectChange('')}>Clear</button>
         )}
       </div>
     </div>

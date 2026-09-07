@@ -46,42 +46,43 @@ export function ScheduleCard({
             <>
               {canEdit && (
                 <button
-                  className="btn btn-outline btn-sm"
+                  type="button"
+                  className="btn btn-outline-primary btn-sm"
                   onClick={() => onEditDraft(s)}
-                  style={{ color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }}
                 >
-                  ✏ Edit Draft
+                  Edit Draft
                 </button>
               )}
               {canPublish && (
                 <button
+                  type="button"
                   className="btn btn-primary btn-sm"
                   disabled={publishing === s._id}
                   onClick={() => onPublish(s._id)}
                 >
-                  {publishing === s._id ? 'Publishing…' : '📢 Publish'}
+                  {publishing === s._id ? 'Publishing…' : 'Publish'}
                 </button>
               )}
               {canEdit && (
                 <button
-                  className="btn btn-ghost btn-sm"
+                  type="button"
+                  className="btn btn-danger-ghost btn-sm"
                   disabled={deleting === s._id}
                   onClick={() => onDeleteDraft(s._id)}
-                  style={{ color: 'var(--color-danger)' }}
                 >
-                  {deleting === s._id ? 'Discarding…' : '✕ Discard'}
+                  {deleting === s._id ? 'Discarding…' : 'Discard'}
                 </button>
               )}
             </>
           )}
           {s.isPublished && canRevise && (
             <button
-              className="btn btn-outline btn-sm"
+              type="button"
+              className="btn btn-outline-warning btn-sm"
               disabled={revising === s._id}
               onClick={() => onRevise(s._id)}
-              style={{ color: 'var(--color-warning)', borderColor: 'var(--color-warning)' }}
             >
-              {revising === s._id ? 'Creating…' : '✏ Revise'}
+              {revising === s._id ? 'Creating…' : 'Revise'}
             </button>
           )}
         </div>

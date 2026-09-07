@@ -108,10 +108,11 @@ export default function PWAInstall() {
   return (
     <>
       <div className="pwa-install-bar" role="complementary" aria-label="Install app">
-        <button className="pwa-install-btn" onClick={handleInstall}>
-          <span aria-hidden="true">⬇</span> Install app
+        <button type="button" className="pwa-install-btn" onClick={handleInstall}>
+          Install app
         </button>
         <button
+          type="button"
           className="pwa-install-dismiss"
           onClick={handleDismiss}
           aria-label="Dismiss install prompt"
@@ -133,7 +134,7 @@ export default function PWAInstall() {
               <li>Scroll and tap <strong>Add to Home Screen</strong></li>
               <li>Tap <strong>Add</strong> in the top corner</li>
             </ol>
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowIosSheet(false)}>
+            <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowIosSheet(false)}>
               Got it
             </button>
           </div>

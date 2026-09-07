@@ -1,4 +1,5 @@
 import type { Session } from '@/types'
+import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditClassSessionForm {
   subject: string
@@ -7,8 +8,7 @@ export interface EditClassSessionForm {
   updatedByName: string
   startTime: string
   endTime: string
-  noBreak: boolean
-  breakMinutes: string
+  breaks: BreaksInput
   sessionDate: string
 }
 
@@ -20,12 +20,8 @@ export function formFromSession(s: Session): EditClassSessionForm {
     updatedByName: s.updatedByName ?? '',
     startTime:     s.startTime ?? '',
     endTime:       s.endTime ?? '',
-    // A session with breakMinutes recorded as exactly 0 means "Nil" was
-    // explicitly chosen when it was logged; anything else (including no
-    // value recorded) needs the manager to make that choice again here —
-    // never assumed silently.
-    noBreak:       s.breakMinutes === 0,
-    breakMinutes:  s.breakMinutes ? String(s.breakMinutes) : '',
+    // 0 / absent ⇒ Nil row; the manager re-confirms any real value here.
+    breaks:        breaksFromMinutes(s.breakMinutes, s.lunchBreakMinutes, s.afternoonBreakMinutes),
     sessionDate:   s.sessionDate.slice(0, 10),
   }
 }
@@ -52,15 +48,16 @@ export function EditClassSessionModal({
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Edit Class Session"
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+      className="modal-backdrop"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
     >
-      <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 580, border: '1px solid var(--color-border)' }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontWeight: 700, margin: 0 }}>Edit Class Session</h2>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
+      <div className="modal-panel modal-md">
+        <div className="modal-header">
+          <h2>Edit Class Session</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
         </div>
-        <div style={{ padding: '1.5rem' }}>
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
+        <div className="modal-body">
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           <div className="input-group-3">
             <div className="form-group">
@@ -96,37 +93,16 @@ export function EditClassSessionModal({
               <label className="label">End Time</label>
               <input type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
             </div>
-            <div className="form-group">
-              <label className="label">Break</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input
-                  type="number"
-                  className="input"
-                  min={0}
-                  value={form.breakMinutes}
-                  disabled={form.noBreak}
-                  placeholder="Minutes"
-                  style={{ opacity: form.noBreak ? 0.5 : 1 }}
-                  onChange={(e) => setForm((f) => ({ ...f, breakMinutes: e.target.value }))}
-                />
-                <button
-                  type="button"
-                  className={`btn ${form.noBreak ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setForm((f) => ({ ...f, noBreak: !f.noBreak, breakMinutes: !f.noBreak ? '' : f.breakMinutes }))}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  Nil
-                </button>
-              </div>
-            </div>
           </div>
+          <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} />
         </div>
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={onSubmit} disabled={saving}>
-            {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Save Changes'}
+        <div className="modal-footer">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? <><span className="spinner" /> Saving…</> : 'Save Changes'}
           </button>
         </div>
+        </form>
       </div>
     </div>
   )

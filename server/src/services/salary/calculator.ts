@@ -1012,7 +1012,24 @@ export async function calculateMonthlySalary(
     }
   }
 
-  // 7. Merge with common fields and determine final status
+  // 7. Merge with common fields, resolve status, apply TDS
+  return finalizeSalaryResult(partial, hoursLogged, daysWorked)
+}
+
+// ─── Shared result finaliser ──────────────────────────────────────────────────
+
+/**
+ * Resolve the final payroll status from alert levels and apply the flat 10% TDS
+ * (Tax Deducted at Source), pushing the TDS / Net Payable breakdown rows. Shared
+ * by calculateMonthlySalary and calculateRangeSalary so the tax logic lives in
+ * exactly one place. TDS is only computed when a handler actually produced a
+ * finalPayable (BLOCKED / PENDING_CONFIG paths have none).
+ */
+function finalizeSalaryResult(
+  partial: Partial<SalaryResult>,
+  hoursLogged: number,
+  daysWorked: number,
+): SalaryResult {
   const alerts = partial.alerts ?? []
   const hasBlock = alerts.some((a) => a.level === 'BLOCK')
   const hasWarning = alerts.some((a) => a.level === 'WARNING')
@@ -1020,10 +1037,6 @@ export async function calculateMonthlySalary(
   const status = partial.status
     ?? (hasBlock ? 'BLOCKED' : hasWarning ? 'HR_REVIEW' : 'OK')
 
-  // TDS (Tax Deducted at Source) — flat 10% of the gross payable amount, applied
-  // once here for every contract type rather than duplicated per handler. Only
-  // computed when a handler actually produced a finalPayable (BLOCKED /
-  // PENDING_CONFIG paths return before this point without one).
   const breakdown = partial.breakdown ?? []
   let tds: number | undefined
   let netPayable: number | undefined
@@ -1053,6 +1066,110 @@ export async function calculateMonthlySalary(
     carryForward: partial.carryForward,
     needsPayableDays: partial.needsPayableDays,
   }
+}
+
+// ─── Date-range entry point (TEMPORARY faculty only) ──────────────────────────
+
+/** Parse a 'YYYY-MM-DD' string into a local Date at midnight, or null if malformed. */
+function parseLocalDate(iso: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '')
+  if (!m) return null
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3])
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null
+  const dt = new Date(y, mo - 1, d)
+  return isNaN(dt.getTime()) ? null : dt
+}
+
+/**
+ * Salary for an arbitrary [fromISO, toISO] date window (inclusive of both ends),
+ * used for TEMPORARY faculty who are paid by the week rather than by calendar
+ * month. Pure hourly: hours logged in the window × Faculty.hourlyRate, then the
+ * shared flat 10% TDS. No carry-forward / leave / payable-days / contract
+ * dispatch — none of those apply to temporary staff.
+ *
+ * fromISO / toISO are 'YYYY-MM-DD' (local calendar days). A range may span
+ * calendar months.
+ */
+export async function calculateRangeSalary(
+  facultyId: string,
+  fromISO: string,
+  toISO: string,
+): Promise<SalaryResult> {
+  const from = parseLocalDate(fromISO)
+  const to = parseLocalDate(toISO)
+  if (!from || !to) {
+    return { status: 'BLOCKED', reason: 'Invalid date range', alerts: [], breakdown: [] }
+  }
+  if (from.getTime() > to.getTime()) {
+    return { status: 'BLOCKED', reason: 'From date must be on or before To date', alerts: [], breakdown: [] }
+  }
+  // Include the whole To day.
+  const endExclusive = new Date(to.getFullYear(), to.getMonth(), to.getDate() + 1)
+
+  const faculty = await Faculty.findById(facultyId)
+  if (!faculty) {
+    return { status: 'BLOCKED', reason: 'Faculty not found', alerts: [], breakdown: [] }
+  }
+  if (faculty.type !== 'TEMPORARY') {
+    return {
+      status: 'BLOCKED',
+      reason: 'Date-range salary applies to temporary faculty only. Use the monthly calculator for this faculty.',
+      alerts: [],
+      breakdown: [],
+    }
+  }
+
+  const fId = new Types.ObjectId(facultyId)
+  const [sessions, cancellations] = await Promise.all([
+    Session.find({ facultyId: fId, sessionDate: { $gte: from, $lt: endExclusive }, status: 'COMPLETED' }),
+    Session.find({ facultyId: fId, sessionDate: { $gte: from, $lt: endExclusive }, status: 'CANCELLED' }),
+  ])
+
+  // Same cancellation gate as the monthly path — a blank initiator blocks payroll.
+  const blankInitiator = cancellations.some((c) => !c.cancellationInitiator)
+  if (blankInitiator) {
+    return {
+      status: 'BLOCKED',
+      reason: 'One or more cancelled sessions are missing a cancellation initiator. Payroll blocked until resolved.',
+      alerts: [{
+        level: 'BLOCK',
+        code: 'MISSING_CANCELLATION_INITIATOR',
+        message: 'Assign a cancellation initiator (FACULTY / MANAGEMENT / STUDENT) to all cancelled sessions.',
+      }],
+      breakdown: [],
+    }
+  }
+
+  const hoursLogged = sessions.reduce((s, r) => s + r.durationHours, 0)
+  const daysWorked = new Set(sessions.map((s) => s.sessionDate.toDateString())).size
+
+  const rate = faculty.hourlyRate
+  if (rate == null) {
+    return finalizeSalaryResult({
+      status: 'PENDING_CONFIG',
+      reason: `Hourly rate has not been set for this faculty yet. HR must add it before payroll can be calculated. Hours already logged (${hoursLogged}h) are preserved and will be paid once the rate is entered.`,
+      alerts: [{
+        level: 'BLOCK',
+        code: 'HOURLY_RATE_NOT_SET',
+        message: 'HR must set an hourly rate for this faculty before payroll can be generated.',
+      }],
+      breakdown: [{ label: 'Hours Logged', amount: hoursLogged }],
+    }, hoursLogged, daysWorked)
+  }
+
+  const baseSalary = hoursLogged * rate
+  const breakdown: SalaryBreakdown[] = [
+    { label: 'Hours Logged', amount: hoursLogged },
+    { label: 'Rate per Hour', amount: rate },
+    { label: 'Total Pay', amount: baseSalary },
+  ]
+
+  return finalizeSalaryResult({
+    baseSalary,
+    finalPayable: baseSalary,
+    breakdown,
+    alerts: [],
+  }, hoursLogged, daysWorked)
 }
 
 // ─── Legacy fallback (faculty without a PermanentFacultyContract) ──────────────

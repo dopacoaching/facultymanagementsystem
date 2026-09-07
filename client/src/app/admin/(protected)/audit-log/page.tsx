@@ -59,8 +59,8 @@ export default function AdminAuditLogPage() {
             {total.toLocaleString('en-IN')} event{total !== 1 ? 's' : ''} recorded
           </p>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-          {loading ? <><span className="spinner" style={{ width: 12, height: 12, marginRight: 4 }} />Loading…</> : '↻ Refresh'}
+        <button type="button" className="btn btn-outline btn-sm" onClick={load} disabled={loading}>
+          {loading ? <><span className="spinner" style={{ width: 12, height: 12, marginRight: 4 }} />Loading…</> : 'Refresh'}
         </button>
       </div>
 

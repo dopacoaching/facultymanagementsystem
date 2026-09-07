@@ -50,7 +50,8 @@ export function AddDatesCard({
           />
         </div>
         <button
-          className="btn btn-ghost"
+          type="button"
+          className="btn btn-outline"
           onClick={onAddToStaging}
           disabled={!pendingDate}
           style={{ alignSelf: 'flex-end' }}
@@ -75,8 +76,10 @@ export function AddDatesCard({
               }}>
                 {fmtDate(d + 'T00:00:00')}
                 <button
+                  type="button"
+                  aria-label={`Remove ${fmtDate(d + 'T00:00:00')} from list`}
                   onClick={() => onRemoveStaged(d)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', opacity: 0.6, fontSize: '0.9rem', lineHeight: 1 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0.1rem', color: 'inherit', opacity: 0.6, fontSize: '0.95rem', lineHeight: 1 }}
                 >×</button>
               </span>
             ))}
@@ -86,8 +89,8 @@ export function AddDatesCard({
               <ErrorAlert message={saveError} />
             </div>
           )}
-          <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-            {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : `Save ${stagingDates.length} date${stagingDates.length !== 1 ? 's' : ''}`}
+          <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
+            {saving ? <><span className="spinner" /> Saving…</> : `Save ${stagingDates.length} date${stagingDates.length !== 1 ? 's' : ''}`}
           </button>
         </div>
       )}

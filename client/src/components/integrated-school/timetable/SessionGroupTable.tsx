@@ -69,13 +69,13 @@ export function SessionGroupTable({
                       <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'nowrap' }}>
                         {slot.status === 'PLANNED' && (
                           <>
-                            <button className="btn btn-success btn-sm" title="Mark Completed"
+                            <button type="button" className="btn btn-success btn-sm" title="Mark completed" aria-label="Mark completed"
                               onClick={() => onMarkStatus(slot._id, 'COMPLETED')}>✓</button>
-                            <button className="btn btn-danger btn-sm" title="Cancel"
+                            <button type="button" className="btn btn-danger btn-sm" title="Cancel" aria-label="Cancel session"
                               onClick={() => onMarkStatus(slot._id, 'CANCELLED')}>✕</button>
                             {canDelete && (
-                              <button className="btn btn-ghost btn-sm" title="Delete"
-                                onClick={() => onDelete(slot._id)}>🗑</button>
+                              <button type="button" className="btn btn-danger-ghost btn-sm"
+                                onClick={() => onDelete(slot._id)}>Delete</button>
                             )}
                           </>
                         )}

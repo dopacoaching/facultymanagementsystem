@@ -23,8 +23,8 @@ export function ReportsFilterBar({ month, onMonthChange, year, onYearChange, loa
           <label className="label">Year</label>
           <input type="number" className="input" value={year} onChange={(e) => onYearChange(+e.target.value)} style={{ width: 100 }} />
         </div>
-        <button className="btn btn-ghost" onClick={onRefresh} disabled={loading} style={{ alignSelf: 'flex-end' }}>
-          {loading ? <><span className="spinner" /> Loading…</> : '↻ Refresh'}
+        <button type="button" className="btn btn-outline" onClick={onRefresh} disabled={loading} style={{ alignSelf: 'flex-end' }}>
+          {loading ? <><span className="spinner" /> Loading…</> : 'Refresh'}
         </button>
       </div>
     </div>

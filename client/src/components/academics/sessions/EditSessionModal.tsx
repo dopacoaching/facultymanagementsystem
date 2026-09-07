@@ -20,15 +20,16 @@ export function EditSessionModal({
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Edit Session"
-      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
+      className="modal-backdrop"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
     >
-      <div style={{ background: 'var(--color-surface)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 580, border: '1px solid var(--color-border)' }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontWeight: 700, margin: 0 }}>Edit Session</h2>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', lineHeight: 1 }}>×</button>
+      <div className="modal-panel modal-md">
+        <div className="modal-header">
+          <h2>Edit Session</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
         </div>
-        <div style={{ padding: '1.5rem' }}>
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
+        <div className="modal-body">
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           <div className="input-group-3">
             <div className="form-group">
@@ -65,12 +66,13 @@ export function EditSessionModal({
             </div>
           </div>
         </div>
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={onSubmit} disabled={saving}>
-            {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Save Changes'}
+        <div className="modal-footer">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? <><span className="spinner" /> Saving…</> : 'Save Changes'}
           </button>
         </div>
+        </form>
       </div>
     </div>
   )

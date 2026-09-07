@@ -23,7 +23,8 @@ export function SpecialDaysBanner({ specialDays, canDelete, onDelete }: SpecialD
             {sd.notes ? ` — ${sd.notes}` : ''}
           </span>
           {canDelete && (
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', lineHeight: 1 }}
+            <button type="button" aria-label={`Remove special day: ${sd.type.replace(/_/g, ' ')}`}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', lineHeight: 1, fontSize: '1.05rem', padding: '0 0.15rem' }}
               onClick={() => onDelete(sd._id)}>×</button>
           )}
         </div>

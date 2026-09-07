@@ -1,5 +1,5 @@
 import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
-import { MONTHS } from './types'
+import { MONTHS, periodText } from './types'
 import type { ReportRow } from './types'
 
 interface ReportsTableProps {
@@ -38,7 +38,7 @@ export function ReportsTable({ loading, rows, total, month, year }: ReportsTable
                 <tr key={i}>
                   <td style={{ fontWeight: 600 }}>{r.name}</td>
                   <td style={{ color: 'var(--color-text-secondary)' }}>{r.subject}</td>
-                  <td style={{ color: 'var(--color-text-secondary)' }}>{MONTHS[r.month - 1]} {r.year}</td>
+                  <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>{periodText(r)}</td>
                   <td style={{ fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                     ₹{r.finalPayable?.toLocaleString('en-IN')}
                   </td>

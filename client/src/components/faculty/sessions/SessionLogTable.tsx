@@ -25,13 +25,9 @@ export function SessionLogTable({ sessions, filtered, filter, onFilterChange }: 
         {filterOptions.map(({ key, label }) => (
           <button
             key={key}
-            className="btn btn-sm"
-            style={{
-              background:  filter === key ? 'var(--color-primary)' : 'transparent',
-              color:       filter === key ? '#fff' : 'var(--color-text-secondary)',
-              border:      `1.5px solid ${filter === key ? 'var(--color-primary)' : 'var(--color-border)'}`,
-              boxShadow:   filter === key ? '0 2px 8px rgba(13,148,136,.25)' : 'none',
-            }}
+            type="button"
+            aria-pressed={filter === key}
+            className={`btn btn-sm ${filter === key ? 'btn-primary' : 'btn-outline'}`}
             onClick={() => onFilterChange(key)}
           >
             {label}

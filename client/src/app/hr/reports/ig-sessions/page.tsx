@@ -27,6 +27,14 @@ function formatHM(durationHours: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+/** Compact "morning / lunch / afternoon" break summary for the report table. */
+function breakSummary(s: Session): string {
+  const parts = [s.breakMinutes, s.lunchBreakMinutes, s.afternoonBreakMinutes]
+  if (parts.every((p) => p == null)) return '—'
+  if (parts.every((p) => p == null || p === 0)) return 'Nil'
+  return parts.map((p) => (p ? String(p) : '·')).join(' / ') + 'm'
+}
+
 export default function IGClassSessionsPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
@@ -54,7 +62,7 @@ export default function IGClassSessionsPage() {
 
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
-    const duration = computeDuration(editForm.startTime, editForm.endTime, editForm.noBreak, editForm.breakMinutes)
+    const duration = computeDuration(editForm.startTime, editForm.endTime, editForm.breaks)
     if (duration.error) { setEditError(duration.error); return }
     if (!editForm.timeSlot) { setEditError('Select the session slot'); return }
 
@@ -67,7 +75,9 @@ export default function IGClassSessionsPage() {
         updatedByName: editForm.updatedByName.trim() || undefined,
         startTime:     editForm.startTime,
         endTime:       editForm.endTime,
-        breakMinutes:  duration.breakMinutes,
+        breakMinutes:          duration.morningBreak,
+        lunchBreakMinutes:     duration.lunchBreak,
+        afternoonBreakMinutes: duration.afternoonBreak,
         durationHours: duration.hours,
         sessionDate:   editForm.sessionDate,
       }, accessToken)
@@ -177,8 +187,8 @@ export default function IGClassSessionsPage() {
                       <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                         {formatHM(s.durationHours)}
                       </td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {s.breakMinutes == null ? '—' : s.breakMinutes === 0 ? 'Nil' : `${s.breakMinutes}m`}
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                        {breakSummary(s)}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
                       <td>
@@ -188,7 +198,7 @@ export default function IGClassSessionsPage() {
                         <td>
                           {!isCancelled && (
                             <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-                              <button className="btn btn-ghost btn-sm" onClick={() => openEdit(s)}>Edit</button>
+                              <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>Edit</button>
                               <select
                                 className="input input-sm"
                                 value={cancelInitiator[s._id] ?? ''}
@@ -201,7 +211,8 @@ export default function IGClassSessionsPage() {
                                 <option value="STUDENT">Student</option>
                               </select>
                               <button
-                                className="btn btn-ghost btn-sm"
+                                type="button"
+                                className="btn btn-danger-ghost btn-sm"
                                 disabled={cancelling === s._id}
                                 onClick={() => handleCancel(s._id)}
                               >

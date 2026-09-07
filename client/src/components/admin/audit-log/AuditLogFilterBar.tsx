@@ -56,7 +56,7 @@ export function AuditLogFilterBar({
 
         {/* Clear */}
         {hasFilters && (
-          <button className="btn btn-ghost btn-sm" onClick={onClear}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
             Clear filters
           </button>
         )}

@@ -24,7 +24,7 @@ export function FacultyActivityReport({ sessions, facultyActivity, actMonth, act
       <div className="card-header">
         <h2>Faculty Activity — {MONTHS[actMonth - 1]} {actYear}</h2>
         {facultyActivity.length > 0 && (
-          <button className="btn btn-outline btn-sm" onClick={onExport}>⬇ Export CSV</button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onExport}>Export CSV</button>
         )}
       </div>
       {facultyActivity.length === 0 ? (

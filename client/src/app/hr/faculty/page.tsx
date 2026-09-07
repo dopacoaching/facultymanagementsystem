@@ -59,7 +59,7 @@ export default function FacultyPage() {
             {list.length} faculty member{list.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setEditing(EMPTY_FACULTY)}>
+        <button type="button" className="btn btn-primary" onClick={() => setEditing(EMPTY_FACULTY)}>
           + Add Faculty
         </button>
       </div>

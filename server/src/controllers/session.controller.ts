@@ -111,7 +111,9 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
-    scheduledTime, updatedByName, startTime, endTime, breakMinutes, durationHours, sessionDate, timeSlot, sessionCategory,
+    scheduledTime, updatedByName, startTime, endTime,
+    breakMinutes, lunchBreakMinutes, afternoonBreakMinutes,
+    durationHours, sessionDate, timeSlot, sessionCategory,
   } = req.body
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
@@ -318,7 +320,9 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     updatedByName: updatedByName || undefined,
     startTime:     startTime ?? undefined,
     endTime:       endTime   ?? undefined,
-    breakMinutes:  breakMinutes != null ? Number(breakMinutes) : undefined,
+    breakMinutes:          breakMinutes != null ? Number(breakMinutes) : undefined,
+    lunchBreakMinutes:     lunchBreakMinutes != null ? Number(lunchBreakMinutes) : undefined,
+    afternoonBreakMinutes: afternoonBreakMinutes != null ? Number(afternoonBreakMinutes) : undefined,
     durationHours: Number(durationHours),
     sessionDate:   date,
     timeSlot:      timeSlot ?? undefined,
@@ -400,7 +404,8 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
 
   const allowed = [
     'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
-    'scheduledTime', 'updatedByName', 'startTime', 'endTime', 'breakMinutes',
+    'scheduledTime', 'updatedByName', 'startTime', 'endTime',
+    'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
     'durationHours', 'sessionDate', 'timeSlot',
   ]
   const update: Record<string, unknown> = {}

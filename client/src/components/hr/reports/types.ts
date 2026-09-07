@@ -4,6 +4,9 @@ export interface ReportRow {
   subject: string
   month: number
   year: number
+  periodType?: 'MONTH' | 'RANGE'
+  periodStart?: string | null
+  periodEnd?: string | null
   finalPayable: number
   status: string
   approvedAt: string
@@ -11,13 +14,23 @@ export interface ReportRow {
 
 export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
+/** Period label for a report row — a date window for RANGE records (TEMPORARY
+ *  faculty paid by the week), otherwise the calendar month. */
+export function periodText(r: ReportRow): string {
+  if (r.periodType === 'RANGE' && r.periodStart && r.periodEnd) {
+    const fmt = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    return `${fmt(r.periodStart)} – ${fmt(r.periodEnd)}`
+  }
+  return `${MONTHS[r.month - 1]} ${r.year}`
+}
+
 export function exportToCSV(rows: ReportRow[], month: number, year: number) {
   if (!rows.length) return
   const headers = ['Faculty', 'Subject', 'Period', 'Final Payable (₹)', 'Status', 'Approved At']
   const csvRows = rows.map((r) => [
     `"${r.name}"`,
     `"${r.subject}"`,
-    `"${MONTHS[r.month - 1]} ${r.year}"`,
+    `"${periodText(r)}"`,
     r.finalPayable ?? 0,
     r.status,
     `"${new Date(r.approvedAt).toLocaleString('en-IN')}"`,

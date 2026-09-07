@@ -15,6 +15,9 @@ export interface SalaryReport {
   subject: string
   month: number
   year: number
+  periodType?: 'MONTH' | 'RANGE'
+  periodStart?: string | null
+  periodEnd?: string | null
   hoursLogged: number
   daysWorked: number
   baseSalary: number
@@ -44,6 +47,29 @@ export async function approve(
   token: string
 ): Promise<void> {
   await apiFetch('/hr/salary/approve', { method: 'POST', body: { facultyId, month, year }, token })
+}
+
+/** Date-range salary check — TEMPORARY faculty only. `from` / `to` are 'YYYY-MM-DD'. */
+export async function calculateRange(
+  facultyId: string,
+  from: string,
+  to: string,
+  token: string
+): Promise<SalaryResult> {
+  return apiFetch<SalaryResult>(
+    `/hr/salary?facultyId=${facultyId}&from=${from}&to=${to}`,
+    { token }
+  )
+}
+
+/** Approve a date-range salary run — TEMPORARY faculty only. */
+export async function approveRange(
+  facultyId: string,
+  from: string,
+  to: string,
+  token: string
+): Promise<void> {
+  await apiFetch('/hr/salary/approve', { method: 'POST', body: { facultyId, from, to }, token })
 }
 
 export async function getAuditLog(

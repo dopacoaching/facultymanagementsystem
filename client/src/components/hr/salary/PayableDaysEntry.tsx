@@ -33,6 +33,7 @@ export function PayableDaysEntry({ saving, onSave }: PayableDaysEntryProps) {
             disabled={saving}
           />
           <button
+            type="button"
             className="btn btn-primary"
             disabled={!valid || saving}
             onClick={() => onSave(num)}

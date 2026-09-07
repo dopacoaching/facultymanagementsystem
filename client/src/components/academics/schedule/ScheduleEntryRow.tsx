@@ -113,8 +113,9 @@ export function ScheduleEntryRow({ entry, idx, faculty, onUpdate, onRemove }: Sc
         </div>
       )}
 
-      <button className="btn btn-ghost btn-sm" onClick={() => onRemove(idx)}
-        style={{ alignSelf: 'flex-end', color: 'var(--color-danger)', paddingBottom: showLabel ? '0' : undefined }}>✕</button>
+      <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onRemove(idx)}
+        aria-label="Remove this entry"
+        style={{ alignSelf: 'flex-end', paddingBottom: showLabel ? '0' : undefined }}>✕</button>
     </div>
   )
 }

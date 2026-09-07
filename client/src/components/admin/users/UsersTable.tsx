@@ -73,15 +73,15 @@ export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleA
               </td>
               <td>
                 <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'nowrap' }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => onEdit(u)} title="Edit user">✎</button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(u)}>Edit</button>
                   {u._id !== selfId && (
                     <button
-                      className={`btn btn-sm ${u.isActive ? 'btn-danger' : 'btn-success'}`}
+                      type="button"
+                      className={`btn btn-sm ${u.isActive ? 'btn-danger-ghost' : 'btn-success'}`}
                       onClick={() => onToggleActive(u)}
                       disabled={toggling === u._id}
-                      title={u.isActive ? 'Deactivate' : 'Reactivate'}
                     >
-                      {toggling === u._id ? '…' : u.isActive ? '⏸' : '▶'}
+                      {toggling === u._id ? '…' : u.isActive ? 'Deactivate' : 'Reactivate'}
                     </button>
                   )}
                 </div>

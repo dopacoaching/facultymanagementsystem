@@ -24,12 +24,13 @@ export function SalaryCheckForm({ month, onMonthChange, year, onYearChange, load
           <input type="number" className="input" value={year} onChange={(e) => onYearChange(+e.target.value)} style={{ width: 100 }} />
         </div>
         <button
+          type="button"
           className="btn btn-primary"
           onClick={onCheck}
           disabled={loading}
           style={{ alignSelf: 'flex-end' }}
         >
-          {loading ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Checking…</> : 'Check Salary'}
+          {loading ? <><span className="spinner" /> Checking…</> : 'Check Salary'}
         </button>
       </div>
     </div>

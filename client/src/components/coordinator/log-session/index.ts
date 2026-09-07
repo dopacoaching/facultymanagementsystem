@@ -1,4 +1,4 @@
 export * from './types'
-export { TimeRangeFields } from './TimeRangeFields'
+export { TimeRangeFields, BreakRows } from './TimeRangeFields'
 export { SubjectField } from './SubjectField'
 export { ChapterField } from './ChapterField'

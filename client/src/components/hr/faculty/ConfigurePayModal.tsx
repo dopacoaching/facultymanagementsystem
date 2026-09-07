@@ -62,32 +62,19 @@ export function ConfigurePayModal({ faculty, token, onClose, onSaved }: Configur
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Configure Pay"
-      style={{
-        position: 'fixed', inset: 0,
-        background: 'rgba(15,23,42,0.65)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 60, padding: '1rem',
-      }}
+      className="modal-backdrop"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
     >
-      <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-lg)',
-        width: '100%', maxWidth: 560,
-        maxHeight: '90vh', overflowY: 'auto',
-        border: '1px solid var(--color-border)',
-      }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="modal-panel modal-md">
+        <div className="modal-header">
           <div>
-            <h2 style={{ margin: 0 }}>Configure Pay — {faculty.name}</h2>
+            <h2>Configure Pay — {faculty.name}</h2>
             <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.2rem' }}>CONFIGURABLE contract type</div>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: 'var(--color-muted)', padding: '0.25rem', lineHeight: 1 }}>×</button>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
         </div>
 
-        <div style={{ padding: '1.5rem' }}>
+        <div className="modal-body">
           {loading && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <Skeleton height="1.5rem" width="60%" />
@@ -151,10 +138,10 @@ export function ConfigurePayModal({ faculty, token, onClose, onSaved }: Configur
           )}
         </div>
 
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving || loading || !!jsonError}>
-            {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff', width: '0.8rem', height: '0.8rem' }} /> Saving…</> : '⚙️ Save Configuration'}
+        <div className="modal-footer">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving || loading || !!jsonError}>
+            {saving ? <><span className="spinner" /> Saving…</> : 'Save Configuration'}
           </button>
         </div>
       </div>

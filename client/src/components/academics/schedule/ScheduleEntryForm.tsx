@@ -32,8 +32,9 @@ export function ScheduleEntryForm({
       </h2>
 
       {error   && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} /></div>}
-      {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✅</span>{success}</div>}
+      {success && <div className="alert alert-success" style={{ marginBottom: '1rem' }}><span className="alert-icon">✓</span>{success}</div>}
 
+      <form onSubmit={(e) => { e.preventDefault(); onSave() }}>
       <div style={{ marginBottom: '1.5rem', maxWidth: 320 }}>
         <div className="form-group">
           <label className="label">Batch</label>
@@ -48,9 +49,9 @@ export function ScheduleEntryForm({
       <div style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <h3 style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-            📚 Class Entries — Live Sessions &amp; Recorded Videos
+            Class Entries — Live Sessions &amp; Recorded Videos
           </h3>
-          <button className="btn btn-outline btn-sm" onClick={onAddEntry}>+ Add Row</button>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onAddEntry}>+ Add Row</button>
         </div>
         {entries.map((entry, idx) => (
           <ScheduleEntryRow key={idx} entry={entry} idx={idx} faculty={faculty}
@@ -59,10 +60,11 @@ export function ScheduleEntryForm({
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="btn btn-primary" onClick={onSave} disabled={saving}>
-          {saving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : '💾 Save Schedule'}
+        <button type="submit" className="btn btn-primary" disabled={saving}>
+          {saving ? <><span className="spinner" /> Saving…</> : 'Save Schedule'}
         </button>
       </div>
+      </form>
     </div>
   )
 }

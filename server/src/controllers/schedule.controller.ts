@@ -40,6 +40,21 @@ export const getSchedules = asyncHandler(async (req: AuthRequest, res: Response)
     }
   }
 
+  // IG_ACADEMICS_MANAGER scope — IG batches only, optionally narrowed to one campus
+  if (req.user!.role === 'IG_ACADEMICS_MANAGER') {
+    const igFilter: Record<string, unknown> = { type: 'IG', isActive: true }
+    if (req.user!.campusId) igFilter.campusId = new Types.ObjectId(req.user!.campusId)
+    const scopedIds = await Batch.find(igFilter).distinct('_id')
+    if (batchId) {
+      const inScope = scopedIds.some((id) => id.toString() === batchId)
+      if (!inScope) {
+        res.status(403).json({ error: 'Access denied: batch is outside your IG scope' }); return
+      }
+    } else {
+      filter.batchId = { $in: scopedIds }
+    }
+  }
+
   const schedules = await WeeklySchedule.find(filter)
     .populate('batchId', 'name type')
     .populate('classEntries.facultyId', 'name subject')
@@ -51,8 +66,8 @@ export const getSchedules = asyncHandler(async (req: AuthRequest, res: Response)
 
 /**
  * POST /schedules — create or update a weekly schedule.
- * weekStartDate MUST be a Saturday.
- * weekEndDate is auto-computed as weekStartDate + 6 days (= following Friday).
+ * weekStartDate MUST be a Tuesday.
+ * weekEndDate is auto-computed as weekStartDate + 6 days (= following Monday).
  */
 export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { batchId, weekStartDate, mondayExamTopic, fridayExamTopic, classEntries } = req.body
@@ -90,6 +105,17 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
     const targetBatch = await Batch.findById(batchOid)
     if (!targetBatch || targetBatch.type !== req.user!.batchType) {
       res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+    }
+  }
+
+  // IG_ACADEMICS_MANAGER scope guard — IG batches only, campus-matched when scoped
+  if (req.user!.role === 'IG_ACADEMICS_MANAGER') {
+    const targetBatch = await Batch.findById(batchOid)
+    if (!targetBatch || targetBatch.type !== 'IG') {
+      res.status(403).json({ error: 'Access denied: batch is outside your IG scope' }); return
+    }
+    if (req.user!.campusId && targetBatch.campusId?.toString() !== req.user!.campusId) {
+      res.status(403).json({ error: 'Access denied: batch is outside your assigned campus' }); return
     }
   }
 

@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 
     const {
       facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot,
-      scheduledTime, startTime, endTime, breakMinutes, updatedByName,
+      scheduledTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName,
     } = await req.json()
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
@@ -221,7 +221,9 @@ export async function POST(req: NextRequest) {
       scheduledTime: scheduledTime ?? undefined,
       startTime:     startTime     ?? undefined,
       endTime:       endTime       ?? undefined,
-      breakMinutes:  breakMinutes  ?? undefined,
+      breakMinutes:          breakMinutes          ?? undefined,
+      lunchBreakMinutes:     lunchBreakMinutes     ?? undefined,
+      afternoonBreakMinutes: afternoonBreakMinutes ?? undefined,
       updatedByName: updatedByName ?? undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,

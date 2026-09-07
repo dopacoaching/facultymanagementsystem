@@ -34,7 +34,7 @@ Shared logic that is duplicated and must stay identical:
   before a session can be logged.
 - Cross-system lock: a faculty cannot have a Repeaters session and an IG
   timetable slot on the same calendar day.
-- Schedule weeks run Saturday→Friday; published schedules are immutable —
+- Schedule weeks run Tuesday→Monday; published schedules are immutable —
   changes go through the revise flow (one revision per week).
 - Salary preview (`persist=false`) must be pure; only approval writes
   audit logs / carry-forward balances. Carry-forward stores the running

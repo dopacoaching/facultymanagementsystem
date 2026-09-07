@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
+import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
+import { igScheduleScopeDenied } from '@/lib/scheduleScope'
 
 /** PATCH /api/academics/schedules/:id/exam-topic */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -10,7 +12,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
+
+    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -24,6 +28,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const schedule = await WeeklySchedule.findById(id)
     if (!schedule) return withToken(json({ error: 'Schedule not found' }, 404), refreshedToken)
+
+    if (await igScheduleScopeDenied(payload, schedule.batchId)) {
+      return withToken(json({ error: 'Access denied: schedule is outside your IG scope' }, 403), refreshedToken)
+    }
 
     if (schedule.isPublished) {
       return withToken(json({

@@ -63,15 +63,15 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
                 <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}>
                   {f.salaryModel === 'CONFIGURABLE' && (
                     <button
+                      type="button"
                       className="btn btn-ghost btn-sm"
                       onClick={() => onConfigurePay(f)}
-                      style={{ fontSize: '0.75rem' }}
                       title="Configure pay JSON for CONFIGURABLE salary model"
                     >
-                      ⚙️ Configure Pay
+                      Configure Pay
                     </button>
                   )}
-                  <button className="btn btn-ghost btn-sm" onClick={() => onEdit(f)}>Edit</button>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => onEdit(f)}>Edit</button>
                 </div>
               </td>
             </tr>

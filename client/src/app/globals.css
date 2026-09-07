@@ -310,10 +310,43 @@ a { color: var(--color-primary-dark); }
 }
 .btn-ghost:hover:not(:disabled) { background: var(--color-surface-3); color: var(--color-text); }
 
+/* Tinted outline variants — for row/card actions that need a colour cue
+   without the weight of a solid fill. Replaces ad-hoc inline colour overrides. */
+.btn-outline-primary {
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  border-color: var(--color-primary);
+}
+.btn-outline-primary:hover:not(:disabled) { background: var(--color-primary-ghost); }
+
+.btn-outline-warning {
+  background: var(--color-surface);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+.btn-outline-warning:hover:not(:disabled) { background: var(--color-warning-bg); }
+
+/* Low-weight destructive action (discard / remove) — reads as dangerous on hover */
+.btn-danger-ghost {
+  background: transparent;
+  color: var(--color-danger);
+  border-color: transparent;
+}
+.btn-danger-ghost:hover:not(:disabled) { background: var(--color-danger-bg); color: var(--color-danger-fg); }
+
+/* Spinner sitting on a solid-fill button (primary/danger/success) */
+.btn-primary > .spinner,
+.btn-danger > .spinner,
+.btn-success > .spinner,
+.spinner-on-solid { border-color: rgba(255, 255, 255, 0.35); border-top-color: #ffffff; }
+
 .btn-sm { padding: 0.4375rem 0.875rem; font-size: 0.8125rem; border-radius: var(--radius); }
 .btn-lg { padding: 0.8125rem 1.625rem; font-size: 0.9375rem; }
 .btn-icon { padding: 0.5rem; border-radius: var(--radius); }
 .btn-block { width: 100%; }
+
+/* Disabled bottom-rail actions (Sign Out while logging out, etc.) */
+.sidebar-action:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Form inputs ───────────────────────────────────────────────────────────── */
 .input {

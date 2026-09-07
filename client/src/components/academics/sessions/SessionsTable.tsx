@@ -76,11 +76,11 @@ export function SessionsTable({
                     <td>
                       <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'nowrap' }}>
                         {canEdit && s.status !== 'CANCELLED' && (
-                          <button className="btn btn-ghost btn-sm" onClick={() => onEdit(s)} title="Edit session">✎</button>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(s)} title="Edit session" aria-label="Edit session">✎</button>
                         )}
                         {/* Mark Complete only makes sense for legacy SCHEDULED sessions */}
                         {s.status === 'SCHEDULED' && (
-                          <button className="btn btn-success btn-sm" onClick={() => onMarkComplete(s._id)} disabled={cancelling === s._id} title="Mark Completed">✓</button>
+                          <button type="button" className="btn btn-success btn-sm" onClick={() => onMarkComplete(s._id)} disabled={cancelling === s._id} title="Mark completed" aria-label="Mark completed">✓</button>
                         )}
                         {/* Cancel is available for any non-cancelled session */}
                         {(s.status === 'SCHEDULED' || s.status === 'COMPLETED' || s.status === 'NOT_COMPLETED') && (
@@ -92,7 +92,7 @@ export function SessionsTable({
                               <option value="STUDENT">Student</option>
                               <option value="MANAGEMENT">Management</option>
                             </select>
-                            <button className="btn btn-danger btn-sm" disabled={cancelling === s._id} onClick={() => onCancel(s._id)} title="Cancel session">
+                            <button type="button" className="btn btn-danger btn-sm" disabled={cancelling === s._id} onClick={() => onCancel(s._id)} title="Cancel session" aria-label="Cancel session">
                               {cancelling === s._id ? '…' : '✕'}
                             </button>
                           </>

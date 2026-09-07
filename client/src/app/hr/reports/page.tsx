@@ -40,7 +40,7 @@ export default function ReportsPage() {
           </p>
         </div>
         {rows.length > 0 && (
-          <button className="btn btn-ghost" onClick={() => exportToCSV(rows, month, year)} title="Export as CSV">
+          <button type="button" className="btn btn-outline" onClick={() => exportToCSV(rows, month, year)} title="Export as CSV">
             Export CSV
           </button>
         )}

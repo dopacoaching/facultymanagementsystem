@@ -22,8 +22,8 @@ export function MonthYearSelector({ month, onMonthChange, year, onYearChange, lo
         <label className="label">Year</label>
         <input type="number" className="input" value={year} onChange={(e) => onYearChange(+e.target.value)} style={{ width: 90 }} />
       </div>
-      <button className="btn btn-ghost" onClick={onRefresh} disabled={loading} style={{ marginBottom: '0.05rem' }}>
-        {loading ? <><span className="spinner" /> Refreshing…</> : '↻ Refresh'}
+      <button type="button" className="btn btn-outline" onClick={onRefresh} disabled={loading} style={{ marginBottom: '0.05rem' }}>
+        {loading ? <><span className="spinner" /> Refreshing…</> : 'Refresh'}
       </button>
       <span style={{ marginLeft: 'auto', fontSize: '0.8125rem', color: 'var(--color-muted)', alignSelf: 'center' }}>
         {MONTHS[month - 1]} {year} overview

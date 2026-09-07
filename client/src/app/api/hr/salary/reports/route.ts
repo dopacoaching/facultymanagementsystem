@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
 
     await connectDB()
 
+    // Month records match on month/year; date-range records (TEMPORARY faculty)
+    // are bucketed by the month/year derived from their periodStart, so the same
+    // query still picks them up.
     const records = await SalaryRecord.find({
       month:  m,
       year:   y,
@@ -45,6 +48,9 @@ export async function GET(req: NextRequest) {
         subject:          fac?.subject ?? '',
         month:            r.month,
         year:             r.year,
+        periodType:       r.periodType ?? 'MONTH',
+        periodStart:      r.periodStart ?? null,
+        periodEnd:        r.periodEnd ?? null,
         hoursLogged:      r.hoursLogged,
         daysWorked:       r.daysWorked,
         baseSalary:       r.baseSalary,

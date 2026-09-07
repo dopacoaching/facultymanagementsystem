@@ -5,6 +5,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
 import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
+import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
 
 function midnight(d: Date | string): Date {
   const dt = new Date(d)
@@ -42,6 +43,23 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // IG_ACADEMICS_MANAGER scope — IG batches only, optionally narrowed to one campus
+    if (payload.role === 'IG_ACADEMICS_MANAGER') {
+      const igFilter: Record<string, unknown> = { type: 'IG', isActive: true }
+      if (payload.campusId) {
+        try { igFilter.campusId = new Types.ObjectId(payload.campusId) } catch {}
+      }
+      const scopedIds = await Batch.find(igFilter).distinct('_id')
+      if (batchId) {
+        const inScope = scopedIds.some((id) => id.toString() === batchId)
+        if (!inScope) {
+          return withToken(json({ error: 'Access denied: batch is outside your IG scope' }, 403), refreshedToken)
+        }
+      } else {
+        filter.batchId = { $in: scopedIds }
+      }
+    }
+
     const schedules = await WeeklySchedule.find(filter)
       .populate('batchId', 'name type')
       .populate('classEntries.facultyId', 'name subject')
@@ -61,7 +79,10 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
+    // Dev-only feature: mutating the schedule is disabled until the flag is on.
+    if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
+
+    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { batchId, weekStartDate, mondayExamTopic, fridayExamTopic, classEntries } = await req.json()
@@ -112,6 +133,17 @@ export async function POST(req: NextRequest) {
       const targetBatch = await Batch.findById(batchOid).lean()
       if (!targetBatch || targetBatch.type !== payload.batchType) {
         return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+      }
+    }
+
+    // IG_ACADEMICS_MANAGER scope guard — IG batches only, campus-matched when scoped
+    if (payload.role === 'IG_ACADEMICS_MANAGER') {
+      const targetBatch = await Batch.findById(batchOid).lean()
+      if (!targetBatch || targetBatch.type !== 'IG') {
+        return withToken(json({ error: 'Access denied: batch is outside your IG scope' }, 403), refreshedToken)
+      }
+      if (payload.campusId && targetBatch.campusId?.toString() !== payload.campusId) {
+        return withToken(json({ error: 'Access denied: batch is outside your assigned campus' }, 403), refreshedToken)
       }
     }
 

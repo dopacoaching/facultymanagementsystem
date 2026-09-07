@@ -14,7 +14,7 @@ export function ChapterCompletionReport({ chapters, chapterStats, onExport }: Ch
         <div className="card-header">
           <h2>Chapter Completion by Subject</h2>
           {chapters.length > 0 && (
-            <button className="btn btn-outline btn-sm" onClick={onExport}>⬇ Export CSV</button>
+            <button type="button" className="btn btn-outline btn-sm" onClick={onExport}>Export CSV</button>
           )}
         </div>
         {chapterStats.length === 0 ? (

@@ -30,6 +30,41 @@ export const CLASS_MODE_OPTIONS: { label: string; value: ClassMode }[] = [
   { label: 'Offline Doubt Clearance',  value: 'OFFLINE_DOUBT_CLEARANCE' },
 ]
 
+// ── Breaks ───────────────────────────────────────────────────────────────────
+// A full-day class has up to three breaks. Morning and Afternoon get a 15-minute
+// grace — only minutes beyond 15 are deducted from payable hours. Lunch is
+// normal unpaid time: subtracted in full, but never a "penalty" (no grace).
+
+export interface BreakField {
+  /** "Nil" — there was no such break. */
+  nil: boolean
+  /** Raw minutes as typed. Ignored when `nil`. */
+  minutes: string
+}
+
+export interface BreaksInput {
+  morning: BreakField
+  lunch: BreakField
+  afternoon: BreakField
+}
+
+export const emptyBreaks = (): BreaksInput => ({
+  morning:   { nil: false, minutes: '' },
+  lunch:     { nil: false, minutes: '' },
+  afternoon: { nil: false, minutes: '' },
+})
+
+/** Rebuild a BreaksInput from stored session minutes (absent ⇒ Nil, 0 ⇒ Nil). */
+export const breaksFromMinutes = (
+  morning?: number | null,
+  lunch?: number | null,
+  afternoon?: number | null,
+): BreaksInput => {
+  const field = (v?: number | null): BreakField =>
+    v == null || v === 0 ? { nil: true, minutes: '' } : { nil: false, minutes: String(v) }
+  return { morning: field(morning), lunch: field(lunch), afternoon: field(afternoon) }
+}
+
 export interface FormState {
   facultyId: string
   subject: string
@@ -39,8 +74,7 @@ export interface FormState {
   scheduledTime: string
   startTime: string
   endTime: string
-  noBreak: boolean
-  breakMinutes: string
+  breaks: BreaksInput
   updatedByName: string
   sessionDate: string
 }
@@ -54,8 +88,7 @@ export const EMPTY_FORM = (): FormState => ({
   scheduledTime:   '',
   startTime:       '',
   endTime:         '',
-  noBreak:         false,
-  breakMinutes:    '',
+  breaks:          emptyBreaks(),
   updatedByName:   '',
   sessionDate:     todayLocal(),
 })
@@ -70,33 +103,55 @@ function toMinutes(t: string): number {
 export interface DurationResult {
   hours: number
   totalMinutes: number
-  breakMinutes: number
+  /** Resolved minutes per break (Nil ⇒ 0). */
+  morningBreak: number
+  lunchBreak: number
+  afternoonBreak: number
+  /** Total minutes taken off the class span: lunch in full + each of morning /
+   *  afternoon beyond its 15-minute grace. */
   deductedMinutes: number
   error?: string
 }
 
-/** Computes payable class duration from start/end time and a break.
- *  The teacher must either mark "Nil" (no break) or enter break minutes — one
- *  or the other is required. The first 15 minutes of a break are free; only
- *  minutes beyond that are deducted. */
-export function computeDuration(startTime: string, endTime: string, noBreak: boolean, breakMinutesInput: string): DurationResult {
+/** One break row must be answered — a number, or marked Nil. Returns the
+ *  resolved minutes, or an error string. */
+function resolveBreak(b: BreakField): number | { error: string } {
+  if (b.nil) return 0
+  if (!b.minutes.trim()) return { error: 'Enter minutes for each break, or mark it Nil.' }
+  const n = Number(b.minutes)
+  if (isNaN(n) || n < 0) return { error: 'Break minutes must be a positive number.' }
+  return n
+}
+
+/** Computes payable class duration from start/end time and the three breaks.
+ *  payable = (end − start) − lunch − max(0, morning−15) − max(0, afternoon−15). */
+export function computeDuration(startTime: string, endTime: string, breaks: BreaksInput): DurationResult {
+  const zero = { hours: 0, totalMinutes: 0, morningBreak: 0, lunchBreak: 0, afternoonBreak: 0, deductedMinutes: 0 }
   if (!startTime || !endTime) {
-    return { hours: 0, totalMinutes: 0, breakMinutes: 0, deductedMinutes: 0, error: 'Enter both start and end time' }
+    return { ...zero, error: 'Enter both start and end time' }
   }
-  const startMin = toMinutes(startTime)
-  const endMin   = toMinutes(endTime)
-  const totalMinutes = endMin - startMin
+  const totalMinutes = toMinutes(endTime) - toMinutes(startTime)
   if (totalMinutes <= 0) {
-    return { hours: 0, totalMinutes: 0, breakMinutes: 0, deductedMinutes: 0, error: 'End time must be after start time' }
+    return { ...zero, error: 'End time must be after start time' }
   }
-  if (!noBreak && !breakMinutesInput.trim()) {
-    return { hours: 0, totalMinutes, breakMinutes: 0, deductedMinutes: 0, error: 'Enter the break minutes, or mark "Nil" if there was no break' }
+
+  const m = resolveBreak(breaks.morning)
+  const l = resolveBreak(breaks.lunch)
+  const a = resolveBreak(breaks.afternoon)
+  for (const r of [m, l, a]) {
+    if (typeof r === 'object') return { ...zero, totalMinutes, error: r.error }
   }
-  const breakMinutes = noBreak ? 0 : Math.max(0, Number(breakMinutesInput))
-  const deductedMinutes = breakMinutes > FREE_BREAK_MINUTES ? breakMinutes - FREE_BREAK_MINUTES : 0
+  const morningBreak = m as number
+  const lunchBreak = l as number
+  const afternoonBreak = a as number
+
+  const graced = (mins: number) => (mins > FREE_BREAK_MINUTES ? mins - FREE_BREAK_MINUTES : 0)
+  const deductedMinutes = lunchBreak + graced(morningBreak) + graced(afternoonBreak)
   const payableMinutes = totalMinutes - deductedMinutes
+
+  const base = { totalMinutes, morningBreak, lunchBreak, afternoonBreak, deductedMinutes }
   if (payableMinutes < 30) {
-    return { hours: 0, totalMinutes, breakMinutes, deductedMinutes, error: 'Class duration after break deduction must be at least 30 minutes' }
+    return { ...base, hours: 0, error: 'Class duration after break deductions must be at least 30 minutes' }
   }
-  return { hours: payableMinutes / 60, totalMinutes, breakMinutes, deductedMinutes }
+  return { ...base, hours: payableMinutes / 60 }
 }

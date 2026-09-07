@@ -41,6 +41,8 @@ export interface Session {
   startTime?: string
   endTime?: string
   breakMinutes?: number
+  lunchBreakMinutes?: number
+  afternoonBreakMinutes?: number
   durationHours: number
   sessionDate: string
   timeSlot?: 'MORNING' | 'AFTERNOON' | 'SESSION_1' | 'SESSION_2' | 'SESSION_3'

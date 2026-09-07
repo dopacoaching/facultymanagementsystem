@@ -47,6 +47,8 @@ export async function update(
     startTime: string
     endTime: string
     breakMinutes: number
+    lunchBreakMinutes: number
+    afternoonBreakMinutes: number
     durationHours: number
     sessionDate: string
   }>,

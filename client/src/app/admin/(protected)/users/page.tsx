@@ -155,7 +155,7 @@ export default function AdminUsersPage() {
             {activeCount} active · {inactiveCount} inactive
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New User</button>
+        <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New User</button>
       </div>
 
       {error && (

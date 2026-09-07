@@ -48,7 +48,7 @@ export function ISChaptersFilterBar({
           </select>
         </div>
         {(filterSubject || filterStatus !== 'ALL') && (
-          <button className="btn btn-ghost btn-sm" style={{ marginBottom: '0.125rem' }}
+          <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: '0.125rem' }}
             onClick={onClearFilters}>Clear Filters</button>
         )}
       </div>

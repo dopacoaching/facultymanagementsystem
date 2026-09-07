@@ -304,8 +304,8 @@ export default function ISTimetablePage() {
         </div>
         {canManage && (
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button className="btn btn-ghost" onClick={() => { setShowSpecial(true); setError('') }}>＋ Special Day</button>
-            <button className="btn btn-primary" onClick={() => { setShowAssign(true); setError('') }}>＋ Assign Class</button>
+            <button type="button" className="btn btn-outline" onClick={() => { setShowSpecial(true); setError('') }}>+ Special Day</button>
+            <button type="button" className="btn btn-primary" onClick={() => { setShowAssign(true); setError('') }}>+ Assign Class</button>
           </div>
         )}
       </div>

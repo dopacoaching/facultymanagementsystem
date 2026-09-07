@@ -12,9 +12,11 @@ function escapeHtml(s: string | number | null | undefined): string {
     .replace(/'/g, '&#039;')
 }
 
-export function printSalarySlip(faculty: Faculty, month: number, year: number, result: SalaryResult, onError: (msg: string) => void) {
+export function printSalarySlip(faculty: Faculty, month: number, year: number, result: SalaryResult, onError: (msg: string) => void, periodLabel?: string) {
   const win = window.open('', '_blank', 'width=900,height=700,scrollbars=yes')
   if (!win) { onError('Popups are blocked — please allow popups for this site to print salary slips.'); return }
+
+  const period = periodLabel ?? `${MONTHS_LONG[month - 1]} ${year}`
 
   const breakdown = (result.breakdown ?? [])
     .filter((row) => row.label !== 'TDS (10%)' && row.label !== 'Net Payable (after TDS)')
@@ -40,7 +42,7 @@ export function printSalarySlip(faculty: Faculty, month: number, year: number, r
   const daysRow  = result.daysWorked  != null ? `<div><div class="flabel">Days Worked</div><div class="fval">${escapeHtml(result.daysWorked)} days</div></div>` : ''
 
   win.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<title>Salary Slip &#8212; ${escapeHtml(faculty.name)} &#8212; ${escapeHtml(MONTHS_LONG[month-1])} ${escapeHtml(year)}</title>
+<title>Salary Slip &#8212; ${escapeHtml(faculty.name)} &#8212; ${escapeHtml(period)}</title>
 <style>
 @page{size:A4;margin:18mm}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -75,12 +77,12 @@ tr.ded td{color:#dc2626}
 <div class="slip">
   <div class="hdr">
     <div><div class="org">DOPA Coaching</div><div class="org-sub">Calicut, Kerala</div></div>
-    <div><div class="period-lbl">Salary Slip</div><div class="period">${escapeHtml(MONTHS_LONG[month-1])} ${escapeHtml(year)}</div></div>
+    <div><div class="period-lbl">Salary Slip</div><div class="period">${escapeHtml(period)}</div></div>
   </div>
   <div class="fbox">
     <div><div class="flabel">Faculty Name</div><div class="fval">${escapeHtml(faculty.name)}</div></div>
     <div><div class="flabel">Subject</div><div class="fval">${escapeHtml(faculty.subject) || '&mdash;'}</div></div>
-    <div><div class="flabel">Pay Period</div><div class="fval">${escapeHtml(MONTHS_LONG[month-1])} ${escapeHtml(year)}</div></div>
+    <div><div class="flabel">Pay Period</div><div class="fval">${escapeHtml(period)}</div></div>
     <div><div class="flabel">Generated On</div><div class="fval">${escapeHtml(today)}</div></div>
     ${hoursRow}${daysRow}
   </div>

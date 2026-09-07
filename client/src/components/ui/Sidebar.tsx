@@ -151,6 +151,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
     })
   }
 
+  const [loggingOut, setLoggingOut] = useState(false)
   const [showChangePwd, setShowChangePwd] = useState(false)
   const [pwdForm, setPwdForm] = useState({ current: '', next: '', confirm: '' })
   const [pwdError, setPwdError] = useState('')
@@ -158,6 +159,8 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const [pwdSaving, setPwdSaving] = useState(false)
 
   async function handleLogout() {
+    if (loggingOut) return
+    setLoggingOut(true)
     try { await logout(accessToken!) } catch {}
     dispatch(clearCredentials())
     // ADMIN has a separate login portal — send them back there, not the staff login page
@@ -267,10 +270,11 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             type="button"
             className="sidebar-action"
             onClick={handleLogout}
+            disabled={loggingOut}
             title="Sign Out"
           >
-            <span aria-hidden="true" className="rail-mono">⇥</span>
-            <span className="rail-label">Sign Out</span>
+            <span aria-hidden="true" className="rail-mono">SO</span>
+            <span className="rail-label">{loggingOut ? 'Signing out…' : 'Sign Out'}</span>
           </button>
         </div>
       </aside>
@@ -285,11 +289,12 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           <div className="modal-panel">
             <div className="modal-header">
               <h2>Change Password</h2>
-              <button onClick={closePwdModal} aria-label="Close" className="modal-close">×</button>
+              <button type="button" onClick={closePwdModal} aria-label="Close" className="modal-close">×</button>
             </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleChangePassword() }}>
             <div className="modal-body">
               {pwdSuccess ? (
-                <div className="alert alert-success"><span className="alert-icon">✅</span>Password changed successfully!</div>
+                <div className="alert alert-success"><span className="alert-icon">✓</span>Password changed successfully!</div>
               ) : (
                 <>
                   {pwdError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{pwdError}</div>}
@@ -327,7 +332,6 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                         value={pwdForm.confirm}
                         onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
                         autoComplete="new-password"
-                        onKeyDown={(e) => { if (e.key === 'Enter') handleChangePassword() }}
                       />
                     </div>
                   </div>
@@ -336,12 +340,13 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             </div>
             {!pwdSuccess && (
               <div className="modal-footer">
-                <button className="btn btn-ghost" onClick={closePwdModal}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleChangePassword} disabled={pwdSaving}>
+                <button type="button" className="btn btn-ghost" onClick={closePwdModal}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={pwdSaving}>
                   {pwdSaving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Change Password'}
                 </button>
               </div>
             )}
+            </form>
           </div>
         </div>
       )}
