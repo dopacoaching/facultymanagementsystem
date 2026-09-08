@@ -3,7 +3,7 @@ import './globals.css'
 import Providers from '@/components/ui/Providers'
 
 export const viewport: Viewport = {
-  themeColor: '#0d9488',
+  themeColor: '#2563eb',
   width: 'device-width',
   initialScale: 1,
   // No maximumScale — blocking pinch-zoom fails WCAG 1.4.4 (resize text).

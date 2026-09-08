@@ -3,7 +3,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    DOPA FMS — design system  ·  "Modern SaaS"
    Airy spacing, rounded surfaces, soft depth, a light side rail.
-   Palette: teal primary on warm-stone neutrals.
+   Palette: blue primary on cool near-white neutrals (light) / formal
+   navy-slate neutrals (dark).
    Every class name here is a stable contract used across the app — restyle
    freely, but do not rename.
    ═══════════════════════════════════════════════════════════════════════════════ */
@@ -11,13 +12,13 @@
 /* ── Design tokens — light ──────────────────────────────────────────────────── */
 :root {
   /* Brand */
-  --color-primary:        #0d9488;   /* teal-600  */
-  --color-primary-dark:   #0f766e;   /* teal-700  */
-  --color-primary-light:  #99f6e4;   /* teal-200  */
-  --color-primary-ghost:  rgba(13, 148, 136, 0.08);
-  --color-primary-ring:   rgba(13, 148, 136, 0.16);
-  --color-accent:         #059669;   /* emerald-600 */
-  --color-accent-light:   #6ee7b7;
+  --color-primary:        #2563eb;   /* blue-600  */
+  --color-primary-dark:   #1d4ed8;   /* blue-700  */
+  --color-primary-light:  #bfdbfe;   /* blue-200  */
+  --color-primary-ghost:  rgba(37, 99, 235, 0.07);
+  --color-primary-ring:   rgba(37, 99, 235, 0.16);
+  --color-accent:         #0891b2;   /* cyan-600  */
+  --color-accent-light:   #67e8f9;
 
   /* Semantic */
   --color-success:        #15803d;
@@ -33,29 +34,29 @@
   --color-info-bg:        #cffafe;
   --color-info-fg:        #155e75;
 
-  /* Surfaces — warm stone neutrals */
-  --color-bg:             #f4f3f1;
+  /* Surfaces — cool near-white neutrals */
+  --color-bg:             #f4f7fa;
   --color-surface:        #ffffff;
-  --color-surface-2:      #faf9f8;
-  --color-surface-3:      #f0efed;
-  --color-border:         #e6e3df;
-  --color-border-strong:  #d6d2cc;
+  --color-surface-2:      #f8fafc;
+  --color-surface-3:      #eef2f7;
+  --color-border:         #e3e8ef;
+  --color-border-strong:  #cdd6e2;
 
-  /* Text — muted darkened from #9c968f so helper/subtitle text clears WCAG AA
-     (≈4.7:1 on --color-surface) instead of sitting at ~3:1. */
-  --color-text:           #1c1917;
-  --color-text-secondary: #57534e;
-  --color-muted:          #6f6660;
+  /* Text — cool slate. Muted kept dark enough that helper/subtitle text clears
+     WCAG AA (≈4.6:1 on --color-surface) instead of sitting at ~3:1. */
+  --color-text:           #0f172a;
+  --color-text-secondary: #475569;
+  --color-muted:          #64748b;
 
   /* Side rail — light */
   --rail-bg:              #ffffff;
-  --rail-fg:              #57534e;
-  --rail-fg-strong:       #1c1917;
-  --rail-fg-dim:          #9c968f;
+  --rail-fg:              #475569;
+  --rail-fg-strong:       #0f172a;
+  --rail-fg-dim:          #94a3b8;
   --rail-active-bg:       var(--color-primary-ghost);
   --rail-active-fg:       var(--color-primary-dark);
   --rail-hover-bg:        var(--color-surface-3);
-  --rail-border:          #e0ddd9;
+  --rail-border:          #e3e8ef;
 
   /* Layout */
   --rail-width:           248px;
@@ -84,62 +85,64 @@
 
   /* Shadows — minimal. Cards/tables lean on borders; shadow is reserved for
      things that genuinely float (dropdowns, dialogs, toasts). */
-  --shadow-sm:  0 1px 2px rgba(28, 25, 23, 0.05);
-  --shadow:     0 1px 2px rgba(28, 25, 23, 0.04), 0 2px 6px rgba(28, 25, 23, 0.06);
-  --shadow-md:  0 4px 12px rgba(28, 25, 23, 0.08);
-  --shadow-lg:  0 12px 32px rgba(28, 25, 23, 0.14);
+  --shadow-sm:  0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow:     0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.06);
+  --shadow-md:  0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg:  0 12px 32px rgba(15, 23, 42, 0.16);
 
   /* Aliases referenced by individual components */
   --color-primary-dim: var(--color-primary-ghost);
 }
 
 /* ── Design tokens — dark ───────────────────────────────────────────────────── */
+/* Formal navy-slate. Cool, low-chroma surfaces; blue reserved for the brand
+   and active states so the UI reads as considered rather than decorative. */
 [data-theme="dark"] {
-  --color-primary:        #2dd4bf;
-  --color-primary-dark:   #5eead4;
-  --color-primary-light:  #5eead4;
-  --color-primary-ghost:  rgba(45, 212, 191, 0.12);
-  --color-primary-ring:   rgba(45, 212, 191, 0.24);
-  --color-accent:         #34d399;
-  --color-accent-light:   #6ee7b7;
+  --color-primary:        #60a5fa;
+  --color-primary-dark:   #93c5fd;
+  --color-primary-light:  #bfdbfe;
+  --color-primary-ghost:  rgba(96, 165, 250, 0.12);
+  --color-primary-ring:   rgba(96, 165, 250, 0.24);
+  --color-accent:         #22d3ee;
+  --color-accent-light:   #67e8f9;
 
   --color-success:        #4ade80;
-  --color-success-bg:     #052e16;
+  --color-success-bg:     #0c2a1a;
   --color-success-fg:     #86efac;
   --color-danger:         #f87171;
-  --color-danger-bg:      #450a0a;
+  --color-danger-bg:      #3a1518;
   --color-danger-fg:      #fca5a5;
   --color-warning:        #fbbf24;
-  --color-warning-bg:     #422006;
+  --color-warning-bg:     #3a2a12;
   --color-warning-fg:     #fcd34d;
-  --color-info:           #22d3ee;
-  --color-info-bg:        #164e63;
-  --color-info-fg:        #a5f3fc;
+  --color-info:           #38bdf8;
+  --color-info-bg:        #123047;
+  --color-info-fg:        #bae6fd;
 
-  --color-bg:             #1a1917;
-  --color-surface:        #262322;
-  --color-surface-2:      #211f1e;
-  --color-surface-3:      #322e2c;
-  --color-border:         #3d3a37;
-  --color-border-strong:  #524d49;
+  --color-bg:             #0b1220;
+  --color-surface:        #131c2e;
+  --color-surface-2:      #0f1727;
+  --color-surface-3:      #1e293b;
+  --color-border:         #29374d;
+  --color-border-strong:  #3b4a63;
 
-  --color-text:           #fafaf9;
-  --color-text-secondary: #d0ccc7;
-  --color-muted:          #a8a099;
+  --color-text:           #f1f5f9;
+  --color-text-secondary: #c2cddb;
+  --color-muted:          #93a1b5;
 
-  --rail-bg:              #201e1d;
-  --rail-fg:              #d0ccc7;
-  --rail-fg-strong:       #fafaf9;
-  --rail-fg-dim:          #9c958d;
+  --rail-bg:              #0c1424;
+  --rail-fg:              #c2cddb;
+  --rail-fg-strong:       #f1f5f9;
+  --rail-fg-dim:          #7688a0;
   --rail-active-bg:       var(--color-primary-ghost);
   --rail-active-fg:       var(--color-primary);
-  --rail-hover-bg:        rgba(255, 255, 255, 0.05);
+  --rail-hover-bg:        rgba(255, 255, 255, 0.045);
   --rail-border:          var(--color-border);
 
-  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow:     0 2px 8px rgba(0, 0, 0, 0.45);
-  --shadow-md:  0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg:  0 24px 48px rgba(0, 0, 0, 0.6);
+  --shadow-sm:  0 1px 2px rgba(2, 6, 16, 0.5);
+  --shadow:     0 2px 8px rgba(2, 6, 16, 0.55);
+  --shadow-md:  0 8px 24px rgba(2, 6, 16, 0.6);
+  --shadow-lg:  0 24px 48px rgba(2, 6, 16, 0.7);
 }
 
 /* ── Reset / base ──────────────────────────────────────────────────────────── */
@@ -286,7 +289,7 @@ a { color: var(--color-primary-dark); }
   box-shadow: var(--shadow-sm);
 }
 .btn-primary:hover:not(:disabled) { background: var(--color-primary-dark); }
-[data-theme="dark"] .btn-primary { color: #0b1a18; }
+[data-theme="dark"] .btn-primary { color: #0a1220; }
 
 .btn-danger { background: var(--color-danger); color: #ffffff; box-shadow: var(--shadow-sm); }
 .btn-danger:hover:not(:disabled) { background: #b91c1c; }
@@ -379,7 +382,7 @@ a { color: var(--color-primary-dark); }
 select.input {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239c968f' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.6875rem center;
   background-size: 1.1rem;
@@ -572,7 +575,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.5);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
@@ -847,7 +850,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   letter-spacing: 0.02em;
 }
 .nav-link.is-active .rail-mono { background: var(--color-primary); color: #fff; }
-[data-theme="dark"] .nav-link.is-active .rail-mono { color: #0b1a18; }
+[data-theme="dark"] .nav-link.is-active .rail-mono { color: #0a1220; }
 
 .rail-label { transition: opacity 0.12s ease; }
 
@@ -1123,7 +1126,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   cursor: pointer;
   box-shadow: var(--shadow-lg);
 }
-[data-theme="dark"] .pwa-install-btn { color: #0b1a18; }
+[data-theme="dark"] .pwa-install-btn { color: #0a1220; }
 .pwa-install-btn:active { transform: scale(0.97); }
 
 .pwa-install-dismiss {
@@ -1146,7 +1149,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
 .pwa-ios-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(28, 25, 23, 0.5);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(3px);
   z-index: 120;
   display: flex;
@@ -1183,7 +1186,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   text-decoration: none;
   transition: top 0.15s ease;
 }
-[data-theme="dark"] .skip-link { color: #0b1a18; }
+[data-theme="dark"] .skip-link { color: #0a1220; }
 .skip-link:focus { top: 0; }
 .shell-content:focus { outline: none; }
 
@@ -1222,7 +1225,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(28, 25, 23, 0.45);
+    background: rgba(15, 23, 42, 0.45);
     z-index: 199;
     backdrop-filter: blur(2px);
   }
