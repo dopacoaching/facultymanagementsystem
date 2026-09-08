@@ -44,7 +44,9 @@ export default function SchedulingPage() {
   // Form state
   const [entries, setEntries] = useState<ClassEntry[]>([])
 
-  const canEdit    = role === 'ADMIN' || role === 'ACADEMICS_MANAGER' || role === 'IG_ACADEMICS_MANAGER'
+  // ADMIN-only feature — the layout already blocks every other role, this is
+  // just defence in depth for the action buttons.
+  const canEdit    = role === 'ADMIN'
   const canPublish = canEdit
   const canRevise  = canEdit
 

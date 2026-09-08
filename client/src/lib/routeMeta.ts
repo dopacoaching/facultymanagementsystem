@@ -179,8 +179,8 @@ export const ROUTES: RouteMeta[] = [
   // ── Weekly Scheduling (feature-flagged) ────────────────────────────────
   {
     path: '/scheduling', title: 'Weekly Schedule', navLabel: 'Weekly Schedule',
-    navRoles: ['ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'],
-    roles: ['ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'],
+    navRoles: ['ADMIN'],
+    roles: ['ADMIN'],
     featureFlag: 'SCHEDULING_ENABLED',
   },
 

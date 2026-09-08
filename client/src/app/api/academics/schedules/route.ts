@@ -79,10 +79,10 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    // Dev-only feature: mutating the schedule is disabled until the flag is on.
+    // Kill-switchable feature; ADMIN-only otherwise.
     if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
 
-    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { batchId, weekStartDate, mondayExamTopic, fridayExamTopic, classEntries } = await req.json()

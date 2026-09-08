@@ -1,9 +1,13 @@
 /**
- * Weekly Scheduling — dev-only until explicitly enabled in production.
+ * Weekly Scheduling — live in production, but ADMIN-only.
+ *
+ * The Weekly Schedule editor (`/scheduling`) and every mutating
+ * `/api/academics/schedules/**` endpoint are restricted to the ADMIN role in
+ * their own handlers; this flag only decides whether the feature exists at all.
+ * It defaults to ON so production serves it. Set
+ * `NEXT_PUBLIC_SCHEDULING_ENABLED=false` in an environment to kill-switch it.
  *
  * `NEXT_PUBLIC_*` is inlined at build time and readable from both client
- * components and route handlers. Set `NEXT_PUBLIC_SCHEDULING_ENABLED=true` in
- * `client/.env.local` for local dev; leave it unset in Vercel so production
- * keeps the scheduling UI and its mutating API endpoints hidden.
+ * components and route handlers.
  */
-export const SCHEDULING_ENABLED = process.env.NEXT_PUBLIC_SCHEDULING_ENABLED === 'true'
+export const SCHEDULING_ENABLED = process.env.NEXT_PUBLIC_SCHEDULING_ENABLED !== 'false'

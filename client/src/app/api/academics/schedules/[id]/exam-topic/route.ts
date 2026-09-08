@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
-import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
 import { igScheduleScopeDenied } from '@/lib/scheduleScope'
 
 /** PATCH /api/academics/schedules/:id/exam-topic */
@@ -12,8 +11,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
-
+    // Not scheduling-flag-gated: the Exam Topics page (/academics/exams) is a
+    // live academics workflow and sets Monday/Friday topics on existing weekly
+    // schedules independently of the ADMIN-only schedule editor.
     const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
