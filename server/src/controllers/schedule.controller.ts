@@ -16,6 +16,20 @@ function midnight(d: Date | string): Date {
   return dt
 }
 
+/**
+ * IG_ACADEMICS_MANAGER may only act on IG batches, and only within their assigned
+ * campus when the token carries a campusId. Returns true when access is denied.
+ * A no-op for every other role. Mirrors client `src/lib/scheduleScope.ts` — keep
+ * the two backends in sync.
+ */
+async function igScheduleScopeDenied(user: AuthRequest['user'], batchId: unknown): Promise<boolean> {
+  if (user!.role !== 'IG_ACADEMICS_MANAGER') return false
+  const batch = await Batch.findById(batchId as string).lean()
+  if (!batch || batch.type !== 'IG') return true
+  if (user!.campusId && batch.campusId?.toString() !== user!.campusId) return true
+  return false
+}
+
 // ─── GET schedules ────────────────────────────────────────────────────────────
 
 export const getSchedules = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -196,6 +210,9 @@ export const updateExamTopic = asyncHandler(async (req: AuthRequest, res: Respon
 
   const schedule = await WeeklySchedule.findById(id)
   if (!schedule) { res.status(404).json({ error: 'Schedule not found' }); return }
+  if (await igScheduleScopeDenied(req.user, schedule.batchId)) {
+    res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
   if (schedule.isPublished) {
     res.status(409).json({ error: 'Cannot edit a published schedule. Create a revision instead.' }); return
   }
@@ -219,6 +236,9 @@ export const publishSchedule = asyncHandler(async (req: AuthRequest, res: Respon
 
   const schedule = await WeeklySchedule.findById(scheduleId)
   if (!schedule) { res.status(404).json({ error: 'Schedule not found' }); return }
+  if (await igScheduleScopeDenied(req.user, schedule.batchId)) {
+    res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
 
   if (schedule.isPublished) {
     res.status(409).json({
@@ -245,6 +265,9 @@ export const reviseSchedule = asyncHandler(async (req: AuthRequest, res: Respons
 
   const original = await WeeklySchedule.findById(id)
   if (!original) { res.status(404).json({ error: 'Schedule not found' }); return }
+  if (await igScheduleScopeDenied(req.user, original.batchId)) {
+    res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
   if (!original.isPublished) {
     res.status(400).json({ error: 'Only published schedules can be revised. Edit the draft directly instead.' }); return
   }
@@ -298,6 +321,9 @@ export const deleteSchedule = asyncHandler(async (req: AuthRequest, res: Respons
   const { id } = req.params
   const schedule = await WeeklySchedule.findById(id)
   if (!schedule) { res.status(404).json({ error: 'Schedule not found' }); return }
+  if (await igScheduleScopeDenied(req.user, schedule.batchId)) {
+    res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
 
   if (schedule.isPublished) {
     res.status(400).json({ error: 'Published schedules cannot be deleted.' }); return

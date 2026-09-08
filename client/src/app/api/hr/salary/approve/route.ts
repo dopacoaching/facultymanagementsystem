@@ -13,8 +13,13 @@ const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 function parseLocalDate(iso: string): Date | null {
   const m = DATE_RE.exec(iso ?? '')
   if (!m) return null
-  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-  return isNaN(dt.getTime()) ? null : dt
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3])
+  const dt = new Date(y, mo - 1, d)
+  if (isNaN(dt.getTime())) return null
+  // Reject impossible calendar dates (e.g. 2026-06-00, 2026-02-30) that JS
+  // silently rolls into an adjacent month.
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null
+  return dt
 }
 
 const fmtDay = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -116,20 +121,32 @@ export async function POST(req: NextRequest) {
       const faculty = await Faculty.findById(facultyId)
       if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
-      const record = await writeRecord(
-        result,
-        { facultyId: fOid, periodType: 'RANGE', periodStart: fromDate, periodEnd: toDate },
-        {
-          periodType: 'RANGE',
-          periodStart: fromDate,
-          periodEnd: toDate,
-          // Derived so month-keyed dashboards/reports still bucket the record.
-          month: fromDate.getMonth() + 1,
-          year: fromDate.getFullYear(),
-        },
-        `${fmtDay(fromDate)} – ${fmtDay(toDate)}`,
-        faculty,
-      )
+      let record
+      try {
+        record = await writeRecord(
+          result,
+          { facultyId: fOid, periodType: 'RANGE', periodStart: fromDate, periodEnd: toDate },
+          {
+            periodType: 'RANGE',
+            periodStart: fromDate,
+            periodEnd: toDate,
+            // Derived so month-keyed dashboards/reports still bucket the record.
+            month: fromDate.getMonth() + 1,
+            year: fromDate.getFullYear(),
+          },
+          `${fmtDay(fromDate)} – ${fmtDay(toDate)}`,
+          faculty,
+        )
+      } catch (e) {
+        // Partial-unique { facultyId, periodStart, periodEnd } on periodType:'RANGE'
+        // — a concurrent request already approved this exact window.
+        if ((e as { code?: number })?.code === 11000) {
+          return withToken(json({
+            error: `This faculty already has approved pay for ${fmtDay(fromDate)} – ${fmtDay(toDate)}. Re-approval is not allowed.`,
+          }, 409), refreshedToken)
+        }
+        throw e
+      }
       return withToken(json({ success: true, record }), refreshedToken)
     }
 

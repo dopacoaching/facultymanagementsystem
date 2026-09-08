@@ -85,7 +85,11 @@ export default function IGLogSessionPage() {
       if (key === 'facultyId') {
         const fac = facultyList.find((f) => f._id === (value as string))
         const match = SUBJECT_OPTIONS.find((s) => s.value === fac?.subject?.toUpperCase())
-        if (match) updated.subject = match.value
+        if (match) {
+          // Chapter options are subject-specific — drop a now-mismatched chapter.
+          if (match.value !== prev.subject) updated.chapter = ''
+          updated.subject = match.value
+        }
       }
       // Chapter options are subject-specific — clear the old selection when subject changes
       if (key === 'subject' && prev.subject !== value) updated.chapter = ''
@@ -166,7 +170,12 @@ export default function IGLogSessionPage() {
 
         {error && (
           <div style={{ marginBottom: '1.5rem' }}>
-            <ErrorAlert message={error} what="Session could not be submitted" onRetry={() => setError('')} />
+            <ErrorAlert
+              message={error}
+              what="Session could not be submitted"
+              onRetry={handleSubmit}
+              onDismiss={() => setError('')}
+            />
           </div>
         )}
 

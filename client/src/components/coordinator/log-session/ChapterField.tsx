@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { apiFetch } from '@/services/api'
 
 interface SyllabusChapter {
@@ -17,6 +17,8 @@ interface ChapterFieldProps {
  *  sourced from the Academics syllabus. Falls back to free typing when the subject
  *  has no curriculum data on file (e.g. Psychology, Computer Science, Hindi). */
 export function ChapterField({ subject, accessToken, value, onChange }: ChapterFieldProps) {
+  const id = useId()
+  const listId = `${id}-list`
   const [options, setOptions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -33,11 +35,12 @@ export function ChapterField({ subject, accessToken, value, onChange }: ChapterF
 
   return (
     <div className="form-group">
-      <label className="label">Chapter</label>
+      <label className="label" htmlFor={id}>Chapter</label>
       <input
+        id={id}
         type="text"
         className="input"
-        list="chapter-options"
+        list={listId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={
@@ -47,7 +50,7 @@ export function ChapterField({ subject, accessToken, value, onChange }: ChapterF
           : 'No chapter list for this subject — type it'
         }
       />
-      <datalist id="chapter-options">
+      <datalist id={listId}>
         {options.map((name) => <option key={name} value={name} />)}
       </datalist>
     </div>

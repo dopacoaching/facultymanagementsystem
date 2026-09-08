@@ -6,13 +6,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { clearCredentials } from '@/store/slices/authSlice'
 import { logout, changePassword } from '@/services/auth.service'
-import PasswordInput from './PasswordInput'
 import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
-
-/** Weekly Scheduling nav entry — dev-only until the feature flag is enabled. */
-const SCHEDULING_NAV: NavItem[] = SCHEDULING_ENABLED
-  ? [{ label: 'Weekly Schedule', href: '/scheduling', icon: '' }]
-  : []
+import { getRouteMeta, navLabelFor, type Role } from '@/lib/routeMeta'
+import PasswordInput from './PasswordInput'
+import { FormField } from './FormField'
+import { Modal } from './Modal'
 
 /** Mirror of the server validatePasswordComplexity rule. */
 function validatePasswordComplexity(pw: string): string | null {
@@ -26,82 +24,71 @@ function validatePasswordComplexity(pw: string): string | null {
   return null
 }
 
-type NavItem =
-  | { type?: 'link'; label: string; href: string; icon: string }
-  | { type: 'section'; label: string }
+// ─── Role navigation ──────────────────────────────────────────────────────────
+// Each role's sidebar is a hand-curated list of section markers + route paths.
+// Labels, titles and feature-flag gating come from `routeMeta` so nothing can
+// drift out of sync. Routes deliberately kept out of the sidebar (secondary
+// academics screens, faculty schedule, etc.) are reached from in-page links.
 
-// ─── Role navs ────────────────────────────────────────────────────────────────
+type NavEntry = { section: string } | { href: string }
 
-const ADMIN_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/admin',           icon: '◈' },
-  { type: 'section', label: 'System' },
-  { label: 'Users',       href: '/admin/users',     icon: '🔐' },
-  { label: 'Audit Log',   href: '/admin/audit-log', icon: '📋' },
-  { type: 'section', label: 'HR' },
-  { label: 'Faculty',     href: '/hr/faculty',      icon: '👥' },
-  { label: 'Salary',      href: '/hr/salary',       icon: '₹'  },
-  { label: 'Reports',     href: '/hr/reports',      icon: '📊' },
-  { label: 'Faculty Hours', href: '/hr/reports/faculty-hours', icon: '📈' },
-  { label: 'Class Sessions', href: '/hr/reports/class-sessions', icon: '📝' },
-  { label: 'IG Class Sessions', href: '/hr/reports/ig-sessions', icon: '📝' },
-  { type: 'section', label: 'Academics' },
-  { label: 'Sessions',     href: '/academics/sessions',          icon: '📅' },
-  ...SCHEDULING_NAV,
-]
+const SCHEDULING_ENTRY: NavEntry[] = SCHEDULING_ENABLED ? [{ href: '/scheduling' }] : []
 
-const HR_NAV: NavItem[] = [
-  { label: 'Dashboard',      href: '/hr',                    icon: '◈' },
-  { label: 'Faculty',        href: '/hr/faculty',             icon: '👥' },
-  { label: 'Salary',         href: '/hr/salary',              icon: '₹' },
-  { label: 'Reports',        href: '/hr/reports',             icon: '📊' },
-  { label: 'Faculty Hours',  href: '/hr/reports/faculty-hours', icon: '📈' },
-  { label: 'Class Sessions', href: '/hr/reports/class-sessions', icon: '📝' },
-  { label: 'IG Class Sessions', href: '/hr/reports/ig-sessions', icon: '📝' },
-]
+const ROLE_NAV: Record<string, NavEntry[]> = {
+  ADMIN: [
+    { href: '/admin' },
+    { section: 'System' },
+    { href: '/admin/users' },
+    { href: '/admin/audit-log' },
+    { section: 'HR' },
+    { href: '/hr/faculty' },
+    { href: '/hr/salary' },
+    { href: '/hr/reports' },
+    { href: '/hr/reports/faculty-hours' },
+    { href: '/hr/reports/class-sessions' },
+    { href: '/hr/reports/ig-sessions' },
+    { section: 'Academics' },
+    { href: '/academics/sessions' },
+    ...SCHEDULING_ENTRY,
+  ],
+  HR_MANAGER: [
+    { href: '/hr' },
+    { href: '/hr/faculty' },
+    { href: '/hr/salary' },
+    { href: '/hr/reports' },
+    { href: '/hr/reports/faculty-hours' },
+    { href: '/hr/reports/class-sessions' },
+    { href: '/hr/reports/ig-sessions' },
+  ],
+  ACADEMICS_MANAGER: [
+    { href: '/academics' },
+    { href: '/academics/sessions' },
+    ...SCHEDULING_ENTRY,
+  ],
+  IG_ACADEMICS_MANAGER: [
+    { href: '/ig' },
+    { href: '/ig/sessions' },
+    { href: '/ig/timetable' },
+    { href: '/ig/chapters' },
+    ...SCHEDULING_ENTRY,
+  ],
+  CLASS_TEACHER: [
+    { href: '/coordinator' },
+    { href: '/coordinator/history' },
+  ],
+  IG_CLASS_TEACHER: [
+    { href: '/ig/sessions' },
+    { href: '/ig/sessions/history' },
+  ],
+  FACULTY: [
+    { href: '/faculty' },
+    { href: '/faculty/sessions' },
+    { href: '/faculty/salary' },
+  ],
+}
 
-// ACADEMICS_MANAGER: Repeaters/DOPA sessions only — no IS sections
-const ACADEMICS_NAV: NavItem[] = [
-  { label: 'Dashboard',    href: '/academics',                    icon: '◈' },
-  { label: 'Sessions',     href: '/academics/sessions',           icon: '📅' },
-  ...SCHEDULING_NAV,
-]
-
-// IG_ACADEMICS_MANAGER: IG (Integrated Grades) only — no Repeaters sections
-const IS_ACADEMICS_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/ig',           icon: '◈' },
-  { label: 'IG Sessions', href: '/ig/sessions',  icon: '📅' },
-  { label: 'IG Timetable',href: '/ig/timetable', icon: '⏱' },
-  { label: 'IG Chapters', href: '/ig/chapters',  icon: '📖' },
-  ...SCHEDULING_NAV,
-]
-
-// CLASS_TEACHER (Class Teacher): Session/hours logging only
-const COORDINATOR_NAV: NavItem[] = [
-  { label: 'Log Session', href: '/coordinator',         icon: '📝' },
-  { label: 'History',     href: '/coordinator/history', icon: '📜' },
-]
-
-// IG_CLASS_TEACHER: Session logging only — same minimal shape as COORDINATOR_NAV
-const IG_CLASS_TEACHER_NAV: NavItem[] = [
-  { label: 'Log Session', href: '/ig/sessions',         icon: '📝' },
-  { label: 'History',     href: '/ig/sessions/history', icon: '📜' },
-]
-
-const FACULTY_NAV: NavItem[] = [
-  { label: 'Dashboard',   href: '/faculty',          icon: '◈' },
-  { label: 'My Sessions', href: '/faculty/sessions', icon: '📅' },
-  { label: 'My Salary',   href: '/faculty/salary',   icon: '₹' },
-]
-
-function navForRole(role: string | null): NavItem[] {
-  if (role === 'ADMIN')               return ADMIN_NAV
-  if (role === 'HR_MANAGER')          return HR_NAV
-  if (role === 'ACADEMICS_MANAGER')   return ACADEMICS_NAV
-  if (role === 'IG_ACADEMICS_MANAGER') return IS_ACADEMICS_NAV
-  if (role === 'IG_CLASS_TEACHER')      return IG_CLASS_TEACHER_NAV
-  if (role === 'CLASS_TEACHER')         return COORDINATOR_NAV
-  if (role === 'FACULTY')             return FACULTY_NAV
-  return []
+function navForRole(role: string | null): NavEntry[] {
+  return (role && ROLE_NAV[role]) || []
 }
 
 function roleLabel(role: string | null): string {
@@ -111,14 +98,14 @@ function roleLabel(role: string | null): string {
     HR_MANAGER:           'HR Manager',
     ACADEMICS_MANAGER:    'Academics',
     IG_ACADEMICS_MANAGER: 'IG Academics',
-    CLASS_TEACHER:          'Class Teacher',
-    IG_CLASS_TEACHER:       'IG Class Teacher',
+    CLASS_TEACHER:        'Class Teacher',
+    IG_CLASS_TEACHER:     'IG Class Teacher',
     FACULTY:              'Faculty',
   }
   return map[role] ?? role.replace(/_/g, ' ')
 }
 
-/** Short 1–2 char monogram for the collapsed rail (no icons). */
+/** Short 1–2 char monogram for the collapsed rail (icon-less rail by design). */
 function monogram(label: string): string {
   const words = label.trim().split(/\s+/)
   if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase()
@@ -137,7 +124,10 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const router = useRouter()
   const dispatch = useAppDispatch()
   const { role, accessToken } = useAppSelector((s) => s.auth)
-  const nav = navForRole(role)
+  const entries = navForRole(role)
+  const linkPaths = entries
+    .filter((e): e is { href: string } => 'href' in e)
+    .map((e) => e.href)
 
   const [collapsed, setCollapsed] = useState(false)
   useEffect(() => {
@@ -163,7 +153,6 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
     setLoggingOut(true)
     try { await logout(accessToken!) } catch {}
     dispatch(clearCredentials())
-    // ADMIN has a separate login portal — send them back there, not the staff login page
     router.push(role === 'ADMIN' ? '/admin/login' : '/login')
   }
 
@@ -198,7 +187,6 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   return (
     <>
       <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}${collapsed ? ' is-collapsed' : ''}`}>
-        {/* Desktop collapse toggle */}
         <button
           type="button"
           className="rail-toggle"
@@ -209,61 +197,55 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           {collapsed ? '›' : '‹'}
         </button>
 
-        {/* Logo / Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-brand-logo">
-            <Image src="/logo.png" alt="DOPA" width={28} height={28} style={{ objectFit: 'contain' }} />
+            <Image src="/logo.png" alt="" width={28} height={28} style={{ objectFit: 'contain' }} />
           </div>
           <div className="sidebar-brand-text">
             <span className="sidebar-brand-name">DOPA FMS</span>
             <span className="sidebar-brand-role">{roleLabel(role)}</span>
           </div>
-          <button
-            className="sidebar-close-btn"
-            onClick={onClose}
-            aria-label="Close menu"
-          >×</button>
+          <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">×</button>
         </div>
 
-        {/* Navigation */}
-        <nav className="sidebar-nav">
-          {nav.map((item, idx) => {
-            if (item.type === 'section') {
-              return (
-                <div key={`section-${idx}`} className="nav-section">
-                  {item.label}
-                </div>
-              )
+        <nav className="sidebar-nav" aria-label="Primary">
+          {entries.map((entry, idx) => {
+            if ('section' in entry) {
+              return <div key={`section-${idx}`} className="nav-section">{entry.section}</div>
             }
-            const linkItem = item as { label: string; href: string; icon: string }
-            const links = nav.filter((n): n is { label: string; href: string; icon: string } => n.type !== 'section')
-            const hasChild = links.some((other) => other.href !== linkItem.href && other.href.startsWith(linkItem.href + '/'))
-            const isActive = pathname === linkItem.href || (!hasChild && pathname.startsWith(linkItem.href + '/'))
+            const meta = getRouteMeta(entry.href)
+            const label = meta ? navLabelFor(meta, role as Role) : entry.href
+            // Active when exact, or a descendant that has no nearer sidebar entry.
+            const hasNearerChild = linkPaths.some(
+              (p) => p !== entry.href && p.startsWith(entry.href + '/'),
+            )
+            const isActive =
+              pathname === entry.href ||
+              (!hasNearerChild && pathname.startsWith(entry.href + '/'))
             return (
               <Link
-                key={linkItem.href}
-                href={linkItem.href}
+                key={entry.href}
+                href={entry.href}
                 className={`nav-link${isActive ? ' is-active' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
-                title={linkItem.label}
+                title={label}
               >
-                <span aria-hidden="true" className="rail-mono">{monogram(linkItem.label)}</span>
-                <span className="rail-label">{linkItem.label}</span>
+                <span aria-hidden="true" className="rail-mono">{monogram(label)}</span>
+                <span className="rail-label">{label}</span>
               </Link>
             )
           })}
         </nav>
 
-        {/* Bottom actions */}
         <div className="sidebar-footer">
           <button
             type="button"
             className="sidebar-action"
             onClick={() => setShowChangePwd(true)}
-            title="Change Password"
+            title="Change password"
           >
             <span aria-hidden="true" className="rail-mono">PW</span>
-            <span className="rail-label">Change Password</span>
+            <span className="rail-label">Change password</span>
           </button>
 
           <button
@@ -271,85 +253,76 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             className="sidebar-action"
             onClick={handleLogout}
             disabled={loggingOut}
-            title="Sign Out"
+            title="Sign out"
           >
             <span aria-hidden="true" className="rail-mono">SO</span>
-            <span className="rail-label">{loggingOut ? 'Signing out…' : 'Sign Out'}</span>
+            <span className="rail-label">{loggingOut ? 'Signing out…' : 'Sign out'}</span>
           </button>
         </div>
       </aside>
 
-      {/* Change Password Modal */}
-      {showChangePwd && (
-        <div
-          role="dialog" aria-modal="true" aria-label="Change Password"
-          className="modal-backdrop"
-          onKeyDown={(e) => { if (e.key === 'Escape') closePwdModal() }}
-        >
-          <div className="modal-panel">
-            <div className="modal-header">
-              <h2>Change Password</h2>
-              <button type="button" onClick={closePwdModal} aria-label="Close" className="modal-close">×</button>
-            </div>
-            <form onSubmit={(e) => { e.preventDefault(); handleChangePassword() }}>
-            <div className="modal-body">
-              {pwdSuccess ? (
-                <div className="alert alert-success"><span className="alert-icon">✓</span>Password changed successfully!</div>
-              ) : (
-                <>
-                  {pwdError && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{pwdError}</div>}
-                  <div className="form-stack">
-                    {/* Current password — plain input (no strength bar needed) */}
-                    <div className="form-group">
-                      <label className="label">Current Password</label>
-                      <input
-                        type="password"
-                        className="input"
-                        autoFocus
-                        value={pwdForm.current}
-                        onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
-                        autoComplete="current-password"
-                      />
-                    </div>
-
-                    {/* New password — PasswordInput with strength bar */}
-                    <div className="form-group">
-                      <label className="label">New Password</label>
-                      <PasswordInput
-                        value={pwdForm.next}
-                        onChange={(e) => setPwdForm({ ...pwdForm, next: e.target.value })}
-                        autoComplete="new-password"
-                        placeholder="8+ chars · upper · lower · digit · symbol"
-                      />
-                    </div>
-
-                    {/* Confirm — plain input */}
-                    <div className="form-group">
-                      <label className="label">Confirm New Password</label>
-                      <input
-                        type="password"
-                        className="input"
-                        value={pwdForm.confirm}
-                        onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
-                        autoComplete="new-password"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-            {!pwdSuccess && (
-              <div className="modal-footer">
-                <button type="button" className="btn btn-ghost" onClick={closePwdModal}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={pwdSaving}>
-                  {pwdSaving ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</> : 'Change Password'}
-                </button>
+      <Modal
+        open={showChangePwd}
+        onClose={closePwdModal}
+        title="Change password"
+        footer={!pwdSuccess && (
+          <>
+            <button type="button" className="btn btn-ghost" onClick={closePwdModal}>Cancel</button>
+            <button type="submit" form="change-pwd-form" className="btn btn-primary" disabled={pwdSaving}>
+              {pwdSaving ? <><span className="spinner spinner-on-solid" /> Saving…</> : 'Change password'}
+            </button>
+          </>
+        )}
+      >
+        {pwdSuccess ? (
+          <div className="alert alert-success"><span className="alert-icon" aria-hidden="true">✓</span>Password changed successfully.</div>
+        ) : (
+          <form id="change-pwd-form" onSubmit={(e) => { e.preventDefault(); handleChangePassword() }}>
+            {pwdError && (
+              <div className="alert alert-error" role="alert" style={{ marginBottom: '1rem' }}>
+                <span className="alert-icon" aria-hidden="true">!</span>{pwdError}
               </div>
             )}
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="form-stack">
+              <FormField label="Current password" htmlFor="pwd-current">
+                <input
+                  id="pwd-current"
+                  type="password"
+                  className="input"
+                  autoFocus
+                  value={pwdForm.current}
+                  onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
+                  autoComplete="current-password"
+                />
+              </FormField>
+
+              <FormField
+                label="New password"
+                htmlFor="pwd-next"
+                hint="8+ characters, with an uppercase letter, a lowercase letter, a digit and a symbol."
+              >
+                <PasswordInput
+                  id="pwd-next"
+                  value={pwdForm.next}
+                  onChange={(e) => setPwdForm({ ...pwdForm, next: e.target.value })}
+                  autoComplete="new-password"
+                />
+              </FormField>
+
+              <FormField label="Confirm new password" htmlFor="pwd-confirm">
+                <input
+                  id="pwd-confirm"
+                  type="password"
+                  className="input"
+                  value={pwdForm.confirm}
+                  onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
+                  autoComplete="new-password"
+                />
+              </FormField>
+            </div>
+          </form>
+        )}
+      </Modal>
     </>
   )
 }

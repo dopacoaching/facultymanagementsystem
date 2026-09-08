@@ -1,43 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAppSelector, useAppDispatch } from '@/store/hooks'
-import { setCredentials } from '@/store/slices/authSlice'
-import { refresh } from '@/services/auth.service'
+import { useAppSelector } from '@/store/hooks'
 import { useTheme } from '@/hooks/useTheme'
+import { getPageTitle, getBreadcrumbs } from '@/lib/routeMeta'
+import { restoreSession } from '@/lib/sessionRestore'
 import Sidebar from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
-
-function getPageTitle(pathname: string): string {
-  const map: Record<string, string> = {
-    '/coordinator':         'Log Session',
-    '/admin':               'Admin Dashboard',
-    '/admin/audit-log':     'Audit Log',
-    '/admin/users':         'User Management',
-    '/hr':                  'HR Dashboard',
-    '/hr/faculty':          'Faculty',
-    '/hr/salary':           'Salary Calculator',
-    '/hr/reports':          'Salary Reports',
-    '/academics':                'Academics Dashboard',
-    '/academics/sessions':       'Sessions',
-    '/academics/availability':   'Faculty Availability',
-    '/academics/chapters':       'Chapter Progress',
-    '/academics/reports':        'Academics Reports',
-    '/scheduling':               'Weekly Schedule',
-    '/ig':                  'IG Dashboard',
-    '/ig/timetable':        'IG Daily Timetable',
-    '/ig/sessions':         'IG Sessions',
-    '/ig/chapters':         'IG Chapter Progress',
-    '/faculty':             'Faculty Dashboard',
-    '/faculty/sessions':    'My Sessions',
-    '/faculty/salary':      'My Salary',
-  }
-  if (map[pathname]) return map[pathname]
-  const prefix = Object.keys(map)
-    .filter((k) => pathname.startsWith(k + '/'))
-    .sort((a, b) => b.length - a.length)[0]
-  return prefix ? map[prefix] : 'Dashboard'
-}
 
 interface ShellProps {
   children: React.ReactNode
@@ -45,33 +15,20 @@ interface ShellProps {
 }
 
 export default function Shell({ children, loginPath = '/login' }: ShellProps) {
-  const { accessToken, role, userId, facultyId, batchId, batchType, campusName, campusId } = useAppSelector((s) => s.auth)
-  const dispatch = useAppDispatch()
+  const { accessToken, role } = useAppSelector((s) => s.auth)
   const router = useRouter()
   const pathname = usePathname()
-  const [, setRefreshing] = useState(!accessToken)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { theme, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
-    if (accessToken) { setRefreshing(false); return }
+    if (accessToken) return
     let cancelled = false
-    refresh()
-      .then(({ accessToken: newToken }) => {
-        if (cancelled) return
-        dispatch(setCredentials({
-          accessToken: newToken,
-          role:        role      ?? null,
-          userId:      userId    ?? null,
-          facultyId:   facultyId ?? null,
-          batchId:     batchId   ?? null,
-          batchType:   batchType ?? null,
-          campusName:  campusName ?? null,
-          campusId:    campusId  ?? null,
-        }))
-      })
-      .catch(() => { if (!cancelled) router.replace(loginPath) })
-      .finally(() => { if (!cancelled) setRefreshing(false) })
+    // Shared in-flight promise — <Providers/SilentRefresh> may already be
+    // running this; both callers await the same request.
+    restoreSession().then((outcome) => {
+      if (!cancelled && outcome === 'no-session') router.replace(loginPath)
+    })
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -79,30 +36,35 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
   // Close sidebar on route change (mobile nav)
   useEffect(() => { setSidebarOpen(false) }, [pathname])
 
-  if (!accessToken) return null
-
   const pageTitle = getPageTitle(pathname)
+  const crumbs = getBreadcrumbs(pathname)
+
+  // Keep the browser tab title in step with the current route.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = pageTitle === 'DOPA FMS' ? 'DOPA FMS' : `${pageTitle} · DOPA FMS`
+    }
+  }, [pageTitle])
+
+  // Nothing to show until we either have a token or know there is no session.
+  // The silent refresh is a sub-100ms cookie round-trip and the route guards
+  // depend on its outcome, so a brief null is preferable to a wrong redirect.
+  if (!accessToken) return null
 
   return (
     <div className="shell-layout">
       {/* Keyboard users can jump straight past the sidebar/topbar */}
       <a href="#main-content" className="skip-link">Skip to main content</a>
 
-      {/* Mobile backdrop */}
       {sidebarOpen && (
-        <div
-          className="sidebar-backdrop"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
       )}
 
       <Sidebar mobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="shell-main">
-        {/* Top bar */}
         <header className="shell-topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
-            {/* Hamburger — mobile only */}
+          <div className="shell-topbar-lead">
             <button
               type="button"
               className="hamburger-btn"
@@ -111,12 +73,22 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
             >
               <span /><span /><span />
             </button>
-            <h1>{pageTitle}</h1>
+            <div className="shell-title-block">
+              {crumbs.length > 1 && (
+                <nav className="shell-breadcrumbs" aria-label="Breadcrumb">
+                  {crumbs.slice(0, -1).map((c) => (
+                    <span key={c.path}>
+                      <Link href={c.path}>{c.title}</Link>
+                      <span aria-hidden="true" className="shell-breadcrumb-sep">/</span>
+                    </span>
+                  ))}
+                </nav>
+              )}
+              <h1>{pageTitle}</h1>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <span className="role-chip">
-              {role?.replace(/_/g, ' ') ?? 'User'}
-            </span>
+          <div className="shell-topbar-actions">
+            <span className="role-chip">{role?.replace(/_/g, ' ') ?? 'User'}</span>
             <button
               type="button"
               onClick={toggleTheme}
@@ -137,7 +109,6 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
           </div>
         </header>
 
-        {/* Page content */}
         <main id="main-content" className="shell-content" tabIndex={-1}>
           <ErrorBoundary>
             {children}

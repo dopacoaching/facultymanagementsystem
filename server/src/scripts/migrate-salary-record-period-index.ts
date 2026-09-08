@@ -11,8 +11,13 @@
  *   1. Backfill every existing document with periodType: 'MONTH' so the partial
  *      unique index covers them.
  *   2. Drop the legacy index facultyId_1_month_1_year_1 if it is still present.
- *   3. syncIndexes() rebuilds from the current schema (partial unique on
- *      { facultyId, month, year } + { facultyId, periodStart, periodEnd }).
+ *   3. syncIndexes() rebuilds from the current schema: partial-unique on
+ *      { facultyId, month, year } (periodType 'MONTH') AND partial-unique on
+ *      { facultyId, periodStart, periodEnd } (periodType 'RANGE'). The RANGE
+ *      unique index makes concurrent double-approval of the same date window
+ *      fail with E11000 instead of inserting a second APPROVED record. If a DB
+ *      already holds duplicate RANGE windows, syncIndexes() will throw — dedupe
+ *      those documents first, then re-run.
  *
  * Run (from server/, with MONGODB_URI pointed at the target database):
  *   npm run migrate:salary-period

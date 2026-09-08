@@ -130,11 +130,19 @@ interface ErrorAlertProps {
   message: string
   /** Short summary of what happened (auto-generated if omitted) */
   what?: string
-  /** Optional retry callback — shows a Retry button */
+  /**
+   * Repeats the failed operation. Use ONLY when there is a real operation to
+   * re-run (a failed fetch/submit) — never to merely hide the message.
+   */
   onRetry?: () => void
+  /**
+   * Clears/acknowledges the message without re-running anything. Use for
+   * submit failures the user must correct, or transient notices.
+   */
+  onDismiss?: () => void
 }
 
-export function ErrorAlert({ message, what, onRetry }: ErrorAlertProps) {
+export function ErrorAlert({ message, what, onRetry, onDismiss }: ErrorAlertProps) {
   const heading = what ?? 'Something went wrong'
 
   const why = message
@@ -142,24 +150,27 @@ export function ErrorAlert({ message, what, onRetry }: ErrorAlertProps) {
     : 'An unexpected error occurred.'
 
   const fix = onRetry
-    ? 'Click Retry to try again. If the problem persists, refresh the page or contact support.'
-    : 'Try refreshing the page. If the problem persists, contact support.'
+    ? 'Select Retry to run it again. If it keeps failing, refresh the page or contact support.'
+    : 'Check the details above and try again. If the problem persists, contact support.'
 
   return (
-    <div className="alert alert-error" style={{ flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
+    <div className="alert alert-error" role="alert" style={{ flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span className="alert-icon">⚠</span>
+        <span className="alert-icon" aria-hidden="true">!</span>
         <strong>{heading}</strong>
       </div>
       <div style={{ paddingLeft: '1.625rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8125rem' }}>
         <div><strong>Why:</strong> {why}</div>
         <div><strong>What to do:</strong> {fix}</div>
       </div>
-      {onRetry && (
-        <div style={{ paddingLeft: '1.625rem' }}>
-          <button type="button" className="btn btn-outline btn-sm" onClick={onRetry} style={{ marginTop: '0.25rem' }}>
-            Retry
-          </button>
+      {(onRetry || onDismiss) && (
+        <div style={{ paddingLeft: '1.625rem', display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+          {onRetry && (
+            <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>Retry</button>
+          )}
+          {onDismiss && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onDismiss}>Dismiss</button>
+          )}
         </div>
       )}
     </div>

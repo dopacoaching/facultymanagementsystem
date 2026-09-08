@@ -66,6 +66,14 @@ SalaryRecordSchema.index(
   { unique: true, partialFilterExpression: { periodType: 'MONTH' } },
 )
 SalaryRecordSchema.index({ month: 1, year: 1 })
-SalaryRecordSchema.index({ facultyId: 1, periodStart: 1, periodEnd: 1 })
+// One approved date-window payroll run per faculty per exact [periodStart, periodEnd].
+// Partial + unique so a concurrent double-approval of the same window hits a
+// duplicate-key error (E11000) instead of upserting a second APPROVED record —
+// the RANGE path has no calendar-month unique index to fall back on.
+// Re-run `npm run migrate:salary-period` (calls syncIndexes) to apply.
+SalaryRecordSchema.index(
+  { facultyId: 1, periodStart: 1, periodEnd: 1 },
+  { unique: true, partialFilterExpression: { periodType: 'RANGE' } },
+)
 
 export const SalaryRecord = model<ISalaryRecord>('SalaryRecord', SalaryRecordSchema)

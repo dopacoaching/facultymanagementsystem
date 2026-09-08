@@ -1,11 +1,13 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty } from '@/services/faculty.service'
 import { apiFetch } from '@/services/api'
 import { findCampusByName } from '@/lib/constants/campuses'
 import type { Faculty } from '@/types'
+import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert } from '@/components/ui/Skeleton'
+import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
 import {
   EMPTY_FORM, FormState, computeDuration, SUBJECT_OPTIONS, CLASS_MODE_OPTIONS,
@@ -16,11 +18,20 @@ export default function LogSessionPage() {
   const { accessToken, campusName } = useAppSelector((s) => s.auth)
   const toast = useToast()
 
-  const [facultyList, setFacultyList] = useState<Faculty[]>([])
-  const [form,        setForm]        = useState<FormState>(EMPTY_FORM())
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState('')
-  const [success,     setSuccess]     = useState(false)
+  const facultyRes = useAsyncResource<Faculty[]>(
+    () => getFaculty(accessToken!),
+    [accessToken],
+    { enabled: !!accessToken },
+  )
+  const facultyList = facultyRes.data ?? []
+
+  const [form,   setForm]   = useState<FormState>(EMPTY_FORM())
+  const [saving, setSaving] = useState(false)
+  /** Field-level guidance — the user must fix something. Not retryable. */
+  const [validationError, setValidationError] = useState('')
+  /** The POST itself failed — retry re-runs the submit. */
+  const [submitError, setSubmitError] = useState('')
+  const [savedFor, setSavedFor] = useState<string | null>(null)
 
   const campus = findCampusByName(campusName)
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
@@ -30,38 +41,42 @@ export default function LogSessionPage() {
     [form.startTime, form.endTime, form.breaks]
   )
 
-  useEffect(() => {
-    if (!accessToken) return
-    getFaculty(accessToken).then(setFacultyList).catch(console.error)
-  }, [accessToken])
-
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
       const updated = { ...prev, [key]: value }
-      // Auto-fill subject from the selected faculty's profile
       if (key === 'facultyId') {
         const fac = facultyList.find((f) => f._id === (value as string))
         const match = SUBJECT_OPTIONS.find((s) => s.value === fac?.subject?.toUpperCase())
-        if (match) updated.subject = match.value
+        if (match) {
+          // Auto-fill subject from the faculty's profile — and because chapter
+          // options are subject-specific, drop a now-mismatched chapter too.
+          if (match.value !== prev.subject) updated.chapter = ''
+          updated.subject = match.value
+        }
       }
-      // Chapter options are subject-specific — clear the old selection when subject changes
       if (key === 'subject' && prev.subject !== value) updated.chapter = ''
       return updated
     })
   }
 
+  function validate(): string | null {
+    if (!campusName)          return 'Your account is not linked to a campus'
+    if (!form.facultyId)      return 'Select the faculty who took the session'
+    if (!form.subject.trim()) return 'Subject is required'
+    if (!form.chapter.trim()) return 'Chapter is required'
+    if (!form.classMode)      return 'Select the class mode'
+    if (needsSessionCategory && !form.sessionCategory) return 'Select whether this was a Class or Doubt Clearance session'
+    if (!form.updatedByName)  return 'Select who is filling in this form'
+    if (!form.sessionDate)    return 'Session date is required'
+    if (duration.error)       return duration.error
+    return null
+  }
+
   async function handleSubmit() {
-    if (saving || success) return
-    setError('')
-    if (!campusName)             { setError('Your account is not linked to a campus'); return }
-    if (!form.facultyId)         { setError('Select the faculty who took the session'); return }
-    if (!form.subject.trim())    { setError('Subject is required'); return }
-    if (!form.chapter.trim())    { setError('Chapter is required'); return }
-    if (!form.classMode)         { setError('Select the class mode'); return }
-    if (needsSessionCategory && !form.sessionCategory) { setError('Select whether this was a Class or Doubt Clearance session'); return }
-    if (!form.updatedByName)     { setError('Select who is filling in this form'); return }
-    if (!form.sessionDate)       { setError('Session date is required'); return }
-    if (duration.error)          { setError(duration.error); return }
+    if (saving || savedFor) return
+    setValidationError(''); setSubmitError('')
+    const invalid = validate()
+    if (invalid) { setValidationError(invalid); return }
 
     setSaving(true)
     try {
@@ -77,8 +92,8 @@ export default function LogSessionPage() {
           scheduledTime: form.scheduledTime || undefined,
           startTime:     form.startTime,
           endTime:       form.endTime,
-          breakMinutes:         duration.morningBreak,
-          lunchBreakMinutes:    duration.lunchBreak,
+          breakMinutes:          duration.morningBreak,
+          lunchBreakMinutes:     duration.lunchBreak,
           afternoonBreakMinutes: duration.afternoonBreak,
           updatedByName: form.updatedByName,
           durationHours: duration.hours,
@@ -86,180 +101,194 @@ export default function LogSessionPage() {
           sessionCategory: needsSessionCategory ? form.sessionCategory : undefined,
         },
       })
-      toast.success('Session logged', 'The session has been recorded. The form has been reset.')
-      setSuccess(true)
-      setTimeout(() => {
-        setSuccess(false)
-        setForm(EMPTY_FORM())
-      }, 2000)
+      toast.success('Session logged', 'The session has been recorded.')
+      setSavedFor(selectedFaculty?.name ?? 'the session')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to submit session')
+      setSubmitError(e instanceof Error ? e.message : 'Failed to submit session')
     } finally {
       setSaving(false)
     }
   }
 
+  function startAnother() {
+    setForm(EMPTY_FORM())
+    setSavedFor(null)
+    setValidationError('')
+    setSubmitError('')
+  }
+
+  const activeFaculty = facultyList.filter((f) => f.isActive)
+
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
-
-      <div style={{ marginBottom: '1.75rem' }}>
-        <h1 style={{ fontWeight: 800, fontSize: '1.375rem', margin: '0 0 0.375rem', color: 'var(--color-text)' }}>
-          Log a Session
-        </h1>
-        <p style={{ color: 'var(--color-muted)', fontSize: '0.875rem', margin: 0 }}>
-          Fill in the details of the class that was completed.
-        </p>
-      </div>
-
-      <div style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-md)',
-        padding: '2rem',
-      }}>
-
-        {success && (
-          <div className="alert alert-success" style={{ marginBottom: '1.5rem' }}>
-            <span className="alert-icon">✓</span>
-            Session logged successfully! The form has been reset.
-          </div>
-        )}
-
-        {error && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <ErrorAlert message={error} what="Session could not be submitted" onRetry={() => setError('')} />
-          </div>
-        )}
-
-        <form
-          onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
-          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-        >
-
-          <div className="form-group">
-            <label className="label">Campus</label>
-            <div style={{
-              padding: '0.6rem 0.875rem',
-              background: 'var(--color-surface-2)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.9375rem',
-              color: 'var(--color-text)',
-              fontWeight: 500,
-            }}>
-              {campusName ?? 'Not configured for your account'}
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label className="label">Faculty</label>
-            <select
-              className="input"
-              value={form.facultyId}
-              onChange={(e) => setField('facultyId', e.target.value)}
-            >
-              <option value="">— select faculty —</option>
-              {facultyList.filter((f) => f.isActive).map((f) => (
-                <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>
-              ))}
-            </select>
-          </div>
-
-          {needsSessionCategory && (
-            <div className="form-group">
-              <label className="label">Session Category</label>
-              <select
-                className="input"
-                value={form.sessionCategory}
-                onChange={(e) => setField('sessionCategory', e.target.value as FormState['sessionCategory'])}
-              >
-                <option value="">— select —</option>
-                <option value="CLASS">Class</option>
-                <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
-              </select>
-            </div>
-          )}
-
-          <SubjectField
-            value={form.subject}
-            onChange={(v) => setField('subject', v)}
-          />
-
-          <ChapterField
-            subject={form.subject}
-            accessToken={accessToken}
-            value={form.chapter}
-            onChange={(v) => setField('chapter', v)}
-          />
-
-          <div className="form-group">
-            <label className="label">Class Mode</label>
-            <select
-              className="input"
-              value={form.classMode}
-              onChange={(e) => setField('classMode', e.target.value as FormState['classMode'])}
-            >
-              <option value="">— select —</option>
-              {CLASS_MODE_OPTIONS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <TimeRangeFields
-            scheduledTime={form.scheduledTime}
-            onScheduledTimeChange={(v) => setField('scheduledTime', v)}
-            startTime={form.startTime}
-            onStartTimeChange={(v) => setField('startTime', v)}
-            endTime={form.endTime}
-            onEndTimeChange={(v) => setField('endTime', v)}
-            breaks={form.breaks}
-            onBreaksChange={(b) => setField('breaks', b)}
-            sessionDate={form.sessionDate}
-            onSessionDateChange={(v) => setField('sessionDate', v)}
-            duration={duration}
-          />
-
-          <div className="form-group">
-            <label className="label">Updated By</label>
-            <select
-              className="input"
-              value={form.updatedByName}
-              onChange={(e) => setField('updatedByName', e.target.value)}
-            >
-              <option value="">— select who is filling this in —</option>
-              {(campus?.teachers ?? []).map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-          </div>
-
-        <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => { setForm(EMPTY_FORM()); setError('') }}
-            disabled={saving}
-          >
-            Reset
-          </button>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saving || success}
-          >
-            {saving
-              ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Saving…</>
-              : 'Submit Session'}
-          </button>
+      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+        <div>
+          <h1>Log a session</h1>
+          <p className="page-subtitle">Record a class that has already been taught at {campusName ?? 'your campus'}.</p>
         </div>
-
-        </form>
-
       </div>
 
-      <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
+      <div className="card">
+        {savedFor ? (
+          <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+            <div className="alert alert-success" style={{ display: 'inline-flex', marginBottom: '1.25rem' }}>
+              <span className="alert-icon" aria-hidden="true">✓</span>
+              Session for {savedFor} has been logged.
+            </div>
+            <div>
+              <button type="button" className="btn btn-primary" onClick={startAnother}>
+                Log another session
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {facultyRes.status === 'error' && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <ErrorAlert
+                  message={facultyRes.error?.message ?? ''}
+                  what="Couldn't load the faculty list"
+                  onRetry={facultyRes.refetch}
+                />
+              </div>
+            )}
+
+            {validationError && (
+              <div className="alert alert-warning" role="alert" style={{ marginBottom: '1.25rem' }}>
+                <span className="alert-icon" aria-hidden="true">!</span>
+                {validationError}
+              </div>
+            )}
+
+            {submitError && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <ErrorAlert
+                  message={submitError}
+                  what="Session could not be submitted"
+                  onRetry={handleSubmit}
+                  onDismiss={() => setSubmitError('')}
+                />
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
+              <FormField label="Campus" htmlFor="log-campus">
+                <input
+                  id="log-campus"
+                  className="input"
+                  value={campusName ?? 'Not configured for your account'}
+                  disabled
+                  readOnly
+                />
+              </FormField>
+
+              <FormField label="Faculty" htmlFor="log-faculty" required>
+                <select
+                  id="log-faculty"
+                  className="input"
+                  value={form.facultyId}
+                  disabled={facultyRes.status === 'loading'}
+                  onChange={(e) => setField('facultyId', e.target.value)}
+                >
+                  <option value="">
+                    {facultyRes.status === 'loading' ? 'Loading faculty…' : '— select faculty —'}
+                  </option>
+                  {activeFaculty.map((f) => (
+                    <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              {needsSessionCategory && (
+                <FormField label="Session category" htmlFor="log-session-category" required>
+                  <select
+                    id="log-session-category"
+                    className="input"
+                    value={form.sessionCategory}
+                    onChange={(e) => setField('sessionCategory', e.target.value as FormState['sessionCategory'])}
+                  >
+                    <option value="">— select —</option>
+                    <option value="CLASS">Class</option>
+                    <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
+                  </select>
+                </FormField>
+              )}
+
+              <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
+
+              <ChapterField
+                subject={form.subject}
+                accessToken={accessToken}
+                value={form.chapter}
+                onChange={(v) => setField('chapter', v)}
+              />
+
+              <FormField label="Class mode" htmlFor="log-class-mode" required>
+                <select
+                  id="log-class-mode"
+                  className="input"
+                  value={form.classMode}
+                  onChange={(e) => setField('classMode', e.target.value as FormState['classMode'])}
+                >
+                  <option value="">— select —</option>
+                  {CLASS_MODE_OPTIONS.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              <TimeRangeFields
+                scheduledTime={form.scheduledTime}
+                onScheduledTimeChange={(v) => setField('scheduledTime', v)}
+                startTime={form.startTime}
+                onStartTimeChange={(v) => setField('startTime', v)}
+                endTime={form.endTime}
+                onEndTimeChange={(v) => setField('endTime', v)}
+                breaks={form.breaks}
+                onBreaksChange={(b) => setField('breaks', b)}
+                sessionDate={form.sessionDate}
+                onSessionDateChange={(v) => setField('sessionDate', v)}
+                duration={duration}
+              />
+
+              <FormField label="Updated by" htmlFor="log-updated-by" required>
+                <select
+                  id="log-updated-by"
+                  className="input"
+                  value={form.updatedByName}
+                  onChange={(e) => setField('updatedByName', e.target.value)}
+                >
+                  <option value="">— select who is filling this in —</option>
+                  {(campus?.teachers ?? []).map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => { setForm(EMPTY_FORM()); setValidationError(''); setSubmitError('') }}
+                  disabled={saving}
+                >
+                  Clear
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving
+                    ? <><span className="spinner spinner-on-solid" /> Saving…</>
+                    : 'Submit session'}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+
+      <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
         Sessions submitted here are recorded immediately. Contact your Academics Manager to make corrections.
       </p>
     </div>

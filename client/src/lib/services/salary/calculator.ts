@@ -1070,14 +1070,20 @@ function finalizeSalaryResult(
 
 // ─── Date-range entry point (TEMPORARY faculty only) ──────────────────────────
 
-/** Parse a 'YYYY-MM-DD' string into a local Date at midnight, or null if malformed. */
-function parseLocalDate(iso: string): Date | null {
+/**
+ * Parse a 'YYYY-MM-DD' string into a local Date at midnight, or null if
+ * malformed OR an impossible calendar date. Exported for regression tests.
+ */
+export function parseLocalDate(iso: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '')
   if (!m) return null
   const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3])
-  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null
   const dt = new Date(y, mo - 1, d)
-  return isNaN(dt.getTime()) ? null : dt
+  if (isNaN(dt.getTime())) return null
+  // Reject impossible calendar dates (e.g. 2026-02-30) that JS silently rolls
+  // forward into the next month.
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null
+  return dt
 }
 
 /**

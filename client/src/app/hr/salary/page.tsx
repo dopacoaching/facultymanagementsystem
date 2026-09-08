@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/faculty.service'
 import { calculate, calculateRange, approve, approveRange, setPayableDays } from '@/services/salary.service'
@@ -41,6 +41,17 @@ export default function SalaryPage() {
   const [approved, setApproved]     = useState(false)
   const [savingPayableDays, setSavingPayableDays] = useState(false)
 
+  /**
+   * The exact selection a displayed `result` was computed for. Approval and the
+   * result card read from this snapshot, never from the live controls, so a
+   * calculation can never be approved against a selection the user has since
+   * changed. `calcSeq` invalidates responses from superseded requests.
+   */
+  const [resultCtx, setResultCtx] = useState<
+    { facultyId: string; mode: 'MONTH' | 'RANGE'; month: number; year: number; from: string; to: string } | null
+  >(null)
+  const calcSeq = useRef(0)
+
   useEffect(() => {
     if (accessToken) getAll(accessToken, false).then((list) => {
       setFaculty(list)
@@ -55,19 +66,26 @@ export default function SalaryPage() {
     ? `${fmtISO(from)} – ${fmtISO(to)}`
     : `${MONTHS[month - 1]} ${year}`
 
-  const reset = () => { setResult(null); setApproved(false) }
+  const reset = () => { calcSeq.current++; setResult(null); setResultCtx(null); setApproved(false); setLoading(false) }
 
   async function handleCalculate() {
     if (!accessToken || !selectedId) return
-    setLoading(true); setError(''); setResult(null); setApproved(false)
+    const seq = ++calcSeq.current
+    const ctx = { facultyId: selectedId, mode, month, year, from, to }
+    setLoading(true); setError(''); setResult(null); setResultCtx(null); setApproved(false)
     try {
-      const res = mode === 'RANGE'
-        ? await calculateRange(selectedId, from, to, accessToken)
-        : await calculate(selectedId, month, year, accessToken)
+      const res = ctx.mode === 'RANGE'
+        ? await calculateRange(ctx.facultyId, ctx.from, ctx.to, accessToken)
+        : await calculate(ctx.facultyId, ctx.month, ctx.year, accessToken)
+      if (seq !== calcSeq.current) return   // selection changed while in flight — drop it
       setResult(res)
+      setResultCtx(ctx)
     } catch (e: unknown) {
+      if (seq !== calcSeq.current) return
       setError(e instanceof Error ? e.message : 'Calculation failed')
-    } finally { setLoading(false) }
+    } finally {
+      if (seq === calcSeq.current) setLoading(false)
+    }
   }
 
   async function handleSavePayableDays(payableDays: number) {
@@ -82,15 +100,17 @@ export default function SalaryPage() {
   }
 
   async function handleApprove() {
-    if (!accessToken || !selectedId || !result) return
+    if (!accessToken || !result || !resultCtx) return
+    const ctx = resultCtx
+    const ctxFacultyName = faculty.find((f) => f._id === ctx.facultyId)?.name ?? 'Faculty'
     setApproving(true); setError('')
     try {
-      if (mode === 'RANGE') {
-        await approveRange(selectedId, from, to, accessToken)
+      if (ctx.mode === 'RANGE') {
+        await approveRange(ctx.facultyId, ctx.from, ctx.to, accessToken)
       } else {
-        await approve(selectedId, month, year, accessToken)
+        await approve(ctx.facultyId, ctx.month, ctx.year, accessToken)
       }
-      toast.success('Salary approved', `${selectedFaculty?.name ?? 'Faculty'} salary for ${periodLabel} has been recorded.`)
+      toast.success('Salary approved', `${ctxFacultyName} salary for ${periodLabel} has been recorded.`)
       setApproved(true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Approval failed')
