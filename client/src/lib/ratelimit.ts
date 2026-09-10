@@ -16,6 +16,12 @@ export const refreshLimiter = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(60, '1 m'), prefix: 'rl:refresh' })
   : null
 
+// SSO code exchange — an unauthenticated token-minting endpoint, so throttled
+// per IP the same way password login is.
+export const ssoLimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(10, '15 m'), prefix: 'rl:sso' })
+  : null
+
 export function getIP(req: NextRequest): string {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??

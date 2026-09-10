@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAppDispatch } from '@/store/hooks'
 import { setCredentials, clearCredentials } from '@/store/slices/authSlice'
 import { login, logout } from '@/services/auth.service'
+import { roleHomePath } from '@/lib/roleHome'
 
 const schema = z.object({
   username: z.string().min(1, 'Username required'),
@@ -15,15 +16,8 @@ const schema = z.object({
 
 type Form = z.infer<typeof schema>
 
-// ADMIN is intentionally excluded — admins use /admin/login
-const roleHome: Record<string, string> = {
-  HR_MANAGER:           '/hr',
-  ACADEMICS_MANAGER:    '/academics',
-  IG_ACADEMICS_MANAGER: '/ig',
-  CLASS_TEACHER:          '/coordinator',
-  IG_CLASS_TEACHER:       '/ig/sessions',
-  FACULTY:              '/faculty',
-}
+// ADMIN is handled separately below (redirected away); every other role lands
+// on its shared home — see lib/roleHome.ts.
 
 export default function LoginPage() {
   const dispatch = useAppDispatch()
@@ -59,7 +53,7 @@ export default function LoginPage() {
         campusName:  res.campusName ?? null,
         campusId:    res.campusId   ?? null,
       }))
-      router.push(roleHome[res.role] ?? '/faculty')
+      router.push(roleHomePath(res.role))
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Login failed'
       setError('password', { message: msg })
