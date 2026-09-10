@@ -87,11 +87,12 @@ const XI_NEET_BOTANY: ChapterDef[] = [
   { subject: 'BOTANY', chapterName: 'Morphology of Flowering Plants (Part I)',        chapterOrder:  2, scheduledModule: 2, durationHours: 10 },
   { subject: 'BOTANY', chapterName: 'Plant Kingdom',                                  chapterOrder:  3, scheduledModule: 2, durationHours:  7 },
   { subject: 'BOTANY', chapterName: 'Morphology of Flowering Plants (Part II)',       chapterOrder:  4, scheduledModule: 3, durationHours: 10 },
-  { subject: 'BOTANY', chapterName: 'Cell the Unit of Life',                          chapterOrder:  5, scheduledModule: 3, durationHours: 10 },
-  { subject: 'BOTANY', chapterName: 'Cell Cycle and Cell Division',                   chapterOrder:  6, scheduledModule: 4, durationHours:  8 },
-  { subject: 'BOTANY', chapterName: 'Photosynthesis in Higher Plants',                chapterOrder:  7, scheduledModule: 4, durationHours: 12 },
-  { subject: 'BOTANY', chapterName: 'Respiration in Plants',                          chapterOrder:  8, scheduledModule: 5, durationHours: 10 },
-  { subject: 'BOTANY', chapterName: 'Plant Growth & Development',                     chapterOrder:  9, scheduledModule: 6, durationHours: 10 },
+  { subject: 'BOTANY', chapterName: 'Anatomy of Flowering Plants',                    chapterOrder:  5, scheduledModule: 3, durationHours: 10 },
+  { subject: 'BOTANY', chapterName: 'Cell the Unit of Life',                          chapterOrder:  6, scheduledModule: 3, durationHours: 10 },
+  { subject: 'BOTANY', chapterName: 'Cell Cycle and Cell Division',                   chapterOrder:  7, scheduledModule: 4, durationHours:  8 },
+  { subject: 'BOTANY', chapterName: 'Photosynthesis in Higher Plants',                chapterOrder:  8, scheduledModule: 4, durationHours: 12 },
+  { subject: 'BOTANY', chapterName: 'Respiration in Plants',                          chapterOrder:  9, scheduledModule: 5, durationHours: 10 },
+  { subject: 'BOTANY', chapterName: 'Plant Growth & Development',                     chapterOrder: 10, scheduledModule: 6, durationHours: 10 },
 ]
 
 // ── Plus One Zoology  (NEET only) ─────────────────────────────────────────────
