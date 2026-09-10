@@ -11,8 +11,13 @@ import { connectDB } from '../config/db'
 import { Batch } from '../models/Batch'
 
 const UPDATES: { name: string; stream: 'NEET' | 'JEE'; ig1Subgroup: 'PLUS_ONE' | 'PLUS_TWO' }[] = [
-  { name: 'S3', stream: 'JEE', ig1Subgroup: 'PLUS_ONE' },
-  { name: 'R3', stream: 'JEE', ig1Subgroup: 'PLUS_TWO' },
+  // Plus One S batches — S3 is JEE, the rest are NEET (Biology is NEET-only).
+  { name: 'S1', stream: 'NEET', ig1Subgroup: 'PLUS_ONE' },
+  { name: 'S2', stream: 'NEET', ig1Subgroup: 'PLUS_ONE' },
+  { name: 'S3', stream: 'JEE',  ig1Subgroup: 'PLUS_ONE' },
+  { name: 'S4', stream: 'NEET', ig1Subgroup: 'PLUS_ONE' },
+  { name: 'S5', stream: 'NEET', ig1Subgroup: 'PLUS_ONE' },
+  { name: 'R3', stream: 'JEE',  ig1Subgroup: 'PLUS_TWO' },
 ]
 
 async function run() {
