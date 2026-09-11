@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { SalaryRecord } from '@/lib/models/SalaryRecord'
+import { salaryPeriodOverlapFilter } from '@/lib/utils/dateRange'
 
-/** GET /api/hr/salary/reports?month=&year= */
+/** GET /api/hr/salary/reports?from=&to= */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -14,25 +15,26 @@ export async function GET(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
-    const month = searchParams.get('month')
-    const year  = searchParams.get('year')
+    const from = searchParams.get('from')
+    const to   = searchParams.get('to')
 
-    if (!month || !year) {
-      return withToken(json({ error: 'month and year required' }, 400), refreshedToken)
+    if (!from || !to) {
+      return withToken(json({ error: 'from and to required' }, 400), refreshedToken)
     }
-    const m = Number(month), y = Number(year)
-    if (isNaN(m) || isNaN(y) || m < 1 || m > 12 || y < 2020 || y > 2100) {
-      return withToken(json({ error: 'Invalid month or year' }, 400), refreshedToken)
+    const overlap = salaryPeriodOverlapFilter(from, to)
+    if (!overlap) {
+      return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
     }
 
     await connectDB()
 
-    // Month records match on month/year; date-range records (TEMPORARY faculty)
-    // are bucketed by the month/year derived from their periodStart, so the same
-    // query still picks them up.
+    // Overlap query: any record whose period touches the requested range —
+    // covers MONTH records (periodStart/periodEnd = calendar month), RANGE
+    // records (TEMPORARY faculty date windows), and legacy MONTH records
+    // approved before the periodStart/periodEnd backfill migration ran (falls
+    // back to a month/year match for those).
     const records = await SalaryRecord.find({
-      month:  m,
-      year:   y,
+      ...overlap,
       status: 'APPROVED',
     })
       .populate('facultyId', 'name subject type')

@@ -3,8 +3,9 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { FacultyAvailability } from '@/lib/models/FacultyAvailability'
 import { Faculty } from '@/lib/models/Faculty'
+import { dayRangeFilter, toLocalISODate } from '@/lib/utils/dateRange'
 
-/** GET /api/academics/availability/all?month=M&year=Y */
+/** GET /api/academics/availability/all?from=&to= */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -15,17 +16,19 @@ export async function GET(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
-    const now   = new Date()
-    const month = Number(searchParams.get('month') ?? now.getMonth() + 1)
-    const year  = Number(searchParams.get('year')  ?? now.getFullYear())
+    const now  = new Date()
+    const from = searchParams.get('from') ?? toLocalISODate(new Date(now.getFullYear(), now.getMonth(), 1))
+    const to   = searchParams.get('to')   ?? toLocalISODate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
+
+    const range = dayRangeFilter(from, to)
+    if (!range) {
+      return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
+    }
 
     await connectDB()
 
-    const startDate = new Date(year, month - 1, 1)
-    const endDate   = new Date(year, month,     1)
-
     const [entries, faculty] = await Promise.all([
-      FacultyAvailability.find({ date: { $gte: startDate, $lt: endDate } })
+      FacultyAvailability.find({ date: range })
         .sort({ facultyId: 1, date: 1 })
         .lean(),
       Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
       grouped.get(fid)!.entries.push(entry)
     }
 
-    return withToken(json({ month, year, faculty: Array.from(grouped.values()) }), refreshedToken)
+    return withToken(json({ from, to, faculty: Array.from(grouped.values()) }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/academics/availability/all]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -84,11 +84,11 @@ export async function getAuditLog(
 }
 
 export async function getReports(
-  month: number,
-  year: number,
+  from: string,
+  to: string,
   token: string
 ): Promise<SalaryReport[]> {
-  return apiFetch<SalaryReport[]>(`/hr/salary/reports?month=${month}&year=${year}`, { token })
+  return apiFetch<SalaryReport[]>(`/hr/salary/reports?from=${from}&to=${to}`, { token })
 }
 
 export interface SubjectHoursRanking {
@@ -103,11 +103,11 @@ export interface SubjectHoursRanking {
 }
 
 export async function getFacultyHoursBySubject(
-  month: number | null,
-  year: number | null,
+  from: string | null,
+  to: string | null,
   token: string
-): Promise<{ month: number | null; year: number | null; subjects: SubjectHoursRanking[] }> {
-  const qs = month && year ? `?month=${month}&year=${year}` : ''
+): Promise<{ from: string | null; to: string | null; subjects: SubjectHoursRanking[] }> {
+  const qs = from && to ? `?from=${from}&to=${to}` : ''
   return apiFetch(`/hr/reports/faculty-hours-by-subject${qs}`, { token })
 }
 
@@ -182,8 +182,8 @@ export interface CancellationLogItem {
 }
 
 export interface DashboardData {
-  month: number
-  year: number
+  from: string
+  to: string
   hoursProgress: HoursProgressItem[]
   payrollStatus: PayrollStatusItem[]
   cancellationLog: CancellationLogItem[]
@@ -199,8 +199,8 @@ export interface DashboardData {
   }
 }
 
-export async function getDashboard(month: number, year: number, token: string): Promise<DashboardData> {
-  return apiFetch<DashboardData>(`/hr/dashboard?month=${month}&year=${year}`, { token })
+export async function getDashboard(from: string, to: string, token: string): Promise<DashboardData> {
+  return apiFetch<DashboardData>(`/hr/dashboard?from=${from}&to=${to}`, { token })
 }
 
 // ─── Contract ─────────────────────────────────────────────────────────────────

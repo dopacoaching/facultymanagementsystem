@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { AuditLog } from '@/lib/models/AuditLog'
+import { parseLocalDate } from '@/lib/utils/dateRange'
 
 /** GET /api/hr/audit-log?category=&eventType=&actorRole=&targetType=&search=&from=&to=&page=&limit= */
 export async function GET(req: NextRequest) {
@@ -31,11 +32,21 @@ export async function GET(req: NextRequest) {
     if (actorRole && actorRole !== 'ALL') filter.actorRole = actorRole
     if (targetType && targetType !== 'ALL') filter.targetType = targetType
 
-    // Date range
+    // Date range — parsed as local (not UTC) days so an IST admin filtering
+    // "today" gets today in their own timezone, not UTC's.
     if (from || to) {
       const ts: Record<string, Date> = {}
-      if (from) ts.$gte = new Date(from)
-      if (to)   ts.$lte = new Date(to + 'T23:59:59.999Z')
+      if (from) {
+        const d = parseLocalDate(from)
+        if (!d) return withToken(json({ error: 'from must be a YYYY-MM-DD date' }, 400), refreshedToken)
+        ts.$gte = d
+      }
+      if (to) {
+        const d = parseLocalDate(to)
+        if (!d) return withToken(json({ error: 'to must be a YYYY-MM-DD date' }, 400), refreshedToken)
+        d.setHours(23, 59, 59, 999)
+        ts.$lte = d
+      }
       filter.timestamp = ts
     }
 

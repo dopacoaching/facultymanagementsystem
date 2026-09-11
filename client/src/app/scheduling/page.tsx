@@ -44,9 +44,10 @@ export default function SchedulingPage() {
   // Form state
   const [entries, setEntries] = useState<ClassEntry[]>([])
 
-  // ADMIN-only feature — the layout already blocks every other role, this is
-  // just defence in depth for the action buttons.
-  const canEdit    = role === 'ADMIN'
+  // The layout already blocks every role but ADMIN/ACADEMICS_MANAGER/
+  // IG_ACADEMICS_MANAGER; API routes scope each manager to their own batch
+  // type. This is just defence in depth for the action buttons.
+  const canEdit    = role === 'ADMIN' || role === 'ACADEMICS_MANAGER' || role === 'IG_ACADEMICS_MANAGER'
   const canPublish = canEdit
   const canRevise  = canEdit
 
@@ -61,8 +62,16 @@ export default function SchedulingPage() {
     load()
     getFaculty(accessToken).then(setFaculty).catch(console.error)
     getBatches(accessToken).then((list) => {
+      // Each academics-manager role only ever schedules their own batch type —
+      // scope the dropdown client-side to match what the API will actually
+      // accept, so they can't pick a batch that gets rejected server-side.
+      const scoped = role === 'ACADEMICS_MANAGER'
+        ? list.filter((b) => b.type !== 'IG')
+        : role === 'IG_ACADEMICS_MANAGER'
+        ? list.filter((b) => b.type === 'IG')
+        : list
       // Repeaters batches first, IG last; alphabetical within each group.
-      const sorted = [...list].sort((a, b) => {
+      const sorted = [...scoped].sort((a, b) => {
         const ai = a.type === 'IG' ? 1 : 0
         const bi = b.type === 'IG' ? 1 : 0
         return ai !== bi ? ai - bi : a.name.localeCompare(b.name)
@@ -71,7 +80,7 @@ export default function SchedulingPage() {
       if (sorted.length && !batchId) setBatchId(sorted[0]._id)
     }).catch(console.error)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken])
+  }, [accessToken, role])
 
   useEffect(() => { if (batchId) load() }, [batchId, load])
 

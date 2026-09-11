@@ -4,7 +4,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
-import { igScheduleScopeDenied } from '@/lib/scheduleScope'
+import { igScheduleScopeDenied, academicsManagerScopeDenied } from '@/lib/scheduleScope'
 
 /** POST /api/academics/schedules/:id/revise */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
 
-    const forbidden = authorize(payload, 'ADMIN')
+    const forbidden = authorize(payload, 'ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -28,6 +28,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (await igScheduleScopeDenied(payload, original.batchId)) {
       return withToken(json({ error: 'Access denied: schedule is outside your IG scope' }, 403), refreshedToken)
     }
+    if (await academicsManagerScopeDenied(payload, original.batchId)) {
+      return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
+    }
 
     if (!original.isPublished) {
       return withToken(json({
@@ -35,17 +38,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }, 400), refreshedToken)
     }
 
-    // Check no revision already exists for this week / batch
+    // Return an existing unpublished revision draft if one already exists for this week/batch
     const existing = await WeeklySchedule.findOne({
       batchId:        original.batchId,
       weekStartDate:  original.weekStartDate,
       isRevised:      true,
       isPublished:    false,
-    })
+    }).populate('classEntries.facultyId', 'name subject')
     if (existing) {
+      return withToken(json({ success: true, revision: existing }), refreshedToken)
+    }
+
+    // Block if a published revision already exists — can't have two active published schedules
+    const publishedRevision = await WeeklySchedule.findOne({
+      batchId:        original.batchId,
+      weekStartDate:  original.weekStartDate,
+      isRevised:      true,
+      isPublished:    true,
+    })
+    if (publishedRevision) {
       return withToken(json({
-        error:      'An unpublished revision already exists for this week.',
-        revisionId: existing._id,
+        error:      'A published revision already exists for this week. Revise the revision instead.',
+        scheduleId: publishedRevision._id,
       }, 409), refreshedToken)
     }
 

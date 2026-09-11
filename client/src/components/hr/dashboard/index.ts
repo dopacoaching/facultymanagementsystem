@@ -1,5 +1,4 @@
 export * from './types'
-export { MonthYearSelector } from './MonthYearSelector'
 export { TopStats } from './TopStats'
 export { PenaltyOvertimeRow } from './PenaltyOvertimeRow'
 export { HoursProgressCard } from './HoursProgressCard'

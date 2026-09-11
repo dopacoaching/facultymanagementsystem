@@ -7,12 +7,7 @@ import type { Faculty, SalaryResult } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { MONTHS, printSalarySlip, SalaryControls, SalaryResultCard } from '@/components/hr/salary'
-
-/** Local YYYY-MM-DD for a Date. */
-function toISO(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
+import { toLocalISO } from '@/utils/date'
 
 /** "01 Oct 2026" from a YYYY-MM-DD string. */
 function fmtISO(iso: string): string {
@@ -31,9 +26,9 @@ export default function SalaryPage() {
   const [year, setYear]             = useState(new Date().getFullYear())
   const [from, setFrom]             = useState(() => {
     const now = new Date()
-    return toISO(new Date(now.getFullYear(), now.getMonth(), 1))
+    return toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1))
   })
-  const [to, setTo]                 = useState(() => toISO(new Date()))
+  const [to, setTo]                 = useState(() => toLocalISO(new Date()))
   const [result, setResult]         = useState<SalaryResult | null>(null)
   const [loading, setLoading]       = useState(false)
   const [approving, setApproving]   = useState(false)

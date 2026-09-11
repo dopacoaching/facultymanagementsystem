@@ -1,11 +1,10 @@
 import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
-import { fmtDate, MONTHS } from './types'
+import { fmtDate } from './types'
 
 interface AddDatesCardProps {
   selectedFacultyObj: Faculty | undefined
-  month: number
-  year: number
+  periodLabel: string
   pendingDate: string
   onPendingDateChange: (d: string) => void
   minDate: string
@@ -19,7 +18,7 @@ interface AddDatesCardProps {
 }
 
 export function AddDatesCard({
-  selectedFacultyObj, month, year, pendingDate, onPendingDateChange, minDate, maxDate,
+  selectedFacultyObj, periodLabel, pendingDate, onPendingDateChange, minDate, maxDate,
   onAddToStaging, stagingDates, onRemoveStaged, saveError, saving, onSave,
 }: AddDatesCardProps) {
   return (
@@ -33,7 +32,7 @@ export function AddDatesCard({
             </span>
           )}
         </h2>
-        <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{MONTHS[month - 1]} {year}</span>
+        <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>{periodLabel}</span>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1rem' }}>

@@ -4,7 +4,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
-import { igScheduleScopeDenied } from '@/lib/scheduleScope'
+import { igScheduleScopeDenied, academicsManagerScopeDenied } from '@/lib/scheduleScope'
 
 /** DELETE /api/academics/schedules/:id — discard an unpublished draft */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -15,7 +15,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
 
-    const forbidden = authorize(payload, 'ADMIN')
+    const forbidden = authorize(payload, 'ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -27,6 +27,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     if (await igScheduleScopeDenied(payload, schedule.batchId)) {
       return withToken(json({ error: 'Access denied: schedule is outside your IG scope' }, 403), refreshedToken)
+    }
+    if (await academicsManagerScopeDenied(payload, schedule.batchId)) {
+      return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
     }
 
     if (schedule.isPublished) {

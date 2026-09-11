@@ -15,7 +15,8 @@
     "update:faculty-contracts-2026-07": "tsx --env-file=../.env src/scripts/update-faculty-contracts-2026-07.ts",
     "update:office-staff-2026-07": "tsx --env-file=../.env src/scripts/update-faculty-contracts-2026-07-office-staff.ts",
     "create:campus-teacher-logins": "tsx --env-file=../.env src/scripts/create-campus-teacher-logins.ts",
-    "migrate:salary-period": "tsx --env-file=../.env src/scripts/migrate-salary-record-period-index.ts"
+    "migrate:salary-period": "tsx --env-file=../.env src/scripts/migrate-salary-record-period-index.ts",
+    "migrate:salary-period-range": "tsx --env-file=../.env src/scripts/migrate-salary-record-add-period-range.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

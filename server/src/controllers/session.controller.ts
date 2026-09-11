@@ -11,6 +11,7 @@ import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
+import { dayRangeFilter, toLocalISODate } from '../utils/dateRange'
 import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
@@ -19,7 +20,7 @@ function isCoordinator(role: string): boolean {
 }
 
 export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
-  let { facultyId, campusName, batchId, batchType, excludeBatchType, month, year } = req.query as Record<string, string | undefined>
+  let { facultyId, campusName, batchId, batchType, excludeBatchType, from, to } = req.query as Record<string, string | undefined>
   const filter: Record<string, unknown> = {}
 
   // FACULTY scope guard — faculty users may only view their own sessions
@@ -68,11 +69,10 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     }
   }
 
-  if (month && year) {
-    filter.sessionDate = {
-      $gte: new Date(Number(year), Number(month) - 1, 1),
-      $lt: new Date(Number(year), Number(month), 1),
-    }
+  if (from && to) {
+    const range = dayRangeFilter(from, to)
+    if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
+    filter.sessionDate = range
   }
 
   // Optional limit (default 500 hard cap to prevent unbounded responses).
@@ -546,21 +546,19 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
 })
 
 /**
- * GET /academics/faculty-hours?month=M&year=Y
- * Returns all active faculty with their logged hours for the month,
+ * GET /academics/faculty-hours?from=&to=
+ * Returns all active faculty with their logged hours for the date range,
  * and their contract quota where applicable.
  * No salary amounts are included — this is for ACADEMICS_MANAGER visibility only.
  */
 export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const month = Number(req.query.month ?? new Date().getMonth() + 1)
-  const year  = Number(req.query.year  ?? new Date().getFullYear())
+  const now = new Date()
+  const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  if (isNaN(month) || isNaN(year)) {
-    res.status(400).json({ error: 'month and year must be numbers' }); return
-  }
-
-  const startDate = new Date(year, month - 1, 1)
-  const endDate   = new Date(year, month,     1)
+  const from = String(req.query.from ?? toLocalISODate(defaultFrom))
+  const to   = String(req.query.to   ?? toLocalISODate(now))
+  const range = dayRangeFilter(from, to)
+  if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
 
   const [facultyList, contracts, hoursAgg] = await Promise.all([
     Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
@@ -569,7 +567,7 @@ export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res:
       {
         $match: {
           status: 'COMPLETED',
-          sessionDate: { $gte: startDate, $lt: endDate },
+          sessionDate: range,
         },
       },
       {
@@ -614,5 +612,5 @@ export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res:
     return { facultyId: f._id, name: f.name, subject: f.subject, contractType, quota, logged, sessionCount, pct, deficit, surplus, status }
   })
 
-  res.json({ month, year, faculty: result })
+  res.json({ from, to, faculty: result })
 })

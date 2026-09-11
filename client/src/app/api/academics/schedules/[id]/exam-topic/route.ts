@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { WeeklySchedule } from '@/lib/models/WeeklySchedule'
-import { igScheduleScopeDenied } from '@/lib/scheduleScope'
+import { igScheduleScopeDenied, academicsManagerScopeDenied } from '@/lib/scheduleScope'
 
 /** PATCH /api/academics/schedules/:id/exam-topic */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +31,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (await igScheduleScopeDenied(payload, schedule.batchId)) {
       return withToken(json({ error: 'Access denied: schedule is outside your IG scope' }, 403), refreshedToken)
+    }
+    if (await academicsManagerScopeDenied(payload, schedule.batchId)) {
+      return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
     }
 
     if (schedule.isPublished) {

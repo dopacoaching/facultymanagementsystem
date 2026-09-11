@@ -52,23 +52,25 @@ router.patch('/sessions/:id', authorize('ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMI
 // FACULTY included: the My Sessions page shows published weekly schedules.
 router.get('/schedules', authorize('CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), getSchedules)
 router.get('/schedule',  authorize('CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN', 'FACULTY'), getSchedules)
-// Weekly Schedule editor is ADMIN-only (mirrors the Next API + /scheduling route).
-router.post('/schedules', authorize('ADMIN'), createOrUpdateSchedule)
-router.post('/schedule', authorize('ADMIN'), createOrUpdateSchedule)
+// Weekly Schedule editor — ADMIN plus both academics-manager roles, each
+// scoped to their own batch type inside the controller (mirrors the Next API
+// + /scheduling route).
+router.post('/schedules', authorize('ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'), createOrUpdateSchedule)
+router.post('/schedule', authorize('ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'), createOrUpdateSchedule)
 
-// Exam topic update — NOT part of the ADMIN-only editor. The live /academics/exams
+// Exam topic update — NOT part of the editor's batch-type gate. The live /academics/exams
 // page uses this to set Monday/Friday topics on existing schedules.
 router.patch('/schedules/:id/exam-topic', authorize('ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN'), updateExamTopic)
 
 // Publish
-router.post('/schedules/:id/publish', authorize('ADMIN'), publishSchedule)
-router.post('/schedule/publish', authorize('ADMIN'), publishSchedule)
+router.post('/schedules/:id/publish', authorize('ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'), publishSchedule)
+router.post('/schedule/publish', authorize('ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'), publishSchedule)
 
 // Revise (create revised draft from a published schedule)
-router.post('/schedules/:id/revise', authorize('ADMIN'), reviseSchedule)
+router.post('/schedules/:id/revise', authorize('ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'), reviseSchedule)
 
 // Delete (unpublished drafts/revisions only)
-router.delete('/schedules/:id', authorize('ADMIN'), deleteSchedule)
+router.delete('/schedules/:id', authorize('ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'), deleteSchedule)
 
 // ── Exam topic suggestion ─────────────────────────────────────────────────────
 router.get('/exams/suggest', authorize('CLASS_TEACHER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'), suggestTopic)

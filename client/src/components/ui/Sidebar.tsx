@@ -32,8 +32,9 @@ function validatePasswordComplexity(pw: string): string | null {
 
 type NavEntry = { section: string } | { href: string }
 
-// ADMIN-only entry — the Weekly Schedule editor (Repeaters + IG) is not shown
-// to the academics-manager roles.
+// The Weekly Schedule editor (Repeaters + IG) — shown to ADMIN and both
+// academics-manager roles; each manager is scoped server-side to their own
+// batch type (Repeaters or IG).
 const SCHEDULING_ENTRY: NavEntry[] = SCHEDULING_ENABLED ? [{ href: '/scheduling' }] : []
 
 const ROLE_NAV: Record<string, NavEntry[]> = {
@@ -65,12 +66,14 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
   ACADEMICS_MANAGER: [
     { href: '/academics' },
     { href: '/academics/sessions' },
+    ...SCHEDULING_ENTRY,
   ],
   IG_ACADEMICS_MANAGER: [
     { href: '/ig' },
     { href: '/ig/sessions' },
     { href: '/ig/timetable' },
     { href: '/ig/chapters' },
+    ...SCHEDULING_ENTRY,
   ],
   CLASS_TEACHER: [
     { href: '/coordinator' },

@@ -4,10 +4,11 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { FacultyAvailability } from '@/lib/models/FacultyAvailability'
 import { Faculty } from '@/lib/models/Faculty'
+import { dayRangeFilter } from '@/lib/utils/dateRange'
 
 const ALLOWED_ROLES = ['ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER', 'ADMIN'] as const
 
-/** GET /api/academics/availability?facultyId=X&month=M&year=Y */
+/** GET /api/academics/availability?facultyId=X&from=&to= */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -19,11 +20,11 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const facultyId = searchParams.get('facultyId') ?? ''
-    const month     = Number(searchParams.get('month'))
-    const year      = Number(searchParams.get('year'))
+    const from      = searchParams.get('from') ?? ''
+    const to        = searchParams.get('to') ?? ''
 
-    if (!facultyId || !month || !year) {
-      return withToken(json({ error: 'facultyId, month, year required' }, 400), refreshedToken)
+    if (!facultyId || !from || !to) {
+      return withToken(json({ error: 'facultyId, from, to required' }, 400), refreshedToken)
     }
 
     let fid: Types.ObjectId
@@ -31,14 +32,16 @@ export async function GET(req: NextRequest) {
       return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
     }
 
-    await connectDB()
+    const range = dayRangeFilter(from, to)
+    if (!range) {
+      return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
+    }
 
-    const startDate = new Date(year, month - 1, 1)
-    const endDate   = new Date(year, month,     1)
+    await connectDB()
 
     const entries = await FacultyAvailability.find({
       facultyId: fid,
-      date: { $gte: startDate, $lt: endDate },
+      date: range,
     }).sort({ date: 1 })
 
     return withToken(json(entries), refreshedToken)

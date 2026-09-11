@@ -1,5 +1,5 @@
 'use client'
-import { todayLocal } from '@/utils/date'
+import { todayLocal, toLocalISO } from '@/utils/date'
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
@@ -19,8 +19,8 @@ export default function AcademicsDashboard() {
   const router = useRouter()
   const { accessToken } = useAppSelector((s) => s.auth)
   const now = new Date()
-  const [hoursMonth, setHoursMonth] = useState(now.getMonth() + 1)
-  const [hoursYear,  setHoursYear]  = useState(now.getFullYear())
+  const [hoursFrom, setHoursFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [hoursTo,   setHoursTo]   = useState(toLocalISO(now))
   const [facultyHours,        setFacultyHours]        = useState<FacultyHoursItem[]>([])
   const [facultyHoursLoading, setFacultyHoursLoading] = useState(false)
   const hoursReqRef = useRef(0)
@@ -34,14 +34,14 @@ export default function AcademicsDashboard() {
 
   useEffect(() => {
     if (!accessToken) return
-    loadFacultyHours(hoursMonth, hoursYear)
+    loadFacultyHours(hoursFrom, hoursTo)
   }, [accessToken]) // eslint-disable-line
 
-  function loadFacultyHours(m: number, y: number) {
+  function loadFacultyHours(from: string, to: string) {
     if (!accessToken) return
     const reqId = ++hoursReqRef.current
     setFacultyHoursLoading(true)
-    getFacultyHoursSummary(m, y, accessToken)
+    getFacultyHoursSummary(from, to, accessToken)
       .then((data) => { if (reqId === hoursReqRef.current) setFacultyHours(data.faculty) })
       .catch(console.error)
       .finally(() => { if (reqId === hoursReqRef.current) setFacultyHoursLoading(false) })
@@ -114,10 +114,10 @@ export default function AcademicsDashboard() {
       <FacultyHoursCard
         facultyHours={facultyHours}
         loading={facultyHoursLoading}
-        hoursMonth={hoursMonth}
-        hoursYear={hoursYear}
-        onMonthChange={(m) => { setHoursMonth(m); loadFacultyHours(m, hoursYear) }}
-        onYearChange={(y) => { setHoursYear(y); loadFacultyHours(hoursMonth, y) }}
+        hoursFrom={hoursFrom}
+        hoursTo={hoursTo}
+        onFromChange={(v) => { setHoursFrom(v); loadFacultyHours(v, hoursTo) }}
+        onToChange={(v) => { setHoursTo(v); loadFacultyHours(hoursFrom, v) }}
       />
 
       <div className="panel-grid-2" style={{ marginBottom: '1.25rem' }}>

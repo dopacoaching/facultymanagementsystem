@@ -7,8 +7,9 @@ import { Session } from '@/lib/models/Session'
 import { SalaryRecord } from '@/lib/models/SalaryRecord'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { PayableDays } from '@/lib/models/PayableDays'
+import { dayRangeFilter, monthYearPairsInRange, salaryPeriodOverlapFilter, toLocalISODate } from '@/lib/utils/dateRange'
 
-/** GET /api/hr/dashboard?month=&year= */
+/** GET /api/hr/dashboard?from=&to= */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -19,25 +20,27 @@ export async function GET(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
-    const month = Number(searchParams.get('month') ?? new Date().getMonth() + 1)
-    const year  = Number(searchParams.get('year')  ?? new Date().getFullYear())
-    if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
-      return withToken(json({ error: 'Invalid month or year' }, 400), refreshedToken)
-    }
+    const now  = new Date()
+    const from = searchParams.get('from') ?? toLocalISODate(new Date(now.getFullYear(), now.getMonth(), 1))
+    const to   = searchParams.get('to')   ?? toLocalISODate(now)
 
-    const startDate = new Date(year, month - 1, 1)
-    const endDate   = new Date(year, month,     1)
+    const range = dayRangeFilter(from, to)
+    if (!range) {
+      return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
+    }
+    const monthYearOr = monthYearPairsInRange(from, to)
+    const overlap = salaryPeriodOverlapFilter(from, to)!
 
     await connectDB()
 
     const [faculty, contracts, salaryRecords, payableDaysRecords, cancelledSessions, hoursAgg] = await Promise.all([
       Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
       PermanentFacultyContract.find({}).lean(),
-      SalaryRecord.find({ month, year }).lean(),
-      PayableDays.find({ month, year }).lean(),
+      SalaryRecord.find(overlap).lean(),
+      PayableDays.find({ $or: monthYearOr }).lean(),
       Session.find({
         status:      'CANCELLED',
-        sessionDate: { $gte: startDate, $lt: endDate },
+        sessionDate: range,
       })
         .populate('facultyId', 'name')
         .sort({ sessionDate: -1 })
@@ -47,7 +50,7 @@ export async function GET(req: NextRequest) {
         {
           $match: {
             status:      { $in: ['COMPLETED', 'SCHEDULED'] },
-            sessionDate: { $gte: startDate, $lt: endDate },
+            sessionDate: range,
           },
         },
         {
@@ -122,8 +125,8 @@ export async function GET(req: NextRequest) {
     }))
 
     return withToken(json({
-      month,
-      year,
+      from,
+      to,
       hoursProgress,
       payrollStatus,
       cancellationLog,

@@ -1,16 +1,15 @@
 import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
-import { MONTHS, periodText } from './types'
+import { periodText } from './types'
 import type { ReportRow } from './types'
 
 interface ReportsTableProps {
   loading: boolean
   rows: ReportRow[]
   total: number
-  month: number
-  year: number
+  periodLabel: string
 }
 
-export function ReportsTable({ loading, rows, total, month, year }: ReportsTableProps) {
+export function ReportsTable({ loading, rows, total, periodLabel }: ReportsTableProps) {
   return (
     <div className="card">
       {loading ? (
@@ -18,7 +17,7 @@ export function ReportsTable({ loading, rows, total, month, year }: ReportsTable
       ) : rows.length === 0 ? (
         <EmptyState
           title="No approved salaries"
-          description={`No salaries have been approved for ${MONTHS[month - 1]} ${year}. Calculate and approve salaries from the Salary Calculator.`}
+          description={`No salaries have been approved for ${periodLabel}. Calculate and approve salaries from the Salary Calculator.`}
         />
       ) : (
         <div className="table-wrapper">
@@ -54,7 +53,7 @@ export function ReportsTable({ loading, rows, total, month, year }: ReportsTable
               {rows.length > 0 && (
                 <tr style={{ background: 'rgba(13,148,136,.04)' }}>
                   <td colSpan={3} style={{ fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-                    Total Payroll — {MONTHS[month - 1]} {year}
+                    Total Payroll — {periodLabel}
                   </td>
                   <td style={{ fontWeight: 800, textAlign: 'right', fontSize: '1rem', color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
                     ₹{total.toLocaleString('en-IN')}

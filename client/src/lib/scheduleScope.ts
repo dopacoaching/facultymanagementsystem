@@ -17,3 +17,17 @@ export async function igScheduleScopeDenied(
   if (payload.campusId && batch.campusId?.toString() !== payload.campusId) return true
   return false
 }
+
+/**
+ * ACADEMICS_MANAGER may only act on batches matching their assigned batchType
+ * (Repeaters: RESIDENTIAL/OFFLINE/ONLINE). A no-op for every other role.
+ */
+export async function academicsManagerScopeDenied(
+  payload: JWTPayload,
+  batchId: unknown,
+): Promise<boolean> {
+  if (payload.role !== 'ACADEMICS_MANAGER' || !payload.batchType) return false
+  const batch = await Batch.findById(batchId as string).lean()
+  if (!batch || batch.type !== payload.batchType) return true
+  return false
+}

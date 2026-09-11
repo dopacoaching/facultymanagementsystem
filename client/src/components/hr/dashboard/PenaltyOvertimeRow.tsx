@@ -1,13 +1,11 @@
 import type { DashboardData } from '@/services/salary.service'
-import { MONTHS } from './types'
 
 interface PenaltyOvertimeRowProps {
   totals: DashboardData['totals'] | undefined
-  month: number
-  year: number
+  periodLabel: string
 }
 
-export function PenaltyOvertimeRow({ totals: t, month, year }: PenaltyOvertimeRowProps) {
+export function PenaltyOvertimeRow({ totals: t, periodLabel }: PenaltyOvertimeRowProps) {
   if (!t || (t.totalPenalties <= 0 && t.totalOvertimePay <= 0)) return null
 
   return (
@@ -18,7 +16,7 @@ export function PenaltyOvertimeRow({ totals: t, month, year }: PenaltyOvertimeRo
           <div className="stat-value" style={{ color: 'var(--color-danger)', fontSize: '1.375rem' }}>
             ₹{t.totalPenalties.toLocaleString('en-IN')}
           </div>
-          <div className="stat-sub">{MONTHS[month - 1]} {year} · approved records only</div>
+          <div className="stat-sub">{periodLabel} · approved records only</div>
         </div>
       )}
       {t.totalOvertimePay > 0 && (

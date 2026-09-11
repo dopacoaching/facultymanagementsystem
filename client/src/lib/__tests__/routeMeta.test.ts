@@ -62,20 +62,28 @@ test('faculty self-service nav never exposes HR or admin routes', () => {
   assert.ok(hrefs.every((h) => h.startsWith('/faculty')))
 })
 
-test('scheduling entry is ADMIN-only and hidden unless the feature flag is passed', () => {
+test('scheduling entry is shown to ADMIN and both academics-manager roles, hidden unless the feature flag is passed', () => {
   const adminOff = getNavForRole('ADMIN').flatMap((g) => g.items.map((i) => i.path))
   assert.ok(!adminOff.includes('/scheduling'))
   const adminOn = getNavForRole('ADMIN', { SCHEDULING_ENABLED: true })
     .flatMap((g) => g.items.map((i) => i.path))
   assert.ok(adminOn.includes('/scheduling'))
 
-  // Never shown to the academics-manager roles, flag on or off.
+  // Each academics-manager role also sees it once the flag is on — they're
+  // scoped server-side to their own batch type (Repeaters or IG).
+  const acMgrOff = getNavForRole('ACADEMICS_MANAGER').flatMap((g) => g.items.map((i) => i.path))
+  assert.ok(!acMgrOff.includes('/scheduling'))
   const acMgr = getNavForRole('ACADEMICS_MANAGER', { SCHEDULING_ENABLED: true })
     .flatMap((g) => g.items.map((i) => i.path))
-  assert.ok(!acMgr.includes('/scheduling'))
+  assert.ok(acMgr.includes('/scheduling'))
   const igMgr = getNavForRole('IG_ACADEMICS_MANAGER', { SCHEDULING_ENABLED: true })
     .flatMap((g) => g.items.map((i) => i.path))
-  assert.ok(!igMgr.includes('/scheduling'))
+  assert.ok(igMgr.includes('/scheduling'))
+
+  // Never shown to any other role, flag on or off.
+  const hr = getNavForRole('HR_MANAGER', { SCHEDULING_ENABLED: true })
+    .flatMap((g) => g.items.map((i) => i.path))
+  assert.ok(!hr.includes('/scheduling'))
 })
 
 test('admin nav is grouped into sections; focused roles stay flat', () => {

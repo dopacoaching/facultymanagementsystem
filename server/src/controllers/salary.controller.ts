@@ -11,21 +11,8 @@ import { calculateMonthlySalary, calculateRangeSalary, redactForFacultyView } fr
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { validateObjectId } from '../utils/objectId'
+import { parseLocalDate, dayRangeFilter, monthYearPairsInRange, salaryPeriodOverlapFilter, toLocalISODate } from '../utils/dateRange'
 import { Types } from 'mongoose'
-
-const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
-
-function parseLocalDate(iso: string): Date | null {
-  const m = DATE_RE.exec(iso ?? '')
-  if (!m) return null
-  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3])
-  const dt = new Date(y, mo - 1, d)
-  if (isNaN(dt.getTime())) return null
-  // Reject impossible calendar dates (e.g. 2026-06-00, 2026-02-30) that JS
-  // silently rolls into an adjacent month.
-  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null
-  return dt
-}
 
 const fmtDay = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
@@ -60,7 +47,7 @@ export const calcSalary = asyncHandler(async (req: AuthRequest, res: Response) =
   // Date-range mode (TEMPORARY faculty, paid by the week) — the calculator itself
   // rejects non-temporary faculty.
   if (from || to) {
-    if (!DATE_RE.test(from ?? '') || !DATE_RE.test(to ?? '')) {
+    if (!parseLocalDate(from ?? '') || !parseLocalDate(to ?? '')) {
       res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return
     }
     const rangeResult = await calculateRangeSalary(facultyId, from!, to!)
@@ -228,10 +215,15 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
   const faculty = await Faculty.findById(facultyId)
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
 
+  const m = Number(month), y = Number(year)
+  const monthStart = new Date(y, m - 1, 1)
+  const monthEnd = new Date(y, m, 0)
+  monthEnd.setHours(23, 59, 59, 999)
+
   const record = await persistRecord(
     result,
-    { facultyId: fOid, month: Number(month), year: Number(year), periodType: { $ne: 'RANGE' } },
-    { periodType: 'MONTH', month: Number(month), year: Number(year) },
+    { facultyId: fOid, month: m, year: y, periodType: { $ne: 'RANGE' } },
+    { periodType: 'MONTH', month: m, year: y, periodStart: monthStart, periodEnd: monthEnd },
     `${month}/${year}`,
     faculty.name,
   )
@@ -239,16 +231,47 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
   res.json({ success: true, record })
 })
 
+/** GET /hr/audit-log?category=&eventType=&actorRole=&targetType=&search=&from=&to=&facultyId=&page=&limit= */
 export const getAuditLog = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, eventType, page = '1', limit = '50' } = req.query
+  const { facultyId, category, eventType, actorRole, targetType, search, from, to, page = '1', limit = '50' } = req.query
   const filter: Record<string, unknown> = {}
   if (facultyId) {
     try { filter.facultyId = new Types.ObjectId(facultyId as string) } catch {
       res.status(400).json({ error: 'Invalid facultyId' }); return
     }
   }
-  if (eventType && eventType !== 'ALL') {
-    filter.eventType = eventType
+  if (category && category !== 'ALL') filter.category = category
+  if (eventType && eventType !== 'ALL') filter.eventType = eventType
+  if (actorRole && actorRole !== 'ALL') filter.actorRole = actorRole
+  if (targetType && targetType !== 'ALL') filter.targetType = targetType
+
+  if (from || to) {
+    const ts: Record<string, Date> = {}
+    if (from) {
+      const d = parseLocalDate(String(from))
+      if (!d) { res.status(400).json({ error: 'from must be a YYYY-MM-DD date' }); return }
+      ts.$gte = d
+    }
+    if (to) {
+      const d = parseLocalDate(String(to))
+      if (!d) { res.status(400).json({ error: 'to must be a YYYY-MM-DD date' }); return }
+      d.setHours(23, 59, 59, 999)
+      ts.$lte = d
+    }
+    filter.timestamp = ts
+  }
+
+  // Full-text search across description, targetName, actorUsername.
+  // Escape regex metacharacters to prevent ReDoS.
+  const searchStr = typeof search === 'string' ? search.trim() : ''
+  if (searchStr) {
+    const escaped = searchStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    filter.$or = [
+      { description:   { $regex: escaped, $options: 'i' } },
+      { targetName:    { $regex: escaped, $options: 'i' } },
+      { actorUsername: { $regex: escaped, $options: 'i' } },
+      { actorRole:     { $regex: escaped, $options: 'i' } },
+    ]
   }
 
   const p = Math.max(1, Number(page))
@@ -314,12 +337,18 @@ export const setPayableDaysCtrl = asyncHandler(async (req: AuthRequest, res: Res
 })
 
 export const getSalaryReports = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { month, year } = req.query
-  if (!month || !year) { res.status(400).json({ error: 'month and year required' }); return }
+  const { from, to } = req.query
+  if (!from || !to) { res.status(400).json({ error: 'from and to required' }); return }
+  const overlap = salaryPeriodOverlapFilter(String(from), String(to))
+  if (!overlap) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
 
+  // Overlap query: any record whose period touches the requested range —
+  // covers MONTH records (periodStart/periodEnd = calendar month), RANGE
+  // records (TEMPORARY faculty date windows), and legacy MONTH records
+  // approved before the periodStart/periodEnd backfill migration ran (falls
+  // back to a month/year match for those).
   const records = await SalaryRecord.find({
-    month: Number(month),
-    year: Number(year),
+    ...overlap,
     status: 'APPROVED',
   })
     .populate('facultyId', 'name subject type')
@@ -373,23 +402,20 @@ export const getMyHistory = asyncHandler(async (req: AuthRequest, res: Response)
 })
 
 /**
- * GET /hr/reports/faculty-hours-by-subject?month=M&year=Y
+ * GET /hr/reports/faculty-hours-by-subject?from=&to=
  * Ranks faculty by total hours taught, per subject. HR_MANAGER and ADMIN only.
  */
 export const getFacultyHoursBySubject = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const monthParam = req.query.month as string | undefined
-  const yearParam  = req.query.year  as string | undefined
+  const from = req.query.from as string | undefined
+  const to   = req.query.to   as string | undefined
 
   const dateFilter: Record<string, unknown> = { status: 'COMPLETED' }
-  let month: number | null = null
-  let year: number | null = null
-  if (monthParam && yearParam) {
-    month = Number(monthParam)
-    year  = Number(yearParam)
-    if (isNaN(month) || isNaN(year)) {
-      res.status(400).json({ error: 'month and year must be numbers' }); return
+  if (from && to) {
+    const range = dayRangeFilter(from, to)
+    if (!range) {
+      res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return
     }
-    dateFilter.sessionDate = { $gte: new Date(year, month - 1, 1), $lt: new Date(year, month, 1) }
+    dateFilter.sessionDate = range
   }
 
   const [agg, facultyList] = await Promise.all([
@@ -432,31 +458,38 @@ export const getFacultyHoursBySubject = asyncHandler(async (req: AuthRequest, re
     }))
     .sort((a, b) => a.subject.localeCompare(b.subject))
 
-  res.json({ month, year, subjects })
+  res.json({ from: from ?? null, to: to ?? null, subjects })
 })
 
 // ─── HR Dashboard ──────────────────────────────────────────────────────────────
 
 /**
- * GET /hr/dashboard?month=M&year=Y
+ * GET /hr/dashboard?from=&to=
  * Aggregates: hours progress, payroll status, cancellation log, and totals.
  * HR_MANAGER and ADMIN only.
  */
 export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const month = Number(req.query.month ?? new Date().getMonth() + 1)
-  const year  = Number(req.query.year  ?? new Date().getFullYear())
+  const now = new Date()
+  const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1)
+  const defaultTo = now
 
-  const startDate = new Date(year, month - 1, 1)
-  const endDate   = new Date(year, month,     1)
+  const from = String(req.query.from ?? toLocalISODate(defaultFrom))
+  const to   = String(req.query.to   ?? toLocalISODate(defaultTo))
+  const range = dayRangeFilter(from, to)
+  if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
+
+  const monthYearPairs = monthYearPairsInRange(from, to)
+  const monthYearOr = monthYearPairs.map((p) => ({ month: p.month, year: p.year }))
+  const overlap = salaryPeriodOverlapFilter(from, to)!
 
   const [faculty, contracts, salaryRecords, payableDaysRecords, cancelledSessions, hoursAgg] = await Promise.all([
     Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
     PermanentFacultyContract.find({}).lean(),
-    SalaryRecord.find({ month, year }).lean(),
-    PayableDays.find({ month, year }).lean(),
+    SalaryRecord.find(overlap).lean(),
+    PayableDays.find({ $or: monthYearOr }).lean(),
     Session.find({
       status: 'CANCELLED',
-      sessionDate: { $gte: startDate, $lt: endDate },
+      sessionDate: range,
     })
       .populate('facultyId', 'name')
       .sort({ sessionDate: -1 })
@@ -466,7 +499,7 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
       {
         $match: {
           status: { $in: ['COMPLETED', 'SCHEDULED'] },
-          sessionDate: { $gte: startDate, $lt: endDate },
+          sessionDate: range,
         },
       },
       {
@@ -541,8 +574,8 @@ export const getDashboard = asyncHandler(async (req: AuthRequest, res: Response)
   }))
 
   res.json({
-    month,
-    year,
+    from,
+    to,
     hoursProgress,
     payrollStatus,
     cancellationLog,

@@ -79,10 +79,10 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    // Kill-switchable feature; ADMIN-only otherwise.
+    // Kill-switchable feature.
     if (!SCHEDULING_ENABLED) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
 
-    const forbidden = authorize(payload, 'ADMIN')
+    const forbidden = authorize(payload, 'ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { batchId, weekStartDate, mondayExamTopic, fridayExamTopic, classEntries } = await req.json()
@@ -116,6 +116,13 @@ export async function POST(req: NextRequest) {
     }
 
     const startDate = midnight(weekStartDate)
+
+    // The schedule week runs Tuesday→Monday (DAY_OFFSETS in WeeklySchedule) —
+    // a non-Tuesday start would silently misalign weekEndDate and the
+    // Monday/Friday exam-topic logic that assumes this week shape.
+    if (startDate.getDay() !== 2) {
+      return withToken(json({ error: 'weekStartDate must be a Tuesday' }, 400), refreshedToken)
+    }
 
     // End date = start + 6 days
     const endDate = new Date(startDate)

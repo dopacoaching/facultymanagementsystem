@@ -30,6 +30,17 @@ async function igScheduleScopeDenied(user: AuthRequest['user'], batchId: unknown
   return false
 }
 
+/**
+ * ACADEMICS_MANAGER may only act on batches matching their assigned batchType.
+ * A no-op for every other role. Mirrors client `src/lib/scheduleScope.ts`.
+ */
+async function academicsManagerScopeDenied(user: AuthRequest['user'], batchId: unknown): Promise<boolean> {
+  if (user!.role !== 'ACADEMICS_MANAGER' || !user!.batchType) return false
+  const batch = await Batch.findById(batchId as string).lean()
+  if (!batch || batch.type !== user!.batchType) return true
+  return false
+}
+
 // ─── GET schedules ────────────────────────────────────────────────────────────
 
 export const getSchedules = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -135,6 +146,13 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
 
   const startDate = midnight(weekStartDate)
 
+  // The schedule week runs Tuesday→Monday (DAY_OFFSETS in WeeklySchedule) —
+  // a non-Tuesday start would silently misalign weekEndDate and the
+  // Monday/Friday exam-topic logic that assumes this week shape.
+  if (startDate.getDay() !== 2) {
+    res.status(400).json({ error: 'weekStartDate must be a Tuesday' }); return
+  }
+
   // End date = start + 6 days
   const endDate = new Date(startDate)
   endDate.setDate(endDate.getDate() + 6)
@@ -144,25 +162,40 @@ export const createOrUpdateSchedule = asyncHandler(async (req: AuthRequest, res:
   if (fridayExamTopic !== undefined) updateDoc.fridayExamTopic = fridayExamTopic
   if (classEntries   !== undefined) updateDoc.classEntries    = classEntries
 
-  // Guard: if a published schedule already exists for this batch-week, block a new draft creation.
-  // The caller must use the revise endpoint to amend a published schedule.
+  // Guard: a published schedule must never be silently overwritten — the caller
+  // must use the revise endpoint. Only an unpublished draft may be updated here.
   const alreadyPublished = await WeeklySchedule.findOne({
     batchId: batchOid,
     weekStartDate: startDate,
     isPublished: true,
+    isRevised: false,
   })
   if (alreadyPublished) {
-    res.status(409).json({
-      error: 'A published schedule already exists for this week. Use the revise endpoint to make changes.',
-      scheduleId: alreadyPublished._id,
-    }); return
+    // If an unpublished revision draft exists, update that instead; otherwise block.
+    const revisionDraft = await WeeklySchedule.findOne({
+      batchId: batchOid, weekStartDate: startDate, isRevised: true, isPublished: false,
+    })
+    if (!revisionDraft) {
+      res.status(409).json({
+        error: 'A published schedule already exists for this week. Use the revise endpoint to make changes.',
+        scheduleId: alreadyPublished._id,
+      }); return
+    }
+    if (classEntries   !== undefined) revisionDraft.classEntries   = classEntries
+    if (mondayExamTopic !== undefined) revisionDraft.mondayExamTopic = mondayExamTopic
+    if (fridayExamTopic !== undefined) revisionDraft.fridayExamTopic = fridayExamTopic
+    revisionDraft.weekEndDate = endDate
+    await revisionDraft.save()
+    await revisionDraft.populate('classEntries.facultyId', 'name subject')
+    res.status(200).json(revisionDraft)
+    return
   }
 
-  // Check if there is an unpublished draft (could be original or revised)
+  // Check if there is an unpublished original draft
   let schedule = await WeeklySchedule.findOne({
     batchId: batchOid,
     weekStartDate: startDate,
-    isPublished: false
+    isRevised: false,
   })
 
   let isNew = false
@@ -213,6 +246,9 @@ export const updateExamTopic = asyncHandler(async (req: AuthRequest, res: Respon
   if (await igScheduleScopeDenied(req.user, schedule.batchId)) {
     res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
   }
+  if (await academicsManagerScopeDenied(req.user, schedule.batchId)) {
+    res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
+  }
   if (schedule.isPublished) {
     res.status(409).json({ error: 'Cannot edit a published schedule. Create a revision instead.' }); return
   }
@@ -238,6 +274,9 @@ export const publishSchedule = asyncHandler(async (req: AuthRequest, res: Respon
   if (!schedule) { res.status(404).json({ error: 'Schedule not found' }); return }
   if (await igScheduleScopeDenied(req.user, schedule.batchId)) {
     res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
+  if (await academicsManagerScopeDenied(req.user, schedule.batchId)) {
+    res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
   }
 
   if (schedule.isPublished) {
@@ -267,6 +306,9 @@ export const reviseSchedule = asyncHandler(async (req: AuthRequest, res: Respons
   if (!original) { res.status(404).json({ error: 'Schedule not found' }); return }
   if (await igScheduleScopeDenied(req.user, original.batchId)) {
     res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
+  if (await academicsManagerScopeDenied(req.user, original.batchId)) {
+    res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
   }
   if (!original.isPublished) {
     res.status(400).json({ error: 'Only published schedules can be revised. Edit the draft directly instead.' }); return
@@ -323,6 +365,9 @@ export const deleteSchedule = asyncHandler(async (req: AuthRequest, res: Respons
   if (!schedule) { res.status(404).json({ error: 'Schedule not found' }); return }
   if (await igScheduleScopeDenied(req.user, schedule.batchId)) {
     res.status(403).json({ error: 'Access denied: schedule is outside your IG scope' }); return
+  }
+  if (await academicsManagerScopeDenied(req.user, schedule.batchId)) {
+    res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
   }
 
   if (schedule.isPublished) {

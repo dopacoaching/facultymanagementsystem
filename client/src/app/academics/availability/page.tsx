@@ -12,8 +12,10 @@ import {
 import type { AvailabilityEntry, AvailabilityStatus } from '@/services/availability.service'
 import { EmptyState } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
+import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { toLocalISO } from '@/utils/date'
 import {
-  AvailabilityFilterBar, AddDatesCard, AvailabilityEntriesCard,
+  AddDatesCard, AvailabilityEntriesCard,
 } from '@/components/academics/availability'
 
 export default function AvailabilityPage() {
@@ -21,8 +23,8 @@ export default function AvailabilityPage() {
   const toast = useToast()
   const now = new Date()
 
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [year,  setYear]  = useState(now.getFullYear())
+  const [from, setFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [to,   setTo]   = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth() + 1, 0)))
 
   const [faculty,         setFaculty]         = useState<Faculty[]>([])
   const [selectedFaculty, setSelectedFaculty] = useState<string>('')
@@ -50,16 +52,16 @@ export default function AvailabilityPage() {
       .catch(console.error)
   }, [accessToken])
 
-  // Load entries when faculty/month/year changes
+  // Load entries when faculty/range changes
   useEffect(() => {
-    if (!accessToken || !selectedFaculty) { setEntries([]); return }
+    if (!accessToken || !selectedFaculty || !from || !to) { setEntries([]); return }
     setLoadingEntries(true)
     setEntries([]) // clear stale data from previous selection immediately
-    getAvailability(selectedFaculty, month, year, accessToken)
+    getAvailability(selectedFaculty, from, to, accessToken)
       .then(setEntries)
       .catch((err) => { console.error(err); setEntries([]) })
       .finally(() => setLoadingEntries(false))
-  }, [accessToken, selectedFaculty, month, year])
+  }, [accessToken, selectedFaculty, from, to])
 
   function addToStaging() {
     if (!pendingDate) return
@@ -119,23 +121,32 @@ export default function AvailabilityPage() {
   }
 
   const selectedFacultyObj = faculty.find((f) => f._id === selectedFaculty)
-
-  // Month date range for the date picker
-  const minDate = `${year}-${String(month).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const maxDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  const periodLabel = `${from} to ${to}`
 
   return (
     <div>
-      <AvailabilityFilterBar
-        faculty={faculty}
-        selectedFaculty={selectedFaculty}
-        onFacultyChange={(id) => { setSelectedFaculty(id); setStagingDates([]) }}
-        month={month}
-        onMonthChange={(m) => { setMonth(m); setStagingDates([]) }}
-        year={year}
-        onYearChange={(y) => { setYear(y); setStagingDates([]) }}
-      />
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div className="form-group" style={{ marginBottom: '1rem' }}>
+          <label className="label">Faculty</label>
+          <select
+            className="input"
+            value={selectedFaculty}
+            onChange={(e) => { setSelectedFaculty(e.target.value); setStagingDates([]) }}
+            style={{ maxWidth: 320 }}
+          >
+            <option value="">— Select faculty —</option>
+            {faculty.map((f) => (
+              <option key={f._id} value={f._id}>{f.name} ({f.subject})</option>
+            ))}
+          </select>
+        </div>
+        <DateRangeFilter
+          from={from}
+          to={to}
+          onFromChange={(v) => { setFrom(v); setStagingDates([]) }}
+          onToChange={(v) => { setTo(v); setStagingDates([]) }}
+        />
+      </div>
 
       {!selectedFaculty && (
         <div className="card">
@@ -150,12 +161,11 @@ export default function AvailabilityPage() {
         <>
           <AddDatesCard
             selectedFacultyObj={selectedFacultyObj}
-            month={month}
-            year={year}
+            periodLabel={periodLabel}
             pendingDate={pendingDate}
             onPendingDateChange={setPendingDate}
-            minDate={minDate}
-            maxDate={maxDate}
+            minDate={from}
+            maxDate={to}
             onAddToStaging={addToStaging}
             stagingDates={stagingDates}
             onRemoveStaged={(d) => setStagingDates((prev) => prev.filter((x) => x !== d))}
@@ -167,8 +177,7 @@ export default function AvailabilityPage() {
           <AvailabilityEntriesCard
             entries={entries}
             loadingEntries={loadingEntries}
-            month={month}
-            year={year}
+            periodLabel={periodLabel}
             editingId={editingId}
             editStatus={editStatus}
             onEditStatusChange={setEditStatus}

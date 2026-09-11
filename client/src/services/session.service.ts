@@ -5,8 +5,8 @@ export interface SessionFilters {
   facultyId?: string
   batchId?: string
   campusName?: string
-  month?: number
-  year?: number
+  from?: string
+  to?: string
 }
 
 export async function getAll(filters: SessionFilters, token: string): Promise<Session[]> {
@@ -84,11 +84,11 @@ export interface FacultyHoursItem {
 }
 
 export interface FacultyHoursSummary {
-  month: number
-  year: number
+  from: string
+  to: string
   faculty: FacultyHoursItem[]
 }
 
-export async function getFacultyHoursSummary(month: number, year: number, token: string): Promise<FacultyHoursSummary> {
-  return apiFetch<FacultyHoursSummary>(`/academics/faculty-hours?month=${month}&year=${year}`, { token })
+export async function getFacultyHoursSummary(from: string, to: string, token: string): Promise<FacultyHoursSummary> {
+  return apiFetch<FacultyHoursSummary>(`/academics/faculty-hours?from=${from}&to=${to}`, { token })
 }

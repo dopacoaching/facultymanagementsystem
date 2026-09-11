@@ -5,8 +5,9 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Faculty } from '@/lib/models/Faculty'
 import { Session } from '@/lib/models/Session'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
+import { dayRangeFilter, toLocalISODate } from '@/lib/utils/dateRange'
 
-/** GET /api/academics/faculty-hours?month=M&year=Y */
+/** GET /api/academics/faculty-hours?from=&to= */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -17,18 +18,16 @@ export async function GET(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
-    const now   = new Date()
-    const month = Number(searchParams.get('month') ?? now.getMonth() + 1)
-    const year  = Number(searchParams.get('year')  ?? now.getFullYear())
+    const now  = new Date()
+    const from = searchParams.get('from') ?? toLocalISODate(new Date(now.getFullYear(), now.getMonth(), 1))
+    const to   = searchParams.get('to')   ?? toLocalISODate(now)
 
-    if (isNaN(month) || isNaN(year)) {
-      return withToken(json({ error: 'month and year must be numbers' }, 400), refreshedToken)
+    const range = dayRangeFilter(from, to)
+    if (!range) {
+      return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
     }
 
     await connectDB()
-
-    const startDate = new Date(year, month - 1, 1)
-    const endDate   = new Date(year, month,     1)
 
     const [facultyList, contracts, hoursAgg] = await Promise.all([
       Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
@@ -37,7 +36,7 @@ export async function GET(req: NextRequest) {
         {
           $match: {
             status: 'COMPLETED',
-            sessionDate: { $gte: startDate, $lt: endDate },
+            sessionDate: range,
           },
         },
         {
@@ -78,7 +77,7 @@ export async function GET(req: NextRequest) {
       return { facultyId: f._id, name: f.name, subject: f.subject, contractType, quota, logged, sessionCount, pct, deficit, surplus, status }
     })
 
-    return withToken(json({ month, year, faculty: result }), refreshedToken)
+    return withToken(json({ from, to, faculty: result }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/academics/faculty-hours]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

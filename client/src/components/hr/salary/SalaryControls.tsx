@@ -1,5 +1,6 @@
 import type { Faculty } from '@/types'
 import { MONTHS } from './types'
+import { toLocalISO } from '@/utils/date'
 
 type Mode = 'MONTH' | 'RANGE'
 
@@ -20,12 +21,6 @@ interface SalaryControlsProps {
   onCalculate: () => void
 }
 
-/** Local YYYY-MM-DD for a Date (not UTC — matches the date <input> value format). */
-function toISO(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
-
 function presetRange(key: 'thisWeek' | 'last7' | 'thisMonth' | 'lastMonth'): { from: string; to: string } {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -34,20 +29,20 @@ function presetRange(key: 'thisWeek' | 'last7' | 'thisMonth' | 'lastMonth'): { f
       // Week starts Monday.
       const dow = (today.getDay() + 6) % 7
       const start = new Date(today); start.setDate(today.getDate() - dow)
-      return { from: toISO(start), to: toISO(today) }
+      return { from: toLocalISO(start), to: toLocalISO(today) }
     }
     case 'last7': {
       const start = new Date(today); start.setDate(today.getDate() - 6)
-      return { from: toISO(start), to: toISO(today) }
+      return { from: toLocalISO(start), to: toLocalISO(today) }
     }
     case 'thisMonth': {
       const start = new Date(today.getFullYear(), today.getMonth(), 1)
-      return { from: toISO(start), to: toISO(today) }
+      return { from: toLocalISO(start), to: toLocalISO(today) }
     }
     case 'lastMonth': {
       const start = new Date(today.getFullYear(), today.getMonth() - 1, 1)
       const end = new Date(today.getFullYear(), today.getMonth(), 0)
-      return { from: toISO(start), to: toISO(end) }
+      return { from: toLocalISO(start), to: toLocalISO(end) }
     }
   }
 }

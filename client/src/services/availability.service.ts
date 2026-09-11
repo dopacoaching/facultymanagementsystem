@@ -20,33 +20,33 @@ export interface FacultyAvailabilityGroup {
   entries: AvailabilityEntry[]
 }
 
-export interface MonthAvailability {
-  month: number
-  year: number
+export interface RangeAvailability {
+  from: string
+  to: string
   faculty: FacultyAvailabilityGroup[]
 }
 
-/** GET availability for one faculty for a given month */
+/** GET availability for one faculty within a date range */
 export async function getAvailability(
   facultyId: string,
-  month: number,
-  year: number,
+  from: string,
+  to: string,
   token: string
 ): Promise<AvailabilityEntry[]> {
   return apiFetch<AvailabilityEntry[]>(
-    `/academics/availability?facultyId=${facultyId}&month=${month}&year=${year}`,
+    `/academics/availability?facultyId=${facultyId}&from=${from}&to=${to}`,
     { token }
   )
 }
 
-/** GET all faculty availability entries for a month (grouped) */
+/** GET all faculty availability entries within a date range (grouped) */
 export async function getAllAvailabilityForMonth(
-  month: number,
-  year: number,
+  from: string,
+  to: string,
   token: string
-): Promise<MonthAvailability> {
-  return apiFetch<MonthAvailability>(
-    `/academics/availability/all?month=${month}&year=${year}`,
+): Promise<RangeAvailability> {
+  return apiFetch<RangeAvailability>(
+    `/academics/availability/all?from=${from}&to=${to}`,
     { token }
   )
 }

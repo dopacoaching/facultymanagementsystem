@@ -5,9 +5,10 @@ import { useAppSelector } from '@/store/hooks'
 import Shell from '@/components/ui/Shell'
 import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
 
-// ADMIN-only: the Weekly Schedule editor covers both Repeaters and IG batches
-// and is intentionally not exposed to the academics-manager roles.
-const ALLOWED_ROLES = ['ADMIN']
+// The Weekly Schedule editor covers both Repeaters and IG batches. ADMIN sees
+// everything; each academics-manager role is scoped server-side (API routes)
+// to their own batch type.
+const ALLOWED_ROLES = ['ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER']
 
 const ROLE_HOMES: Record<string, string> = {
   ADMIN: '/admin',

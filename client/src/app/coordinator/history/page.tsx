@@ -3,13 +3,9 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
-import { MonthYearSelector } from '@/components/hr/dashboard'
+import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { toLocalISO } from '@/utils/date'
 import type { Session } from '@/types'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
 
 const CLASS_MODE_LABELS: Record<string, string> = {
   ONLINE:                  'Online',
@@ -28,8 +24,9 @@ function formatHM(durationHours: number): string {
 export default function CampusHistoryPage() {
   const { accessToken, campusName } = useAppSelector((s) => s.auth)
   const [sessions, setSessions] = useState<Session[]>([])
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [year, setYear] = useState(new Date().getFullYear())
+  const now = new Date()
+  const [from, setFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [to, setTo] = useState(toLocalISO(now))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -37,14 +34,14 @@ export default function CampusHistoryPage() {
     if (!accessToken) return
     setLoading(true); setError('')
     try {
-      const data = await getAll({ month, year }, accessToken)
+      const data = await getAll({ from, to }, accessToken)
       setSessions(data)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load session history')
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [accessToken, month, year]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -63,7 +60,9 @@ export default function CampusHistoryPage() {
         </div>
       )}
 
-      <MonthYearSelector month={month} onMonthChange={setMonth} year={year} onYearChange={setYear} loading={loading} onRefresh={load} />
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+      </div>
 
       {loading ? (
         <div className="card"><SkeletonTable rows={8} cols={7} /></div>
@@ -71,7 +70,7 @@ export default function CampusHistoryPage() {
         <div className="card">
           <EmptyState
             title="No sessions logged yet"
-            description={`No sessions were found for ${MONTH_NAMES[month - 1]} ${year}.`}
+            description={`No sessions were found for ${from} to ${to}.`}
           />
         </div>
       ) : (

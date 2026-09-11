@@ -1,13 +1,12 @@
 import React from 'react'
 import type { AvailabilityEntry, AvailabilityStatus } from '@/services/availability.service'
 import { Skeleton, EmptyState } from '@/components/ui/Skeleton'
-import { fmtDate, MONTHS, STATUS_STYLE } from './types'
+import { fmtDate, STATUS_STYLE } from './types'
 
 interface AvailabilityEntriesCardProps {
   entries: AvailabilityEntry[]
   loadingEntries: boolean
-  month: number
-  year: number
+  periodLabel: string
   editingId: string | null
   editStatus: AvailabilityStatus
   onEditStatusChange: (s: AvailabilityStatus) => void
@@ -22,13 +21,13 @@ interface AvailabilityEntriesCardProps {
 }
 
 export function AvailabilityEntriesCard({
-  entries, loadingEntries, month, year, editingId, editStatus, onEditStatusChange,
+  entries, loadingEntries, periodLabel, editingId, editStatus, onEditStatusChange,
   editRemark, onEditRemarkChange, editError, editSaving, onStartEdit, onCancelEdit, onSaveEdit, onDelete,
 }: AvailabilityEntriesCardProps) {
   return (
     <div className="card">
       <div className="card-header">
-        <h2>Availability — {MONTHS[month - 1]} {year}</h2>
+        <h2>Availability — {periodLabel}</h2>
         {entries.length > 0 && (
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {(['AVAILABLE', 'RESCHEDULED', 'CANCELLED'] as AvailabilityStatus[]).map((s) => {

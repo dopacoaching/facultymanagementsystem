@@ -3,16 +3,12 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, update, cancel } from '@/services/ig-session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
-import { MonthYearSelector } from '@/components/hr/dashboard'
+import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditIGSessionReportModal, formFromIGSession, EditIGSessionForm } from '@/components/hr/reports/EditIGSessionReportModal'
 import { computeDuration } from '@/components/coordinator/log-session'
 import { useToast } from '@/components/ui/Toast'
+import { toLocalISO } from '@/utils/date'
 import type { Session } from '@/types'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
 
 const SLOT_LABELS: Record<string, string> = {
   SESSION_1: 'Session 1',
@@ -39,8 +35,9 @@ export default function IGClassSessionsPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
   const [sessions, setSessions] = useState<Session[]>([])
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [year, setYear] = useState(new Date().getFullYear())
+  const now = new Date()
+  const [from, setFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [to, setTo] = useState(toLocalISO(now))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -110,14 +107,14 @@ export default function IGClassSessionsPage() {
     if (!accessToken) return
     setLoading(true); setError('')
     try {
-      const data = await getAll({ month, year }, accessToken)
+      const data = await getAll({ from, to }, accessToken)
       setSessions(data)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load IG class sessions')
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [accessToken, month, year]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -136,7 +133,9 @@ export default function IGClassSessionsPage() {
         </div>
       )}
 
-      <MonthYearSelector month={month} onMonthChange={setMonth} year={year} onYearChange={setYear} loading={loading} onRefresh={load} />
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+      </div>
 
       {loading ? (
         <div className="card"><SkeletonTable rows={8} cols={10} /></div>
@@ -144,7 +143,7 @@ export default function IGClassSessionsPage() {
         <div className="card">
           <EmptyState
             title="No IG sessions logged"
-            description={`No IG class-teacher sessions were found for ${MONTH_NAMES[month - 1]} ${year}.`}
+            description={`No IG class-teacher sessions were found for ${from} to ${to}.`}
           />
         </div>
       ) : (

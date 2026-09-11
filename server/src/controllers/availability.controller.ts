@@ -4,47 +4,51 @@ import { FacultyAvailability, AvailabilityStatus } from '../models/FacultyAvaila
 import { Faculty } from '../models/Faculty'
 import { asyncHandler } from '../utils/asyncHandler'
 import { validateObjectId } from '../utils/objectId'
+import { dayRangeFilter, toLocalISODate } from '../utils/dateRange'
 import { Types } from 'mongoose'
 
 /**
- * GET /academics/availability?facultyId=X&month=M&year=Y
- * Returns all availability entries for a single faculty for the given month.
+ * GET /academics/availability?facultyId=X&from=&to=
+ * Returns all availability entries for a single faculty within the date range.
  */
 export const getAvailability = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { facultyId, month, year } = req.query as Record<string, string | undefined>
+  const { facultyId, from, to } = req.query as Record<string, string | undefined>
 
-  if (!facultyId || !month || !year) {
-    res.status(400).json({ error: 'facultyId, month, year required' }); return
+  if (!facultyId || !from || !to) {
+    res.status(400).json({ error: 'facultyId, from, to required' }); return
   }
 
   const fid = validateObjectId(facultyId, 'facultyId', res)
   if (!fid) return
 
-  const startDate = new Date(Number(year), Number(month) - 1, 1)
-  const endDate   = new Date(Number(year), Number(month),     1)
+  const range = dayRangeFilter(from, to)
+  if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
 
   const entries = await FacultyAvailability.find({
     facultyId: fid,
-    date: { $gte: startDate, $lt: endDate },
+    date: range,
   }).sort({ date: 1 })
 
   res.json(entries)
 })
 
 /**
- * GET /academics/availability/all?month=M&year=Y
- * Returns all faculty with their availability entries for the month.
+ * GET /academics/availability/all?from=&to=
+ * Returns all faculty with their availability entries within the date range.
  * Only includes faculty who have at least one entry.
  */
 export const getAllAvailabilityForMonth = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const month = Number(req.query.month ?? new Date().getMonth() + 1)
-  const year  = Number(req.query.year  ?? new Date().getFullYear())
+  const now = new Date()
+  const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1)
+  const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
-  const startDate = new Date(year, month - 1, 1)
-  const endDate   = new Date(year, month,     1)
+  const from = String(req.query.from ?? toLocalISODate(defaultFrom))
+  const to   = String(req.query.to   ?? toLocalISODate(defaultTo))
+  const range = dayRangeFilter(from, to)
+  if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
 
   const [entries, faculty] = await Promise.all([
-    FacultyAvailability.find({ date: { $gte: startDate, $lt: endDate } })
+    FacultyAvailability.find({ date: range })
       .sort({ facultyId: 1, date: 1 })
       .lean(),
     Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
@@ -64,7 +68,7 @@ export const getAllAvailabilityForMonth = asyncHandler(async (req: AuthRequest, 
     grouped.get(fid)!.entries.push(entry)
   }
 
-  res.json({ month, year, faculty: Array.from(grouped.values()) })
+  res.json({ from, to, faculty: Array.from(grouped.values()) })
 })
 
 /**

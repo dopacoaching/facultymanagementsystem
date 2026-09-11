@@ -1,5 +1,5 @@
 'use client'
-import { todayLocal } from '@/utils/date'
+import { todayLocal, toLocalISO } from '@/utils/date'
 import { useEffect, useState, useMemo } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getBatches } from '@/services/faculty.service'
@@ -8,7 +8,7 @@ import type { Batch } from '@/services/faculty.service'
 import type { Session } from '@/types'
 import { SkeletonTable } from '@/components/ui/Skeleton'
 import {
-  BatchChapter, MONTHS, Report, downloadCsv, fmtDate, toCsv,
+  BatchChapter, Report, downloadCsv, fmtDate, toCsv,
   ReportSelector, ChapterCompletionReport, PendingVideoReport, FacultyActivityReport,
 } from '@/components/academics/reports'
 
@@ -26,8 +26,9 @@ export default function AcademicsReportsPage() {
   // Faculty activity state
   const [sessions,    setSessions]   = useState<Session[]>([])
   const [sessLoading, setSessLoading] = useState(false)
-  const [actMonth,    setActMonth]   = useState<number>(new Date().getMonth() + 1)
-  const [actYear,     setActYear]    = useState<number>(new Date().getFullYear())
+  const nowForRange = new Date()
+  const [actFrom, setActFrom] = useState(toLocalISO(new Date(nowForRange.getFullYear(), nowForRange.getMonth(), 1)))
+  const [actTo,   setActTo]   = useState(toLocalISO(nowForRange))
 
   useEffect(() => {
     if (!accessToken) return
@@ -50,16 +51,16 @@ export default function AcademicsReportsPage() {
 
   // Load sessions for faculty activity report
   useEffect(() => {
-    if (!accessToken || report !== 'faculty-activity') return
+    if (!accessToken || report !== 'faculty-activity' || !actFrom || !actTo) return
     setSessLoading(true)
     const url = batchId
-      ? `/academics/sessions?batchId=${batchId}&month=${actMonth}&year=${actYear}`
-      : `/academics/sessions?month=${actMonth}&year=${actYear}`
+      ? `/academics/sessions?batchId=${batchId}&from=${actFrom}&to=${actTo}`
+      : `/academics/sessions?from=${actFrom}&to=${actTo}`
     apiFetch<Session[]>(url, { token: accessToken })
       .then(setSessions)
       .catch(console.error)
       .finally(() => setSessLoading(false))
-  }, [accessToken, batchId, report, actMonth, actYear])
+  }, [accessToken, batchId, report, actFrom, actTo])
 
   // ── Chapter completion stats ─────────────────────────────────────────────
   const chapterStats = useMemo(() => {
@@ -144,7 +145,7 @@ export default function AcademicsReportsPage() {
       ['', '', '', '', ''],
       ['TOTAL', String(sessions.length), sessions.reduce((s,x) => s + x.durationHours, 0).toFixed(1), '', ''],
     ]
-    downloadCsv(toCsv(rows), `faculty-activity-${bName.replace(/\s+/g,'-')}-${MONTHS[actMonth-1]}-${actYear}.csv`)
+    downloadCsv(toCsv(rows), `faculty-activity-${bName.replace(/\s+/g,'-')}-${actFrom}-to-${actTo}.csv`)
   }
 
   const isLoading = chLoading || sessLoading
@@ -163,8 +164,8 @@ export default function AcademicsReportsPage() {
       <ReportSelector
         report={report} onReportChange={setReport}
         batches={batches} batchId={batchId} onBatchChange={setBatchId}
-        actMonth={actMonth} onMonthChange={setActMonth}
-        actYear={actYear} onYearChange={setActYear}
+        actFrom={actFrom} onFromChange={setActFrom}
+        actTo={actTo} onToChange={setActTo}
       />
 
       {isLoading && (
@@ -184,7 +185,7 @@ export default function AcademicsReportsPage() {
       {!isLoading && report === 'faculty-activity' && (
         <FacultyActivityReport
           sessions={sessions} facultyActivity={facultyActivity}
-          actMonth={actMonth} actYear={actYear}
+          periodLabel={`${actFrom} to ${actTo}`}
           onExport={exportFacultyActivity}
         />
       )}

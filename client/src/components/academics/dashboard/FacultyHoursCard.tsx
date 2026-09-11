@@ -1,38 +1,23 @@
 import type { FacultyHoursItem } from '@/services/session.service'
 import { Skeleton, EmptyState } from '@/components/ui/Skeleton'
-import { HOURS_STATUS_BADGE, MONTHS } from './types'
+import { HOURS_STATUS_BADGE } from './types'
+import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 
 interface FacultyHoursCardProps {
   facultyHours: FacultyHoursItem[]
   loading: boolean
-  hoursMonth: number
-  hoursYear: number
-  onMonthChange: (m: number) => void
-  onYearChange: (y: number) => void
+  hoursFrom: string
+  hoursTo: string
+  onFromChange: (v: string) => void
+  onToChange: (v: string) => void
 }
 
-export function FacultyHoursCard({ facultyHours, loading, hoursMonth, hoursYear, onMonthChange, onYearChange }: FacultyHoursCardProps) {
+export function FacultyHoursCard({ facultyHours, loading, hoursFrom, hoursTo, onFromChange, onToChange }: FacultyHoursCardProps) {
   return (
     <div className="card" style={{ marginBottom: '1.25rem' }}>
       <div className="card-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
         <h2>Faculty Hours</h2>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <select
-            className="input"
-            value={hoursMonth}
-            onChange={(e) => onMonthChange(+e.target.value)}
-            style={{ minWidth: 90, padding: '0.3rem 0.5rem', fontSize: '0.8125rem' }}
-          >
-            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
-          </select>
-          <input
-            type="number"
-            className="input"
-            value={hoursYear}
-            onChange={(e) => onYearChange(+e.target.value)}
-            style={{ width: 80, padding: '0.3rem 0.5rem', fontSize: '0.8125rem' }}
-          />
-        </div>
+        <DateRangeFilter from={hoursFrom} to={hoursTo} onFromChange={onFromChange} onToChange={onToChange} />
       </div>
 
       {loading ? (
@@ -43,8 +28,8 @@ export function FacultyHoursCard({ facultyHours, loading, hoursMonth, hoursYear,
         </div>
       ) : facultyHours.length === 0 ? (
         <EmptyState
-          title="No faculty hours for this month"
-          description="Hours will appear here once sessions are logged for the selected month."
+          title="No faculty hours for this range"
+          description="Hours will appear here once sessions are logged for the selected range."
         />
       ) : (
         <div className="table-wrapper">

@@ -24,7 +24,7 @@ export function periodText(r: ReportRow): string {
   return `${MONTHS[r.month - 1]} ${r.year}`
 }
 
-export function exportToCSV(rows: ReportRow[], month: number, year: number) {
+export function exportToCSV(rows: ReportRow[], from: string, to: string) {
   if (!rows.length) return
   const headers = ['Faculty', 'Subject', 'Period', 'Final Payable (₹)', 'Status', 'Approved At']
   const csvRows = rows.map((r) => [
@@ -37,14 +37,14 @@ export function exportToCSV(rows: ReportRow[], month: number, year: number) {
   ])
   // Total row
   const total = rows.reduce((sum, r) => sum + (r.finalPayable ?? 0), 0)
-  csvRows.push([`"Total Payroll — ${MONTHS[month - 1]} ${year}"`, '', '', total, '', ''])
+  csvRows.push([`"Total Payroll — ${from} to ${to}"`, '', '', total, '', ''])
 
   const csv = [headers.join(','), ...csvRows.map((r) => r.join(','))].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
   a.href = url
-  a.download = `salary-report-${MONTHS[month - 1].toLowerCase()}-${year}.csv`
+  a.download = `salary-report-${from}-to-${to}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }

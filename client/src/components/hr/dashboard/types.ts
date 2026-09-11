@@ -1,7 +1,5 @@
 import type { HoursProgressItem, PayrollStatusItem } from '@/services/salary.service'
 
-export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-
 export function progressColor(status: HoursProgressItem['status']): string {
   if (status === 'MET')      return 'var(--color-success)'
   if (status === 'ON_TRACK') return 'var(--color-primary)'

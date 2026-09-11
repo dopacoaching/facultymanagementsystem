@@ -1,23 +1,21 @@
 import type { DashboardData } from '@/services/salary.service'
-import { MONTHS } from './types'
 
 interface CancellationLogCardProps {
   cancellationLog: DashboardData['cancellationLog']
-  month: number
-  year: number
+  periodLabel: string
 }
 
-export function CancellationLogCard({ cancellationLog, month, year }: CancellationLogCardProps) {
+export function CancellationLogCard({ cancellationLog, periodLabel }: CancellationLogCardProps) {
   return (
     <div className="card" style={{ minWidth: 0 }}>
       <div className="card-header">
         <h2>Cancellation Log</h2>
-        <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{MONTHS[month - 1]} {year}</span>
+        <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>{periodLabel}</span>
       </div>
       {cancellationLog.length === 0 ? (
         <div className="empty-state" style={{ padding: '1.5rem' }}>
           <div className="empty-state-icon" style={{ fontSize: '1.25rem' }}>✅</div>
-          <p>No cancellations this month</p>
+          <p>No cancellations in this range</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>

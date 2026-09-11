@@ -1,6 +1,5 @@
 import type { Session } from '@/types'
 import { EmptyState } from '@/components/ui/Skeleton'
-import { MONTHS } from './types'
 
 interface FacultyActivityItem {
   name: string
@@ -13,16 +12,15 @@ interface FacultyActivityItem {
 interface FacultyActivityReportProps {
   sessions: Session[]
   facultyActivity: FacultyActivityItem[]
-  actMonth: number
-  actYear: number
+  periodLabel: string
   onExport: () => void
 }
 
-export function FacultyActivityReport({ sessions, facultyActivity, actMonth, actYear, onExport }: FacultyActivityReportProps) {
+export function FacultyActivityReport({ sessions, facultyActivity, periodLabel, onExport }: FacultyActivityReportProps) {
   return (
     <div className="card">
       <div className="card-header">
-        <h2>Faculty Activity — {MONTHS[actMonth - 1]} {actYear}</h2>
+        <h2>Faculty Activity — {periodLabel}</h2>
         {facultyActivity.length > 0 && (
           <button type="button" className="btn btn-outline btn-sm" onClick={onExport}>Export CSV</button>
         )}

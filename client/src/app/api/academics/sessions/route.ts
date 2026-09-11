@@ -10,6 +10,7 @@ import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
+import { dayRangeFilter } from '@/lib/utils/dateRange'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -27,8 +28,8 @@ export async function GET(req: NextRequest) {
     let campusName       = searchParams.get('campusName')  ?? undefined
     const batchId        = searchParams.get('batchId')     ?? undefined
     const batchType      = searchParams.get('batchType')   ?? undefined
-    const month          = searchParams.get('month')       ?? undefined
-    const year           = searchParams.get('year')        ?? undefined
+    const from           = searchParams.get('from')        ?? undefined
+    const to             = searchParams.get('to')          ?? undefined
     const limitParam     = searchParams.get('limit')       ?? undefined
 
     // Academics: exclude IS batches when no explicit batchId/batchType given
@@ -97,11 +98,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (month && year) {
-      filter.sessionDate = {
-        $gte: new Date(Number(year), Number(month) - 1, 1),
-        $lt:  new Date(Number(year), Number(month), 1),
+    if (from && to) {
+      const range = dayRangeFilter(from, to)
+      if (!range) {
+        return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
       }
+      filter.sessionDate = range
     }
 
     const maxLimit = 500

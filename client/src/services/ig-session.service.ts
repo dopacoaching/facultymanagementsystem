@@ -4,8 +4,8 @@ import type { Session } from '@/types'
 export interface IGSessionFilters {
   facultyId?: string
   batchId?: string
-  month?: number
-  year?: number
+  from?: string
+  to?: string
 }
 
 export async function getAll(filters: IGSessionFilters, token: string): Promise<Session[]> {

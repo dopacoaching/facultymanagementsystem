@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { Faculty } from '@/lib/models/Faculty'
+import { dayRangeFilter } from '@/lib/utils/dateRange'
 
 interface SubjectRanking {
   subject: string
@@ -15,7 +16,7 @@ interface SubjectRanking {
   }[]
 }
 
-/** GET /api/hr/reports/faculty-hours-by-subject?month=M&year=Y — ranks faculty by hours taught, per subject */
+/** GET /api/hr/reports/faculty-hours-by-subject?from=&to= — ranks faculty by hours taught, per subject */
 export async function GET(req: NextRequest) {
   try {
     const auth = authenticate(req)
@@ -26,19 +27,16 @@ export async function GET(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { searchParams } = new URL(req.url)
-    const monthParam = searchParams.get('month')
-    const yearParam  = searchParams.get('year')
+    const from = searchParams.get('from') ?? undefined
+    const to   = searchParams.get('to')   ?? undefined
 
     const dateFilter: Record<string, unknown> = { status: 'COMPLETED' }
-    let month: number | null = null
-    let year: number | null = null
-    if (monthParam && yearParam) {
-      month = Number(monthParam)
-      year  = Number(yearParam)
-      if (isNaN(month) || isNaN(year)) {
-        return withToken(json({ error: 'month and year must be numbers' }, 400), refreshedToken)
+    if (from && to) {
+      const range = dayRangeFilter(from, to)
+      if (!range) {
+        return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
       }
-      dateFilter.sessionDate = { $gte: new Date(year, month - 1, 1), $lt: new Date(year, month, 1) }
+      dateFilter.sessionDate = range
     }
 
     await connectDB()
@@ -83,7 +81,7 @@ export async function GET(req: NextRequest) {
       }))
       .sort((a, b) => a.subject.localeCompare(b.subject))
 
-    return withToken(json({ month, year, subjects: result }), refreshedToken)
+    return withToken(json({ from: from ?? null, to: to ?? null, subjects: result }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/hr/reports/faculty-hours-by-subject]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

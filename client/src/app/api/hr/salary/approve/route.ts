@@ -189,10 +189,14 @@ export async function POST(req: NextRequest) {
     const faculty = await Faculty.findById(facultyId)
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
+    const monthStart = new Date(y, m - 1, 1)
+    const monthEnd = new Date(y, m, 0)
+    monthEnd.setHours(23, 59, 59, 999)
+
     const record = await writeRecord(
       result,
       { facultyId: fOid, month: m, year: y, periodType: { $ne: 'RANGE' } },
-      { periodType: 'MONTH', month: m, year: y },
+      { periodType: 'MONTH', month: m, year: y, periodStart: monthStart, periodEnd: monthEnd },
       `${month}/${year}`,
       faculty,
     )
