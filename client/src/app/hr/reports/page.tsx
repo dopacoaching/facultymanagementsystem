@@ -49,9 +49,22 @@ function groupBy<T>(rows: T[], key: (r: T) => string): Map<string, T[]> {
   return map
 }
 
+const MODE_LABELS: Record<string, string> = {
+  ONLINE: 'Online', OFFLINE: 'Offline',
+  ONLINE_DOUBT_CLEARANCE: 'Online Doubt Clearance', OFFLINE_DOUBT_CLEARANCE: 'Offline Doubt Clearance',
+}
+
+/** Total break minutes across the morning/lunch/afternoon fields, or null if none was recorded. */
+function breakTotal(r: EntryRow): number | null {
+  const parts = [r.breakMinutes, r.lunchBreakMinutes, r.afternoonBreakMinutes]
+  return parts.every((p) => p == null) ? null : parts.reduce<number>((t, p) => t + (p ?? 0), 0)
+}
+const breakLabel = (r: EntryRow) => { const t = breakTotal(r); return t == null ? '—' : t === 0 ? 'Nil' : `${t}m` }
+
 const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours, 0)
 
-function EntryTable({ rows, hideCols }: { rows: EntryRow[]; hideCols?: ('faculty' | 'subject')[] }) {
+function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean }) {
+  const showCampus = !hideCols?.includes('campus')
   const showFaculty = !hideCols?.includes('faculty')
   const showSubject = !hideCols?.includes('subject')
   return (
@@ -60,10 +73,15 @@ function EntryTable({ rows, hideCols }: { rows: EntryRow[]; hideCols?: ('faculty
         <thead>
           <tr>
             <th>Date</th>
+            {showCampus && <th>Campus</th>}
+            {showBatch && <th>Batch</th>}
             {showFaculty && <th>Faculty</th>}
             {showSubject && <th>Subject</th>}
             <th>Chapter</th>
+            <th>Class mode</th>
             <th>Start–End</th>
+            <th style={{ textAlign: 'right' }} title="Break minutes as entered. For the tea break, the first 15 minutes are free of deduction.">Break</th>
+            <th>Entered by</th>
             <th style={{ textAlign: 'right' }}>Time</th>
           </tr>
         </thead>
@@ -71,10 +89,15 @@ function EntryTable({ rows, hideCols }: { rows: EntryRow[]; hideCols?: ('faculty
           {rows.map((r) => (
             <tr key={r._id}>
               <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(r.date)}</td>
+              {showCampus && <td style={{ color: 'var(--color-text-secondary)' }}>{r.campusName}</td>}
+              {showBatch && <td style={{ color: 'var(--color-text-secondary)' }}>{r.batchName || '—'}</td>}
               {showFaculty && <td style={{ fontWeight: 600 }}>{r.facultyName}</td>}
               {showSubject && <td style={{ color: 'var(--color-text-secondary)' }}>{r.subject}</td>}
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.chapter || '—'}</td>
+              <td style={{ whiteSpace: 'nowrap' }}>{r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '—'}</td>
               <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime || '—'}–{r.endTime || '—'}</td>
+              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{breakLabel(r)}</td>
+              <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatHM(r.durationHours)}</td>
             </tr>
           ))}
@@ -109,13 +132,14 @@ function FlagIcon() {
 
 /** Tab-separated text for the current view, ready to paste into a sheet. */
 function toTSV(rows: EntryRow[]): string {
-  const head = ['Date', 'Campus', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Start', 'End', 'Time (h:mm)', 'Hours']
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break (min)', 'Entered by', 'Time (h:mm)', 'Hours']
   // Neutralise spreadsheet formulas (=, +, -, @) in coordinator-typed text.
   const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ').replace(/^[=+\-@]/, "'$&")
   const lines = rows.map((r) => {
     const mins = Math.round(r.durationHours * 60)
     return [
-      r.date, r.campusName, r.facultyName, r.facultyType, r.subject, r.chapter, r.startTime, r.endTime,
+      r.date, r.campusName, r.batchName, r.facultyName, r.facultyType, r.subject, r.chapter,
+      r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName,
       `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2),
     ].map((v) => clean(String(v))).join('\t')
   })
@@ -172,6 +196,15 @@ export default function EntriesReportPage() {
     const map = groupBy(rows, (r) => r.campusName)
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
   }, [rows])
+
+  // Decided once from the whole filtered set so every table shares the same columns.
+  const showBatch = useMemo(() => rows.some((r) => r.batchName), [rows])
+
+  const byFaculty = useMemo(() => {
+    if (group !== 'faculty') return []
+    const map = groupBy(rows, (r) => r.facultyId)
+    return Array.from(map.entries()).sort(([, a], [, b]) => a[0].facultyName.localeCompare(b[0].facultyName))
+  }, [rows, group])
 
   const missing = useMemo(() => {
     return (report?.missing ?? [])
@@ -306,27 +339,39 @@ export default function EntriesReportPage() {
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
             {rows.length} {rows.length === 1 ? 'entry' : 'entries'} · <strong style={{ color: 'var(--color-text)' }}>{formatHM(sumHours(rows))}</strong> in total
           </p>
-          {byCampus.map(([campusName, campusRows]) => (
+          {group === 'faculty' && byFaculty.map(([facultyId, list]) => (
+            // Faculty-wise: one block per faculty with all their sessions, across every campus and batch.
+            <div key={facultyId} className="card" style={{ marginBottom: '1rem' }}>
+              <GroupHeader
+                title={`${list[0].facultyName} · ${list[0].facultyType.charAt(0) + list[0].facultyType.slice(1).toLowerCase()} · ${list[0].subject}`}
+                count={list.length}
+                hours={sumHours(list)}
+              />
+              <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', margin: '0 0 0.75rem' }}>
+                {Array.from(groupBy(list, (r) => r.campusName).entries())
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([campusName, campusList]) => (
+                    <span key={campusName} className="badge badge-gray">
+                      {campusName}: {campusList.length} · {formatHM(sumHours(campusList))}
+                    </span>
+                  ))}
+              </div>
+              <EntryTable rows={list} hideCols={['faculty']} showBatch={showBatch} />
+            </div>
+          ))}
+
+          {group !== 'faculty' && byCampus.map(([campusName, campusRows]) => (
             <div key={campusName} className="card" style={{ marginBottom: '1rem' }}>
               <GroupHeader title={campusName} count={campusRows.length} hours={sumHours(campusRows)} />
 
-              {group === 'campus' && <EntryTable rows={campusRows} />}
+              {group === 'campus' && <EntryTable rows={campusRows} hideCols={['campus']} showBatch={showBatch} />}
 
               {group === 'subject' && Array.from(groupBy(campusRows, (r) => r.subject).entries())
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([subject, list]) => (
                   <div key={subject}>
                     <GroupHeader title={subject} count={list.length} hours={sumHours(list)} level={2} />
-                    <EntryTable rows={list} hideCols={['subject']} />
-                  </div>
-                ))}
-
-              {group === 'faculty' && Array.from(groupBy(campusRows, (r) => r.facultyName).entries())
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([name, list]) => (
-                  <div key={name}>
-                    <GroupHeader title={name} count={list.length} hours={sumHours(list)} level={2} />
-                    <EntryTable rows={list} hideCols={['faculty']} />
+                    <EntryTable rows={list} hideCols={['campus', 'subject']} showBatch={showBatch} />
                   </div>
                 ))}
             </div>

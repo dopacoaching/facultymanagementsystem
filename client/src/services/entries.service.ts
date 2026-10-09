@@ -15,6 +15,10 @@ export interface EntryRow {
   endTime: string
   durationHours: number
   updatedByName: string
+  batchName: string
+  breakMinutes: number | null
+  lunchBreakMinutes: number | null
+  afternoonBreakMinutes: number | null
 }
 
 export interface NoClassRow {

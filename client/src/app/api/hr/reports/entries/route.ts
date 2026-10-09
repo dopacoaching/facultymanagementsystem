@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           { batchId: { $in: igBatches.map((b) => b._id) } },
         ],
       })
-        .select('facultyId campusName batchId subject chapter classMode sessionDate startTime endTime durationHours updatedByName')
+        .select('facultyId campusName batchId subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName')
         .populate('facultyId', 'name type subject')
         .sort({ sessionDate: 1 })
         .limit(MAX_ROWS)
@@ -64,14 +64,23 @@ export async function GET(req: NextRequest) {
       NoClassDay.find({ date: range }).select('campusName date reason').lean(),
     ])
 
+    // Batch names for the Batch column. Keyed by the raw batchId, so a session whose
+    // batch was deleted still resolves its campus above and just shows no batch name.
+    const usedBatchIds = Array.from(new Set(sessions.filter((s) => s.batchId).map((s) => String(s.batchId))))
+    const batchDocs = usedBatchIds.length
+      ? await Batch.find({ _id: { $in: usedBatchIds.map((id) => new Types.ObjectId(id)) } }).select('name').lean()
+      : []
+    const batchNames = new Map(batchDocs.map((b) => [String(b._id), b.name]))
+
     const rows = sessions
-      .filter((s) => s.facultyId && typeof s.facultyId === 'object')
+      .filter((s) => s.facultyId && typeof s.facultyId === 'object' && (s.campusName || igBatchCampus.has(String(s.batchId))))
       .map((s) => {
         const f = s.facultyId as unknown as { _id: { toString(): string }; name: string; type: string }
+        const batchId = s.batchId ? String(s.batchId) : ''
         return {
           _id: String(s._id),
           date: toLocalISODate(new Date(s.sessionDate)),
-          campusName: (s.campusName ?? igBatchCampus.get(String(s.batchId))) as string,
+          campusName: (s.campusName ?? igBatchCampus.get(batchId)) as string,
           facultyId: f._id.toString(),
           facultyName: f.name,
           facultyType: f.type,
@@ -82,6 +91,10 @@ export async function GET(req: NextRequest) {
           endTime: s.endTime ?? '',
           durationHours: s.durationHours,
           updatedByName: s.updatedByName ?? '',
+          batchName: batchNames.get(batchId) ?? '',
+          breakMinutes: s.breakMinutes ?? null,
+          lunchBreakMinutes: s.lunchBreakMinutes ?? null,
+          afternoonBreakMinutes: s.afternoonBreakMinutes ?? null,
         }
       })
 
