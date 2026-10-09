@@ -68,27 +68,3 @@ export async function cancel(
     token,
   })
 }
-
-export interface FacultyHoursItem {
-  facultyId: string
-  name: string
-  subject: string
-  contractType: string
-  quota: number | null
-  logged: number
-  sessionCount: number
-  pct: number | null
-  deficit: number | null
-  surplus: number | null
-  status: 'MET' | 'ON_TRACK' | 'AT_RISK' | 'MISSED' | 'NO_QUOTA'
-}
-
-export interface FacultyHoursSummary {
-  from: string
-  to: string
-  faculty: FacultyHoursItem[]
-}
-
-export async function getFacultyHoursSummary(from: string, to: string, token: string): Promise<FacultyHoursSummary> {
-  return apiFetch<FacultyHoursSummary>(`/academics/faculty-hours?from=${from}&to=${to}`, { token })
-}

@@ -1,7 +1,7 @@
 {
   "name": "DOPA Faculty Management System",
   "short_name": "DOPA FMS",
-  "description": "Faculty scheduling, session tracking, and salary management for DOPA Coaching",
+  "description": "Faculty management, session tracking, and salary management for DOPA Coaching",
   "id": "/",
   "start_url": "/",
   "scope": "/",

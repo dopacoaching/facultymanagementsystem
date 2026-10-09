@@ -3,7 +3,6 @@ import { AuthRequest } from '../middleware/auth'
 import { Session } from '../models/Session'
 import { Faculty } from '../models/Faculty'
 import { Batch, IBatch } from '../models/Batch'
-import { ISTimetableSlot } from '../models/ISTimetableSlot'
 import { BatchChapter } from '../models/BatchChapter'
 import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
@@ -11,7 +10,8 @@ import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
-import { dayRangeFilter, toLocalISODate } from '../utils/dateRange'
+import { dayRangeFilter } from '../utils/dateRange'
+import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
 import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
@@ -56,19 +56,6 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     filter.batchId = { $nin: excludedIds }
   }
 
-  // ACADEMICS_MANAGER scope — applied LAST so it always wins over the IG-exclusion filter above
-  if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType) {
-    const scopedIds = await Batch.find({ type: req.user!.batchType, isActive: true }).distinct('_id')
-    if (batchId) {
-      const inScope = scopedIds.some((id) => id.toString() === batchId)
-      if (!inScope) {
-        res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
-      }
-    } else {
-      filter.batchId = { $in: scopedIds }
-    }
-  }
-
   if (from && to) {
     const range = dayRangeFilter(from, to)
     if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
@@ -92,6 +79,7 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
     : sessions.map((s) => {
         const obj = s.toObject()
         delete obj.scheduledTime
+        delete obj.scheduledEndTime
         return obj
       })
 
@@ -111,7 +99,7 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
-    scheduledTime, updatedByName, startTime, endTime,
+    scheduledTime, scheduledEndTime, updatedByName, startTime, endTime,
     breakMinutes, lunchBreakMinutes, afternoonBreakMinutes,
     durationHours, sessionDate, timeSlot, sessionCategory,
   } = req.body
@@ -127,12 +115,12 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'Either batchId or campusName is required' }); return
   }
   const VALID_CLASS_MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
-  if (campusName && !batchId && !VALID_CLASS_MODES.includes(classMode)) {
+  if (campusName && !VALID_CLASS_MODES.includes(classMode)) {
     res.status(400).json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }); return
   }
   // Campus-flow sessions are keyed by startTime for duplicate detection below —
   // require it here rather than relying on the coordinator UI's own validation.
-  if (campusName && !batchId && !startTime) {
+  if (campusName && !startTime) {
     res.status(400).json({ error: 'startTime is required for campus-logged sessions' }); return
   }
   if (Number(durationHours) < 0.5) {
@@ -159,11 +147,6 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (batchOid) {
     batch = await Batch.findById(batchOid)
     if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
-
-    // ACADEMICS_MANAGER batch type scope guard
-    if (req.user!.role === 'ACADEMICS_MANAGER' && req.user!.batchType && batch.type !== req.user!.batchType) {
-      res.status(403).json({ error: 'Access denied: batch is outside your assigned batch type' }); return
-    }
   }
 
   // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
@@ -174,10 +157,22 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'sessionCategory (Class or Doubt Clearance) is required for this faculty' }); return
   }
 
-  // ── M-7: Coordinator ownership gate — own campus (new flow) or batch (legacy) ──
+  // ── M-7: Coordinator ownership gate — own campus (Push Board) or batch (legacy).
+  // An offline-centre login may pick one of its campus's batches; an IG class
+  // teacher may pick any batch at their own IG school. ──
   if (isCoordinator(req.user!.role)) {
     if (campusName) {
       if (!req.user!.campusName || req.user!.campusName !== campusName) {
+        res.status(403).json({ error: 'You can only log sessions for your own campus.' }); return
+      }
+      if (batch) {
+        const allowedCampusId = CAMPUS_LOGIN_CAMPUS_IDS[req.user!.campusName]
+        if (!allowedCampusId || batch.campusId.toString() !== allowedCampusId) {
+          res.status(403).json({ error: 'That batch does not belong to your campus.' }); return
+        }
+      }
+    } else if (batch && req.user!.campusId) {
+      if (batch.campusId.toString() !== req.user!.campusId) {
         res.status(403).json({ error: 'You can only log sessions for your own campus.' }); return
       }
     } else if (batchId) {
@@ -226,7 +221,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  // ── 3. DUPLICATE SESSION CHECK — keyed by batch when present, else by campus.
+  // ── 3. DUPLICATE SESSION CHECK — keyed by campus when present (Push Board),
+  // else by IG time slot / start time, else by batch (legacy).
   // A faculty routinely teaches more than one class at the same campus on the
   // same day (different batches/timings), so the campus flow also matches on
   // startTime — same faculty + campus + day + start time is an accidental
@@ -234,15 +230,21 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   // different session and must not be blocked. ──
   const dup = await Session.findOne({
     facultyId: facultyOid,
-    ...(batchOid ? { batchId: batchOid } : { campusName, startTime }),
+    ...(campusName
+      ? { campusName, startTime }
+      : timeSlot
+        ? { batchId: batchOid, timeSlot }
+        : req.user!.role === 'IG_CLASS_TEACHER'
+          ? { batchId: batchOid, startTime }
+          : { batchId: batchOid }),
     sessionDate: { $gte: dayStart, $lte: dayEnd },
     status: { $ne: 'CANCELLED' },
   })
   if (dup) {
     res.status(409).json({
-      error: batchOid
-        ? 'Duplicate session: a session is already logged for this faculty on this date.'
-        : 'Duplicate session: a session is already logged for this faculty at this start time on this date.',
+      error: campusName || startTime
+        ? 'Duplicate session: a session is already logged for this faculty at this start time on this date.'
+        : 'Duplicate session: a session is already logged for this faculty on this date.',
       code: 'DUPLICATE_SESSION',
     })
     return
@@ -289,21 +291,6 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  // ── 5b. CROSS-SYSTEM LOCK: IG slot blocks Repeaters scheduling ───────────
-  // If the faculty has any non-cancelled IG timetable slot on this date, block.
-  const igConflict = await ISTimetableSlot.findOne({
-    facultyId: facultyOid,
-    date:      { $gte: dayStart, $lte: dayEnd },
-    status:    { $ne: 'CANCELLED' },
-  })
-  if (igConflict) {
-    res.status(409).json({
-      error: 'Faculty has an Integrated School (IG) class on this date and cannot be scheduled for Repeaters on the same day.',
-      code:  'IG_SESSION_CONFLICT',
-    })
-    return
-  }
-
   if (sessionCategory && !['CLASS', 'DOUBT_CLEARANCE'].includes(sessionCategory)) {
     res.status(400).json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }); return
   }
@@ -317,6 +304,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     subject,
     chapter:       chapter || undefined,
     scheduledTime: scheduledTime || undefined,
+    scheduledEndTime: scheduledEndTime || undefined,
     updatedByName: updatedByName || undefined,
     startTime:     startTime ?? undefined,
     endTime:       endTime   ?? undefined,
@@ -326,11 +314,10 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     durationHours: Number(durationHours),
     sessionDate:   date,
     timeSlot:      timeSlot ?? undefined,
-    // Campus-login class-teacher flow logs sessions retrospectively (real
-    // start/end times, after the class happened) — COMPLETED immediately.
-    // The legacy Batch flow schedules ahead of time and is marked complete
-    // later via the status PATCH endpoint.
-    status:        (!batchOid && campusName) ? 'COMPLETED' : 'SCHEDULED',
+    // Push Board (class teachers + IG class teachers) logs sessions
+    // retrospectively (real start/end times) — COMPLETED immediately. The
+    // legacy Batch flow schedules ahead and is completed via the status PATCH.
+    status:        (campusName || req.user!.role === 'IG_CLASS_TEACHER') ? 'COMPLETED' : 'SCHEDULED',
     loggedByUserId: new Types.ObjectId(req.user!.userId),
     sessionCategory: sessionCategory ?? 'CLASS',
   })
@@ -404,7 +391,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
 
   const allowed = [
     'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
-    'scheduledTime', 'updatedByName', 'startTime', 'endTime',
+    'scheduledTime', 'scheduledEndTime', 'updatedByName', 'startTime', 'endTime',
     'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
     'durationHours', 'sessionDate', 'timeSlot',
   ]
@@ -428,28 +415,6 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
 
   if (Object.keys(update).length === 0) {
     res.status(400).json({ error: 'No valid fields provided for update' }); return
-  }
-
-  // ── Cross-system lock: re-check if facultyId or sessionDate is changing ──
-  if ('facultyId' in update || 'sessionDate' in update) {
-    const effectiveFacultyId = (update.facultyId ?? existing.facultyId) as Types.ObjectId
-    const effectiveDate = new Date((update.sessionDate as Date | undefined) ?? existing.sessionDate)
-    effectiveDate.setHours(0, 0, 0, 0)
-    const dayStart = new Date(effectiveDate)
-    const dayEnd   = new Date(effectiveDate); dayEnd.setHours(23, 59, 59, 999)
-
-    const igConflict = await ISTimetableSlot.findOne({
-      facultyId: effectiveFacultyId,
-      date:      { $gte: dayStart, $lte: dayEnd },
-      status:    { $ne: 'CANCELLED' },
-    })
-    if (igConflict) {
-      res.status(409).json({
-        error: 'Faculty has an Integrated School (IG) class on this date and cannot be scheduled for Repeaters on the same day.',
-        code:  'IG_SESSION_CONFLICT',
-      })
-      return
-    }
   }
 
   const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
@@ -543,74 +508,4 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   res.json({ success: true, session })
-})
-
-/**
- * GET /academics/faculty-hours?from=&to=
- * Returns all active faculty with their logged hours for the date range,
- * and their contract quota where applicable.
- * No salary amounts are included — this is for ACADEMICS_MANAGER visibility only.
- */
-export const getFacultyHoursSummary = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const now = new Date()
-  const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1)
-
-  const from = String(req.query.from ?? toLocalISODate(defaultFrom))
-  const to   = String(req.query.to   ?? toLocalISODate(now))
-  const range = dayRangeFilter(from, to)
-  if (!range) { res.status(400).json({ error: 'from and to must be YYYY-MM-DD dates' }); return }
-
-  const [facultyList, contracts, hoursAgg] = await Promise.all([
-    Faculty.find({ isActive: true }).sort({ name: 1 }).lean(),
-    PermanentFacultyContract.find({}).lean(),
-    Session.aggregate([
-      {
-        $match: {
-          status: 'COMPLETED',
-          sessionDate: range,
-        },
-      },
-      {
-        $group: {
-          _id: '$facultyId',
-          totalHours:   { $sum: '$durationHours' },
-          sessionCount: { $sum: 1 },
-        },
-      },
-    ]),
-  ])
-
-  const contractMap = new Map(contracts.map((c) => [c.facultyId.toString(), c]))
-  const hoursMap    = new Map(
-    (hoursAgg as { _id: Types.ObjectId; totalHours: number; sessionCount: number }[])
-      .map((h) => [h._id.toString(), h])
-  )
-
-  const result = facultyList.map((f) => {
-    const contract     = contractMap.get(f._id.toString())
-    const hours        = hoursMap.get(f._id.toString())
-    const logged       = hours?.totalHours  ?? 0
-    const sessionCount = hours?.sessionCount ?? 0
-    const contractType = contract?.contractType ?? 'UNKNOWN'
-
-    // Determine the relevant quota for this contract type
-    let quota: number | null = null
-    if (contract) {
-      quota = contract.monthlyHourQuota
-        ?? contract.minHoursRequirement
-        ?? contract.overtimeThresholdHours
-        ?? null
-    }
-
-    const pct     = quota != null && quota > 0 ? Math.round((logged / quota) * 100) : null
-    const deficit = quota != null ? Math.max(0, quota - logged) : null
-    const surplus = quota != null ? Math.max(0, logged - quota) : null
-    const status  = pct == null
-      ? 'NO_QUOTA'
-      : pct >= 100 ? 'MET' : pct >= 70 ? 'ON_TRACK' : pct >= 40 ? 'AT_RISK' : 'MISSED'
-
-    return { facultyId: f._id, name: f.name, subject: f.subject, contractType, quota, logged, sessionCount, pct, deficit, surplus, status }
-  })
-
-  res.json({ from, to, faculty: result })
 })

@@ -1,8 +1,6 @@
 ﻿export type UserRole =
   | 'ADMIN'
   | 'HR_MANAGER'
-  | 'ACADEMICS_MANAGER'
-  | 'IG_ACADEMICS_MANAGER'
   | 'CLASS_TEACHER'
   | 'FACULTY'
   | 'IG_CLASS_TEACHER'
@@ -85,7 +83,7 @@ export interface JWTPayload {
   role: UserRole
   facultyId?: string
   batchId?: string
-  /** Restricts ACADEMICS_MANAGER to a single batch type */
+  /** Legacy — see IUser.batchType */
   batchType?: string
   /** Unix timestamp (ms) of the last verified request — used for inactivity timeout */
   lastActive?: number

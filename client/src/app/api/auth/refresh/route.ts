@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { signAccessToken, signRefreshToken, verifyRefreshToken, isSameOrigin } from '@/lib/auth'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 import { refreshLimiter, getIP } from '@/lib/ratelimit'
+import { isActiveRole, REMOVED_ROLE_ERROR } from '@/lib/roleHome'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const isProduction = process.env.NODE_ENV === 'production'
@@ -43,6 +44,10 @@ export async function POST(req: NextRequest) {
       // JWT verify failed — delete the stored token
       await RefreshToken.deleteOne({ tokenHash: rawHash }).catch(() => null)
       return NextResponse.json({ error: 'Invalid refresh token' }, { status: 401 })
+    }
+    if (!isActiveRole(payload.role)) {
+      await RefreshToken.deleteOne({ tokenHash: rawHash }).catch(() => null)
+      return NextResponse.json({ error: REMOVED_ROLE_ERROR }, { status: 401 })
     }
 
     // Token rotation: expire old token after a 30-second grace period instead of

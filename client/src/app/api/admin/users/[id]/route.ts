@@ -8,7 +8,7 @@ import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
 import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
-  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'HR_MANAGER',
   'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
 ]
 
@@ -40,10 +40,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.batchId !== undefined) {
       update.batchId = body.batchId || undefined
       auditReasons.push('batchId updated')
-    }
-    if ('batchType' in body) {
-      update.batchType = body.batchType || undefined
-      auditReasons.push(`batchType → ${body.batchType || 'none'}`)
     }
     if (body.campusId !== undefined) {
       update.campusId = body.campusId || undefined

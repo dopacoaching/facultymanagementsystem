@@ -17,7 +17,7 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
     return (
       <EmptyState
         title={search ? 'No results found' : 'No faculty added yet'}
-        description={search ? `No faculty match "${search}". Try a different search term.` : 'Add your first faculty member to get started with payroll and scheduling.'}
+        description={search ? `No faculty match "${search}". Try a different search term.` : 'Add your first faculty member to get started with payroll and session tracking.'}
         action={search ? undefined : { label: '+ Add Faculty', onClick: onAdd }}
       />
     )

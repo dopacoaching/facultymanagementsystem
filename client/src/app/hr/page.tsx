@@ -7,6 +7,7 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { toLocalISO } from '@/utils/date'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 import {
   TopStats, PenaltyOvertimeRow, HoursProgressCard,
   PayrollStatusCard, CancellationLogCard, QuickLinks,
@@ -72,12 +73,12 @@ export default function HRDashboard() {
 
       <TopStats totals={fresh?.totals} />
 
-      <PenaltyOvertimeRow totals={fresh?.totals} periodLabel={periodLabel} />
+      {SALARY_ENABLED && <PenaltyOvertimeRow totals={fresh?.totals} periodLabel={periodLabel} />}
 
       <HoursProgressCard hoursProgress={fresh?.hoursProgress ?? []} />
 
       <div className="panel-grid-2">
-        <PayrollStatusCard loading={loading} hasData={!!fresh} payrollStatus={fresh?.payrollStatus ?? []} />
+        {SALARY_ENABLED && <PayrollStatusCard loading={loading} hasData={!!fresh} payrollStatus={fresh?.payrollStatus ?? []} />}
         <CancellationLogCard cancellationLog={fresh?.cancellationLog ?? []} periodLabel={periodLabel} />
       </div>
 

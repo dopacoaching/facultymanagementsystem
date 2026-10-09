@@ -12,8 +12,6 @@ export const SUBJECTS: Subject[] = [
 export type UserRole =
   | 'ADMIN'
   | 'HR_MANAGER'
-  | 'ACADEMICS_MANAGER'
-  | 'IG_ACADEMICS_MANAGER'
   | 'CLASS_TEACHER'
   | 'FACULTY'
   | 'IG_CLASS_TEACHER'
@@ -97,7 +95,7 @@ export interface JWTPayload {
   username?: string
   facultyId?: string
   batchId?: string
-  /** Restricts ACADEMICS_MANAGER to a single batch type (RESIDENTIAL | OFFLINE | ONLINE) */
+  /** Legacy — only set on accounts from the removed Academics Manager role; nothing reads it for scoping. */
   batchType?: string
   /** Shared campus login (CLASS_TEACHER): which of the fixed campus list this account logs sessions for. */
   campusName?: string

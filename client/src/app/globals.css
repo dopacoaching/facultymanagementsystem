@@ -416,22 +416,6 @@ select.input {
 }
 .field-col-span { grid-column: 1 / -1; }
 
-/* ── Schedule / exam grids (feature-specific) ─────────────────────────────── */
-.schedule-entry-row {
-  display: grid;
-  grid-template-columns: 140px 1fr 1fr 1fr auto;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-  align-items: flex-end;
-}
-
-.exam-topic-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto;
-  gap: 0.875rem;
-  align-items: flex-end;
-}
-
 .panel-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1236,8 +1220,6 @@ tbody tr:hover td { background: var(--color-surface-2); }
   .role-chip { display: none; }
 
   .input-group, .input-group-3 { grid-template-columns: 1fr; }
-  .schedule-entry-row { grid-template-columns: 1fr 1fr; }
-  .exam-topic-grid { grid-template-columns: 1fr auto; }
   .panel-grid-2 { grid-template-columns: 1fr; }
   .carry-grid { grid-template-columns: 1fr; }
 
@@ -1253,8 +1235,6 @@ tbody tr:hover td { background: var(--color-surface-2); }
 }
 
 @media (max-width: 480px) {
-  .schedule-entry-row { grid-template-columns: 1fr; }
-  .exam-topic-grid { grid-template-columns: 1fr; }
   .carry-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr; }
   .shell-content { padding: 1.125rem 1rem; }

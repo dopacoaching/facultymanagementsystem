@@ -5,12 +5,13 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
+import { NoClassDay } from '@/lib/models/NoClassDay'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
-import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
+import { findCampusByName } from '@/lib/constants/campuses'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -82,22 +83,6 @@ export async function GET(req: NextRequest) {
       filter.batchId = { $nin: excludedIds }
     }
 
-    // ACADEMICS_MANAGER scope — applied LAST so it always wins over the IG-exclusion filter above
-    if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType) {
-      const scopedIds = await Batch.find({ type: payload.batchType as never, isActive: true }).distinct('_id')
-      if (batchId) {
-        // Specific batch requested — verify it is within scope
-        const inScope = scopedIds.some((id) => id.toString() === batchId)
-        if (!inScope) {
-          return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
-        }
-        // filter.batchId already set to this specific batch — leave it
-      } else {
-        // Replace whatever batchId filter was built above with the scope-restricted set
-        filter.batchId = { $in: scopedIds }
-      }
-    }
-
     if (from && to) {
       const range = dayRangeFilter(from, to)
       if (!range) {
@@ -121,6 +106,7 @@ export async function GET(req: NextRequest) {
       : sessions.map((s) => {
           const obj = s.toObject()
           delete obj.scheduledTime
+          delete obj.scheduledEndTime
           return obj
         })
 
@@ -138,12 +124,12 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {
       facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
-      scheduledTime, updatedByName, durationHours, sessionDate, timeSlot, startTime, endTime,
+      scheduledTime, scheduledEndTime, updatedByName, durationHours, sessionDate, timeSlot, startTime, endTime,
       breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, sessionCategory,
     } = await req.json()
 
@@ -156,12 +142,12 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'Either batchId or campusName is required' }, 400), refreshedToken)
     }
     const VALID_CLASS_MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
-    if (campusName && !batchId && !VALID_CLASS_MODES.includes(classMode)) {
+    if (campusName && !VALID_CLASS_MODES.includes(classMode)) {
       return withToken(json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }, 400), refreshedToken)
     }
     // Campus-flow sessions are keyed by startTime for duplicate detection below —
     // require it here rather than relying on the coordinator UI's own validation.
-    if (campusName && !batchId && !startTime) {
+    if (campusName && !startTime) {
       return withToken(json({ error: 'startTime is required for campus-logged sessions' }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
@@ -191,17 +177,13 @@ export async function POST(req: NextRequest) {
 
     await connectDB()
 
-    // batch is only relevant to the legacy Batch-linked flow — the campus-login
-    // class-teacher flow (campusName, no batchId) skips all Batch-dependent checks.
+    // batch is set by the legacy Batch-linked flow, or by Push Board when an
+    // offline-centre login picks one of its batches. Without it, Batch-dependent
+    // checks are skipped.
     let batch: IBatch | null = null
     if (batchOid) {
       batch = await Batch.findById(batchOid)
       if (!batch) return withToken(json({ error: 'Batch not found' }, 404), refreshedToken)
-
-      // ACADEMICS_MANAGER batch type scope guard
-      if (payload.role === 'ACADEMICS_MANAGER' && payload.batchType && batch.type !== payload.batchType) {
-        return withToken(json({ error: 'Access denied: batch is outside your assigned batch type' }, 403), refreshedToken)
-      }
     }
 
     // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
@@ -212,11 +194,18 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'sessionCategory (Class or Doubt Clearance) is required for this faculty' }, 400), refreshedToken)
     }
 
-    // Coordinator ownership gate — locked to their own campus (new flow) or batch (legacy)
+    // Coordinator ownership gate — locked to their own campus (new flow) or batch (legacy).
+    // On Push Board an offline-centre login may also pick one of its campus's batches.
     if (isCoordinator(payload.role)) {
       if (campusName) {
         if (!payload.campusName || payload.campusName !== campusName) {
           return withToken(json({ error: 'You can only log sessions for your own campus.' }, 403), refreshedToken)
+        }
+        if (batch) {
+          const allowedCampusId = findCampusByName(payload.campusName)?.campusId
+          if (!allowedCampusId || batch.campusId.toString() !== allowedCampusId) {
+            return withToken(json({ error: 'That batch does not belong to your campus.' }, 403), refreshedToken)
+          }
         }
       } else if (batchId) {
         if (!payload.batchId || payload.batchId !== batchId) {
@@ -225,7 +214,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // DUPLICATE SESSION CHECK — keyed by batch when present, else by campus.
+    // DUPLICATE SESSION CHECK — keyed by campus when present (Push Board, with or
+    // without a batch), else by batch (legacy flow).
     // A faculty routinely teaches more than one class at the same campus on
     // the same day (different batches/timings), so the campus flow also
     // matches on startTime — same faculty + campus + day + start time is an
@@ -233,15 +223,15 @@ export async function POST(req: NextRequest) {
     // genuinely different session and must not be blocked.
     const dup = await Session.findOne({
       facultyId: facultyOid,
-      ...(batchOid ? { batchId: batchOid } : { campusName, startTime }),
+      ...(campusName ? { campusName, startTime } : { batchId: batchOid }),
       sessionDate: { $gte: dayStart, $lte: dayEnd },
       status:    { $ne: 'CANCELLED' },
     })
     if (dup) {
       return withToken(json({
-        error: batchOid
-          ? 'Duplicate session: a session is already logged for this faculty on this date.'
-          : 'Duplicate session: a session is already logged for this faculty at this start time on this date.',
+        error: campusName
+          ? 'Duplicate session: a session is already logged for this faculty at this start time on this date.'
+          : 'Duplicate session: a session is already logged for this faculty on this date.',
         code:  'DUPLICATE_SESSION',
       }, 409), refreshedToken)
     }
@@ -283,19 +273,6 @@ export async function POST(req: NextRequest) {
           code:  'MAX_CAMPUS_LIMIT',
         }, 409), refreshedToken)
       }
-    }
-
-    // CROSS-SYSTEM LOCK — faculty cannot have a Repeaters session and an IG slot on the same day
-    const igSlotToday = await ISTimetableSlot.findOne({
-      facultyId:  facultyOid,
-      date:       { $gte: dayStart, $lte: dayEnd },
-      status:     { $ne: 'CANCELLED' },
-    })
-    if (igSlotToday) {
-      return withToken(json({
-        error: 'Faculty has an IG timetable slot on this date and cannot be scheduled in Repeaters on the same day.',
-        code:  'CROSS_SYSTEM_CONFLICT',
-      }, 409), refreshedToken)
     }
 
     // SPLIT-CHAPTER ORDERING GATE
@@ -341,6 +318,7 @@ export async function POST(req: NextRequest) {
       subject,
       chapter:       chapter || undefined,
       scheduledTime: scheduledTime || undefined,
+      scheduledEndTime: scheduledEndTime || undefined,
       updatedByName: updatedByName || undefined,
       startTime:     startTime  ?? undefined,
       endTime:       endTime    ?? undefined,
@@ -354,14 +332,19 @@ export async function POST(req: NextRequest) {
       // start/end times, after the class happened) — COMPLETED immediately.
       // The legacy Batch flow schedules ahead of time and is marked complete
       // later via the status PATCH endpoint.
-      status:        (!batchOid && campusName) ? 'COMPLETED' : 'SCHEDULED',
+      status:        campusName ? 'COMPLETED' : 'SCHEDULED',
       loggedByUserId: new Types.ObjectId(payload.userId),
       sessionCategory: sessionCategory ?? 'CLASS',
     })
 
+    // A real entry supersedes a "No Class" marker for the same campus day.
+    if (campusName) {
+      await NoClassDay.deleteOne({ campusName, date: dayStart }).catch(() => null)
+    }
+
     // Auto-mark chapter as facultyClassDone; attach syllabus link if provided
-    // (only meaningful when a chapter was given AND this is the legacy Batch flow —
-    // the campus-login flow doesn't participate in the chapters/syllabus workflow)
+    // (only meaningful when a chapter was given AND a batch is known — campus-only
+    // Push Board entries don't participate in the chapters/syllabus workflow)
     if (chapter && batchOid) {
       const normSubject = subject.toUpperCase()
       const bcSet: Record<string, unknown> = {

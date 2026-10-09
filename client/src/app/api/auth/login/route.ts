@@ -6,6 +6,7 @@ import { User } from '@/lib/models/User'
 import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { loginLimiter, getIP } from '@/lib/ratelimit'
+import { isActiveRole, REMOVED_ROLE_ERROR } from '@/lib/roleHome'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
     const valid = await bcrypt.compare(password, user.passwordHash)
     if (!valid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+    }
+    if (!isActiveRole(user.role)) {
+      return NextResponse.json({ error: REMOVED_ROLE_ERROR }, { status: 403 })
     }
 
     const payload = {

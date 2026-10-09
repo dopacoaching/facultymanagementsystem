@@ -3,7 +3,6 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
-import { ISTimetableSlot } from '@/lib/models/ISTimetableSlot'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
 /** PATCH /api/academics/sessions/:id — full edit (manager only) */
@@ -13,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -26,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json() as Record<string, unknown>
     const allowed = [
       'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
-      'scheduledTime', 'updatedByName', 'startTime', 'endTime',
+      'scheduledTime', 'scheduledEndTime', 'updatedByName', 'startTime', 'endTime',
       'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
       'durationHours', 'sessionDate', 'timeSlot',
     ]
@@ -60,27 +59,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!existing) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
-    }
-
-    // Cross-system lock: re-check IG timetable conflicts when faculty or date changes
-    if ('facultyId' in update || 'sessionDate' in update) {
-      const effectiveFacultyId = (update.facultyId ?? existing.facultyId) as Types.ObjectId
-      const effectiveDate = new Date((update.sessionDate as Date | undefined) ?? existing.sessionDate)
-      effectiveDate.setHours(0, 0, 0, 0)
-      const dayStart = new Date(effectiveDate)
-      const dayEnd   = new Date(effectiveDate); dayEnd.setHours(23, 59, 59, 999)
-
-      const igConflict = await ISTimetableSlot.findOne({
-        facultyId: effectiveFacultyId,
-        date:      { $gte: dayStart, $lte: dayEnd },
-        status:    { $ne: 'CANCELLED' },
-      })
-      if (igConflict) {
-        return withToken(json({
-          error: 'Faculty has an Integrated School (IG) class on this date and cannot be scheduled for Repeaters on the same day.',
-          code:  'IG_SESSION_CONFLICT',
-        }, 409), refreshedToken)
-      }
     }
 
     const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })

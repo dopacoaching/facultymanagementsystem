@@ -5,6 +5,7 @@ import { RefreshToken, hashToken } from '@/lib/models/RefreshToken'
 import { User } from '@/lib/models/User'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { ssoLimiter, getIP } from '@/lib/ratelimit'
+import { isActiveRole, REMOVED_ROLE_ERROR } from '@/lib/roleHome'
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 const isProduction = process.env.NODE_ENV === 'production'
@@ -84,6 +85,9 @@ export async function POST(req: NextRequest) {
 
     if (!localUserId || !appRole) {
       return NextResponse.json({ error: 'Invalid identity assertion' }, { status: 502 })
+    }
+    if (!isActiveRole(appRole)) {
+      return NextResponse.json({ error: REMOVED_ROLE_ERROR }, { status: 403 })
     }
 
     const payload = {

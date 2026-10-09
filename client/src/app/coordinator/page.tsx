@@ -1,22 +1,36 @@
 'use client'
 import { useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
-import { getAll as getFaculty } from '@/services/faculty.service'
+import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
+import type { Batch } from '@/services/faculty.service'
+import { getCampuses } from '@/services/campus.service'
+import { create as createIGSession } from '@/services/ig-session.service'
 import { apiFetch } from '@/services/api'
 import { findCampusByName } from '@/lib/constants/campuses'
+import { IG_TEACHERS } from '@/lib/constants/igTeachers'
 import type { Faculty } from '@/types'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
+import { NoClassCard } from '@/components/coordinator/NoClassCard'
+import { todayLocal } from '@/utils/date'
 import {
-  EMPTY_FORM, FormState, computeDuration, SUBJECT_OPTIONS, CLASS_MODE_OPTIONS,
-  TimeRangeFields, SubjectField, ChapterField,
+  EMPTY_FORM, FormState, computeDuration, monthBounds, teaBreakAsBreaks, formatHM,
+  SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChapterField, BreakRow,
 } from '@/components/coordinator/log-session'
 
-export default function LogSessionPage() {
-  const { accessToken, campusName } = useAppSelector((s) => s.auth)
+const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+
+/**
+ * Push Board — the one session-entry form for class teachers (campus logins)
+ * and IG class teachers. Campus is fixed to the login; offline centres and IG
+ * schools also pick one of that campus's batches.
+ */
+export default function PushBoardPage() {
+  const { accessToken, role, campusName, campusId } = useAppSelector((s) => s.auth)
   const toast = useToast()
+  const isIG = role === 'IG_CLASS_TEACHER'
 
   const facultyRes = useAsyncResource<Faculty[]>(
     () => getFaculty(accessToken!),
@@ -24,6 +38,33 @@ export default function LogSessionPage() {
     { enabled: !!accessToken },
   )
   const facultyList = facultyRes.data ?? []
+
+  // Campus: a class-teacher login carries campusName (static config); an IG
+  // class teacher carries the Campus._id of their school.
+  const campusConfig = isIG ? undefined : findCampusByName(campusName)
+  const batchCampusId = isIG ? campusId : campusConfig?.campusId
+  const campusesRes = useAsyncResource(
+    () => getCampuses(accessToken!),
+    [accessToken],
+    { enabled: !!accessToken && isIG },
+  )
+  const campusLabel = isIG
+    ? campusesRes.data?.find((c) => c._id === campusId)?.name ?? null
+    : campusName
+  const teacherNames = isIG
+    ? (campusId ? IG_TEACHERS[campusId] ?? [] : [])
+    : campusConfig?.teachers ?? []
+
+  const batchesRes = useAsyncResource<Batch[]>(
+    () => getBatches(accessToken!),
+    [accessToken],
+    { enabled: !!accessToken && !!batchCampusId },
+  )
+  const campusBatches = useMemo(
+    () => (batchesRes.data ?? []).filter((b) => batchCampusOf(b) === batchCampusId),
+    [batchesRes.data, batchCampusId],
+  )
+  const needsBatch = !!batchCampusId
 
   const [form,   setForm]   = useState<FormState>(EMPTY_FORM())
   const [saving, setSaving] = useState(false)
@@ -33,12 +74,12 @@ export default function LogSessionPage() {
   const [submitError, setSubmitError] = useState('')
   const [savedFor, setSavedFor] = useState<string | null>(null)
 
-  const campus = findCampusByName(campusName)
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
-  const needsSessionCategory = Boolean(selectedFaculty?.requiresSessionCategory)
+  const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
+  const dateBounds = monthBounds(form.month)
   const duration = useMemo(
-    () => computeDuration(form.startTime, form.endTime, form.breaks),
-    [form.startTime, form.endTime, form.breaks]
+    () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak)),
+    [form.startTime, form.endTime, form.teaBreak]
   )
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -55,20 +96,35 @@ export default function LogSessionPage() {
         }
       }
       if (key === 'subject' && prev.subject !== value) updated.chapter = ''
+      if (key === 'month') {
+        // Keep the date only if it still falls inside the newly picked month.
+        const { min, max } = monthBounds(value as string)
+        if (prev.sessionDate < min || prev.sessionDate > max) {
+          const today = todayLocal()
+          updated.sessionDate = today >= min && today <= max ? today : ''
+        }
+      }
       return updated
     })
   }
 
   function validate(): string | null {
-    if (!campusName)          return 'Your account is not linked to a campus'
-    if (!form.facultyId)      return 'Select the faculty who took the session'
-    if (!form.subject.trim()) return 'Subject is required'
-    if (!form.chapter.trim()) return 'Chapter is required'
-    if (!form.classMode)      return 'Select the class mode'
+    if (!campusLabel)              return 'Your account is not linked to a campus'
+    if (!form.facultyId)           return 'Select the faculty who took the session'
     if (needsSessionCategory && !form.sessionCategory) return 'Select whether this was a Class or Doubt Clearance session'
-    if (!form.updatedByName)  return 'Select who is filling in this form'
-    if (!form.sessionDate)    return 'Session date is required'
-    if (duration.error)       return duration.error
+    if (!form.month)               return 'Select the month & year'
+    if (!form.sessionDate)         return 'Select the date'
+    if (form.sessionDate < dateBounds.min || form.sessionDate > dateBounds.max) {
+      return 'The date must be inside the selected month, and not in the future'
+    }
+    if (!form.subject.trim())      return 'Subject is required'
+    if (!form.scheduledStart || !form.scheduledEnd) return 'Enter the scheduled start and end time'
+    if (form.scheduledEnd <= form.scheduledStart)   return 'Scheduled end time must be after the scheduled start time'
+    if (needsBatch && !form.batchId) return 'Select the batch'
+    if (!form.classMode)           return 'Select the class mode'
+    if (!form.chapter.trim())      return 'Chapter is required'
+    if (duration.error)            return duration.error
+    if (!form.updatedByName)       return 'Select who is filling in this form'
     return null
   }
 
@@ -78,30 +134,40 @@ export default function LogSessionPage() {
     const invalid = validate()
     if (invalid) { setValidationError(invalid); return }
 
+    const common = {
+      facultyId:        form.facultyId,
+      classMode:        form.classMode || undefined,
+      subject:          form.subject.trim(),
+      chapter:          form.chapter.trim(),
+      scheduledTime:    form.scheduledStart,
+      scheduledEndTime: form.scheduledEnd,
+      startTime:        form.startTime,
+      endTime:          form.endTime,
+      breakMinutes:          duration.morningBreak,
+      lunchBreakMinutes:     0,
+      afternoonBreakMinutes: 0,
+      updatedByName:    form.updatedByName,
+      durationHours:    duration.hours,
+      sessionDate:      form.sessionDate,
+    }
+
     setSaving(true)
     try {
-      await apiFetch('/academics/sessions', {
-        method: 'POST',
-        token: accessToken!,
-        body: {
-          campusName,
-          classMode:     form.classMode,
-          facultyId:     form.facultyId,
-          subject:       form.subject.trim(),
-          chapter:       form.chapter.trim(),
-          scheduledTime: form.scheduledTime || undefined,
-          startTime:     form.startTime,
-          endTime:       form.endTime,
-          breakMinutes:          duration.morningBreak,
-          lunchBreakMinutes:     duration.lunchBreak,
-          afternoonBreakMinutes: duration.afternoonBreak,
-          updatedByName: form.updatedByName,
-          durationHours: duration.hours,
-          sessionDate:   form.sessionDate,
-          sessionCategory: needsSessionCategory ? form.sessionCategory : undefined,
-        },
-      })
-      toast.success('Session logged', 'The session has been recorded.')
+      if (isIG) {
+        await createIGSession({ ...common, batchId: form.batchId }, accessToken!)
+      } else {
+        await apiFetch('/academics/sessions', {
+          method: 'POST',
+          token: accessToken!,
+          body: {
+            ...common,
+            campusName,
+            batchId: needsBatch ? form.batchId : undefined,
+            sessionCategory: needsSessionCategory ? form.sessionCategory : undefined,
+          },
+        })
+      }
+      toast.success('Session pushed', 'The session has been recorded.')
       setSavedFor(selectedFaculty?.name ?? 'the session')
     } catch (e: unknown) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to submit session')
@@ -110,21 +176,31 @@ export default function LogSessionPage() {
     }
   }
 
-  function startAnother() {
-    setForm(EMPTY_FORM())
-    setSavedFor(null)
+  function resetForm() {
+    // Keep the month — teachers usually push several sessions for the same month.
+    setForm((prev) => ({ ...EMPTY_FORM(), month: prev.month, sessionDate: prev.sessionDate }))
     setValidationError('')
     setSubmitError('')
   }
 
+  function startAnother() {
+    resetForm()
+    setSavedFor(null)
+  }
+
   const activeFaculty = facultyList.filter((f) => f.isActive)
+  const loadError = facultyRes.status === 'error'
+    ? { message: facultyRes.error?.message ?? '', what: "Couldn't load the faculty list", retry: facultyRes.refetch }
+    : batchesRes.status === 'error'
+      ? { message: batchesRes.error?.message ?? '', what: "Couldn't load the batch list", retry: batchesRes.refetch }
+      : null
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <div>
-          <h1>Log a session</h1>
-          <p className="page-subtitle">Record a class that has already been taught at {campusName ?? 'your campus'}.</p>
+          <h1>Push Board</h1>
+          <p className="page-subtitle">Record a class that has already been taught at {campusLabel ?? 'your campus'}.</p>
         </div>
       </div>
 
@@ -133,23 +209,19 @@ export default function LogSessionPage() {
           <div className="empty-state" style={{ padding: '2rem 1rem' }}>
             <div className="alert alert-success" style={{ display: 'inline-flex', marginBottom: '1.25rem' }}>
               <span className="alert-icon" aria-hidden="true">✓</span>
-              Session for {savedFor} has been logged.
+              Session for {savedFor} has been recorded.
             </div>
             <div>
               <button type="button" className="btn btn-primary" onClick={startAnother}>
-                Log another session
+                Push another session
               </button>
             </div>
           </div>
         ) : (
           <>
-            {facultyRes.status === 'error' && (
+            {loadError && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <ErrorAlert
-                  message={facultyRes.error?.message ?? ''}
-                  what="Couldn't load the faculty list"
-                  onRetry={facultyRes.refetch}
-                />
+                <ErrorAlert message={loadError.message} what={loadError.what} onRetry={loadError.retry} />
               </div>
             )}
 
@@ -175,19 +247,9 @@ export default function LogSessionPage() {
               onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
               style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
             >
-              <FormField label="Campus" htmlFor="log-campus">
-                <input
-                  id="log-campus"
-                  className="input"
-                  value={campusName ?? 'Not configured for your account'}
-                  disabled
-                  readOnly
-                />
-              </FormField>
-
-              <FormField label="Faculty" htmlFor="log-faculty" required>
+              <FormField label="Faculty name" htmlFor="pb-faculty" required>
                 <select
-                  id="log-faculty"
+                  id="pb-faculty"
                   className="input"
                   value={form.facultyId}
                   disabled={facultyRes.status === 'loading'}
@@ -203,9 +265,9 @@ export default function LogSessionPage() {
               </FormField>
 
               {needsSessionCategory && (
-                <FormField label="Session category" htmlFor="log-session-category" required>
+                <FormField label="Session category" htmlFor="pb-session-category" required>
                   <select
-                    id="log-session-category"
+                    id="pb-session-category"
                     className="input"
                     value={form.sessionCategory}
                     onChange={(e) => setField('sessionCategory', e.target.value as FormState['sessionCategory'])}
@@ -217,18 +279,105 @@ export default function LogSessionPage() {
                 </FormField>
               )}
 
+              <div className="input-group">
+                <FormField label="Month & year" htmlFor="pb-month" required>
+                  <input
+                    id="pb-month"
+                    type="month"
+                    className="input"
+                    value={form.month}
+                    max={todayLocal().slice(0, 7)}
+                    onChange={(e) => setField('month', e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Date" htmlFor="pb-date" required>
+                  <input
+                    id="pb-date"
+                    type="date"
+                    className="input"
+                    value={form.sessionDate}
+                    min={dateBounds.min}
+                    max={dateBounds.max}
+                    disabled={!form.month}
+                    onChange={(e) => setField('sessionDate', e.target.value)}
+                  />
+                </FormField>
+              </div>
+
               <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
 
-              <ChapterField
-                subject={form.subject}
-                accessToken={accessToken}
-                value={form.chapter}
-                onChange={(v) => setField('chapter', v)}
-              />
+              <div className="input-group">
+                <FormField label="Scheduled time — from" htmlFor="pb-sched-start" required hint="As given by the academic team">
+                  <input
+                    id="pb-sched-start"
+                    type="time"
+                    className="input"
+                    value={form.scheduledStart}
+                    onChange={(e) => setField('scheduledStart', e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Scheduled time — to" htmlFor="pb-sched-end" required>
+                  <input
+                    id="pb-sched-end"
+                    type="time"
+                    className="input"
+                    value={form.scheduledEnd}
+                    onChange={(e) => setField('scheduledEnd', e.target.value)}
+                  />
+                </FormField>
+              </div>
 
-              <FormField label="Class mode" htmlFor="log-class-mode" required>
+              <div className="input-group">
+                <FormField label="Time taken — started" htmlFor="pb-start" required hint="When the class actually began">
+                  <input
+                    id="pb-start"
+                    type="time"
+                    className="input"
+                    value={form.startTime}
+                    onChange={(e) => setField('startTime', e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Time taken — ended" htmlFor="pb-end" required>
+                  <input
+                    id="pb-end"
+                    type="time"
+                    className="input"
+                    value={form.endTime}
+                    onChange={(e) => setField('endTime', e.target.value)}
+                  />
+                </FormField>
+              </div>
+
+              <FormField label="Campus" htmlFor="pb-campus" required>
+                <select id="pb-campus" className="input" value={campusLabel ?? ''} disabled={!campusLabel} onChange={() => {}}>
+                  {campusLabel
+                    ? <option value={campusLabel}>{campusLabel}</option>
+                    : <option value="">Not configured for your account</option>}
+                </select>
+              </FormField>
+
+              {needsBatch && (
+                <FormField label="Batch" htmlFor="pb-batch" required>
+                  <select
+                    id="pb-batch"
+                    className="input"
+                    value={form.batchId}
+                    disabled={batchesRes.status === 'loading'}
+                    onChange={(e) => setField('batchId', e.target.value)}
+                  >
+                    <option value="">
+                      {batchesRes.status === 'loading' ? 'Loading batches…' : '— select batch —'}
+                    </option>
+                    {campusBatches.map((b) => (
+                      <option key={b._id} value={b._id}>{b.name}</option>
+                    ))}
+                  </select>
+                </FormField>
+              )}
+
+              <FormField label="Class mode" htmlFor="pb-class-mode" required>
                 <select
-                  id="log-class-mode"
+                  id="pb-class-mode"
                   className="input"
                   value={form.classMode}
                   onChange={(e) => setField('classMode', e.target.value as FormState['classMode'])}
@@ -240,47 +389,56 @@ export default function LogSessionPage() {
                 </select>
               </FormField>
 
-              <TimeRangeFields
-                scheduledTime={form.scheduledTime}
-                onScheduledTimeChange={(v) => setField('scheduledTime', v)}
-                startTime={form.startTime}
-                onStartTimeChange={(v) => setField('startTime', v)}
-                endTime={form.endTime}
-                onEndTimeChange={(v) => setField('endTime', v)}
-                breaks={form.breaks}
-                onBreaksChange={(b) => setField('breaks', b)}
-                sessionDate={form.sessionDate}
-                onSessionDateChange={(v) => setField('sessionDate', v)}
-                duration={duration}
+              <ChapterField
+                subject={form.subject}
+                accessToken={accessToken}
+                value={form.chapter}
+                onChange={(v) => setField('chapter', v)}
               />
 
-              <FormField label="Updated by" htmlFor="log-updated-by" required>
+              <FormField
+                label="Total hours & minutes"
+                htmlFor="pb-total"
+                hint={duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of tea break deducted` : 'Calculated automatically'}
+              >
+                <input
+                  id="pb-total"
+                  className="input"
+                  readOnly
+                  disabled
+                  value={!duration.error ? formatHM(duration.hours * 60) : '—'}
+                />
+              </FormField>
+
+              <BreakRow
+                label="Break (Tea)"
+                note="first 15m free"
+                field={form.teaBreak}
+                onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })}
+              />
+
+              <FormField label="Updated by" htmlFor="pb-updated-by" required>
                 <select
-                  id="log-updated-by"
+                  id="pb-updated-by"
                   className="input"
                   value={form.updatedByName}
                   onChange={(e) => setField('updatedByName', e.target.value)}
                 >
                   <option value="">— select who is filling this in —</option>
-                  {(campus?.teachers ?? []).map((name) => (
+                  {teacherNames.map((name) => (
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
               </FormField>
 
               <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => { setForm(EMPTY_FORM()); setValidationError(''); setSubmitError('') }}
-                  disabled={saving}
-                >
+                <button type="button" className="btn btn-ghost" onClick={resetForm} disabled={saving}>
                   Clear
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving
                     ? <><span className="spinner spinner-on-solid" /> Saving…</>
-                    : 'Submit session'}
+                    : 'Push session'}
                 </button>
               </div>
             </form>
@@ -288,8 +446,10 @@ export default function LogSessionPage() {
         )}
       </div>
 
+      {accessToken && campusLabel && <NoClassCard accessToken={accessToken} teachers={teacherNames} />}
+
       <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-        Sessions submitted here are recorded immediately. Contact your Academics Manager to make corrections.
+        Sessions pushed here are recorded immediately. Contact the admin to make corrections.
       </p>
     </div>
   )

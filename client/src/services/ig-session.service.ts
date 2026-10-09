@@ -23,8 +23,10 @@ export async function create(
     batchId: string
     subject: string
     chapter: string
-    timeSlot: string
+    timeSlot?: string
+    classMode?: string
     scheduledTime?: string
+    scheduledEndTime?: string
     startTime: string
     endTime: string
     breakMinutes: number

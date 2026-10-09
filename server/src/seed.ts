@@ -8,9 +8,7 @@ import { Campus } from './models/Campus'
 import { Batch } from './models/Batch'
 import { BatchChapter } from './models/BatchChapter'
 import { PermanentFacultyContract } from './models/PermanentFacultyContract'
-import { ISTimetableSlot } from './models/ISTimetableSlot'
 import { ISBatchChapter } from './models/ISBatchChapter'
-import { SpecialDay } from './models/SpecialDay'
 import { SyllabusChapter } from './models/SyllabusChapter'
 import { validatePasswordComplexity } from './utils/passwordUtils'
 
@@ -34,10 +32,7 @@ async function seed() {
     SyllabusChapter.deleteMany({}),
     PermanentFacultyContract.deleteMany({}),
     ISBatchChapter.deleteMany({}),
-    SpecialDay.deleteMany({}),
   ])
-  // Drop old ISTimetableSlot collection to reset indexes (schema changed from dayOfWeek-based to date-based)
-  await ISTimetableSlot.collection.drop().catch(() => { /* collection may not exist yet */ })
 
   // ── Campuses ──────────────────────────────────────────────────────────────
   // Academics campuses (Residential + Offline)

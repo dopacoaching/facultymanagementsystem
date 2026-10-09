@@ -9,7 +9,17 @@ import { Subject, SUBJECTS } from '../types'
 
 const MONTH_NAMES: Record<number, string> = {
   6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
+  10: 'October', 11: 'November', 12: 'December', 13: 'January',
+}
+
+// Converts a real calendar month (1–12) into the academic-year scale used by
+// scheduledMonth (6=June … 12=December, 13=January) so completion dates can be
+// compared against the plan. Feb–May (2–5) fall outside the June–January
+// academic year entirely, so they always count as late.
+const toAcademicMonth = (calendarMonth: number): number => {
+  if (calendarMonth === 1) return 13
+  if (calendarMonth >= 6 && calendarMonth <= 12) return calendarMonth
+  return 99
 }
 
 // ── GET /academics/syllabus ───────────────────────────────────────────────────
@@ -56,8 +66,8 @@ export const getSyllabusChapters = asyncHandler(async (req: AuthRequest, res: Re
   const filter: Record<string, unknown> = { subject: subjectUp }
   if (month) {
     const m = Number(month)
-    if (isNaN(m) || m < 6 || m > 12) {
-      res.status(400).json({ error: 'month must be 6–12' }); return
+    if (isNaN(m) || m < 6 || m > 13) {
+      res.status(400).json({ error: 'month must be 6–13 (13 = January)' }); return
     }
     filter.scheduledMonth = m
   }
@@ -157,7 +167,7 @@ export const getBatchProgress = asyncHandler(async (req: AuthRequest, res: Respo
     progress[subj] = {}
     const subjChapters = allSyllabus.filter((c) => c.subject === subj)
 
-    for (let month = 6; month <= 12; month++) {
+    for (let month = 6; month <= 13; month++) {
       const monthChapters = subjChapters.filter((c) => c.scheduledMonth === month)
       if (monthChapters.length === 0) continue
 
@@ -172,12 +182,11 @@ export const getBatchProgress = asyncHandler(async (req: AuthRequest, res: Respo
 
         if (bc.facultyClassDoneAt) {
           const doneDate  = new Date(bc.facultyClassDoneAt)
-          const doneMonth = doneDate.getMonth() + 1  // 1–12
+          const doneMonth = toAcademicMonth(doneDate.getMonth() + 1)
 
-          // Academic year is June(6)–December(12) in a single calendar year.
-          // Jan–May (1–5) belong to the next calendar year → always late.
-          // Within the academic window: on time if completed by the scheduled month.
-          if (doneMonth >= 6 && doneMonth <= month) onTime++
+          // Academic year is June(6)–January(13). On time if completed by the
+          // scheduled month; Feb–May completions are always late (see toAcademicMonth).
+          if (doneMonth <= month) onTime++
           else late++
         } else {
           // Done flag is set but timestamp is missing — count as late so
@@ -228,8 +237,8 @@ export const getBatchProgress = asyncHandler(async (req: AuthRequest, res: Respo
 export const getBehindScheduleBatches = asyncHandler(async (req: AuthRequest, res: Response) => {
   const queryMonth = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1
 
-  if (isNaN(queryMonth) || queryMonth < 6 || queryMonth > 12) {
-    res.status(400).json({ error: 'month must be between 6 (June) and 12 (December)' }); return
+  if (isNaN(queryMonth) || queryMonth < 6 || queryMonth > 13) {
+    res.status(400).json({ error: 'month must be between 6 (June) and 13 (January)' }); return
   }
 
   const batches = await Batch.find({

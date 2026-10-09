@@ -1,8 +1,7 @@
 # DOPA Faculty Management System
 
 Full-stack faculty management system for DOPA Coaching (Calicut) — salary/payroll,
-session tracking, academic scheduling, exam-topic suggestions, and Integrated School
-timetabling.
+session tracking, academics, and Integrated School timetabling.
 
 ## Stack
 
@@ -61,8 +60,6 @@ npm run dev                 # http://localhost:3000
 |------|-----------|-----------------|
 | Admin | `/admin/login` | `SEED_ADMIN_USERNAME` (e.g. it@dopacoaching.com) |
 | HR Manager | `/login` | `admin_hr` |
-| Academics Manager | `/login` | `repeaters` |
-| IS Academics Manager | `/login` | `academicis` |
 | Coordinators | `/login` | `coordinator_calicut`, `coordinator_melmuri`, `coordinator_ayikk` |
 | Faculty | `/login` | one per faculty, created via Admin → Users (e.g. `ashraf_ac`) |
 

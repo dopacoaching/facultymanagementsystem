@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
     const filter: Record<string, unknown> = { subject: subjectUp }
     if (month) {
       const m = Number(month)
-      if (isNaN(m) || m < 6 || m > 12) {
-        return withToken(json({ error: 'month must be 6–12' }, 400), refreshedToken)
+      if (isNaN(m) || m < 6 || m > 13) {
+        return withToken(json({ error: 'month must be 6–13 (13 = January)' }, 400), refreshedToken)
       }
       filter.scheduledMonth = m
     }

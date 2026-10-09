@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 import { User } from '../models/User'
 import { RefreshToken, hashToken } from '../models/RefreshToken'
-import { JWTPayload } from '../types'
+import { JWTPayload, UserRole } from '../types'
 import { asyncHandler } from '../utils/asyncHandler'
 import { AuthRequest } from '../middleware/auth'
 import { validatePasswordComplexity } from '../utils/passwordUtils'
@@ -13,6 +13,12 @@ export const SESSION_TIMEOUT_MS = 30 * 60 * 1000
 
 /** How long a refresh token lives (must match JWT_REFRESH_EXPIRES_IN). */
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+// Accounts left on a removed role (former Academics Manager / IG Academics
+// Manager) are refused until an admin reassigns them. Mirrors client
+// `lib/roleHome.ts` isActiveRole.
+const ACTIVE_ROLES: string[] = ['ADMIN', 'HR_MANAGER', 'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY'] satisfies UserRole[]
+const REMOVED_ROLE_ERROR = "This account's role has been removed. Ask an admin to assign a new role."
 
 const signAccess = (p: JWTPayload) =>
   jwt.sign({ ...p, lastActive: Date.now() }, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m' } as object)
@@ -56,6 +62,10 @@ export const login = asyncHandler(async (req: Request & { user?: JWTPayload }, r
   const valid = await bcrypt.compare(password, user.passwordHash)
   if (!valid) {
     res.status(401).json({ error: 'Invalid credentials' })
+    return
+  }
+  if (!ACTIVE_ROLES.includes(user.role)) {
+    res.status(403).json({ error: REMOVED_ROLE_ERROR })
     return
   }
 
@@ -112,6 +122,11 @@ export const refresh = asyncHandler(async (req: Request & { user?: JWTPayload },
 
   try {
     const payload = jwt.verify(raw, process.env.JWT_REFRESH_SECRET!) as JWTPayload
+    if (!ACTIVE_ROLES.includes(payload.role)) {
+      await RefreshToken.deleteOne({ tokenHash: hashToken(raw) })
+      res.status(401).json({ error: REMOVED_ROLE_ERROR })
+      return
+    }
 
     // ── Token rotation: delete the old token and issue a new one ─────────────
     // This limits the damage of a stolen token — each token can only be used once.

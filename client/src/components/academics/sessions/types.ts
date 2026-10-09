@@ -11,7 +11,7 @@ export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oc
 
 export const MONTH_NAMES: Record<number, string> = {
   6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
+  10: 'October', 11: 'November', 12: 'December', 13: 'January',
 }
 
 export const NEET_SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY']

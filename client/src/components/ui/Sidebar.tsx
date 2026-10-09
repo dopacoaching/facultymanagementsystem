@@ -6,11 +6,11 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { clearCredentials } from '@/store/slices/authSlice'
 import { logout, changePassword } from '@/services/auth.service'
-import { SCHEDULING_ENABLED } from '@/lib/featureFlags'
 import { getRouteMeta, navLabelFor, type Role } from '@/lib/routeMeta'
 import PasswordInput from './PasswordInput'
 import { FormField } from './FormField'
 import { Modal } from './Modal'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 
 /** Mirror of the server validatePasswordComplexity rule. */
 function validatePasswordComplexity(pw: string): string | null {
@@ -26,16 +26,11 @@ function validatePasswordComplexity(pw: string): string | null {
 
 // ─── Role navigation ──────────────────────────────────────────────────────────
 // Each role's sidebar is a hand-curated list of section markers + route paths.
-// Labels, titles and feature-flag gating come from `routeMeta` so nothing can
+// Labels and titles come from `routeMeta` so nothing can
 // drift out of sync. Routes deliberately kept out of the sidebar (secondary
-// academics screens, faculty schedule, etc.) are reached from in-page links.
+// academics screens, etc.) are reached from in-page links.
 
 type NavEntry = { section: string } | { href: string }
-
-// The Weekly Schedule editor (Repeaters + IG) — shown to ADMIN and both
-// academics-manager roles; each manager is scoped server-side to their own
-// batch type (Repeaters or IG).
-const SCHEDULING_ENTRY: NavEntry[] = SCHEDULING_ENABLED ? [{ href: '/scheduling' }] : []
 
 const ROLE_NAV: Record<string, NavEntry[]> = {
   ADMIN: [
@@ -47,40 +42,30 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
     { href: '/hr/faculty' },
     { href: '/hr/salary' },
     { href: '/hr/reports' },
+    { href: '/hr/reports/salary' },
     { href: '/hr/reports/faculty-hours' },
     { href: '/hr/reports/class-sessions' },
     { href: '/hr/reports/ig-sessions' },
     { section: 'Academics' },
     { href: '/academics/sessions' },
-    ...SCHEDULING_ENTRY,
+    { href: '/academics/syllabus' },
   ],
   HR_MANAGER: [
     { href: '/hr' },
     { href: '/hr/faculty' },
     { href: '/hr/salary' },
     { href: '/hr/reports' },
+    { href: '/hr/reports/salary' },
     { href: '/hr/reports/faculty-hours' },
     { href: '/hr/reports/class-sessions' },
     { href: '/hr/reports/ig-sessions' },
-  ],
-  ACADEMICS_MANAGER: [
-    { href: '/academics' },
-    { href: '/academics/sessions' },
-    ...SCHEDULING_ENTRY,
-  ],
-  IG_ACADEMICS_MANAGER: [
-    { href: '/ig' },
-    { href: '/ig/sessions' },
-    { href: '/ig/timetable' },
-    { href: '/ig/chapters' },
-    ...SCHEDULING_ENTRY,
   ],
   CLASS_TEACHER: [
     { href: '/coordinator' },
     { href: '/coordinator/history' },
   ],
   IG_CLASS_TEACHER: [
-    { href: '/ig/sessions' },
+    { href: '/coordinator' },
     { href: '/ig/sessions/history' },
   ],
   FACULTY: [
@@ -90,8 +75,12 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
   ],
 }
 
+const SALARY_PATHS = new Set(['/hr/salary', '/hr/reports/salary', '/faculty/salary'])
+
 function navForRole(role: string | null): NavEntry[] {
-  return (role && ROLE_NAV[role]) || []
+  const entries = (role && ROLE_NAV[role]) || []
+  // Salary calculation is on hold — hide its screens from the nav.
+  return SALARY_ENABLED ? entries : entries.filter((e) => !('href' in e) || !SALARY_PATHS.has(e.href))
 }
 
 function roleLabel(role: string | null): string {
@@ -99,8 +88,6 @@ function roleLabel(role: string | null): string {
   const map: Record<string, string> = {
     ADMIN:                'Admin',
     HR_MANAGER:           'HR Manager',
-    ACADEMICS_MANAGER:    'Academics',
-    IG_ACADEMICS_MANAGER: 'IG Academics',
     CLASS_TEACHER:        'Class Teacher',
     IG_CLASS_TEACHER:     'IG Class Teacher',
     FACULTY:              'Faculty',

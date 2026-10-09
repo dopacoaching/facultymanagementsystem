@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 
 const LINKS = [
-  { href: '/hr/faculty', label: '👥 Manage Faculty' },
-  { href: '/hr/salary',  label: 'Salary Calculator' },
-  { href: '/hr/reports', label: '📊 Reports & CSV' },
+  { href: '/hr/faculty', label: 'Manage Faculty' },
+  ...(SALARY_ENABLED ? [{ href: '/hr/salary', label: 'Salary Calculator' }] : []),
+  { href: '/hr/reports', label: 'Entries Report' },
 ]
 
 export function QuickLinks() {

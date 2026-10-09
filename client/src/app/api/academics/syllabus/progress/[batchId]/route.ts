@@ -9,7 +9,16 @@ import { Batch } from '@/lib/models/Batch'
 const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY'] as const
 const MONTH_NAMES: Record<number, string> = {
   6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
+  10: 'October', 11: 'November', 12: 'December', 13: 'January',
+}
+
+// Converts a real calendar month (1–12) into the academic-year scale used by
+// scheduledMonth (6=June … 12=December, 13=January). Feb–May (2–5) fall
+// outside the June–January academic year entirely, so they always count as late.
+const toAcademicMonth = (calendarMonth: number): number => {
+  if (calendarMonth === 1) return 13
+  if (calendarMonth >= 6 && calendarMonth <= 12) return calendarMonth
+  return 99
 }
 
 /** GET /api/academics/syllabus/progress/:batchId */
@@ -46,7 +55,7 @@ export async function GET(
       progress[subj] = {}
       const subjChapters = allSyllabus.filter((c) => c.subject === subj)
 
-      for (let month = 6; month <= 12; month++) {
+      for (let month = 6; month <= 13; month++) {
         const monthChapters = subjChapters.filter((c) => c.scheduledMonth === month)
         if (monthChapters.length === 0) continue
 
@@ -56,8 +65,8 @@ export async function GET(
           if (!bc?.facultyClassDone) continue
           completed++
           if (bc.facultyClassDoneAt) {
-            const doneMonth = new Date(bc.facultyClassDoneAt).getMonth() + 1
-            if (doneMonth >= 6 && doneMonth <= month) onTime++
+            const doneMonth = toAcademicMonth(new Date(bc.facultyClassDoneAt).getMonth() + 1)
+            if (doneMonth <= month) onTime++
             else late++
           }
         }

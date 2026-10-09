@@ -11,7 +11,7 @@ export function RecentIGSessionsCard({ sessions }: RecentIGSessionsCardProps) {
     <div className="card">
       <div className="card-header">
         <h2>Recent IG Sessions</h2>
-        <Link href="/ig/sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+        <Link href="/hr/reports/ig-sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
           View all →
         </Link>
       </div>

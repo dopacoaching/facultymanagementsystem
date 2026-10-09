@@ -10,9 +10,7 @@ import { Campus } from '../src/lib/models/Campus'
 import { Batch } from '../src/lib/models/Batch'
 import { BatchChapter } from '../src/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '../src/lib/models/PermanentFacultyContract'
-import { ISTimetableSlot } from '../src/lib/models/ISTimetableSlot'
 import { ISBatchChapter } from '../src/lib/models/ISBatchChapter'
-import { SpecialDay } from '../src/lib/models/SpecialDay'
 import { validatePasswordComplexity } from '../src/lib/utils/passwordUtils'
 
 const uri = process.env.MONGODB_URI
@@ -38,10 +36,7 @@ async function seed() {
     BatchChapter.deleteMany({}),
     PermanentFacultyContract.deleteMany({}),
     ISBatchChapter.deleteMany({}),
-    SpecialDay.deleteMany({}),
   ])
-  // Drop old ISTimetableSlot collection to reset indexes
-  await ISTimetableSlot.collection.drop().catch(() => { /* collection may not exist yet */ })
 
   // ── Campuses ──────────────────────────────────────────────────────────────
   const [

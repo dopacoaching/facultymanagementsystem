@@ -1,8 +1,6 @@
 export type UserRole =
   | 'ADMIN'
   | 'HR_MANAGER'
-  | 'ACADEMICS_MANAGER'
-  | 'IG_ACADEMICS_MANAGER'
   | 'CLASS_TEACHER'
   | 'FACULTY'
   | 'IG_CLASS_TEACHER'
@@ -37,6 +35,7 @@ export interface Session {
   subject: string
   chapter: string
   scheduledTime?: string
+  scheduledEndTime?: string
   updatedByName?: string
   startTime?: string
   endTime?: string

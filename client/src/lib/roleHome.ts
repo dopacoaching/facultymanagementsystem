@@ -9,12 +9,21 @@
 export const ROLE_HOME: Record<string, string> = {
   ADMIN:                '/admin',
   HR_MANAGER:           '/hr',
-  ACADEMICS_MANAGER:    '/academics',
-  IG_ACADEMICS_MANAGER: '/ig',
   CLASS_TEACHER:        '/coordinator',
-  IG_CLASS_TEACHER:     '/ig/sessions',
+  IG_CLASS_TEACHER:     '/coordinator',
   FACULTY:              '/faculty',
 }
+
+/**
+ * True for roles that still exist. Accounts left on a removed role (the former
+ * Academics Manager / IG Academics Manager) are refused at login, SSO and token
+ * refresh until an admin reassigns them.
+ */
+export function isActiveRole(role: string | null | undefined): boolean {
+  return !!role && role in ROLE_HOME
+}
+
+export const REMOVED_ROLE_ERROR = "This account's role has been removed. Ask an admin to assign a new role."
 
 /** Landing path for a role, falling back to the faculty home for anything unmapped. */
 export function roleHomePath(role: string | null | undefined): string {

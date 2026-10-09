@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE } from '@/lib/constants/features'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -7,6 +8,7 @@ import { CarryForwardBalance } from '@/lib/models/CarryForwardBalance'
 /** GET /api/hr/salary/carry-forward?facultyId= */
 export async function GET(req: NextRequest) {
   try {
+    if (!SALARY_ENABLED) return NextResponse.json({ error: SALARY_ON_HOLD_MESSAGE }, { status: 503 })
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth

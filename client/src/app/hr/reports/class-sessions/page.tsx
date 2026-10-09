@@ -171,7 +171,7 @@ export default function ClassSessionsPage() {
                         </span>
                       </td>
                       {canSeeScheduledTime && (
-                        <td style={{ whiteSpace: 'nowrap' }}>{s.scheduledTime ?? '—'}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{s.scheduledTime ? (s.scheduledEndTime ? `${s.scheduledTime} – ${s.scheduledEndTime}` : s.scheduledTime) : '—'}</td>
                       )}
                       <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                         {s.startTime ?? '—'}–{s.endTime ?? '—'}

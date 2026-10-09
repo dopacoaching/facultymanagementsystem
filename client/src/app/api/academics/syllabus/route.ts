@@ -5,7 +5,7 @@ import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 
 const MONTH_NAMES: Record<number, string> = {
   6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
+  10: 'October', 11: 'November', 12: 'December', 13: 'January',
 }
 
 /** GET /api/academics/syllabus — full annual syllabus grouped by month → subject */

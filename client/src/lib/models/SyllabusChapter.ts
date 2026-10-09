@@ -3,7 +3,7 @@
 export interface ISyllabusChapter extends Document {
   subject: string
   chapterName: string
-  scheduledMonth: number
+  scheduledMonth: number      // 6=June … 12=December, 13=January (academic year wraps into the new calendar year)
   chapterOrder: number
   globalOrder: number
   isSplitPart: boolean
@@ -18,7 +18,7 @@ const SyllabusChapterSchema = new Schema<ISyllabusChapter>(
   {
     subject:         { type: String, enum: ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC'], required: true },
     chapterName:     { type: String, required: true, trim: true },
-    scheduledMonth:  { type: Number, required: true, min: 6, max: 12 },
+    scheduledMonth:  { type: Number, required: true, min: 6, max: 13 },
     chapterOrder:    { type: Number, required: true },
     globalOrder:     { type: Number, required: true },
     isSplitPart:     { type: Boolean, default: false },

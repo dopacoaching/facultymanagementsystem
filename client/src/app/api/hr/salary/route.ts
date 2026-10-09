@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE } from '@/lib/constants/features'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { calculateMonthlySalary, calculateRangeSalary, redactForFacultyView } from '@/lib/services/salary/calculator'
@@ -8,6 +9,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 /** GET /api/hr/salary?facultyId=&month=&year=  — or  ?facultyId=&from=&to= (TEMPORARY faculty) */
 export async function GET(req: NextRequest) {
   try {
+    if (!SALARY_ENABLED) return NextResponse.json({ error: SALARY_ON_HOLD_MESSAGE }, { status: 503 })
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth

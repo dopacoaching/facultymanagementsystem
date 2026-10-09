@@ -33,7 +33,7 @@ export const SUBJECT_LABEL: Record<Subject, string> = {
   BIOLOGY:   'Biology',
 }
 
-export const MONTHS = [6, 7, 8, 9, 10, 11, 12]
+export const MONTHS = [6, 7, 8, 9, 10, 11, 12, 13]
 export const MONTH_SHORT: Record<number, string> = {
-  6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec',
+  6: 'Jun', 7: 'Jul', 8: 'Aug', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec', 13: 'Jan',
 }

@@ -14,11 +14,9 @@ import { UserRole } from '../types'
 export { validatePasswordComplexity }
 
 const VALID_ROLES: UserRole[] = [
-  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'HR_MANAGER',
   'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
 ]
-
-const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE']
 
 /** GET /admin/users — list all users (password hash excluded) */
 export const getUsers = asyncHandler(async (_req: AuthRequest, res: Response) => {
@@ -32,7 +30,7 @@ export const getUsers = asyncHandler(async (_req: AuthRequest, res: Response) =>
 
 /** POST /admin/users — create a new user account */
 export const createUser = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { username, password, role, facultyId, batchId, batchType } = req.body
+  const { username, password, role, facultyId, batchId } = req.body
 
   if (!username?.trim()) {
     res.status(400).json({ error: 'username is required' }); return
@@ -52,9 +50,6 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
     const bat = await Batch.findById(batchId)
     if (!bat) { res.status(400).json({ error: 'batchId does not exist' }); return }
   }
-  if (batchType && !VALID_BATCH_TYPES.includes(batchType)) {
-    res.status(400).json({ error: 'batchType must be RESIDENTIAL, OFFLINE, or ONLINE' }); return
-  }
 
   const passwordHash = await bcrypt.hash(password, 12)
   const user = await User.create({
@@ -63,7 +58,6 @@ export const createUser = asyncHandler(async (req: AuthRequest, res: Response) =
     role,
     facultyId: facultyId || undefined,
     batchId:   batchId   || undefined,
-    batchType: role === 'ACADEMICS_MANAGER' && batchType ? batchType : undefined,
   })
 
   // Audit: user account created
@@ -103,10 +97,6 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
   if (req.body.batchId !== undefined) {
     update.batchId = req.body.batchId || undefined
     auditReasons.push(`batchId updated`)
-  }
-  if (req.body.batchType !== undefined) {
-    update.batchType = req.body.batchType || undefined
-    auditReasons.push(`batchType → ${req.body.batchType || 'none'}`)
   }
 
   if (req.body.role) {

@@ -1,6 +1,6 @@
 # DOPA Faculty Management System — Agent Notes
 
-Internal tool for DOPA Coaching (Calicut): faculty scheduling, session tracking,
+Internal tool for DOPA Coaching (Calicut): faculty management, session tracking,
 salary calculation, and academics/Integrated-School (IG) management.
 
 ## Architecture (important)
@@ -30,12 +30,12 @@ Shared logic that is duplicated and must stay identical:
 
 ## Key business rules
 
-- Video-first gate: RESIDENTIAL + ONLINE batches need `BatchChapter.videoComplete`
-  before a session can be logged.
-- Cross-system lock: a faculty cannot have a Repeaters session and an IG
-  timetable slot on the same calendar day.
-- Schedule weeks run Tuesday→Monday; published schedules are immutable —
-  changes go through the revise flow (one revision per week).
+- Roles: ADMIN, HR_MANAGER, CLASS_TEACHER, IG_CLASS_TEACHER, FACULTY. The
+  Academics Manager / IG Academics Manager roles were removed (Sept 2026);
+  accounts still holding them are refused at login/SSO/refresh until reassigned.
+- **Salary is ON HOLD (Oct 2026):** only entries + reports are live. `SALARY_ENABLED`
+  (`client/src/lib/constants/features.ts`, env `NEXT_PUBLIC_SALARY_ENABLED=true`) hides
+  the salary UI and makes `/api/hr/salary/**` return 503. No salary code/data was removed.
 - Salary preview (`persist=false`) must be pure; only approval writes
   audit logs / carry-forward balances. Carry-forward stores the running
   combined total; surplus months reduce the accumulated deficit.
@@ -48,5 +48,3 @@ Shared logic that is duplicated and must stay identical:
   `/api/auth`.
 - ObjectId params are validated before queries; whitelisted field picks
   prevent mass assignment on Faculty/Contract/User updates.
-- ISTimetableSlot `(batchId, date, timeSlot)` uniqueness is enforced at the
-  application layer (cancelled slots are excluded) — do NOT add a unique index.

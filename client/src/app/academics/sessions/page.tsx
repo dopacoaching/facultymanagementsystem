@@ -15,7 +15,7 @@ import {
 } from '@/components/academics/sessions'
 
 export default function SessionsPage() {
-  const { accessToken, role, batchType: scopedBatchType } = useAppSelector((s) => s.auth)
+  const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
   const [sessions, setSessions]       = useState<Session[]>([])
   const [facultyList, setFacultyList] = useState<Faculty[]>([])
@@ -56,7 +56,7 @@ export default function SessionsPage() {
   const [editSaving, setEditSaving]   = useState(false)
   const [editError, setEditError]     = useState('')
 
-  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER' || role === 'ACADEMICS_MANAGER'
+  const canEdit = role === 'ADMIN' || role === 'HR_MANAGER'
 
   // Derived: does the selected faculty need a Class/Doubt Clearance category picker?
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
@@ -74,7 +74,7 @@ export default function SessionsPage() {
     load()
     getFaculty(accessToken).then(setFacultyList).catch(console.error)
     getBatches(accessToken).then((list) => {
-      const acBatches = list.filter((b) => b.type !== 'IG' && (!scopedBatchType || b.type === scopedBatchType))
+      const acBatches = list.filter((b) => b.type !== 'IG')
       setBatches(acBatches)
       if (acBatches.length) setForm((f) => ({ ...f, batchId: acBatches[0]._id }))
     }).catch(console.error)

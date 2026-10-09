@@ -3,6 +3,8 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { NoClassDay } from '@/lib/models/NoClassDay'
+import { Campus } from '@/lib/models/Campus'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
@@ -99,12 +101,12 @@ export async function POST(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'IG_CLASS_TEACHER', 'CLASS_TEACHER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {
-      facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot,
-      scheduledTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName,
+      facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, classMode,
+      scheduledTime, scheduledEndTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName,
     } = await req.json()
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
@@ -112,9 +114,17 @@ export async function POST(req: NextRequest) {
         error: 'All fields are required: facultyId, batchId, subject, chapter, sessionDate',
       }, 400), refreshedToken)
     }
+    // timeSlot is optional — Push Board logs by start time instead of a Session 1/2/3 slot.
     const VALID_TIME_SLOTS = ['SESSION_1', 'SESSION_2', 'SESSION_3']
-    if (!timeSlot || !VALID_TIME_SLOTS.includes(timeSlot)) {
+    if (timeSlot && !VALID_TIME_SLOTS.includes(timeSlot)) {
       return withToken(json({ error: 'timeSlot must be SESSION_1, SESSION_2, or SESSION_3' }, 400), refreshedToken)
+    }
+    if (!timeSlot && !startTime) {
+      return withToken(json({ error: 'startTime is required' }, 400), refreshedToken)
+    }
+    const VALID_CLASS_MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
+    if (classMode && !VALID_CLASS_MODES.includes(classMode)) {
+      return withToken(json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
     if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
@@ -155,43 +165,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // VIDEO-FIRST GATE (Residential + Online only — IS batches skip this)
-    if (isVideoFirstBatch(batch.type)) {
-      const chapterRecord = await BatchChapter.findOne({ batchId: batchOid, subject: subject.toUpperCase(), chapterName: chapter })
-      if (chapterRecord && !chapterRecord.videoComplete) {
-        return withToken(json({
-          error: `Cannot log faculty class for "${chapter}" — video lessons not yet marked complete for this batch.`,
-          code:  'VIDEO_NOT_COMPLETE',
-        }, 422), refreshedToken)
-      }
-    }
-
-    // CROSS-SYSTEM LOCK — faculty cannot have a Repeaters session and an IG slot on the same day
-    const repeatersBatchIds = await Batch.find({ type: { $ne: 'IG' } }).distinct('_id')
-    const repeatersSessionToday = await Session.findOne({
-      facultyId:   facultyOid,
-      batchId:     { $in: repeatersBatchIds },
-      sessionDate: { $gte: dayStart, $lte: dayEnd },
-      status:      { $ne: 'CANCELLED' },
-    })
-    if (repeatersSessionToday) {
-      return withToken(json({
-        error: 'Faculty has a Repeaters session on this date and cannot be scheduled in IG on the same day.',
-        code:  'CROSS_SYSTEM_CONFLICT',
-      }, 409), refreshedToken)
-    }
-
-    // DUPLICATE SESSION CHECK — keyed by session slot, so up to 3 sessions/day (one per slot) are allowed
+    // DUPLICATE SESSION CHECK — keyed by session slot when given, else by start
+    // time (Push Board), so several sessions per day in one batch are allowed.
     const dup = await Session.findOne({
       facultyId: facultyOid,
       batchId:   batchOid,
-      timeSlot,
+      ...(timeSlot ? { timeSlot } : { startTime }),
       sessionDate: { $gte: dayStart, $lte: dayEnd },
       status:    { $ne: 'CANCELLED' },
     })
     if (dup) {
       return withToken(json({
-        error: `Duplicate session: a session is already logged for this faculty in this batch for ${timeSlot} on this date.`,
+        error: timeSlot
+          ? `Duplicate session: a session is already logged for this faculty in this batch for ${timeSlot} on this date.`
+          : 'Duplicate session: a session is already logged for this faculty in this batch at this start time on this date.',
         code:  'DUPLICATE_SESSION',
       }, 409), refreshedToken)
     }
@@ -220,7 +207,9 @@ export async function POST(req: NextRequest) {
       batchId:       batchOid,
       subject,
       chapter,
-      scheduledTime: scheduledTime ?? undefined,
+      classMode:     classMode     || undefined,
+      scheduledTime: scheduledTime || undefined,
+      scheduledEndTime: scheduledEndTime || undefined,
       startTime:     startTime     ?? undefined,
       endTime:       endTime       ?? undefined,
       breakMinutes:          breakMinutes          ?? undefined,
@@ -229,10 +218,14 @@ export async function POST(req: NextRequest) {
       updatedByName: updatedByName ?? undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,
-      timeSlot,
+      timeSlot:      timeSlot || undefined,
       status:        'COMPLETED',
       loggedByUserId: new Types.ObjectId(payload.userId),
     })
+
+    // A real entry supersedes a "No Class" marker for the same school day.
+    const igCampus = await Campus.findById(batch.campusId).select('name').lean()
+    if (igCampus) await NoClassDay.deleteOne({ campusName: igCampus.name, date: dayStart }).catch(() => null)
 
     // Auto-mark chapter as facultyClassDone
     await BatchChapter.findOneAndUpdate(

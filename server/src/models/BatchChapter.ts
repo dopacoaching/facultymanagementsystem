@@ -7,7 +7,7 @@ export interface IBatchChapter extends Document {
   chapterOrder: number
   // optional link to master syllabus (present for chapters seeded from SyllabusChapter)
   syllabusChapterId?: Types.ObjectId
-  scheduledMonth?: number   // expected month from the annual plan (6–12)
+  scheduledMonth?: number   // expected month from the annual plan (6–13; 13=January)
   totalVideos?: number      // copied from SyllabusChapter; undefined = legacy record; 0 = no videos (gate bypass)
   videosWatched: number     // how many videos the class teacher has confirmed students watched
   videoComplete: boolean
@@ -24,7 +24,7 @@ const BatchChapterSchema = new Schema<IBatchChapter>(
     chapterName:        { type: String, required: true },
     chapterOrder:       { type: Number, required: true },
     syllabusChapterId:  { type: Schema.Types.ObjectId, ref: 'SyllabusChapter' },
-    scheduledMonth:     { type: Number, min: 6, max: 12 },
+    scheduledMonth:     { type: Number, min: 6, max: 13 },
     totalVideos:        { type: Number, min: 0 },
     videosWatched:      { type: Number, default: 0, min: 0 },
     videoComplete:      { type: Boolean, default: false },

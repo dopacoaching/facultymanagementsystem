@@ -1,4 +1,5 @@
 import type { SalaryResult } from '@/types'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 
 interface DashboardStatsProps {
   completedCount: number
@@ -14,13 +15,13 @@ export function DashboardStats({ completedCount, totalHours, allTimeHours, upcom
     { label: 'Hours This Month',    value: `${totalHours.toFixed(1)} hrs`, icon: '⏱', color: 'var(--color-primary)' },
     { label: 'Total Hours (All Time)', value: allTimeHours != null ? `${allTimeHours.toFixed(1)} hrs` : '—', icon: '📊', color: 'var(--color-primary)' },
     { label: 'Upcoming',            value: upcomingCount,        icon: '⏳', color: 'var(--color-accent)' },
-    { label: 'Est. Salary',
+    ...(SALARY_ENABLED ? [{ label: 'Est. Salary',
       value: salary?.finalPayable != null
         ? `₹${salary.finalPayable.toLocaleString('en-IN')}`
         : salary?.status === 'PENDING_CONFIG' ? 'Pending' : '—',
       icon: '₹',
       color: 'var(--color-success)',
-    },
+    }] : []),
   ]
 
   return (

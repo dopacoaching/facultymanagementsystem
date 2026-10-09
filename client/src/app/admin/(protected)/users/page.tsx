@@ -27,7 +27,7 @@ export default function AdminUsersPage() {
   // Create modal
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState<CreateUserPayload>({
-    username: '', password: '', role: 'CLASS_TEACHER', facultyId: '', batchId: '', batchType: '', campusId: '',
+    username: '', password: '', role: 'CLASS_TEACHER', facultyId: '', batchId: '', campusId: '',
   })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -36,7 +36,6 @@ export default function AdminUsersPage() {
   const [editTarget, setEditTarget]     = useState<AppUser | null>(null)
   const [editRole, setEditRole]         = useState<UserRole>('CLASS_TEACHER')
   const [editBatchId, setEditBatchId]   = useState('')
-  const [editBatchType, setEditBatchType] = useState('')
   const [editCampusId, setEditCampusId] = useState('')
   const [editPw, setEditPw]           = useState('')
   const [editSaving, setEditSaving]   = useState(false)
@@ -78,12 +77,11 @@ export default function AdminUsersPage() {
       const payload = { ...createForm }
       if (!payload.facultyId) delete payload.facultyId
       if (!payload.batchId)   delete payload.batchId
-      if (!payload.batchType) delete payload.batchType
       if (!payload.campusId)  delete payload.campusId
       await createUser(payload, accessToken)
       toast.success('User created', `@${createForm.username} has been added.`)
       setShowCreate(false)
-      setCreateForm({ username: '', password: '', role: 'CLASS_TEACHER', facultyId: '', batchId: '', batchType: '', campusId: '' })
+      setCreateForm({ username: '', password: '', role: 'CLASS_TEACHER', facultyId: '', batchId: '', campusId: '' })
       load()
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : 'Create failed')
@@ -94,7 +92,6 @@ export default function AdminUsersPage() {
     setEditTarget(u)
     setEditRole(u.role)
     setEditBatchId(typeof u.batchId === 'object' ? (u.batchId?._id ?? '') : (u.batchId ?? ''))
-    setEditBatchType(u.batchType ?? '')
     setEditCampusId(typeof u.campusId === 'object' ? (u.campusId?._id ?? '') : (u.campusId ?? ''))
     setEditPw('')
     setEditError('')
@@ -117,10 +114,9 @@ export default function AdminUsersPage() {
     if (!accessToken || !editTarget) return
     setEditSaving(true); setEditError('')
     try {
-      const payload: { role: UserRole; batchId?: string | null; batchType?: string | null; campusId?: string | null; password?: string } = {
+      const payload: { role: UserRole; batchId?: string | null; campusId?: string | null; password?: string } = {
         role:      editRole,
         batchId:   editBatchId   || null,
-        batchType: editRole === 'ACADEMICS_MANAGER' ? (editBatchType || null) : null,
         campusId:  editRole === 'IG_CLASS_TEACHER'  ? (editCampusId  || null) : null,
       }
       if (editPw) {
@@ -185,8 +181,6 @@ export default function AdminUsersPage() {
           onRoleChange={setEditRole}
           editBatchId={editBatchId}
           onBatchIdChange={setEditBatchId}
-          editBatchType={editBatchType}
-          onBatchTypeChange={setEditBatchType}
           editCampusId={editCampusId}
           onCampusIdChange={setEditCampusId}
           editPw={editPw}

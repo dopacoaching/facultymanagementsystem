@@ -4,14 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useAppSelector } from '@/store/hooks'
 import Shell from '@/components/ui/Shell'
 
-const ALLOWED_ROLES = ['ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ADMIN']
+const ALLOWED_ROLES = ['CLASS_TEACHER', 'ADMIN']
 
 const ROLE_HOMES: Record<string, string> = {
   ADMIN: '/admin',
   HR_MANAGER: '/hr',
-  ACADEMICS_MANAGER: '/academics',
-  IG_ACADEMICS_MANAGER: '/ig',
-  IG_CLASS_TEACHER: '/ig/sessions',
+  IG_CLASS_TEACHER: '/coordinator',
   CLASS_TEACHER: '/coordinator',
   FACULTY: '/faculty',
 }

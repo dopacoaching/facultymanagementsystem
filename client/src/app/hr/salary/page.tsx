@@ -8,6 +8,8 @@ import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
 import { MONTHS, printSalarySlip, SalaryControls, SalaryResultCard } from '@/components/hr/salary'
 import { toLocalISO } from '@/utils/date'
+import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 
 /** "01 Oct 2026" from a YYYY-MM-DD string. */
 function fmtISO(iso: string): string {
@@ -16,7 +18,7 @@ function fmtISO(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export default function SalaryPage() {
+function SalaryPageInner() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
 
@@ -174,4 +176,8 @@ export default function SalaryPage() {
       )}
     </div>
   )
+}
+
+export default function SalaryPage() {
+  return SALARY_ENABLED ? <SalaryPageInner /> : <SalaryOnHold />
 }

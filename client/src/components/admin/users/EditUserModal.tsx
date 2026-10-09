@@ -11,8 +11,6 @@ interface EditUserModalProps {
   onRoleChange: (r: UserRole) => void
   editBatchId: string
   onBatchIdChange: (id: string) => void
-  editBatchType: string
-  onBatchTypeChange: (t: string) => void
   editCampusId: string
   onCampusIdChange: (id: string) => void
   editPw: string
@@ -26,7 +24,7 @@ interface EditUserModalProps {
 }
 
 export function EditUserModal({
-  editTarget, editRole, onRoleChange, editBatchId, onBatchIdChange, editBatchType, onBatchTypeChange,
+  editTarget, editRole, onRoleChange, editBatchId, onBatchIdChange,
   editCampusId, onCampusIdChange, editPw, onPwChange, batches, campuses, error, saving, onClose, onSubmit,
 }: EditUserModalProps) {
   return (
@@ -50,7 +48,7 @@ export function EditUserModal({
             <div className="form-group">
               <label className="label">Role</label>
               <select className="input" value={editRole}
-                onChange={(e) => { onRoleChange(e.target.value as UserRole); onBatchTypeChange(''); onCampusIdChange('') }}>
+                onChange={(e) => { onRoleChange(e.target.value as UserRole); onCampusIdChange('') }}>
                 {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
               </select>
             </div>
@@ -61,18 +59,6 @@ export function EditUserModal({
                   onChange={(e) => onCampusIdChange(e.target.value)}>
                   <option value="">— none —</option>
                   {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-            {editRole === 'ACADEMICS_MANAGER' && (
-              <div className="form-group">
-                <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>
-                <select className="input" value={editBatchType}
-                  onChange={(e) => onBatchTypeChange(e.target.value)}>
-                  <option value="">— All batch types —</option>
-                  <option value="RESIDENTIAL">Residential</option>
-                  <option value="OFFLINE">Offline</option>
-                  <option value="ONLINE">Online</option>
                 </select>
               </div>
             )}

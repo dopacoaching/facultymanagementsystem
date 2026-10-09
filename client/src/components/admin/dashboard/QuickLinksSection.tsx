@@ -1,9 +1,10 @@
 import Link from 'next/link'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 
 const LINKS = [
   { href: '/hr/faculty',               label: 'Faculty',       desc: 'Manage faculty profiles' },
-  { href: '/hr/salary',                label: 'Salary',        desc: 'Calculate & approve pay' },
-  { href: '/hr/reports',               label: 'Reports',       desc: 'Salary history & exports' },
+  ...(SALARY_ENABLED ? [{ href: '/hr/salary', label: 'Salary', desc: 'Calculate & approve pay' }] : []),
+  { href: '/hr/reports',               label: 'Entries Report', desc: 'Campus, subject & faculty-wise' },
   { href: '/hr/reports/faculty-hours', label: 'Faculty Hours', desc: 'Hours taught, by subject' },
   { href: '/admin/audit-log',          label: 'Audit Log',     desc: 'All system events' },
   { href: '/academics/sessions',       label: 'Sessions',      desc: 'Hours logged by class teachers' },

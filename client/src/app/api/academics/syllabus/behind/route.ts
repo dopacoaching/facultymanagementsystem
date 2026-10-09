@@ -8,7 +8,7 @@ import { Batch } from '@/lib/models/Batch'
 const SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY']
 const MONTH_NAMES: Record<number, string> = {
   6: 'June', 7: 'July', 8: 'August', 9: 'September',
-  10: 'October', 11: 'November', 12: 'December',
+  10: 'October', 11: 'November', 12: 'December', 13: 'January',
 }
 
 /** GET /api/academics/syllabus/behind?month=N */
@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const queryMonth = searchParams.get('month') ? Number(searchParams.get('month')) : new Date().getMonth() + 1
 
-    if (isNaN(queryMonth) || queryMonth < 6 || queryMonth > 12) {
-      return withToken(json({ error: 'month must be between 6 and 12' }, 400), refreshedToken)
+    if (isNaN(queryMonth) || queryMonth < 6 || queryMonth > 13) {
+      return withToken(json({ error: 'month must be between 6 (June) and 13 (January)' }, 400), refreshedToken)
     }
 
     await connectDB()

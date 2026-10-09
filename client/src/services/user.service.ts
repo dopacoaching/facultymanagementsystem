@@ -19,7 +19,6 @@ export interface CreateUserPayload {
   role: UserRole
   facultyId?: string
   batchId?: string
-  batchType?: string
   campusId?: string
 }
 
@@ -27,7 +26,6 @@ export interface UpdateUserPayload {
   isActive?: boolean
   role?: UserRole
   batchId?: string | null
-  batchType?: string | null
   campusId?: string | null
   password?: string
 }

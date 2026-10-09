@@ -122,7 +122,7 @@ export default function CampusHistoryPage() {
       )}
 
       <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-        Read-only — contact your Academics Manager to make corrections.
+        Read-only — contact the admin to make corrections.
       </p>
     </div>
   )

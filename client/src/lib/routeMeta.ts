@@ -15,8 +15,6 @@
 export type Role =
   | 'ADMIN'
   | 'HR_MANAGER'
-  | 'ACADEMICS_MANAGER'
-  | 'IG_ACADEMICS_MANAGER'
   | 'CLASS_TEACHER'
   | 'IG_CLASS_TEACHER'
   | 'FACULTY'
@@ -28,8 +26,7 @@ export interface RouteMeta {
   title: string
   /** Short label for the sidebar. Defaults to `title` when omitted. */
   navLabel?: string
-  /** Per-role sidebar label override (e.g. IG_CLASS_TEACHER sees "Log Session"
-   *  for /ig/sessions while IG_ACADEMICS_MANAGER sees "IG Sessions"). */
+  /** Per-role sidebar label override. */
   navLabelByRole?: Partial<Record<Role, string>>
   /** Sidebar section heading this route sits under (per role nav). */
   section?: string
@@ -38,8 +35,6 @@ export interface RouteMeta {
   /** Roles this route is meaningfully *about* — used for title lookup even when
    *  the route is reached without a nav entry (e.g. nested report screens). */
   roles?: Role[]
-  /** Hidden unless this feature flag is on. */
-  featureFlag?: 'SCHEDULING_ENABLED'
   /** Parent path for breadcrumb construction. */
   parent?: string
 }
@@ -57,8 +52,8 @@ export const ROUTES: RouteMeta[] = [
 
   // ── Class Teacher (campus session logging) ───────────────────────────────
   {
-    path: '/coordinator', title: 'Log Session', navLabel: 'Log Session',
-    navRoles: ['CLASS_TEACHER'], roles: ['CLASS_TEACHER', 'ADMIN'],
+    path: '/coordinator', title: 'Push Board', navLabel: 'Push Board',
+    navRoles: ['CLASS_TEACHER', 'IG_CLASS_TEACHER'], roles: ['CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ADMIN'],
   },
   {
     path: '/coordinator/history', title: 'Session History', navLabel: 'History',
@@ -66,17 +61,11 @@ export const ROUTES: RouteMeta[] = [
     parent: '/coordinator',
   },
 
-  // ── IG Class Teacher (IG session logging) ────────────────────────────────
-  {
-    path: '/ig/sessions', title: 'IG Sessions', navLabel: 'IG Sessions',
-    navLabelByRole: { IG_CLASS_TEACHER: 'Log Session' },
-    navRoles: ['IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER'],
-    roles: ['IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'ADMIN'],
-  },
+  // ── IG Class Teacher (logs on Push Board; own history screen) ─────────────
   {
     path: '/ig/sessions/history', title: 'IG Session History', navLabel: 'History',
-    navRoles: ['IG_CLASS_TEACHER'], roles: ['IG_CLASS_TEACHER', 'IG_ACADEMICS_MANAGER', 'ADMIN'],
-    parent: '/ig/sessions',
+    navRoles: ['IG_CLASS_TEACHER'], roles: ['IG_CLASS_TEACHER', 'ADMIN'],
+    parent: '/coordinator',
   },
 
   // ── HR ──────────────────────────────────────────────────────────────────
@@ -93,8 +82,12 @@ export const ROUTES: RouteMeta[] = [
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/reports', title: 'Reports', navLabel: 'Reports', section: 'HR',
+    path: '/hr/reports', title: 'Entries Report', navLabel: 'Entries Report', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
+  },
+  {
+    path: '/hr/reports/salary', title: 'Salary Reports', navLabel: 'Salary Reports', section: 'HR',
+    navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr/reports',
   },
   {
     path: '/hr/reports/faculty-hours', title: 'Faculty Hours by Subject',
@@ -119,69 +112,22 @@ export const ROUTES: RouteMeta[] = [
     roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
 
-  // ── Academics (Repeaters / DOPA) ────────────────────────────────────────
-  {
-    path: '/academics', title: 'Academics Dashboard', navLabel: 'Dashboard',
-    navRoles: ['ACADEMICS_MANAGER'], roles: ['ACADEMICS_MANAGER', 'ADMIN'],
-  },
+  // ── Academics (Repeaters / DOPA) — Admin ─────────────────────────────────
   {
     path: '/academics/sessions', title: 'Sessions', navLabel: 'Sessions',
-    navRoles: ['ACADEMICS_MANAGER', 'ADMIN'],
+    navRoles: ['ADMIN'],
     section: 'Academics',
-    roles: ['ACADEMICS_MANAGER', 'CLASS_TEACHER', 'ADMIN'],
-    parent: '/academics',
-  },
-  // Secondary academics screens — reached from dashboard cards, deliberately
-  // not in the sidebar. Registered here so their titles/breadcrumbs are correct.
-  {
-    path: '/academics/availability', title: 'Faculty Availability',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics',
+    roles: ['CLASS_TEACHER', 'ADMIN'],
   },
   {
-    path: '/academics/chapters', title: 'Chapter Progress',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics',
-  },
-  {
-    path: '/academics/syllabus', title: 'Syllabus',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics',
+    path: '/academics/syllabus', title: 'Syllabus', navLabel: 'Syllabus',
+    navRoles: ['ADMIN'],
+    section: 'Academics',
+    roles: ['ADMIN'],
   },
   {
     path: '/academics/syllabus/progress', title: 'Syllabus Progress',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics/syllabus',
-  },
-  {
-    path: '/academics/exams', title: 'Exam Topics',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics',
-  },
-  {
-    path: '/academics/schedule', title: 'Weekly Schedule',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics',
-  },
-  {
-    path: '/academics/reports', title: 'Academics Reports',
-    roles: ['ACADEMICS_MANAGER', 'ADMIN'], parent: '/academics',
-  },
-
-  // ── Integrated School (IG) ─────────────────────────────────────────────
-  {
-    path: '/ig', title: 'IG Dashboard', navLabel: 'Dashboard',
-    navRoles: ['IG_ACADEMICS_MANAGER'], roles: ['IG_ACADEMICS_MANAGER', 'ADMIN'],
-  },
-  {
-    path: '/ig/timetable', title: 'IG Daily Timetable', navLabel: 'Timetable',
-    navRoles: ['IG_ACADEMICS_MANAGER'], roles: ['IG_ACADEMICS_MANAGER', 'ADMIN'],
-  },
-  {
-    path: '/ig/chapters', title: 'IG Chapter Progress', navLabel: 'Chapters',
-    navRoles: ['IG_ACADEMICS_MANAGER'], roles: ['IG_ACADEMICS_MANAGER', 'ADMIN'],
-  },
-
-  // ── Weekly Scheduling (feature-flagged) ────────────────────────────────
-  {
-    path: '/scheduling', title: 'Weekly Schedule', navLabel: 'Weekly Schedule',
-    navRoles: ['ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'],
-    roles: ['ADMIN', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER'],
-    featureFlag: 'SCHEDULING_ENABLED',
+    roles: ['ADMIN'], parent: '/academics/syllabus',
   },
 
   // ── Admin ─────────────────────────────────────────────────────────────
@@ -209,10 +155,6 @@ export const ROUTES: RouteMeta[] = [
   },
   {
     path: '/faculty/salary', title: 'My Salary', navLabel: 'My Salary',
-    navRoles: ['FACULTY'], roles: ['FACULTY'],
-  },
-  {
-    path: '/faculty/schedule', title: 'My Schedule', navLabel: 'My Schedule',
     navRoles: ['FACULTY'], roles: ['FACULTY'],
   },
 ]
@@ -266,18 +208,10 @@ export interface NavGroup {
 
 /**
  * Sidebar navigation for a role, grouped by section in declaration order.
- * `flags` gates feature-flagged routes (pass `{ SCHEDULING_ENABLED }`).
  */
-export function getNavForRole(
-  role: Role | string | null,
-  flags: { SCHEDULING_ENABLED?: boolean } = {},
-): NavGroup[] {
+export function getNavForRole(role: Role | string | null): NavGroup[] {
   if (!role) return []
-  const items = ROUTES.filter((r) => {
-    if (!r.navRoles?.includes(role as Role)) return false
-    if (r.featureFlag && !flags[r.featureFlag]) return false
-    return true
-  })
+  const items = ROUTES.filter((r) => r.navRoles?.includes(role as Role))
 
   // Section headers only earn their place when a role's nav genuinely spans
   // multiple areas (the Admin case: System / HR / Academics). For a focused

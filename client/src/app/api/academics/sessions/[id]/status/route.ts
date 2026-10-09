@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'CLASS_TEACHER', 'ACADEMICS_MANAGER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({ error: `status must be one of: ${ALLOWED.join(', ')}` }, 400), refreshedToken)
     }
 
-    const isManager = payload.role === 'ACADEMICS_MANAGER' || payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
+    const isManager = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
 
     await connectDB()
 

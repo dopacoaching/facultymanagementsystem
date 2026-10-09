@@ -52,7 +52,7 @@ export function CreateUserModal({ form, setForm, batches, campuses, facultyList,
             <div className="form-group">
               <label className="label">Role</label>
               <select className="input" value={form.role}
-                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole, batchType: '', campusId: '' }))}>
+                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole, campusId: '' }))}>
                 {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
               </select>
             </div>
@@ -63,18 +63,6 @@ export function CreateUserModal({ form, setForm, batches, campuses, facultyList,
                   onChange={(e) => setForm((f) => ({ ...f, campusId: e.target.value }))}>
                   <option value="">— none —</option>
                   {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-            {form.role === 'ACADEMICS_MANAGER' && (
-              <div className="form-group">
-                <label className="label">Batch Type Scope <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank for all)</span></label>
-                <select className="input" value={form.batchType}
-                  onChange={(e) => setForm((f) => ({ ...f, batchType: e.target.value }))}>
-                  <option value="">— All batch types —</option>
-                  <option value="RESIDENTIAL">Residential</option>
-                  <option value="OFFLINE">Offline</option>
-                  <option value="ONLINE">Online</option>
                 </select>
               </div>
             )}

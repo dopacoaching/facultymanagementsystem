@@ -121,8 +121,8 @@ export default function LoginPage() {
 
           <div style={{ marginTop: '3rem', display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
             {[
-              { icon: '📊', label: 'Salary & Payroll', desc: 'Accurate, contract-driven calculations' },
-              { icon: '📅', label: 'Session Tracking', desc: 'Real-time attendance & scheduling' },
+              { icon: '📊', label: 'Entries & Reports', desc: 'Campus, subject and faculty-wise reports' },
+              { icon: '📅', label: 'Session Tracking', desc: 'Real-time attendance & session logs' },
               { icon: '🎓', label: 'Academics', desc: 'Chapters, exams, and exam topics' },
             ].map((f) => (
               <div key={f.label} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>

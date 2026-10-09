@@ -13,7 +13,7 @@ export function validatePasswordComplexity(pw: string): string | null {
 }
 
 export const ALL_ROLES: UserRole[] = [
-  'ADMIN', 'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'ADMIN', 'HR_MANAGER',
   'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
 ]
 

@@ -6,8 +6,10 @@ import type { HoursSummaryResponse } from '@/services/salary.service'
 import type { SalaryResult } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { SalaryCheckForm, SalaryResultCard, MonthlyHoursHistoryCard } from '@/components/faculty/salary'
+import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 
-export default function FacultySalaryPage() {
+function FacultySalaryPageInner() {
   const { accessToken, facultyId } = useAppSelector((s) => s.auth)
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year,  setYear]  = useState(new Date().getFullYear())
@@ -72,4 +74,8 @@ export default function FacultySalaryPage() {
       <MonthlyHoursHistoryCard loading={hoursLoading} hoursSummary={hoursSummary} />
     </div>
   )
+}
+
+export default function FacultySalaryPage() {
+  return SALARY_ENABLED ? <FacultySalaryPageInner /> : <SalaryOnHold />
 }

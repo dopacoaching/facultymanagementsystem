@@ -13,6 +13,8 @@ export interface ISession extends Document {
   chapter?: string
   /** What time the class was supposed to start, for lateness tracking. HR/Admin-only visibility. */
   scheduledTime?: string
+  /** When the class was supposed to end (Push Board scheduled range, e.g. 09:00–13:00). HR/Admin-only visibility. */
+  scheduledEndTime?: string
   /** The person (from the campus's teacher list) who actually filled in this entry. */
   updatedByName?: string
   startTime?: string
@@ -47,6 +49,7 @@ const SessionSchema = new Schema<ISession>(
     subject:    { type: String, required: true },
     chapter:    { type: String },
     scheduledTime: { type: String, match: /^\d{2}:\d{2}$/ },
+    scheduledEndTime: { type: String, match: /^\d{2}:\d{2}$/ },
     updatedByName: { type: String },
     startTime:  { type: String, match: /^\d{2}:\d{2}$/ },
     endTime:    { type: String, match: /^\d{2}:\d{2}$/ },

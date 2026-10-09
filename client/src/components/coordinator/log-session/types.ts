@@ -65,32 +65,61 @@ export const breaksFromMinutes = (
   return { morning: field(morning), lunch: field(lunch), afternoon: field(afternoon) }
 }
 
+/** Push Board form (class teachers + IG class teachers). */
 export interface FormState {
   facultyId: string
+  /** "YYYY-MM" — picked first; limits which days the Date field allows. */
+  month: string
+  sessionDate: string
   subject: string
-  chapter: string
-  classMode: ClassMode | ''
-  sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE' | ''
-  scheduledTime: string
+  /** Scheduled range from the academic team's sheet, e.g. 09:00 – 13:00. */
+  scheduledStart: string
+  scheduledEnd: string
+  /** Time taken — when the class actually ran, e.g. 09:30 – 13:30. Pay is based on this. */
   startTime: string
   endTime: string
-  breaks: BreaksInput
+  /** Only for campuses with several batches (offline centres, IG schools). */
+  batchId: string
+  classMode: ClassMode | ''
+  chapter: string
+  sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE' | ''
+  /** The single Tea break — first 15 minutes are free. */
+  teaBreak: BreakField
   updatedByName: string
-  sessionDate: string
 }
 
 export const EMPTY_FORM = (): FormState => ({
   facultyId:       '',
+  month:           todayLocal().slice(0, 7),
+  sessionDate:     todayLocal(),
   subject:         '',
-  chapter:         '',
-  classMode:       '',
-  sessionCategory: '',
-  scheduledTime:   '',
+  scheduledStart:  '',
+  scheduledEnd:    '',
   startTime:       '',
   endTime:         '',
-  breaks:          emptyBreaks(),
+  batchId:         '',
+  classMode:       '',
+  chapter:         '',
+  sessionCategory: '',
+  teaBreak:        { nil: false, minutes: '' },
   updatedByName:   '',
-  sessionDate:     todayLocal(),
+})
+
+/** First and last selectable day for a "YYYY-MM" month — never later than today. */
+export function monthBounds(month: string): { min: string; max: string } {
+  const [y, m] = month.split('-').map(Number)
+  const lastDay = new Date(y, m, 0).getDate()
+  const end = `${month}-${String(lastDay).padStart(2, '0')}`
+  const today = todayLocal()
+  return { min: `${month}-01`, max: end < today ? end : today }
+}
+
+/** Push Board records one Tea break; it is stored as the morning break (15-min
+ *  grace) with lunch and afternoon Nil, so the shared duration maths applies. */
+export const teaBreakAsBreaks = (tea: BreakField): BreaksInput => ({
+  morning:   tea,
+  lunch:     { nil: true, minutes: '' },
+  afternoon: { nil: true, minutes: '' },
 })
 
 const FREE_BREAK_MINUTES = 15

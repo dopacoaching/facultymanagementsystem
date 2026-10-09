@@ -11,7 +11,7 @@ import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
 import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
-  'HR_MANAGER', 'ACADEMICS_MANAGER', 'IG_ACADEMICS_MANAGER',
+  'HR_MANAGER',
   'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
 ]
 
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { username, password, role, facultyId, batchId, batchType, campusId } = await req.json()
+    const { username, password, role, facultyId, batchId, campusId } = await req.json()
 
     if (!username?.trim()) {
       return withToken(json({ error: 'username is required' }, 400), refreshedToken)
@@ -81,11 +81,6 @@ export async function POST(req: NextRequest) {
       if (!cam) return withToken(json({ error: 'campusId does not exist' }, 400), refreshedToken)
     }
 
-    const VALID_BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE']
-    if (batchType && !VALID_BATCH_TYPES.includes(batchType)) {
-      return withToken(json({ error: 'batchType must be RESIDENTIAL, OFFLINE, or ONLINE' }, 400), refreshedToken)
-    }
-
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await User.create({
       username:     username.trim().toLowerCase(),
@@ -93,7 +88,6 @@ export async function POST(req: NextRequest) {
       role,
       facultyId:    facultyId || undefined,
       batchId:      batchId   || undefined,
-      batchType:    role === 'ACADEMICS_MANAGER' && batchType ? batchType : undefined,
       campusId:     role === 'IG_CLASS_TEACHER'  && campusId  ? campusId  : undefined,
     })
 
