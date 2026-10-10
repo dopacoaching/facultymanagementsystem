@@ -17,7 +17,7 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
 
   if (model === 'HOURLY') {
     const isEdit = '_id' in editing
-    const changed = isEdit && originalRate != null && editing.hourlyRate !== originalRate
+    const changed = isEdit && editing.hourlyRate != null && editing.hourlyRate !== originalRate
     const history = (editing.hourlyRateHistory ?? []).slice().reverse()
     return (
       <>
@@ -54,7 +54,9 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
               onChange={(e) => set('hourlyRateEffectiveFrom', e.target.value)}
             />
             <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
-              Changing ₹{originalRate} → ₹{editing.hourlyRate}. Hours on or after this date use the new rate; earlier hours keep ₹{originalRate}.
+              {originalRate != null
+                ? <>Changing ₹{originalRate} → ₹{editing.hourlyRate}. Hours on or after this date use the new rate; earlier hours keep ₹{originalRate}.</>
+                : <>Setting ₹{editing.hourlyRate}/hr. Pick the date it starts applying.</>}
             </div>
           </div>
         )}
