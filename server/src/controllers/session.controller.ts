@@ -179,9 +179,11 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
       if (batch) {
         // Campus records are managed in Setup (database); the static map is only
         // a fallback for databases that have not been seeded yet.
-        const pushCampus = await PushCampus.findOne({ name: req.user!.campusName, isActive: true }).lean()
+        // Branch on whether a record exists at all (not on it being active): a
+        // deactivated campus must be denied, matching the Next.js route.
+        const pushCampus = await PushCampus.findOne({ name: req.user!.campusName }).lean()
         const allowedCampusId = pushCampus
-          ? pushCampus.batchCampusId?.toString()
+          ? (pushCampus.isActive ? pushCampus.batchCampusId?.toString() : undefined)
           : CAMPUS_LOGIN_CAMPUS_IDS[req.user!.campusName]
         if (!allowedCampusId || batch.campusId.toString() !== allowedCampusId) {
           res.status(403).json({ error: 'That batch does not belong to your campus.' }); return

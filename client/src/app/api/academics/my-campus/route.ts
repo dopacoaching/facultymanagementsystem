@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
+import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { activeTeacherNames, findIgPushCampus, findPushCampusByName } from '@/lib/services/pushCampuses'
 
 /** GET /api/academics/my-campus — the signed-in campus login's name, teacher names and batch campus */
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     await connectDB()
     const campus = payload.role === 'IG_CLASS_TEACHER'
       ? await findIgPushCampus(payload.campusId)
-      : await findPushCampusByName(payload.campusName)
+      : await findPushCampusByName(await resolveCoordinatorCampusName(payload))
     if (!campus) {
       return withToken(json({ error: 'Your account is not linked to an active campus' }, 404), refreshedToken)
     }

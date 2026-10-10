@@ -41,15 +41,28 @@ export async function describeCampus(c: IPushCampus | (Record<string, unknown> &
   }
 }
 
-/** Creates (or returns) the Campus document that owns this campus's batches. */
-export async function ensureBatchCampus(name: string, location?: string): Promise<{ _id: Types.ObjectId; created: boolean }> {
+/**
+ * The Campus document that owns this campus's batches: reuses an existing one
+ * with the same name, otherwise creates it. Refuses (conflict) when an existing
+ * Campus of that name already belongs to another Push Board campus.
+ */
+export async function ensureBatchCampus(
+  name: string,
+  location?: string,
+): Promise<{ _id: Types.ObjectId; created: boolean } | { conflict: string }> {
   const existing = await Campus.findOne({ name })
-  if (existing) return { _id: existing._id as Types.ObjectId, created: false }
+  if (existing) {
+    if (await PushCampus.exists({ batchCampusId: existing._id })) {
+      return { conflict: 'A batch campus with this name is already used by another campus — choose a different name.' }
+    }
+    return { _id: existing._id as Types.ObjectId, created: false }
+  }
   const doc = await Campus.create({ name, location: location || undefined })
   return { _id: doc._id as Types.ObjectId, created: true }
 }
 
-/** Renames a campus everywhere its name is stored as a string. */
+/** Renames a campus everywhere its name is stored as a string. IG entries are
+ *  keyed by batch, not by name, so only No Class days move for IG schools. */
 export async function cascadeCampusRename(oldName: string, newName: string, kind: 'CAMPUS' | 'IG'): Promise<void> {
   const { Session } = await import('@/lib/models/Session')
   const { NoClassDay } = await import('@/lib/models/NoClassDay')

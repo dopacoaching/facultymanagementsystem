@@ -109,7 +109,8 @@ export default function PushBoardPage() {
   }
 
   function validate(): string | null {
-    if (!campusLabel)              return 'Your account is not linked to a campus'
+    if (myCampusRes.status === 'loading') return 'Your campus details are still loading — try again in a moment'
+    if (!myCampus || !campusLabel) return 'Your account is not linked to a campus'
     if (!form.facultyId)           return 'Select the faculty who took the session'
     if (needsSessionCategory && !form.sessionCategory) return 'Select whether this was a Class or Doubt Clearance session'
     if (!form.month)               return 'Select the month & year'
@@ -186,7 +187,9 @@ export default function PushBoardPage() {
   }
 
   const activeFaculty = facultyList.filter((f) => f.isActive)
-  const loadError = facultyRes.status === 'error'
+  const loadError = myCampusRes.status === 'error'
+    ? { message: myCampusRes.error?.message ?? '', what: "Couldn't load your campus details", retry: myCampusRes.refetch }
+    : facultyRes.status === 'error'
     ? { message: facultyRes.error?.message ?? '', what: "Couldn't load the faculty list", retry: facultyRes.refetch }
     : batchesRes.status === 'error'
       ? { message: batchesRes.error?.message ?? '', what: "Couldn't load the batch list", retry: batchesRes.refetch }

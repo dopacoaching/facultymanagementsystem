@@ -14,6 +14,9 @@ import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
  * PATCH /api/hr/setup/campuses/:id — edit a campus.
  * Body (all optional): name, isActive, hasBatches (turn on only), username, password.
  * Deactivating also blocks the campus login; reactivating restores it.
+ *
+ * Everything is validated first; nothing is written until every field is valid,
+ * and the campus record itself is saved before any dependent data is touched.
  */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -27,83 +30,89 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params
     if (!Types.ObjectId.isValid(id)) return withToken(json({ error: 'Invalid campus id' }, 400), refreshedToken)
     const body = await req.json() as Record<string, unknown>
+    const fail = (error: string, status = 400) => withToken(json({ error }, status), refreshedToken)
 
     await connectDB()
     const campus = await PushCampus.findById(id)
-    if (!campus) return withToken(json({ error: 'Campus not found' }, 404), refreshedToken)
-
-    const changes: string[] = []
+    if (!campus) return fail('Campus not found', 404)
     const login = await findLogin(campus)
+    const oldName = campus.name
 
-    // ── Login: username / password ──────────────────────────────────────────
+    // ── 1. Validate everything up front ─────────────────────────────────────
+    let newUsername: string | undefined
     if (typeof body.username === 'string' && body.username.trim()) {
       const username = body.username.trim().toLowerCase()
-      if (!login) {
-        return withToken(json({ error: 'This campus has no login account yet. Create the account under Admin → Users first.' }, 400), refreshedToken)
-      }
+      if (!login) return fail('This campus has no login account yet. Create the account under Admin → Users first.')
       if (username !== login.username) {
-        if (await User.exists({ username, _id: { $ne: login._id } })) {
-          return withToken(json({ error: 'That login username is already in use.' }, 409), refreshedToken)
-        }
-        await User.updateOne({ _id: login._id }, { $set: { username } })
-        changes.push(`login username → ${username}`)
+        if (await User.exists({ username, _id: { $ne: login._id } })) return fail('That login username is already in use.', 409)
+        newUsername = username
       }
     }
+
+    let newPassword: string | undefined
     if (typeof body.password === 'string' && body.password) {
-      if (!login) return withToken(json({ error: 'This campus has no login account to reset.' }, 400), refreshedToken)
+      if (!login) return fail('This campus has no login account to reset.')
       const pwError = validatePasswordComplexity(body.password)
-      if (pwError) return withToken(json({ error: pwError }, 400), refreshedToken)
-      await User.updateOne({ _id: login._id }, { $set: { passwordHash: await bcrypt.hash(body.password, 12) } })
-      changes.push('login password reset')
+      if (pwError) return fail(pwError)
+      newPassword = body.password
     }
 
-    // ── Batches on ──────────────────────────────────────────────────────────
-    if (body.hasBatches === true && !campus.batchCampusId) {
-      if (await Campus.exists({ name: campus.name })) {
-        return withToken(json({ error: 'A batch campus with this name already exists.' }, 409), refreshedToken)
-      }
-      const bc = await ensureBatchCampus(campus.name)
-      campus.batchCampusId = bc._id as Types.ObjectId
-      changes.push('batches enabled')
-      // The login for a CAMPUS needs no change: it finds its batches through the campus record.
-    }
-
-    // ── Rename (cascades to the name stored on entries, No Class days, logins) ─
+    let newName: string | undefined
     if (typeof body.name === 'string') {
       const name = body.name.trim()
-      if (name.length < 2 || name.length > 60) {
-        return withToken(json({ error: 'Campus name must be 2–60 characters' }, 400), refreshedToken)
-      }
-      if (name !== campus.name) {
-        if (await PushCampus.exists({ name, _id: { $ne: campus._id } })) {
-          return withToken(json({ error: 'A campus with this name already exists.' }, 409), refreshedToken)
-        }
-        const old = campus.name
-        // Keep the batch campus's display name in step when it carried the same name.
-        if (campus.batchCampusId) {
-          const bc = await Campus.findById(campus.batchCampusId)
-          if (bc && bc.name === old && !(await Campus.exists({ name, _id: { $ne: bc._id } }))) {
-            bc.name = name
-            await bc.save()
-          }
-        }
-        campus.name = name
-        await cascadeCampusRename(old, name, campus.kind)
-        changes.push(`renamed "${old}" → "${name}"`)
+      if (name.length < 2 || name.length > 60) return fail('Campus name must be 2–60 characters')
+      if (name !== oldName) {
+        if (await PushCampus.exists({ name, _id: { $ne: campus._id } })) return fail('A campus with this name already exists.', 409)
+        newName = name
       }
     }
 
-    // ── Active / inactive ───────────────────────────────────────────────────
-    if (typeof body.isActive === 'boolean' && body.isActive !== campus.isActive) {
-      campus.isActive = body.isActive
-      if (login) await User.updateOne({ _id: login._id }, { $set: { isActive: body.isActive } })
-      changes.push(body.isActive ? 'activated' : 'deactivated')
+    const enableBatches = body.hasBatches === true && !campus.batchCampusId
+    const nextActive = typeof body.isActive === 'boolean' && body.isActive !== campus.isActive ? body.isActive : undefined
+
+    const changes: string[] = []
+    if (newUsername) changes.push(`login username → ${newUsername}`)
+    if (newPassword) changes.push('login password reset')
+    if (enableBatches) changes.push('batches enabled')
+    if (newName) changes.push(`renamed "${oldName}" → "${newName}"`)
+    if (nextActive !== undefined) changes.push(nextActive ? 'activated' : 'deactivated')
+    if (changes.length === 0) return withToken(json(await describeCampus(campus)), refreshedToken)
+
+    // ── 2. Save the campus record first (the one step that can race) ────────
+    let createdBatchCampus: Types.ObjectId | null = null
+    try {
+      if (enableBatches) {
+        const bc = await ensureBatchCampus(newName ?? oldName)
+        if ('conflict' in bc) return fail(bc.conflict, 409)
+        campus.batchCampusId = bc._id
+        if (bc.created) createdBatchCampus = bc._id
+      }
+      if (newName) campus.name = newName
+      if (nextActive !== undefined) campus.isActive = nextActive
+      await campus.save()
+    } catch (e) {
+      if (createdBatchCampus) await Campus.deleteOne({ _id: createdBatchCampus }).catch(() => null)
+      throw e
     }
 
-    if (changes.length === 0) {
-      return withToken(json(await describeCampus(campus)), refreshedToken)
+    // ── 3. Dependent data — only after the campus saved successfully ────────
+    if (newName) {
+      if (campus.batchCampusId) {
+        const bc = await Campus.findById(campus.batchCampusId)
+        if (bc && bc.name === oldName && !(await Campus.exists({ name: newName, _id: { $ne: bc._id } }))) {
+          bc.name = newName
+          await bc.save()
+        }
+      }
+      await cascadeCampusRename(oldName, newName, campus.kind)
     }
-    await campus.save()
+    if (login) {
+      const set: Record<string, unknown> = {}
+      if (newUsername) set.username = newUsername
+      if (newPassword) set.passwordHash = await bcrypt.hash(newPassword, 12)
+      if (nextActive !== undefined) set.isActive = nextActive
+      if (Object.keys(set).length) await User.updateOne({ _id: login._id }, { $set: set })
+    }
 
     await writeAuditLog({
       category: 'ADMIN', eventType: 'USER_ACCOUNT_UPDATED',

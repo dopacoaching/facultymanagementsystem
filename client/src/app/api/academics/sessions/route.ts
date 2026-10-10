@@ -13,6 +13,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
 import { findPushCampusByName } from '@/lib/services/pushCampuses'
+import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -49,18 +50,19 @@ export async function GET(req: NextRequest) {
     }
 
     // CLASS_TEACHER scope guard — campus-login coordinators may only view their own campus's sessions
+    await connectDB()
     if (payload.role === 'CLASS_TEACHER' || payload.role === 'IG_CLASS_TEACHER') {
-      if (!payload.campusName) {
+      // Read from the user's current record so a campus rename doesn't lock out signed-in teachers.
+      const own = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
+      if (!own) {
         return withToken(json({ error: 'Your account is not linked to a campus' }, 403), refreshedToken)
       }
-      campusName = payload.campusName
+      campusName = own
     }
 
     if (campusName) {
       filter.campusName = campusName
     }
-
-    await connectDB()
 
     if (facultyId) {
       try { filter.facultyId = new Types.ObjectId(facultyId) } catch {
@@ -208,11 +210,12 @@ export async function POST(req: NextRequest) {
     // On Push Board an offline-centre login may also pick one of its campus's batches.
     if (isCoordinator(payload.role)) {
       if (campusName) {
-        if (!payload.campusName || payload.campusName !== campusName) {
+        const ownCampus = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
+        if (!ownCampus || ownCampus !== campusName) {
           return withToken(json({ error: 'You can only log sessions for your own campus.' }, 403), refreshedToken)
         }
         if (batch) {
-          const allowedCampusId = (await findPushCampusByName(payload.campusName))?.batchCampusId?.toString()
+          const allowedCampusId = (await findPushCampusByName(ownCampus))?.batchCampusId?.toString()
           if (!allowedCampusId || batch.campusId.toString() !== allowedCampusId) {
             return withToken(json({ error: 'That batch does not belong to your campus.' }, 403), refreshedToken)
           }

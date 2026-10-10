@@ -72,14 +72,15 @@ export async function POST(req: NextRequest) {
     if (await User.exists({ username })) {
       return withToken(json({ error: 'That login username is already in use.' }, 409), refreshedToken)
     }
-    if (hasBatches && await Campus.exists({ name })) {
-      return withToken(json({ error: 'A batch campus with this name already exists — choose a different name.' }, 409), refreshedToken)
-    }
 
     let batchCampus: { _id: Types.ObjectId; created: boolean } | null = null
     let campusDoc: InstanceType<typeof PushCampus> | null = null
     try {
-      if (hasBatches) batchCampus = await ensureBatchCampus(name, location)
+      if (hasBatches) {
+        const bc = await ensureBatchCampus(name, location)
+        if ('conflict' in bc) return withToken(json({ error: bc.conflict }, 409), refreshedToken)
+        batchCampus = bc
+      }
       campusDoc = new PushCampus({
         name, kind,
         teachers: teachers.map((t) => ({ name: t, isActive: true })),

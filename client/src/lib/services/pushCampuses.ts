@@ -13,7 +13,7 @@ let seeded = false
  */
 export async function ensurePushCampusesSeeded(): Promise<void> {
   if (seeded) return
-  if ((await PushCampus.estimatedDocumentCount()) > 0) { seeded = true; return }
+  if (await PushCampus.exists({})) { seeded = true; return }
 
   const docs: Partial<IPushCampus>[] = CAMPUSES.map((c) => ({
     name: c.campusName,
@@ -35,8 +35,13 @@ export async function ensurePushCampusesSeeded(): Promise<void> {
   try {
     await PushCampus.insertMany(docs, { ordered: false })
   } catch (e) {
-    // A concurrent first request already seeded — duplicate-name errors are fine.
-    if ((e as { code?: number }).code !== 11000 && !(e as { writeErrors?: unknown }).writeErrors) throw e
+    // A concurrent first request may already have seeded — duplicate-name errors are fine.
+    // Anything else is a real failure: leave `seeded` false so the next request retries.
+    const err = e as { code?: number; writeErrors?: { code?: number; err?: { code?: number } }[] }
+    const onlyDuplicates = err.code === 11000
+      || (Array.isArray(err.writeErrors) && err.writeErrors.length > 0
+          && err.writeErrors.every((w) => (w.code ?? w.err?.code) === 11000))
+    if (!onlyDuplicates) throw e
   }
   seeded = true
 }

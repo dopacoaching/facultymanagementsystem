@@ -1,5 +1,6 @@
 import { Types } from 'mongoose'
 import { Batch } from '@/lib/models/Batch'
+import { User } from '@/lib/models/User'
 import { Session } from '@/lib/models/Session'
 import { findIgPushCampus, listActivePushCampuses } from '@/lib/services/pushCampuses'
 
@@ -16,13 +17,19 @@ export async function getTrackedCampusNames(): Promise<string[]> {
   return (await listActivePushCampuses()).map((c) => c.name)
 }
 
-/** The campus name a coordinator login belongs to (class teacher: from the token;
- *  IG class teacher: looked up from their school's campus record). */
+/** The campus name a coordinator login belongs to. IG class teacher: looked up from
+ *  their school's campus record. Class teacher: read from the user's CURRENT record,
+ *  not the token — a campus rename must not break teachers who are already signed
+ *  in (their token still carries the old name until they sign in again). */
 export async function resolveCoordinatorCampusName(
-  payload: { role: string; campusName?: string; campusId?: string },
+  payload: { userId?: string; role: string; campusName?: string; campusId?: string },
 ): Promise<string | undefined> {
   if (payload.role === 'IG_CLASS_TEACHER') {
     return (await findIgPushCampus(payload.campusId))?.name
+  }
+  if (payload.userId && Types.ObjectId.isValid(payload.userId)) {
+    const user = await User.findById(payload.userId).select('campusName').lean()
+    if (user?.campusName) return user.campusName
   }
   return payload.campusName
 }

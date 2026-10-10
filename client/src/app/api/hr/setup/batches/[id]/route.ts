@@ -9,6 +9,8 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 
 const BATCH_TYPES = ['RESIDENTIAL', 'OFFLINE', 'ONLINE', 'IG']
 
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /**
  * PATCH /api/hr/setup/batches/:id — edit a batch.
  * Body (all optional): name, isActive, type, campusId, stream, ig1Subgroup.
@@ -33,20 +35,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const changes: string[] = []
 
+    // Validate campusId up front — it is used in queries below.
+    let targetCampusId: Types.ObjectId = batch.campusId
+    if (body.campusId !== undefined && String(body.campusId) !== String(batch.campusId)) {
+      if (typeof body.campusId !== 'string' || !Types.ObjectId.isValid(body.campusId) || !(await Campus.exists({ _id: new Types.ObjectId(body.campusId) }))) {
+        return withToken(json({ error: 'Campus not found' }, 404), refreshedToken)
+      }
+      targetCampusId = new Types.ObjectId(body.campusId)
+    }
+
+    let targetName = batch.name
     if (typeof body.name === 'string') {
-      const name = body.name.trim()
-      if (name.length < 2 || name.length > 80) {
+      targetName = body.name.trim()
+      if (targetName.length < 2 || targetName.length > 80) {
         return withToken(json({ error: 'Batch name must be 2–80 characters' }, 400), refreshedToken)
       }
-      if (name !== batch.name) {
-        const clash = await Batch.exists({
-          _id: { $ne: batch._id }, campusId: body.campusId ?? batch.campusId,
-          name: { $regex: `^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
-        })
-        if (clash) return withToken(json({ error: 'This campus already has a batch with that name.' }, 409), refreshedToken)
-        changes.push(`renamed "${batch.name}" → "${name}"`)
-        batch.name = name
-      }
+    }
+    if (targetName !== batch.name || !targetCampusId.equals(batch.campusId)) {
+      const clash = await Batch.exists({
+        _id: { $ne: batch._id }, campusId: targetCampusId,
+        name: { $regex: `^${escapeRegex(targetName)}$`, $options: 'i' },
+      })
+      if (clash) return withToken(json({ error: 'This campus already has a batch with that name.' }, 409), refreshedToken)
+    }
+    if (targetName !== batch.name) {
+      changes.push(`renamed "${batch.name}" → "${targetName}"`)
+      batch.name = targetName
     }
 
     const wantsType = body.type !== undefined && body.type !== batch.type
@@ -64,11 +78,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         batch.type = body.type as never
       }
       if (wantsCampus) {
-        if (typeof body.campusId !== 'string' || !Types.ObjectId.isValid(body.campusId) || !(await Campus.exists({ _id: body.campusId }))) {
-          return withToken(json({ error: 'Campus not found' }, 404), refreshedToken)
-        }
         changes.push('campus changed')
-        batch.campusId = new Types.ObjectId(body.campusId)
+        batch.campusId = targetCampusId
       }
     }
 
