@@ -8,6 +8,7 @@ import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
+import { resolveExtraBatches } from '../utils/extraBatches'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
@@ -98,11 +99,13 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
-    facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
+    facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
     scheduledTime, scheduledEndTime, updatedByName, startTime, endTime,
     breakMinutes, lunchBreakMinutes, afternoonBreakMinutes,
     durationHours, sessionDate, timeSlot, sessionCategory,
   } = req.body
+  // Multi-batch classes send batchIds; the first is the primary batch.
+  const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
   // ── 1. Required fields ─────────────────────────────────────────────────────
   if (!facultyId || !subject || !durationHours || !sessionDate) {
@@ -147,6 +150,13 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (batchOid) {
     batch = await Batch.findById(batchOid)
     if (!batch) { res.status(404).json({ error: 'Batch not found' }); return }
+  }
+
+  let extraBatchOids: Types.ObjectId[] = []
+  if (batch && Array.isArray(batchIds)) {
+    const extra = await resolveExtraBatches(batchIds, batch)
+    if (!extra.ok) { res.status(extra.status).json({ error: extra.error }); return }
+    extraBatchOids = extra.extras
   }
 
   // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
@@ -299,6 +309,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   const session = await Session.create({
     facultyId:     facultyOid,
     batchId:       batchOid,
+    extraBatchIds: extraBatchOids.length ? extraBatchOids : undefined,
     campusName:    campusName || undefined,
     classMode:     classMode  || undefined,
     subject,
@@ -340,14 +351,16 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     if (resolvedSyllabusChapter)      bcSet.scheduledMonth    = resolvedSyllabusChapter.scheduledMonth
     if (resolvedSyllabusChapter)      bcSet.totalVideos       = resolvedSyllabusChapter.totalVideos
 
-    await BatchChapter.findOneAndUpdate(
-      { batchId: batchOid, subject: normalisedSubject, chapterName: chapter },
-      {
-        $set: bcSet,
-        $setOnInsert: { chapterOrder: 0, videoComplete: false },
-      },
-      { upsert: true }
-    )
+    for (const bOid of [batchOid, ...extraBatchOids]) {
+      await BatchChapter.findOneAndUpdate(
+        { batchId: bOid, subject: normalisedSubject, chapterName: chapter },
+        {
+          $set: bcSet,
+          $setOnInsert: { chapterOrder: 0, videoComplete: false },
+        },
+        { upsert: true }
+      )
+    }
   }
 
   res.status(201).json(session)

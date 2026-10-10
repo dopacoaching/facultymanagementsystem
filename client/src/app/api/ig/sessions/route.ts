@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { resolveExtraBatches } from '@/lib/utils/extraBatches'
 import { NoClassDay } from '@/lib/models/NoClassDay'
 import { Campus } from '@/lib/models/Campus'
 import { Batch, IBatch } from '@/lib/models/Batch'
@@ -105,9 +106,10 @@ export async function POST(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {
-      facultyId, batchId, subject, chapter, durationHours, sessionDate, timeSlot, classMode,
+      facultyId, batchId: rawBatchId, batchIds, subject, chapter, durationHours, sessionDate, timeSlot, classMode,
       scheduledTime, scheduledEndTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName,
     } = await req.json()
+    const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
       return withToken(json({
@@ -155,6 +157,10 @@ export async function POST(req: NextRequest) {
     if (batch.type !== 'IG') {
       return withToken(json({ error: 'Sessions can only be logged against IG batches on this endpoint' }, 400), refreshedToken)
     }
+
+    const extra = await resolveExtraBatches(batchIds, batch, { igOnly: true })
+    if (!extra.ok) return withToken(json({ error: extra.error }, extra.status), refreshedToken)
+    const extraBatchOids = extra.extras
 
     // Coordinator ownership gate — campus-scoped (IG_CLASS_TEACHER) or single-batch-scoped (legacy)
     if (isCoordinator(payload.role)) {
@@ -205,6 +211,7 @@ export async function POST(req: NextRequest) {
     const session = await Session.create({
       facultyId:     facultyOid,
       batchId:       batchOid,
+      extraBatchIds: extraBatchOids.length ? extraBatchOids : undefined,
       subject,
       chapter,
       classMode:     classMode     || undefined,
@@ -227,19 +234,21 @@ export async function POST(req: NextRequest) {
     const igCampus = await Campus.findById(batch.campusId).select('name').lean()
     if (igCampus) await NoClassDay.deleteOne({ campusName: igCampus.name, date: dayStart }).catch(() => null)
 
-    // Auto-mark chapter as facultyClassDone
-    await BatchChapter.findOneAndUpdate(
-      { batchId: batchOid, subject: subject.toUpperCase(), chapterName: chapter },
-      {
-        $set: {
-          facultyClassDone:   true,
-          facultyClassDoneAt: date,
-          sessionId:          session._id,
+    // Auto-mark chapter as facultyClassDone - for every batch that sat the class
+    for (const bOid of [batchOid, ...extraBatchOids]) {
+      await BatchChapter.findOneAndUpdate(
+        { batchId: bOid, subject: subject.toUpperCase(), chapterName: chapter },
+        {
+          $set: {
+            facultyClassDone:   true,
+            facultyClassDoneAt: date,
+            sessionId:          session._id,
+          },
+          $setOnInsert: { chapterOrder: 0, videoComplete: false },
         },
-        $setOnInsert: { chapterOrder: 0, videoComplete: false },
-      },
-      { upsert: true }
-    )
+        { upsert: true }
+      )
+    }
 
     writeAuditLog({
       category: 'IG', eventType: 'IG_SESSION_LOGGED',

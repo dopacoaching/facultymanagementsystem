@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           { batchId: { $in: igBatches.map((b) => b._id) } },
         ],
       })
-        .select('facultyId campusName batchId subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName')
+        .select('facultyId campusName batchId extraBatchIds subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName')
         .populate('facultyId', 'name type subject')
         .sort({ sessionDate: 1 })
         .limit(MAX_ROWS)
@@ -67,8 +67,9 @@ export async function GET(req: NextRequest) {
     // Batch names for the Batch column. Keyed by the raw batchId, so a session whose
     // batch was deleted still resolves its campus above and just shows no batch name.
     const batchNames = new Map(igBatches.map((b) => [String(b._id), b.name]))
-    const otherBatchIds = Array.from(new Set(sessions.filter((s) => s.batchId).map((s) => String(s.batchId))))
-      .filter((id) => !batchNames.has(id))
+    const otherBatchIds = Array.from(new Set(
+      sessions.flatMap((s) => [s.batchId, ...(s.extraBatchIds ?? [])].filter(Boolean).map(String)),
+    )).filter((id) => !batchNames.has(id))
     if (otherBatchIds.length) {
       const docs = await Batch.find({ _id: { $in: otherBatchIds } }).select('name').lean()
       for (const b of docs) batchNames.set(String(b._id), b.name)
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
           endTime: s.endTime ?? '',
           durationHours: s.durationHours,
           updatedByName: s.updatedByName ?? '',
-          batchName: batchNames.get(batchId) ?? '',
+          batchName: [batchId, ...(s.extraBatchIds ?? []).map(String)].map((id) => batchNames.get(id)).filter(Boolean).join(', '),
           breakMinutes: s.breakMinutes ?? null,
           lunchBreakMinutes: s.lunchBreakMinutes ?? null,
           afternoonBreakMinutes: s.afternoonBreakMinutes ?? null,

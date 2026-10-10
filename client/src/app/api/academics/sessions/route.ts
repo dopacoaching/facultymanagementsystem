@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { resolveExtraBatches } from '@/lib/utils/extraBatches'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
 import { NoClassDay } from '@/lib/models/NoClassDay'
@@ -128,10 +129,12 @@ export async function POST(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {
-      facultyId, batchId, campusName, classMode, subject, chapter, syllabusChapterId,
+      facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
       scheduledTime, scheduledEndTime, updatedByName, durationHours, sessionDate, timeSlot, startTime, endTime,
       breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, sessionCategory,
     } = await req.json()
+    // Multi-batch classes send batchIds; the first is the primary batch.
+    const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
     if (!facultyId || !subject || !sessionDate) {
       return withToken(json({
@@ -184,6 +187,13 @@ export async function POST(req: NextRequest) {
     if (batchOid) {
       batch = await Batch.findById(batchOid)
       if (!batch) return withToken(json({ error: 'Batch not found' }, 404), refreshedToken)
+    }
+
+    let extraBatchOids: Types.ObjectId[] = []
+    if (batch && Array.isArray(batchIds)) {
+      const extra = await resolveExtraBatches(batchIds, batch)
+      if (!extra.ok) return withToken(json({ error: extra.error }, extra.status), refreshedToken)
+      extraBatchOids = extra.extras
     }
 
     // Faculty on a category-split contract (e.g. doubt-clearance staff) must have
@@ -313,6 +323,7 @@ export async function POST(req: NextRequest) {
     const session = await Session.create({
       facultyId:     facultyOid,
       batchId:       batchOid,
+      extraBatchIds: extraBatchOids.length ? extraBatchOids : undefined,
       campusName:    campusName || undefined,
       classMode:     classMode  || undefined,
       subject,

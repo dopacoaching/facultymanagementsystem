@@ -65,6 +65,8 @@ export default function PushBoardPage() {
     [batchesRes.data, batchCampusId],
   )
   const needsBatch = !!batchCampusId
+  // Campuses with several batches may run one class for more than one of them at once.
+  const multiBatch = needsBatch && campusBatches.length > 1
 
   const [form,   setForm]   = useState<FormState>(EMPTY_FORM())
   const [saving, setSaving] = useState(false)
@@ -73,6 +75,9 @@ export default function PushBoardPage() {
   /** The POST itself failed — retry re-runs the submit. */
   const [submitError, setSubmitError] = useState('')
   const [savedFor, setSavedFor] = useState<string | null>(null)
+
+  // Multi-batch campuses use the checkbox list; single-batch ones the plain select.
+  const chosenBatchIds = multiBatch ? form.batchIds : form.batchId ? [form.batchId] : []
 
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
@@ -118,7 +123,7 @@ export default function PushBoardPage() {
       return 'The date must be inside the selected month, and not in the future'
     }
     if (!form.subject.trim())      return 'Subject is required'
-    if (needsBatch && !form.batchId) return 'Select the batch'
+    if (needsBatch && !chosenBatchIds.length) return multiBatch ? 'Select at least one batch' : 'Select the batch'
     if (!form.classMode)           return 'Select the class mode'
     if (!form.chapter.trim())      return 'Chapter is required'
     if (duration.error)            return duration.error
@@ -150,7 +155,7 @@ export default function PushBoardPage() {
     setSaving(true)
     try {
       if (isIG) {
-        await createIGSession({ ...common, batchId: form.batchId }, accessToken!)
+        await createIGSession({ ...common, batchId: chosenBatchIds[0], batchIds: chosenBatchIds }, accessToken!)
       } else {
         await apiFetch('/academics/sessions', {
           method: 'POST',
@@ -158,7 +163,8 @@ export default function PushBoardPage() {
           body: {
             ...common,
             campusName,
-            batchId: needsBatch ? form.batchId : undefined,
+            batchId: needsBatch ? chosenBatchIds[0] : undefined,
+            batchIds: needsBatch ? chosenBatchIds : undefined,
             sessionCategory: needsSessionCategory ? form.sessionCategory : undefined,
           },
         })
@@ -331,7 +337,44 @@ export default function PushBoardPage() {
                 </select>
               </FormField>
 
-              {needsBatch && (
+              {needsBatch && (multiBatch ? (
+                <FormField
+                  label="Batches"
+                  htmlFor="pb-batches"
+                  required
+                  hint="Tick every batch that attended this class together"
+                >
+                  <div id="pb-batches" role="group" aria-label="Batches" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    {batchesRes.status === 'loading' && <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>Loading batches…</span>}
+                    {campusBatches.map((b) => {
+                      const checked = form.batchIds.includes(b._id)
+                      return (
+                        <label
+                          key={b._id}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer',
+                            padding: '0.5rem 0.75rem', borderRadius: 'var(--radius)',
+                            border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                            background: checked ? 'var(--color-primary-ghost)' : 'var(--color-surface)',
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setField(
+                              'batchIds',
+                              checked ? form.batchIds.filter((id) => id !== b._id) : [...form.batchIds, b._id],
+                            )}
+                            style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+                          />
+                          {b.name}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </FormField>
+              ) : (
                 <FormField label="Batch" htmlFor="pb-batch" required>
                   <select
                     id="pb-batch"
@@ -348,7 +391,7 @@ export default function PushBoardPage() {
                     ))}
                   </select>
                 </FormField>
-              )}
+              ))}
 
               <FormField label="Class mode" htmlFor="pb-class-mode" required>
                 <select

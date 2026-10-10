@@ -21,6 +21,8 @@ export async function create(
   data: {
     facultyId: string
     batchId: string
+    /** All batches that sat the class; batchId is the first. */
+    batchIds?: string[]
     subject: string
     chapter: string
     timeSlot?: string

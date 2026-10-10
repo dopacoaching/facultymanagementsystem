@@ -77,6 +77,8 @@ export interface FormState {
   endTime: string
   /** Only for campuses with several batches (offline centres, IG schools). */
   batchId: string
+  /** Every batch that sat this class (multi-batch campuses). batchId is the first. */
+  batchIds: string[]
   classMode: ClassMode | ''
   chapter: string
   sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE' | ''
@@ -93,6 +95,7 @@ export const EMPTY_FORM = (): FormState => ({
   startTime:       '',
   endTime:         '',
   batchId:         '',
+  batchIds:        [],
   classMode:       '',
   chapter:         '',
   sessionCategory: '',
