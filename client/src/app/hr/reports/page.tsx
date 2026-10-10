@@ -61,6 +61,9 @@ function breakTotal(r: EntryRow): number | null {
 }
 const breakLabel = (r: EntryRow) => { const t = breakTotal(r); return t == null ? '—' : t === 0 ? 'Nil' : `${t}m` }
 
+/** 'PERMANENT' → 'Permanent'; tolerates a missing type on legacy faculty. */
+const typeLabel = (t?: string) => (t ? t.charAt(0) + t.slice(1).toLowerCase() : 'Unknown type')
+
 const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours, 0)
 
 function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean }) {
@@ -80,7 +83,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
             <th>Chapter</th>
             <th>Class mode</th>
             <th>Start–End</th>
-            <th style={{ textAlign: 'right' }} title="Break minutes as entered. For the tea break, the first 15 minutes are free of deduction.">Break</th>
+            <th style={{ textAlign: 'right' }} title="Total break minutes as entered on the form — not the amount deducted from the time taken.">Break</th>
             <th>Entered by</th>
             <th style={{ textAlign: 'right' }}>Time</th>
           </tr>
@@ -132,7 +135,7 @@ function FlagIcon() {
 
 /** Tab-separated text for the current view, ready to paste into a sheet. */
 function toTSV(rows: EntryRow[]): string {
-  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break (min)', 'Entered by', 'Time (h:mm)', 'Hours']
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours']
   // Neutralise spreadsheet formulas (=, +, -, @) in coordinator-typed text.
   const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ').replace(/^[=+\-@]/, "'$&")
   const lines = rows.map((r) => {
@@ -193,9 +196,10 @@ export default function EntriesReportPage() {
   }, [report, kind, campus])
 
   const byCampus = useMemo(() => {
+    if (group === 'faculty') return []
     const map = groupBy(rows, (r) => r.campusName)
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
-  }, [rows])
+  }, [rows, group])
 
   // Decided once from the whole filtered set so every table shares the same columns.
   const showBatch = useMemo(() => rows.some((r) => r.batchName), [rows])
@@ -223,6 +227,11 @@ export default function EntriesReportPage() {
       toast.error('Copy failed', 'Your browser blocked clipboard access.')
     }
   }
+
+  /** One place decides the table's shared props, so the faculty and campus layouts can't drift apart. */
+  const table = (list: EntryRow[], hideCols: ('campus' | 'faculty' | 'subject')[]) => (
+    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} />
+  )
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()
 
@@ -343,7 +352,7 @@ export default function EntriesReportPage() {
             // Faculty-wise: one block per faculty with all their sessions, across every campus and batch.
             <div key={facultyId} className="card" style={{ marginBottom: '1rem' }}>
               <GroupHeader
-                title={`${list[0].facultyName} · ${list[0].facultyType.charAt(0) + list[0].facultyType.slice(1).toLowerCase()} · ${list[0].subject}`}
+                title={`${list[0].facultyName} · ${typeLabel(list[0].facultyType)} · ${list[0].subject}`}
                 count={list.length}
                 hours={sumHours(list)}
               />
@@ -356,7 +365,7 @@ export default function EntriesReportPage() {
                     </span>
                   ))}
               </div>
-              <EntryTable rows={list} hideCols={['faculty']} showBatch={showBatch} />
+              {table(list, ['faculty'])}
             </div>
           ))}
 
@@ -364,14 +373,14 @@ export default function EntriesReportPage() {
             <div key={campusName} className="card" style={{ marginBottom: '1rem' }}>
               <GroupHeader title={campusName} count={campusRows.length} hours={sumHours(campusRows)} />
 
-              {group === 'campus' && <EntryTable rows={campusRows} hideCols={['campus']} showBatch={showBatch} />}
+              {group === 'campus' && table(campusRows, ['campus'])}
 
               {group === 'subject' && Array.from(groupBy(campusRows, (r) => r.subject).entries())
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([subject, list]) => (
                   <div key={subject}>
                     <GroupHeader title={subject} count={list.length} hours={sumHours(list)} level={2} />
-                    <EntryTable rows={list} hideCols={['campus', 'subject']} showBatch={showBatch} />
+                    {table(list, ['campus', 'subject'])}
                   </div>
                 ))}
             </div>

@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     // IG sessions carry a batch rather than a campus name — map batch → school name.
     const igNames = await getIgCampusNames()
     const igBatches = await Batch.find({ type: 'IG', campusId: { $in: Array.from(igNames.keys()).map((id) => new Types.ObjectId(id)) } })
-      .select('campusId').lean()
+      .select('campusId name').lean()
     const igBatchCampus = new Map(igBatches.map((b) => [String(b._id), igNames.get(String(b.campusId)) as string]))
 
     const [sessions, noClass] = await Promise.all([
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         status: 'COMPLETED',
         sessionDate: range,
         $or: [
-          { campusName: { $exists: true, $ne: null } },
+          { campusName: { $exists: true, $nin: [null, ''] } },
           { batchId: { $in: igBatches.map((b) => b._id) } },
         ],
       })
@@ -66,11 +66,13 @@ export async function GET(req: NextRequest) {
 
     // Batch names for the Batch column. Keyed by the raw batchId, so a session whose
     // batch was deleted still resolves its campus above and just shows no batch name.
-    const usedBatchIds = Array.from(new Set(sessions.filter((s) => s.batchId).map((s) => String(s.batchId))))
-    const batchDocs = usedBatchIds.length
-      ? await Batch.find({ _id: { $in: usedBatchIds.map((id) => new Types.ObjectId(id)) } }).select('name').lean()
-      : []
-    const batchNames = new Map(batchDocs.map((b) => [String(b._id), b.name]))
+    const batchNames = new Map(igBatches.map((b) => [String(b._id), b.name]))
+    const otherBatchIds = Array.from(new Set(sessions.filter((s) => s.batchId).map((s) => String(s.batchId))))
+      .filter((id) => !batchNames.has(id))
+    if (otherBatchIds.length) {
+      const docs = await Batch.find({ _id: { $in: otherBatchIds } }).select('name').lean()
+      for (const b of docs) batchNames.set(String(b._id), b.name)
+    }
 
     const rows = sessions
       .filter((s) => s.facultyId && typeof s.facultyId === 'object' && (s.campusName || igBatchCampus.has(String(s.batchId))))
@@ -83,7 +85,7 @@ export async function GET(req: NextRequest) {
           campusName: (s.campusName ?? igBatchCampus.get(batchId)) as string,
           facultyId: f._id.toString(),
           facultyName: f.name,
-          facultyType: f.type,
+          facultyType: f.type ?? '',
           subject: s.subject,
           chapter: s.chapter ?? '',
           classMode: s.classMode ?? '',
