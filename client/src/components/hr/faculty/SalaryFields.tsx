@@ -3,18 +3,72 @@ import type { Faculty } from '@/types'
 interface SalaryFieldsProps {
   editing: Partial<Faculty>
   setEditing: (f: Partial<Faculty>) => void
+  /** Hourly rate as loaded (edit mode only). A different value needs an effective date. */
+  originalRate?: number
 }
 
-export function SalaryFields({ editing, setEditing }: SalaryFieldsProps) {
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+export function SalaryFields({ editing, setEditing, originalRate }: SalaryFieldsProps) {
   const model = editing.salaryModel ?? ''
   const set = (key: keyof Faculty, val: unknown) => setEditing({ ...editing, [key]: val })
 
   if (model === 'HOURLY') {
+    const isEdit = '_id' in editing
+    const changed = isEdit && originalRate != null && editing.hourlyRate !== originalRate
+    const history = (editing.hourlyRateHistory ?? []).slice().reverse()
     return (
-      <div className="form-group">
-        <label className="label">Hourly Rate (₹)</label>
-        <input type="number" className="input" value={editing.hourlyRate ?? ''} onChange={(e) => set('hourlyRate', +e.target.value)} placeholder="e.g. 850" />
-      </div>
+      <>
+        <div className="form-group">
+          <label className="label">Hourly Rate (₹)</label>
+          <input
+            type="number" min={1} step="any" className="input"
+            value={editing.hourlyRate ?? ''}
+            onChange={(e) => set('hourlyRate', e.target.value === '' ? undefined : +e.target.value)}
+            placeholder="e.g. 850"
+          />
+          {!isEdit && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
+              You can change this later and choose the date it takes effect.
+            </div>
+          )}
+        </div>
+
+        {changed && (
+          <div className="form-group">
+            <label className="label">New rate effective from</label>
+            <input
+              type="date" className="input" required
+              value={editing.hourlyRateEffectiveFrom ?? ''}
+              onChange={(e) => set('hourlyRateEffectiveFrom', e.target.value)}
+            />
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
+              Hours on or after this date use ₹{editing.hourlyRate}; earlier hours keep ₹{originalRate}.
+            </div>
+          </div>
+        )}
+
+        {isEdit && history.length > 0 && (
+          <div className="form-group" style={{ gridColumn: 'span 2' }}>
+            <label className="label">Rate history</label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8125rem' }}>
+              {history.map((h, i) => {
+                const initial = new Date(h.effectiveFrom).getTime() === 0
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.375rem 0.625rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius)' }}>
+                    <strong>₹{h.rate}/hr</strong>
+                    <span style={{ color: 'var(--color-muted)' }}>
+                      {initial ? 'Initial rate' : `from ${fmtDate(h.effectiveFrom)}`}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </>
     )
   }
 

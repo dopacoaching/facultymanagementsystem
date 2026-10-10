@@ -8,6 +8,8 @@ export interface IFaculty extends Document {
   salaryModel: SalaryModel
   isActive: boolean
   hourlyRate?: number
+  /** Dated rate timeline; hourlyRate mirrors the entry in force today. */
+  hourlyRateHistory?: { rate: number; effectiveFrom: Date; changedAt?: Date; changedBy?: string }[]
   fixedMonthlySalary?: number
   monthlyHourQuota?: number
   monthlyDayQuota?: number
@@ -38,6 +40,15 @@ const FacultySchema = new Schema<IFaculty>(
     },
     isActive: { type: Boolean, default: true },
     hourlyRate: Number,
+    hourlyRateHistory: {
+      type: [new Schema({
+        rate: { type: Number, required: true, min: 0 },
+        effectiveFrom: { type: Date, required: true },
+        changedAt: Date,
+        changedBy: String,
+      }, { _id: false })],
+      default: undefined,
+    },
     fixedMonthlySalary: Number,
     monthlyHourQuota: Number,
     monthlyDayQuota: Number,

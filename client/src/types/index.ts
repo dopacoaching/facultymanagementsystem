@@ -13,6 +13,10 @@ export interface Faculty {
   salaryModel: string
   isActive: boolean
   hourlyRate?: number
+  /** Dated rate timeline, oldest first. The initial rate starts at the epoch. */
+  hourlyRateHistory?: { rate: number; effectiveFrom: string; changedAt?: string; changedBy?: string }[]
+  /** Write-only: day a changed hourlyRate takes effect (YYYY-MM-DD). */
+  hourlyRateEffectiveFrom?: string
   fixedMonthlySalary?: number
   monthlyHourQuota?: number
   monthlyDayQuota?: number

@@ -4,6 +4,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Faculty } from '@/lib/models/Faculty'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import type { FacultyType, SalaryModel } from '@/lib/types'
+import { initialRateHistory, validRate } from '@/lib/utils/hourlyRate'
 
 const FACULTY_WRITABLE = [
   'name', 'subject', 'type', 'salaryModel', 'isActive',
@@ -74,6 +75,15 @@ export async function POST(req: NextRequest) {
     await connectDB()
 
     const safeData = pickFacultyFields(body)
+    if (safeData.hourlyRate !== undefined && safeData.hourlyRate !== null) {
+      if (!validRate(safeData.hourlyRate)) {
+        return withToken(json({ error: 'Hourly rate must be a positive number' }, 400), refreshedToken)
+      }
+      // The first rate applies from the start; later changes are dated.
+      safeData.hourlyRateHistory = initialRateHistory(safeData.hourlyRate, payload.username)
+    } else {
+      delete safeData.hourlyRate
+    }
     const faculty = await Faculty.create(safeData)
 
     await writeAuditLog({

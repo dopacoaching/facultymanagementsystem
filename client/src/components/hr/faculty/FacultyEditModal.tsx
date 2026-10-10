@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { SalaryFields } from './SalaryFields'
@@ -14,6 +15,8 @@ interface FacultyEditModalProps {
 
 export function FacultyEditModal({ editing, setEditing, error, saving, onClose, onSave }: FacultyEditModalProps) {
   const isEdit = '_id' in editing
+  // The rate as loaded, so SalaryFields can tell when it has been changed.
+  const [originalRate] = useState(() => ('_id' in editing ? editing.hourlyRate : undefined))
 
   return (
     <div
@@ -60,7 +63,7 @@ export function FacultyEditModal({ editing, setEditing, error, saving, onClose, 
               </select>
             </div>
 
-            <SalaryFields editing={editing as Faculty} setEditing={(f) => setEditing(f as Faculty)} />
+            <SalaryFields editing={editing as Faculty} setEditing={(f) => setEditing(f as Faculty)} originalRate={originalRate} />
 
             <div style={{ gridColumn: 'span 2' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-secondary)' }}>

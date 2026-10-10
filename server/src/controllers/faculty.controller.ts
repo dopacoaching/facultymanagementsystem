@@ -6,6 +6,7 @@ import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
 import { validateObjectId } from '../utils/objectId'
 import type { FacultyType, SalaryModel } from '../types'
+import { initialRateHistory, parseRateDate, planRateChange, validRate } from '../utils/hourlyRate'
 
 // Fields that HR/Admin may set when creating or updating a Faculty document.
 // Explicitly whitelisted to prevent mass assignment.
@@ -90,6 +91,15 @@ export const createFaculty = asyncHandler(async (req: AuthRequest, res: Response
   if (!salaryModel)     { res.status(400).json({ error: 'salaryModel is required' }); return }
 
   const safeData = pickFacultyFields(req.body as Record<string, unknown>)
+  if (safeData.hourlyRate !== undefined && safeData.hourlyRate !== null) {
+    if (!validRate(safeData.hourlyRate)) {
+      res.status(400).json({ error: 'Hourly rate must be a positive number' }); return
+    }
+    // The first rate applies from the start; later changes are dated.
+    safeData.hourlyRateHistory = initialRateHistory(safeData.hourlyRate, req.user!.username)
+  } else {
+    delete safeData.hourlyRate
+  }
   const faculty = await Faculty.create(safeData)
 
   await writeAuditLog({
@@ -111,6 +121,29 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'No valid fields provided for update' }); return
   }
 
+  // Hourly rate changes are dated: an unchanged rate is ignored, a changed one
+  // needs an effective date and is appended to the rate history.
+  let rateChange: { from: number | undefined; to: number; effectiveFrom: string } | null = null
+  if ('hourlyRate' in safeData) {
+    const existing = await Faculty.findById(oid)
+    if (!existing) { res.status(404).json({ error: 'Faculty not found' }); return }
+    const newRate = safeData.hourlyRate
+    delete safeData.hourlyRate
+    if (newRate !== undefined && newRate !== null && newRate !== existing.hourlyRate) {
+      if (!validRate(newRate)) {
+        res.status(400).json({ error: 'Hourly rate must be a positive number' }); return
+      }
+      const body = req.body as Record<string, unknown>
+      const effectiveFrom = parseRateDate(body.hourlyRateEffectiveFrom)
+      if (!effectiveFrom) {
+        res.status(400).json({ error: 'Enter the date the new hourly rate takes effect (YYYY-MM-DD)' }); return
+      }
+      Object.assign(safeData, planRateChange(existing, newRate, effectiveFrom, req.user!.username))
+      rateChange = { from: existing.hourlyRate, to: newRate, effectiveFrom: body.hourlyRateEffectiveFrom as string }
+    }
+    if (Object.keys(safeData).length === 0) { res.json(existing); return }
+  }
+
   const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { new: true, runValidators: true })
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
 
@@ -118,7 +151,15 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
     'hourlyRate', 'fixedMonthlySalary', 'fixedComponent', 'variableComponent',
     'overtimeRate', 'configurablePayJson',
   ]
-  if (SALARY_FIELDS.some((f) => f in safeData)) {
+  if (rateChange) {
+    await writeAuditLog({
+      category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
+      actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
+      targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+      facultyId: faculty._id.toString(), facultyName: faculty.name,
+      description: `Hourly rate changed from ${rateChange.from ?? 'not set'} to ${rateChange.to}, effective ${rateChange.effectiveFrom}`,
+    })
+  } else if (SALARY_FIELDS.some((f) => f in safeData)) {
     await writeAuditLog({
       category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
       actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,

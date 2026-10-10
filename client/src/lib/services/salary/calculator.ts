@@ -19,6 +19,7 @@ import {
   SalaryAlert,
   SalaryBreakdown,
 } from '@/lib/types'
+import { rateOn } from '@/lib/utils/hourlyRate'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1149,7 +1150,10 @@ export async function calculateRangeSalary(
   const hoursLogged = sessions.reduce((s, r) => s + r.durationHours, 0)
   const daysWorked = new Set(sessions.map((s) => s.sessionDate.toDateString())).size
 
-  const rate = faculty.hourlyRate
+  // The rate in force on each session's date — a rate change (with its effective
+  // date) only affects sessions on or after that date.
+  const history = faculty.hourlyRateHistory
+  const rate = rateOn(history, faculty.hourlyRate, to)
   if (rate == null) {
     return finalizeSalaryResult({
       status: 'PENDING_CONFIG',
@@ -1163,12 +1167,23 @@ export async function calculateRangeSalary(
     }, hoursLogged, daysWorked)
   }
 
-  const baseSalary = hoursLogged * rate
-  const breakdown: SalaryBreakdown[] = [
-    { label: 'Hours Logged', amount: hoursLogged },
-    { label: 'Rate per Hour', amount: rate },
-    { label: 'Total Pay', amount: baseSalary },
-  ]
+  const hoursByRate = new Map<number, number>()
+  for (const s of sessions) {
+    const r = rateOn(history, faculty.hourlyRate, s.sessionDate) ?? rate
+    hoursByRate.set(r, (hoursByRate.get(r) ?? 0) + s.durationHours)
+  }
+  const baseSalary = Array.from(hoursByRate).reduce((sum, [r, h]) => sum + r * h, 0)
+  const breakdown: SalaryBreakdown[] = hoursByRate.size > 1
+    ? [
+        { label: 'Hours Logged', amount: hoursLogged },
+        ...Array.from(hoursByRate).sort((a, b) => a[0] - b[0]).map(([r, h]) => ({ label: `${h}h at ₹${r}/hr`, amount: r * h })),
+        { label: 'Total Pay', amount: baseSalary },
+      ]
+    : [
+        { label: 'Hours Logged', amount: hoursLogged },
+        { label: 'Rate per Hour', amount: rate },
+        { label: 'Total Pay', amount: baseSalary },
+      ]
 
   return finalizeSalaryResult({
     baseSalary,

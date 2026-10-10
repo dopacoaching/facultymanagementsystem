@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Faculty } from '@/lib/models/Faculty'
 import { writeAuditLog } from '@/lib/services/salary/audit'
+import { parseRateDate, planRateChange, validRate } from '@/lib/utils/hourlyRate'
 
 const FACULTY_WRITABLE = [
   'name', 'subject', 'type', 'salaryModel', 'isActive',
@@ -96,10 +97,43 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await connectDB()
 
+    // Hourly rate changes are dated: an unchanged rate is ignored, a changed one
+    // needs an effective date and is appended to the rate history.
+    let rateChange: { from: number | undefined; to: number; effectiveFrom: string } | null = null
+    if ('hourlyRate' in safeData) {
+      const existing = await Faculty.findById(oid)
+      if (!existing) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
+      const newRate = safeData.hourlyRate
+      delete safeData.hourlyRate
+      if (newRate !== undefined && newRate !== null && newRate !== existing.hourlyRate) {
+        if (!validRate(newRate)) {
+          return withToken(json({ error: 'Hourly rate must be a positive number' }, 400), refreshedToken)
+        }
+        const effectiveFrom = parseRateDate(body.hourlyRateEffectiveFrom)
+        if (!effectiveFrom) {
+          return withToken(json({ error: 'Enter the date the new hourly rate takes effect (YYYY-MM-DD)' }, 400), refreshedToken)
+        }
+        Object.assign(safeData, planRateChange(existing, newRate, effectiveFrom, payload.username))
+        rateChange = { from: existing.hourlyRate, to: newRate, effectiveFrom: body.hourlyRateEffectiveFrom as string }
+      }
+      if (Object.keys(safeData).length === 0) {
+        return withToken(json(existing), refreshedToken)
+      }
+    }
+
     const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { new: true, runValidators: true })
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
-    if (SALARY_FIELDS.some((f) => f in safeData)) {
+    if (rateChange) {
+      await writeAuditLog({
+        category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
+        targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
+        facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
+        description: `Hourly rate for ${faculty.name} changed from ${rateChange.from ?? 'not set'} to ${rateChange.to}, effective ${rateChange.effectiveFrom}`,
+        metadata: { fields: Object.keys(safeData), ...rateChange },
+      })
+    } else if (SALARY_FIELDS.some((f) => f in safeData)) {
       await writeAuditLog({
         category: 'HR', eventType: 'PAY_CONFIG_UPDATED',
         actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
