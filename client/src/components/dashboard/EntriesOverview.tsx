@@ -52,6 +52,12 @@ interface FacultyRow {
   hours: number
 }
 
+interface SubjectRow {
+  subject: string
+  entries: number
+  hours: number
+}
+
 interface Props {
   /** Extra stats rendered first (e.g. the Admin dashboard's faculty counts). */
   leading?: React.ReactNode
@@ -98,6 +104,7 @@ export function EntriesOverview({ leading }: Props) {
     }
 
     const byFaculty = new Map<string, FacultyRow>()
+    const bySubject = new Map<string, SubjectRow>()
     let totalHours = 0
     for (const s of report.sessions) {
       const c = ensure(s.campusName)
@@ -110,6 +117,12 @@ export function EntriesOverview({ leading }: Props) {
       f.entries += 1
       f.hours += s.durationHours
       byFaculty.set(s.facultyId, f)
+
+      const subject = s.subject?.trim() || 'Unspecified'
+      const sub = bySubject.get(subject) ?? { subject, entries: 0, hours: 0 }
+      sub.entries += 1
+      sub.hours += s.durationHours
+      bySubject.set(subject, sub)
     }
     for (const n of report.noClass) {
       const c = ensure(n.campusName)
@@ -123,18 +136,19 @@ export function EntriesOverview({ leading }: Props) {
 
     const campuses = Array.from(byCampus.values()).sort((a, b) => a.campusName.localeCompare(b.campusName))
     const faculty = Array.from(byFaculty.values()).sort((a, b) => b.hours - a.hours)
+    const subjects = Array.from(bySubject.values()).sort((a, b) => b.hours - a.hours)
     const missingTotal = campuses.reduce((n, c) => n + c.missingDays.length, 0)
-    return { campuses, faculty, totalHours, missingTotal }
+    return { campuses, faculty, subjects, totalHours, missingTotal }
   }, [report, todayISO])
 
   const showToday = from <= todayISO && to >= todayISO
   const tracked = view?.campuses.filter((c) => report?.campuses.includes(c.campusName)) ?? []
   const maxFacultyHours = view?.faculty[0]?.hours ?? 0
+  const maxSubjectHours = view?.subjects[0]?.hours ?? 0
   const flagged = view?.campuses.filter((c) => c.missingDays.length > 0) ?? []
 
   const stats = [
     { label: 'Entries',          value: report ? report.sessions.length : '—',               color: 'var(--color-text)' },
-    { label: 'Hours Logged',     value: view ? formatHM(view.totalHours) : '—',              color: 'var(--color-primary)' },
     { label: 'Faculty Teaching', value: view ? view.faculty.length : '—',                    color: 'var(--color-success)' },
     { label: 'No Class Days',    value: report ? report.noClass.length : '—',                color: 'var(--color-info)' },
     { label: 'Unsubmitted Days', value: view ? view.missingTotal : '—',                      color: view && view.missingTotal > 0 ? 'var(--color-danger)' : 'var(--color-muted)' },
@@ -165,7 +179,7 @@ export function EntriesOverview({ leading }: Props) {
       <section>
         <h2 className="section-label" style={{ marginBottom: '0.75rem' }}>Entries · {periodLabel}</h2>
         {!report && res.status !== 'error' ? (
-          <SkeletonStats count={5} />
+          <SkeletonStats count={4} />
         ) : (
           <div className="stat-strip">
             {stats.map(({ label, value, color }) => (
@@ -246,6 +260,42 @@ export function EntriesOverview({ leading }: Props) {
           </div>
         </section>
       )}
+
+      {/* ── Hours by subject ─────────────────────────────────────────────────── */}
+      <div className="card" style={{ minWidth: 0 }}>
+        <div className="card-header">
+          <h2>Hours by Subject</h2>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
+            {view ? `${formatHM(view.totalHours)} total` : ''}
+          </span>
+        </div>
+        {!view ? (
+          <SkeletonCard lines={4} showHeader={false} />
+        ) : view.subjects.length === 0 ? (
+          <EmptyState title="No entries in this range" description="Hours by subject will appear here once entries are submitted." />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.875rem 2rem' }}>
+            {view.subjects.map((sub) => (
+              <div key={sub.subject}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.3rem' }}>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.subject}</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                    {formatHM(sub.hours)} · {sub.entries} {sub.entries === 1 ? 'entry' : 'entries'}
+                  </span>
+                </div>
+                <div style={{ height: 6, borderRadius: 3, background: 'var(--color-surface-2)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${maxSubjectHours > 0 ? (sub.hours / maxSubjectHours) * 100 : 0}%`,
+                    background: 'var(--color-primary)',
+                    borderRadius: 3,
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="panel-grid-2">
         {/* ── Campus-wise ───────────────────────────────────────────────────── */}
