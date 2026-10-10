@@ -21,8 +21,17 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
     const history = (editing.hourlyRateHistory ?? []).slice().reverse()
     return (
       <>
+        {isEdit && originalRate != null && (
+          <div className="form-group">
+            <label className="label">Current Hourly Rate</label>
+            <div className="input" style={{ background: 'var(--color-surface-2)', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+              ₹{originalRate}/hr
+            </div>
+          </div>
+        )}
+
         <div className="form-group">
-          <label className="label">Hourly Rate (₹)</label>
+          <label className="label">{isEdit && originalRate != null ? 'New Hourly Rate (₹)' : 'Hourly Rate (₹)'}</label>
           <input
             type="number" min={1} step="any" className="input"
             value={editing.hourlyRate ?? ''}
@@ -45,7 +54,7 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
               onChange={(e) => set('hourlyRateEffectiveFrom', e.target.value)}
             />
             <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
-              Hours on or after this date use ₹{editing.hourlyRate}; earlier hours keep ₹{originalRate}.
+              Changing ₹{originalRate} → ₹{editing.hourlyRate}. Hours on or after this date use the new rate; earlier hours keep ₹{originalRate}.
             </div>
           </div>
         )}
