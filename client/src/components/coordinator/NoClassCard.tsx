@@ -12,6 +12,9 @@ function fmtDay(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+const FACULTY_CANCELLATION = 'Faculty cancellation'
+const OTHER = 'OTHER'
+
 /**
  * "No Class" marker for the coordinator's campus. A day with no entries and no
  * marker is red-flagged on the HR/Admin Entries Report, so days without any
@@ -21,7 +24,8 @@ export function NoClassCard({ accessToken, teachers }: { accessToken: string; te
   const toast = useToast()
   const today = todayLocal()
   const [date, setDate] = useState(today)
-  const [reason, setReason] = useState('')
+  const [reasonKind, setReasonKind] = useState('')
+  const [otherReason, setOtherReason] = useState('')
   const [by, setBy] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -36,11 +40,15 @@ export function NoClassCard({ accessToken, teachers }: { accessToken: string; te
     setError('')
     if (!date) { setError('Select the date'); return }
     if (!by)   { setError('Select who is marking this'); return }
+    if (!reasonKind) { setError('Select the reason'); return }
+    const reason = reasonKind === OTHER ? otherReason.trim() : FACULTY_CANCELLATION
+    if (!reason) { setError('Enter the reason for no class'); return }
     setSaving(true)
     try {
-      await markNoClass({ date, reason: reason.trim() || undefined, markedByName: by }, accessToken)
+      await markNoClass({ date, reason, markedByName: by }, accessToken)
       toast.success('Marked as No Class', `${fmtDay(date)} is recorded as a day with no class.`)
-      setReason('')
+      setReasonKind('')
+      setOtherReason('')
       recent.refetch()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not mark No Class')
@@ -82,9 +90,18 @@ export function NoClassCard({ accessToken, teachers }: { accessToken: string; te
             </select>
           </FormField>
         </div>
-        <FormField label="Reason" htmlFor="nc-reason" hint="Optional — e.g. holiday, exam day">
-          <input id="nc-reason" className="input" value={reason} maxLength={120} onChange={(e) => setReason(e.target.value)} />
+        <FormField label="Reason" htmlFor="nc-reason" required>
+          <select id="nc-reason" className="input" value={reasonKind} onChange={(e) => setReasonKind(e.target.value)}>
+            <option value="">— select —</option>
+            <option value={FACULTY_CANCELLATION}>{FACULTY_CANCELLATION}</option>
+            <option value={OTHER}>Other</option>
+          </select>
         </FormField>
+        {reasonKind === OTHER && (
+          <FormField label="Enter the reason" htmlFor="nc-other" required hint="e.g. holiday, exam day">
+            <input id="nc-other" className="input" value={otherReason} maxLength={120} autoFocus onChange={(e) => setOtherReason(e.target.value)} />
+          </FormField>
+        )}
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-primary" onClick={mark} disabled={saving}>
             {saving ? <><span className="spinner spinner-on-solid" /> Saving…</> : 'Mark as No Class'}

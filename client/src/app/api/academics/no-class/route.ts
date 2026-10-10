@@ -66,6 +66,9 @@ export async function POST(req: NextRequest) {
     if (!campusName || !(await getTrackedCampusNames()).includes(campusName)) {
       return withToken(json({ error: 'A valid campusName is required' }, 400), refreshedToken)
     }
+    if (typeof reason !== 'string' || !reason.trim()) {
+      return withToken(json({ error: 'A reason is required' }, 400), refreshedToken)
+    }
     const date = typeof dateStr === 'string' ? parseLocalDate(dateStr) : null
     if (!date) {
       return withToken(json({ error: 'date must be a YYYY-MM-DD date' }, 400), refreshedToken)
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest) {
       const doc = await NoClassDay.create({
         campusName,
         date,
-        reason: typeof reason === 'string' && reason.trim() ? reason.trim() : undefined,
+        reason: reason.trim().slice(0, 120),
         markedByUserId: new Types.ObjectId(payload.userId),
         markedByName: typeof markedByName === 'string' && markedByName ? markedByName : undefined,
       })
