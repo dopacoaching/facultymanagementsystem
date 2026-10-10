@@ -7,6 +7,7 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert, EmptyState, SkeletonStats, SkeletonCard } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { toLocalISO } from '@/utils/date'
+import { PushBoardDay } from './PushBoardDay'
 
 interface RangeData {
   from: string
@@ -42,7 +43,6 @@ interface CampusRow {
   hours: number
   noClassDays: number
   missingDays: string[]
-  today: 'SUBMITTED' | 'NO_CLASS' | 'PENDING'
 }
 
 interface FacultyRow {
@@ -92,12 +92,12 @@ export function EntriesOverview({ leading }: Props) {
 
     const byCampus = new Map<string, CampusRow>()
     for (const name of report.campuses) {
-      byCampus.set(name, { campusName: name, entries: 0, hours: 0, noClassDays: 0, missingDays: [], today: 'PENDING' })
+      byCampus.set(name, { campusName: name, entries: 0, hours: 0, noClassDays: 0, missingDays: [] })
     }
     const ensure = (name: string): CampusRow => {
       let row = byCampus.get(name)
       if (!row) {
-        row = { campusName: name, entries: 0, hours: 0, noClassDays: 0, missingDays: [], today: 'PENDING' }
+        row = { campusName: name, entries: 0, hours: 0, noClassDays: 0, missingDays: [] }
         byCampus.set(name, row)
       }
       return row
@@ -110,7 +110,6 @@ export function EntriesOverview({ leading }: Props) {
       const c = ensure(s.campusName)
       c.entries += 1
       c.hours += s.durationHours
-      if (s.date === todayISO) c.today = 'SUBMITTED'
       totalHours += s.durationHours
 
       const f = byFaculty.get(s.facultyId) ?? { facultyId: s.facultyId, name: s.facultyName, entries: 0, hours: 0 }
@@ -127,7 +126,6 @@ export function EntriesOverview({ leading }: Props) {
     for (const n of report.noClass) {
       const c = ensure(n.campusName)
       c.noClassDays += 1
-      if (n.date === todayISO && c.today !== 'SUBMITTED') c.today = 'NO_CLASS'
     }
     // Sundays are off days — never flag them as missing.
     for (const m of report.missing) {
@@ -139,10 +137,8 @@ export function EntriesOverview({ leading }: Props) {
     const subjects = Array.from(bySubject.values()).sort((a, b) => b.hours - a.hours)
     const missingTotal = campuses.reduce((n, c) => n + c.missingDays.length, 0)
     return { campuses, faculty, subjects, totalHours, missingTotal }
-  }, [report, todayISO])
+  }, [report])
 
-  const showToday = from <= todayISO && to >= todayISO
-  const tracked = view?.campuses.filter((c) => report?.campuses.includes(c.campusName)) ?? []
   const maxFacultyHours = view?.faculty[0]?.hours ?? 0
   const maxSubjectHours = view?.subjects[0]?.hours ?? 0
   const flagged = view?.campuses.filter((c) => c.missingDays.length > 0) ?? []
@@ -156,6 +152,8 @@ export function EntriesOverview({ leading }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+      <PushBoardDay />
+
       <DateRangeFilter
         from={from}
         to={to}
@@ -196,42 +194,6 @@ export function EntriesOverview({ leading }: Props) {
           </p>
         )}
       </section>
-
-      {/* ── Push Board status for today, per campus ─────────────────────────── */}
-      {showToday && (
-        <section>
-          <h2 className="section-label" style={{ marginBottom: '0.75rem' }}>Push Board · Today</h2>
-          {!view ? (
-            <SkeletonCard lines={3} showHeader={false} />
-          ) : tracked.length === 0 ? (
-            <div className="card"><p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '0.875rem' }}>No campuses are configured for tracking.</p></div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-              {tracked.map((c) => {
-                const submitted = c.today === 'SUBMITTED'
-                const noClass = c.today === 'NO_CLASS'
-                const todayRows = report!.sessions.filter((s) => s.campusName === c.campusName && s.date === todayISO)
-                const todayHours = todayRows.reduce((n, s) => n + s.durationHours, 0)
-                return (
-                  <div key={c.campusName} className="stat-card" style={{ gap: '0.375rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 650, fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campusName}</span>
-                      <span className={`badge ${submitted ? 'badge-green' : noClass ? 'badge-blue' : 'badge-yellow'}`} style={{ flexShrink: 0 }}>
-                        {submitted ? 'Submitted' : noClass ? 'No class' : 'Pending'}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-                      {submitted
-                        ? `${todayRows.length} ${todayRows.length === 1 ? 'entry' : 'entries'} · ${formatHM(todayHours)}`
-                        : noClass ? 'Marked as no class today' : 'No entry yet today'}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* ── Unsubmitted days (red flags) ────────────────────────────────────── */}
       {view && flagged.length > 0 && (
