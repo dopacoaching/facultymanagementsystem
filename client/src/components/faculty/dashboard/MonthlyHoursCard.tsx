@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { HoursSummaryResponse } from '@/services/salary.service'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 import { MONTHS } from './types'
 
 interface MonthlyHoursCardProps {
@@ -11,9 +12,11 @@ export function MonthlyHoursCard({ hoursSummary }: MonthlyHoursCardProps) {
     <div className="card" style={{ marginBottom: '1.5rem' }}>
       <div className="card-header">
         <h2>Monthly Class Hours</h2>
-        <Link href="/faculty/salary" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
-          Full history →
-        </Link>
+        {SALARY_ENABLED && (
+          <Link href="/faculty/salary" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
+            Full history →
+          </Link>
+        )}
       </div>
       <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem' }}>
         All time: <strong style={{ color: 'var(--color-text)' }}>{hoursSummary.allTimeTotalHours.toFixed(1)} hrs</strong> across {hoursSummary.allTimeSessionCount} session{hoursSummary.allTimeSessionCount === 1 ? '' : 's'}

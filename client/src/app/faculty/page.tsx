@@ -5,9 +5,8 @@ import { getAll as getSessions } from '@/services/session.service'
 import { getById as getFacultyById } from '@/services/faculty.service'
 import { calculate, getMyHoursSummary } from '@/services/salary.service'
 import type { HoursSummaryResponse } from '@/services/salary.service'
-import type { Session } from '@/types'
-import type { Faculty } from '@/types'
-import type { SalaryResult } from '@/types'
+import type { Session, Faculty, SalaryResult } from '@/types'
+import { SALARY_ENABLED } from '@/lib/constants/features'
 import { SkeletonStats, SkeletonCard } from '@/components/ui/Skeleton'
 import {
   WelcomeBanner, DashboardStats, SalarySnapshotCard, MonthlyHoursCard, RecentSessionsCard,
@@ -32,12 +31,9 @@ export default function FacultyDashboard() {
     setLoading(true)
     Promise.all([
       getFacultyById(facultyId, accessToken).catch(() => null),
-      // Fetch enough sessions to cover this month's display + upcoming list.
-      // limit:50 is generous; total hours are derived from the salary calculation
-      // below (which aggregates all COMPLETED sessions server-side) rather than
-      // from this capped list.
       getSessions({ facultyId, limit: 50 } as Parameters<typeof getSessions>[0], accessToken).catch(() => [] as Session[]),
-      calculate(facultyId, month, year, accessToken).catch(() => null),
+      // Salary is on hold: skip the calculation entirely (the API would answer 503).
+      SALARY_ENABLED ? calculate(facultyId, month, year, accessToken).catch(() => null) : Promise.resolve(null),
       getMyHoursSummary(accessToken).catch(() => null),
     ])
       .then(([fac, sess, sal, hrs]) => {
@@ -49,16 +45,19 @@ export default function FacultyDashboard() {
       .finally(() => setLoading(false))
   }, [accessToken, facultyId]) // eslint-disable-line
 
-  const thisMonthSessions = sessions.filter((s) => {
+  // Month figures come from the server-aggregated summary (all COMPLETED
+  // sessions); the capped session list is only a fallback and the recent list.
+  const thisMonthRow = hoursSummary?.months.find((m) => m.month === month && m.year === year)
+  const completedFallback = sessions.filter((s) => {
     const d = new Date(s.sessionDate)
-    return d.getMonth() + 1 === month && d.getFullYear() === year
+    return s.status === 'COMPLETED' && d.getMonth() + 1 === month && d.getFullYear() === year
   })
-  const completed   = thisMonthSessions.filter((s) => s.status === 'COMPLETED')
-  const upcoming    = sessions.filter((s) => s.status === 'SCHEDULED')
-  // Use server-aggregated hoursLogged from the salary calculation as the authoritative
-  // hours total — it covers ALL sessions, not just the ones in the capped fetch above.
-  const totalHours  = salary?.hoursLogged ?? completed.reduce((sum, s) => sum + s.durationHours, 0)
+  const completedCount = thisMonthRow?.sessionCount ?? completedFallback.length
+  const totalHours = salary?.hoursLogged
+    ?? thisMonthRow?.totalHours
+    ?? completedFallback.reduce((sum, s) => sum + s.durationHours, 0)
   const allTimeHours = hoursSummary?.allTimeTotalHours
+  const lastEntry = sessions.find((s) => s.status === 'COMPLETED')?.sessionDate
 
   if (loading) {
     return (
@@ -76,14 +75,14 @@ export default function FacultyDashboard() {
       <WelcomeBanner faculty={faculty} month={month} year={year} />
 
       <DashboardStats
-        completedCount={completed.length}
+        completedCount={completedCount}
         totalHours={totalHours}
         allTimeHours={allTimeHours}
-        upcomingCount={upcoming.length}
+        lastEntry={lastEntry}
         salary={salary}
       />
 
-      {salary && (salary.status === 'OK' || salary.status === 'HR_REVIEW') && (
+      {SALARY_ENABLED && salary && (salary.status === 'OK' || salary.status === 'HR_REVIEW') && (
         <SalarySnapshotCard salary={salary} month={month} year={year} />
       )}
 
