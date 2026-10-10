@@ -8,6 +8,7 @@ import { ErrorAlert, EmptyState, SkeletonStats, SkeletonCard } from '@/component
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { toLocalISO } from '@/utils/date'
 import { PushBoardDay } from './PushBoardDay'
+import { SubjectHours } from './SubjectHours'
 
 interface RangeData {
   from: string
@@ -48,12 +49,6 @@ interface CampusRow {
 interface FacultyRow {
   facultyId: string
   name: string
-  entries: number
-  hours: number
-}
-
-interface SubjectRow {
-  subject: string
   entries: number
   hours: number
 }
@@ -104,7 +99,6 @@ export function EntriesOverview({ leading }: Props) {
     }
 
     const byFaculty = new Map<string, FacultyRow>()
-    const bySubject = new Map<string, SubjectRow>()
     let totalHours = 0
     for (const s of report.sessions) {
       const c = ensure(s.campusName)
@@ -116,12 +110,6 @@ export function EntriesOverview({ leading }: Props) {
       f.entries += 1
       f.hours += s.durationHours
       byFaculty.set(s.facultyId, f)
-
-      const subject = s.subject?.trim() || 'Unspecified'
-      const sub = bySubject.get(subject) ?? { subject, entries: 0, hours: 0 }
-      sub.entries += 1
-      sub.hours += s.durationHours
-      bySubject.set(subject, sub)
     }
     for (const n of report.noClass) {
       const c = ensure(n.campusName)
@@ -134,13 +122,11 @@ export function EntriesOverview({ leading }: Props) {
 
     const campuses = Array.from(byCampus.values()).sort((a, b) => a.campusName.localeCompare(b.campusName))
     const faculty = Array.from(byFaculty.values()).sort((a, b) => b.hours - a.hours)
-    const subjects = Array.from(bySubject.values()).sort((a, b) => b.hours - a.hours)
     const missingTotal = campuses.reduce((n, c) => n + c.missingDays.length, 0)
-    return { campuses, faculty, subjects, totalHours, missingTotal }
+    return { campuses, faculty, totalHours, missingTotal }
   }, [report])
 
   const maxFacultyHours = view?.faculty[0]?.hours ?? 0
-  const maxSubjectHours = view?.subjects[0]?.hours ?? 0
   const flagged = view?.campuses.filter((c) => c.missingDays.length > 0) ?? []
 
   const stats = [
@@ -223,41 +209,7 @@ export function EntriesOverview({ leading }: Props) {
         </section>
       )}
 
-      {/* ── Hours by subject ─────────────────────────────────────────────────── */}
-      <div className="card" style={{ minWidth: 0 }}>
-        <div className="card-header">
-          <h2>Hours by Subject</h2>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-            {view ? `${formatHM(view.totalHours)} total` : ''}
-          </span>
-        </div>
-        {!view ? (
-          <SkeletonCard lines={4} showHeader={false} />
-        ) : view.subjects.length === 0 ? (
-          <EmptyState title="No entries in this range" description="Hours by subject will appear here once entries are submitted." />
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.875rem 2rem' }}>
-            {view.subjects.map((sub) => (
-              <div key={sub.subject}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.3rem' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.subject}</span>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                    {formatHM(sub.hours)} · {sub.entries} {sub.entries === 1 ? 'entry' : 'entries'}
-                  </span>
-                </div>
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--color-surface-2)', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${maxSubjectHours > 0 ? (sub.hours / maxSubjectHours) * 100 : 0}%`,
-                    background: 'var(--color-primary)',
-                    borderRadius: 3,
-                  }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SubjectHours />
 
       <div className="panel-grid-2">
         {/* ── Campus-wise ───────────────────────────────────────────────────── */}
