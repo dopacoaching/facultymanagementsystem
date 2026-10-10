@@ -13,6 +13,7 @@ import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
 import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
+import { PushCampus } from '../models/PushCampus'
 import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
@@ -176,7 +177,12 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
         res.status(403).json({ error: 'You can only log sessions for your own campus.' }); return
       }
       if (batch) {
-        const allowedCampusId = CAMPUS_LOGIN_CAMPUS_IDS[req.user!.campusName]
+        // Campus records are managed in Setup (database); the static map is only
+        // a fallback for databases that have not been seeded yet.
+        const pushCampus = await PushCampus.findOne({ name: req.user!.campusName, isActive: true }).lean()
+        const allowedCampusId = pushCampus
+          ? pushCampus.batchCampusId?.toString()
+          : CAMPUS_LOGIN_CAMPUS_IDS[req.user!.campusName]
         if (!allowedCampusId || batch.campusId.toString() !== allowedCampusId) {
           res.status(403).json({ error: 'That batch does not belong to your campus.' }); return
         }

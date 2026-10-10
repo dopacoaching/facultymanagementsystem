@@ -12,7 +12,7 @@ import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
-import { findCampusByName } from '@/lib/constants/campuses'
+import { findPushCampusByName } from '@/lib/services/pushCampuses'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
           return withToken(json({ error: 'You can only log sessions for your own campus.' }, 403), refreshedToken)
         }
         if (batch) {
-          const allowedCampusId = findCampusByName(payload.campusName)?.campusId
+          const allowedCampusId = (await findPushCampusByName(payload.campusName))?.batchCampusId?.toString()
           if (!allowedCampusId || batch.campusId.toString() !== allowedCampusId) {
             return withToken(json({ error: 'That batch does not belong to your campus.' }, 403), refreshedToken)
           }

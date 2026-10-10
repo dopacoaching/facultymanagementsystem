@@ -1,30 +1,28 @@
 import { Types } from 'mongoose'
-import { Campus } from '@/lib/models/Campus'
 import { Batch } from '@/lib/models/Batch'
 import { Session } from '@/lib/models/Session'
-import { CAMPUSES } from '@/lib/constants/campuses'
-import { IG_TEACHERS } from '@/lib/constants/igTeachers'
+import { findIgPushCampus, listActivePushCampuses } from '@/lib/services/pushCampuses'
 
-/** Campus._id → display name for every IG school that has a login. */
+/** Campus._id → display name for every active IG school. */
 export async function getIgCampusNames(): Promise<Map<string, string>> {
-  const docs = await Campus.find({ _id: { $in: Object.keys(IG_TEACHERS) } }).select('name').lean()
-  return new Map(docs.map((c) => [String(c._id), c.name]))
+  const all = await listActivePushCampuses()
+  return new Map(
+    all.filter((c) => c.kind === 'IG' && c.batchCampusId).map((c) => [String(c.batchCampusId), c.name]),
+  )
 }
 
 /** Every campus/school name that is expected to submit daily entries. */
 export async function getTrackedCampusNames(): Promise<string[]> {
-  const ig = await getIgCampusNames()
-  return [...CAMPUSES.map((c) => c.campusName), ...Array.from(ig.values())]
+  return (await listActivePushCampuses()).map((c) => c.name)
 }
 
 /** The campus name a coordinator login belongs to (class teacher: from the token;
- *  IG class teacher: looked up from their school's Campus document). */
+ *  IG class teacher: looked up from their school's campus record). */
 export async function resolveCoordinatorCampusName(
   payload: { role: string; campusName?: string; campusId?: string },
 ): Promise<string | undefined> {
   if (payload.role === 'IG_CLASS_TEACHER') {
-    if (!payload.campusId || !Types.ObjectId.isValid(payload.campusId)) return undefined
-    return (await getIgCampusNames()).get(payload.campusId)
+    return (await findIgPushCampus(payload.campusId))?.name
   }
   return payload.campusName
 }

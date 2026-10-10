@@ -3,11 +3,9 @@ import { useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import type { Batch } from '@/services/faculty.service'
-import { getCampuses } from '@/services/campus.service'
+import { getMyCampus } from '@/services/campus.service'
 import { create as createIGSession } from '@/services/ig-session.service'
 import { apiFetch } from '@/services/api'
-import { findCampusByName } from '@/lib/constants/campuses'
-import { IG_TEACHERS } from '@/lib/constants/igTeachers'
 import type { Faculty } from '@/types'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert } from '@/components/ui/Skeleton'
@@ -28,7 +26,7 @@ const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId
  * schools also pick one of that campus's batches.
  */
 export default function PushBoardPage() {
-  const { accessToken, role, campusName, campusId } = useAppSelector((s) => s.auth)
+  const { accessToken, role, campusName } = useAppSelector((s) => s.auth)
   const toast = useToast()
   const isIG = role === 'IG_CLASS_TEACHER'
 
@@ -39,21 +37,17 @@ export default function PushBoardPage() {
   )
   const facultyList = facultyRes.data ?? []
 
-  // Campus: a class-teacher login carries campusName (static config); an IG
-  // class teacher carries the Campus._id of their school.
-  const campusConfig = isIG ? undefined : findCampusByName(campusName)
-  const batchCampusId = isIG ? campusId : campusConfig?.campusId
-  const campusesRes = useAsyncResource(
-    () => getCampuses(accessToken!),
+  // Campus name, teacher names and batch campus come from the campus record that
+  // HR/Admin maintain in Setup (looked up from the login).
+  const myCampusRes = useAsyncResource(
+    () => getMyCampus(accessToken!),
     [accessToken],
-    { enabled: !!accessToken && isIG },
+    { enabled: !!accessToken },
   )
-  const campusLabel = isIG
-    ? campusesRes.data?.find((c) => c._id === campusId)?.name ?? null
-    : campusName
-  const teacherNames = isIG
-    ? (campusId ? IG_TEACHERS[campusId] ?? [] : [])
-    : campusConfig?.teachers ?? []
+  const myCampus = myCampusRes.data
+  const batchCampusId = myCampus?.batchCampusId ?? undefined
+  const campusLabel = myCampus?.name ?? (isIG ? null : campusName)
+  const teacherNames = myCampus?.teachers ?? []
 
   const batchesRes = useAsyncResource<Batch[]>(
     () => getBatches(accessToken!),
@@ -64,7 +58,8 @@ export default function PushBoardPage() {
     () => (batchesRes.data ?? []).filter((b) => batchCampusOf(b) === batchCampusId),
     [batchesRes.data, batchCampusId],
   )
-  const needsBatch = !!batchCampusId
+  // A campus linked to batches asks for one — unless it has none set up yet.
+  const needsBatch = !!batchCampusId && (batchesRes.status === 'loading' || campusBatches.length > 0)
   // Campuses with several batches may run one class for more than one of them at once.
   const multiBatch = needsBatch && campusBatches.length > 1
 
