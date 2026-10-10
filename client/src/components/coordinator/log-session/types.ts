@@ -72,9 +72,6 @@ export interface FormState {
   month: string
   sessionDate: string
   subject: string
-  /** Scheduled range from the academic team's sheet, e.g. 09:00 – 13:00. */
-  scheduledStart: string
-  scheduledEnd: string
   /** Time taken — when the class actually ran, e.g. 09:30 – 13:30. Pay is based on this. */
   startTime: string
   endTime: string
@@ -93,8 +90,6 @@ export const EMPTY_FORM = (): FormState => ({
   month:           todayLocal().slice(0, 7),
   sessionDate:     todayLocal(),
   subject:         '',
-  scheduledStart:  '',
-  scheduledEnd:    '',
   startTime:       '',
   endTime:         '',
   batchId:         '',

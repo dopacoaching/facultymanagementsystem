@@ -118,8 +118,6 @@ export default function PushBoardPage() {
       return 'The date must be inside the selected month, and not in the future'
     }
     if (!form.subject.trim())      return 'Subject is required'
-    if (!form.scheduledStart || !form.scheduledEnd) return 'Enter the scheduled start and end time'
-    if (form.scheduledEnd <= form.scheduledStart)   return 'Scheduled end time must be after the scheduled start time'
     if (needsBatch && !form.batchId) return 'Select the batch'
     if (!form.classMode)           return 'Select the class mode'
     if (!form.chapter.trim())      return 'Chapter is required'
@@ -139,8 +137,6 @@ export default function PushBoardPage() {
       classMode:        form.classMode || undefined,
       subject:          form.subject.trim(),
       chapter:          form.chapter.trim(),
-      scheduledTime:    form.scheduledStart,
-      scheduledEndTime: form.scheduledEnd,
       startTime:        form.startTime,
       endTime:          form.endTime,
       breakMinutes:          duration.morningBreak,
@@ -305,27 +301,6 @@ export default function PushBoardPage() {
               </div>
 
               <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
-
-              <div className="input-group">
-                <FormField label="Scheduled time — from" htmlFor="pb-sched-start" required hint="As given by the academic team">
-                  <input
-                    id="pb-sched-start"
-                    type="time"
-                    className="input"
-                    value={form.scheduledStart}
-                    onChange={(e) => setField('scheduledStart', e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Scheduled time — to" htmlFor="pb-sched-end" required>
-                  <input
-                    id="pb-sched-end"
-                    type="time"
-                    className="input"
-                    value={form.scheduledEnd}
-                    onChange={(e) => setField('scheduledEnd', e.target.value)}
-                  />
-                </FormField>
-              </div>
 
               <div className="input-group">
                 <FormField label="Time taken — started" htmlFor="pb-start" required hint="When the class actually began">
