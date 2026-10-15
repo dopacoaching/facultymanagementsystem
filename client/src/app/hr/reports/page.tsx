@@ -98,7 +98,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
               {showSubject && <td style={{ color: 'var(--color-text-secondary)' }}>{r.subject}</td>}
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.chapter || '—'}</td>
               <td style={{ whiteSpace: 'nowrap' }}>{r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '—'}</td>
-              <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime || '—'}–{r.endTime || '—'}</td>
+              <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
               <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{breakLabel(r)}</td>
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>

@@ -71,6 +71,9 @@ export interface FormState {
   facultyId: string
   /** Live or Shoot — only on campuses that record both (Studio). */
   entryType: EntryType | ''
+  /** Shoot only: time entered directly instead of start/end — whole hours and minutes. */
+  shootHours: string
+  shootMinutes: string
   /** "YYYY-MM" — picked first; limits which days the Date field allows. */
   month: string
   sessionDate: string
@@ -93,6 +96,8 @@ export interface FormState {
 export const EMPTY_FORM = (): FormState => ({
   facultyId:       '',
   entryType:       '',
+  shootHours:      '',
+  shootMinutes:    '',
   month:           todayLocal().slice(0, 7),
   sessionDate:     todayLocal(),
   subject:         '',
@@ -106,6 +111,19 @@ export const EMPTY_FORM = (): FormState => ({
   teaBreak:        { nil: false, minutes: '' },
   updatedByName:   '',
 })
+
+/** Shoot time entered as hours + minutes (no start/end, no break). */
+export function computeShootDuration(hoursStr: string, minutesStr: string): { hours: number; error?: string } {
+  const h = hoursStr.trim() === '' ? 0 : Number(hoursStr)
+  const m = minutesStr.trim() === '' ? 0 : Number(minutesStr)
+  if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || m < 0) {
+    return { hours: 0, error: 'Hours and minutes must be whole numbers' }
+  }
+  if (m > 59) return { hours: 0, error: 'Minutes must be 0–59' }
+  const total = h * 60 + m
+  if (total < 30) return { hours: 0, error: 'Time must be at least 30 minutes' }
+  return { hours: total / 60 }
+}
 
 /** First and last selectable day for a "YYYY-MM" month — never later than today. */
 export function monthBounds(month: string): { min: string; max: string } {

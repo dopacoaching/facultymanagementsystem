@@ -125,7 +125,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   }
   // Campus-flow sessions are keyed by startTime for duplicate detection below —
   // require it here rather than relying on the coordinator UI's own validation.
-  if (campusName && !startTime) {
+  // A Shoot is entered as a total time only, so it has no start time.
+  if (campusName && !startTime && rawEntryType !== 'SHOOT') {
     res.status(400).json({ error: 'startTime is required for campus-logged sessions' }); return
   }
   if (Number(durationHours) < 0.5) {
@@ -247,7 +248,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   // startTime — same faculty + campus + day + start time is an accidental
   // resubmission of the same class; a different start time is a genuinely
   // different session and must not be blocked. ──
-  const dup = await Session.findOne({
+  // A Shoot has no start time to tell two shoots apart, so it is never a duplicate.
+  const dup = (rawEntryType === 'SHOOT' && !startTime) ? null : await Session.findOne({
     facultyId: facultyOid,
     ...(campusName
       ? { campusName, startTime }
@@ -328,6 +330,10 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
       rawDurationHours = storedHours
       storedHours = shootHours(storedHours)
     }
+  }
+
+  if (campusName && !startTime && entryType !== 'SHOOT') {
+    res.status(400).json({ error: 'startTime is required for campus-logged sessions' }); return
   }
 
   // ── All checks passed — create session ────────────────────────────────────

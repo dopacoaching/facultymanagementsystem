@@ -5,7 +5,7 @@ import { getAll, update } from '@/services/session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditClassSessionModal, formFromSession, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
-import { computeDuration } from '@/components/coordinator/log-session'
+import { computeDuration, computeShootDuration } from '@/components/coordinator/log-session'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
 import type { Session } from '@/types'
@@ -58,7 +58,9 @@ export default function ClassSessionsPage() {
 
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
-    const duration = computeDuration(editForm.startTime, editForm.endTime, editForm.breaks)
+    const isShoot = editForm.entryType === 'SHOOT'
+    const classDuration = isShoot ? null : computeDuration(editForm.startTime, editForm.endTime, editForm.breaks)
+    const duration = classDuration ?? computeShootDuration(editForm.shootHours, editForm.shootMinutes)
     if (duration.error) { setEditError(duration.error); return }
 
     setSaving(true); setEditError('')
@@ -68,11 +70,16 @@ export default function ClassSessionsPage() {
         chapter:       editForm.chapter.trim(),
         classMode:     editForm.classMode || undefined,
         updatedByName: editForm.updatedByName.trim() || undefined,
-        startTime:     editForm.startTime,
-        endTime:       editForm.endTime,
-        breakMinutes:          duration.morningBreak,
-        lunchBreakMinutes:     duration.lunchBreak,
-        afternoonBreakMinutes: duration.afternoonBreak,
+        // A Shoot has no start/end/break — only the time taken.
+        ...(classDuration
+          ? {
+              startTime:             editForm.startTime,
+              endTime:               editForm.endTime,
+              breakMinutes:          classDuration.morningBreak,
+              lunchBreakMinutes:     classDuration.lunchBreak,
+              afternoonBreakMinutes: classDuration.afternoonBreak,
+            }
+          : {}),
         // Time actually taken — the server applies the Shoot multiplier.
         durationHours: duration.hours,
         entryType:     editForm.entryType || undefined,
@@ -176,7 +183,7 @@ export default function ClassSessionsPage() {
                         <td style={{ whiteSpace: 'nowrap' }}>{s.scheduledTime ? (s.scheduledEndTime ? `${s.scheduledTime} – ${s.scheduledEndTime}` : s.scheduledTime) : '—'}</td>
                       )}
                       <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                        {s.startTime ?? '—'}–{s.endTime ?? '—'}
+                        {s.startTime ? `${s.startTime}–${s.endTime ?? '—'}` : '—'}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
                         {s.entryType && <span className={`badge ${s.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{s.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(s.durationHours)}

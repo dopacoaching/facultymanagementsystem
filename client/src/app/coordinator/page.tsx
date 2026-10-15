@@ -15,7 +15,7 @@ import { NoClassCard } from '@/components/coordinator/NoClassCard'
 import { todayLocal } from '@/utils/date'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours } from '@/lib/constants/entryTypes'
 import {
-  EMPTY_FORM, FormState, computeDuration, monthBounds, teaBreakAsBreaks, formatHM,
+  EMPTY_FORM, FormState, computeDuration, computeShootDuration, monthBounds, teaBreakAsBreaks, formatHM,
   SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChapterField, BreakRow,
 } from '@/components/coordinator/log-session'
 
@@ -84,7 +84,13 @@ export default function PushBoardPage() {
     [form.startTime, form.endTime, form.teaBreak]
   )
   const isShoot = hasEntryTypes && form.entryType === 'SHOOT'
-  const countedHours = isShoot ? shootHours(duration.hours) : duration.hours
+  const shootDuration = useMemo(
+    () => computeShootDuration(form.shootHours, form.shootMinutes),
+    [form.shootHours, form.shootMinutes],
+  )
+  // A Shoot is entered as hours + minutes (no start/end/break) and counts 1.75x.
+  const activeDuration = isShoot ? shootDuration : duration
+  const countedHours = isShoot ? shootHours(shootDuration.hours) : duration.hours
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
@@ -127,7 +133,7 @@ export default function PushBoardPage() {
     if (needsBatch && !chosenBatchIds.length) return multiBatch ? 'Select at least one batch' : 'Select the batch'
     if (!form.classMode)           return 'Select the class mode'
     if (!form.chapter.trim())      return 'Chapter is required'
-    if (duration.error)            return duration.error
+    if (activeDuration.error)      return activeDuration.error
     if (!form.updatedByName)       return 'Select who is filling in this form'
     return null
   }
@@ -163,6 +169,14 @@ export default function PushBoardPage() {
           token: accessToken!,
           body: {
             ...common,
+            // A Shoot has no start/end/break — just the time taken (hours + minutes).
+            ...(isShoot
+              ? {
+                  startTime: undefined, endTime: undefined, breakMinutes: undefined,
+                  lunchBreakMinutes: undefined, afternoonBreakMinutes: undefined,
+                  durationHours: shootDuration.hours,
+                }
+              : {}),
             campusName,
             // Sent as the time actually taken; the server multiplies a Shoot.
             entryType: hasEntryTypes ? form.entryType : undefined,
@@ -327,26 +341,37 @@ export default function PushBoardPage() {
 
               <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
 
-              <div className="input-group">
-                <FormField label="Time taken — started" htmlFor="pb-start" required hint="When the class actually began">
-                  <input
-                    id="pb-start"
-                    type="time"
-                    className="input"
-                    value={form.startTime}
-                    onChange={(e) => setField('startTime', e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Time taken — ended" htmlFor="pb-end" required>
-                  <input
-                    id="pb-end"
-                    type="time"
-                    className="input"
-                    value={form.endTime}
-                    onChange={(e) => setField('endTime', e.target.value)}
-                  />
-                </FormField>
-              </div>
+              {isShoot ? (
+                <div className="input-group">
+                  <FormField label="Total hours" htmlFor="pb-shoot-h" required hint="Time taken for the shoot">
+                    <input id="pb-shoot-h" type="number" min={0} step={1} inputMode="numeric" className="input" value={form.shootHours} onChange={(e) => setField('shootHours', e.target.value)} />
+                  </FormField>
+                  <FormField label="Minutes" htmlFor="pb-shoot-m" hint="0–59">
+                    <input id="pb-shoot-m" type="number" min={0} max={59} step={1} inputMode="numeric" className="input" value={form.shootMinutes} onChange={(e) => setField('shootMinutes', e.target.value)} />
+                  </FormField>
+                </div>
+              ) : (
+                <div className="input-group">
+                  <FormField label="Time taken — started" htmlFor="pb-start" required hint="When the class actually began">
+                    <input
+                      id="pb-start"
+                      type="time"
+                      className="input"
+                      value={form.startTime}
+                      onChange={(e) => setField('startTime', e.target.value)}
+                    />
+                  </FormField>
+                  <FormField label="Time taken — ended" htmlFor="pb-end" required>
+                    <input
+                      id="pb-end"
+                      type="time"
+                      className="input"
+                      value={form.endTime}
+                      onChange={(e) => setField('endTime', e.target.value)}
+                    />
+                  </FormField>
+                </div>
+              )}
 
               <FormField label="Campus" htmlFor="pb-campus" required>
                 <select id="pb-campus" className="input" value={campusLabel ?? ''} disabled={!campusLabel} onChange={() => {}}>
@@ -437,8 +462,8 @@ export default function PushBoardPage() {
                 label="Total hours & minutes"
                 htmlFor="pb-total"
                 hint={
-                  isShoot && !duration.error
-                    ? `${formatHM(duration.hours * 60)} taken × ${SHOOT_MULTIPLIER} for a Shoot`
+                  isShoot && !shootDuration.error
+                    ? `${formatHM(shootDuration.hours * 60)} taken × ${SHOOT_MULTIPLIER} for a Shoot`
                     : duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of tea break deducted` : 'Calculated automatically'
                 }
               >
@@ -447,16 +472,18 @@ export default function PushBoardPage() {
                   className="input"
                   readOnly
                   disabled
-                  value={!duration.error ? formatHM(countedHours * 60) : '—'}
+                  value={!activeDuration.error ? formatHM(countedHours * 60) : '—'}
                 />
               </FormField>
 
-              <BreakRow
-                label="Break (Tea)"
-                note="first 15m free"
-                field={form.teaBreak}
-                onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })}
-              />
+              {!isShoot && (
+                <BreakRow
+                  label="Break (Tea)"
+                  note="first 15m free"
+                  field={form.teaBreak}
+                  onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })}
+                />
+              )}
 
               <FormField label="Updated by" htmlFor="pb-updated-by" required>
                 <select

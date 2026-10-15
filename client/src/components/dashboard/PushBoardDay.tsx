@@ -154,7 +154,7 @@ export function PushBoardDay() {
                         <td>{e.facultyName}</td>
                         <td>{e.subject}</td>
                         <td style={{ color: 'var(--color-text-secondary)' }}>{e.chapter || '—'}</td>
-                        <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.startTime || '—'}–{e.endTime || '—'}</td>
+                        <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.startTime ? `${e.startTime}–${e.endTime || '—'}` : '—'}</td>
                         <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{e.entryType && <span className={`badge ${e.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{e.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(e.durationHours)}</td>
                         <td style={{ color: 'var(--color-text-secondary)' }}>{e.updatedByName || '—'}</td>
                       </tr>

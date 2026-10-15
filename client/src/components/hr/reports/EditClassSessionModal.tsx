@@ -5,6 +5,9 @@ import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coo
 export interface EditClassSessionForm {
   /** Studio entries only; '' hides the selector. */
   entryType: EntryType | ''
+  /** Shoot entries: time taken as whole hours + minutes (no start/end/break). */
+  shootHours: string
+  shootMinutes: string
   subject: string
   chapter: string
   classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE' | ''
@@ -16,8 +19,12 @@ export interface EditClassSessionForm {
 }
 
 export function formFromSession(s: Session): EditClassSessionForm {
+  // A Shoot is edited by the time actually taken, not the multiplied hours.
+  const rawMins = s.entryType === 'SHOOT' ? Math.round((s.rawDurationHours ?? s.durationHours) * 60) : 0
   return {
     entryType:     s.entryType ?? '',
+    shootHours:    s.entryType === 'SHOOT' ? String(Math.floor(rawMins / 60)) : '',
+    shootMinutes:  s.entryType === 'SHOOT' ? String(rawMins % 60) : '',
     subject:       s.subject,
     chapter:       s.chapter,
     classMode:     s.classMode ?? '',
@@ -98,16 +105,33 @@ export function EditClassSessionModal({
               <label className="label">Updated By</label>
               <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
             </div>
-            <div className="form-group">
-              <label className="label">Start Time</label>
-              <input type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
-            </div>
-            <div className="form-group">
-              <label className="label">End Time</label>
-              <input type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
-            </div>
+            {form.entryType === 'SHOOT' ? (
+              <>
+                <div className="form-group">
+                  <label className="label">Total Hours</label>
+                  <input type="number" min={0} step={1} className="input" value={form.shootHours} onChange={(e) => setForm((f) => ({ ...f, shootHours: e.target.value }))} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Minutes</label>
+                  <input type="number" min={0} max={59} step={1} className="input" value={form.shootMinutes} onChange={(e) => setForm((f) => ({ ...f, shootMinutes: e.target.value }))} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label className="label">Start Time</label>
+                  <input type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+                </div>
+                <div className="form-group">
+                  <label className="label">End Time</label>
+                  <input type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
+                </div>
+              </>
+            )}
           </div>
-          <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} />
+          {form.entryType !== 'SHOOT' && (
+            <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} />
+          )}
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
