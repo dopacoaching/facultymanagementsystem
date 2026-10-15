@@ -149,6 +149,32 @@ function toTSV(rows: EntryRow[]): string {
   return [head.join('\t'), ...lines].join('\n')
 }
 
+/** One sheet of the entries in view, same columns as the copied text. Loaded on
+ *  demand so the xlsx writer stays out of the page's initial bundle. */
+async function downloadExcel(rows: EntryRow[], from: string, to: string) {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser')
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Entry type',
+    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours']
+  const text = (value: string | undefined) => ({ value: value || undefined, type: String })
+  const header = head.map((h) => ({ value: h, type: String, fontWeight: 'bold' as const }))
+  const body = rows.map((r) => {
+    const mins = Math.round(r.durationHours * 60)
+    const brk = breakTotal(r)
+    return [
+      text(r.date), text(r.campusName), text(r.batchName), text(r.facultyName), text(r.facultyType),
+      text(r.subject), text(r.chapter), text(r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : ''),
+      text(r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : ''),
+      text(r.startTime), text(r.endTime),
+      { value: brk ?? undefined, type: Number },
+      text(r.updatedByName),
+      text(`${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`),
+      { value: Math.round(r.durationHours * 100) / 100, type: Number, format: '0.00' },
+    ]
+  })
+  const columns = [12, 22, 18, 24, 14, 14, 30, 16, 11, 8, 8, 12, 18, 11, 9].map((width) => ({ width }))
+  await writeXlsxFile([header, ...body], { columns, stickyRowsCount: 1 }).toFile(`entries-report_${from}_to_${to}.xlsx`)
+}
+
 export default function EntriesReportPage() {
   const { accessToken, role } = useAppSelector((s) => s.auth)
   const toast = useToast()
@@ -228,6 +254,14 @@ export default function EntriesReportPage() {
     }
   }
 
+  async function exportExcel() {
+    try {
+      await downloadExcel(rows, from, to)
+    } catch {
+      toast.error('Download failed', 'The Excel file could not be created.')
+    }
+  }
+
   /** One place decides the table's shared props, so the faculty and campus layouts can't drift apart. */
   const table = (list: EntryRow[], hideCols: ('campus' | 'faculty' | 'subject')[]) => (
     <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} />
@@ -244,10 +278,17 @@ export default function EntriesReportPage() {
             Sessions pushed by each campus — {fmtDay(from)} to {fmtDay(to)}.
           </p>
         </div>
-        {canCopy && rows.length > 0 && (
-          <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
-            Copy data
-          </button>
+        {rows.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {canCopy && (
+              <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
+                Copy data
+              </button>
+            )}
+            <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file">
+              Download Excel
+            </button>
+          </div>
         )}
       </div>
 
