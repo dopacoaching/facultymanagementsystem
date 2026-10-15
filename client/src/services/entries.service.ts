@@ -28,6 +28,9 @@ export interface NoClassRow {
   campusName: string
   date: string
   reason: string
+  /** Campuses with batches: the batches marked No Class. Empty = the whole campus. */
+  batchIds: string[]
+  batchNames: string[]
 }
 
 export interface EntriesReport {
@@ -37,7 +40,7 @@ export interface EntriesReport {
   sessions: EntryRow[]
   noClass: NoClassRow[]
   /** Past days with no entry and no No Class marker, per campus. */
-  missing: { campusName: string; dates: string[] }[]
+  missing: { campusName: string; /** set for campuses with several batches */ batchName?: string; dates: string[] }[]
   truncated: boolean
 }
 
@@ -53,10 +56,11 @@ export interface NoClassDoc {
   campusName: string
   date: string
   reason?: string
+  batchIds?: string[]
 }
 
 export function markNoClass(
-  data: { date: string; reason?: string; markedByName?: string; campusName?: string },
+  data: { date: string; reason?: string; markedByName?: string; campusName?: string; batchIds?: string[] },
   token: string,
 ): Promise<NoClassDoc> {
   return apiFetch<NoClassDoc>('/academics/no-class', { method: 'POST', body: data, token })

@@ -12,7 +12,8 @@ function fmtDay(iso: string): string {
   return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const FACULTY_CANCELLATION = 'Faculty cancellation'
+/** Fixed reasons offered in the dropdown; anything else goes under Other (typed). */
+const FIXED_REASONS = ['Faculty cancellation', 'No schedule']
 const OTHER = 'OTHER'
 
 /**
@@ -20,13 +21,19 @@ const OTHER = 'OTHER'
  * marker is red-flagged on the HR/Admin Entries Report, so days without any
  * teaching must be confirmed here.
  */
-export function NoClassCard({ accessToken, teachers }: { accessToken: string; teachers: string[] }) {
+export function NoClassCard({ accessToken, teachers, batches = [] }: {
+  accessToken: string
+  teachers: string[]
+  /** Campuses that run several batches: lets the teacher mark only some of them. */
+  batches?: { _id: string; name: string }[]
+}) {
   const toast = useToast()
   const today = todayLocal()
   const [date, setDate] = useState(today)
   const [reasonKind, setReasonKind] = useState('')
   const [otherReason, setOtherReason] = useState('')
   const [by, setBy] = useState('')
+  const [batchIds, setBatchIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -41,12 +48,14 @@ export function NoClassCard({ accessToken, teachers }: { accessToken: string; te
     if (!date) { setError('Select the date'); return }
     if (!by)   { setError('Select who is marking this'); return }
     if (!reasonKind) { setError('Select the reason'); return }
-    const reason = reasonKind === OTHER ? otherReason.trim() : FACULTY_CANCELLATION
+    const reason = reasonKind === OTHER ? otherReason.trim() : reasonKind
     if (!reason) { setError('Enter the reason for no class'); return }
     setSaving(true)
     try {
-      await markNoClass({ date, reason, markedByName: by }, accessToken)
-      toast.success('Marked as No Class', `${fmtDay(date)} is recorded as a day with no class.`)
+      await markNoClass({ date, reason, markedByName: by, batchIds: batchIds.length ? batchIds : undefined }, accessToken)
+      const which = batchIds.length ? batches.filter((b) => batchIds.includes(b._id)).map((b) => b.name).join(', ') : ''
+      toast.success('Marked as No Class', `${fmtDay(date)} is recorded as a day with no class${which ? ` for ${which}` : ''}.`)
+      setBatchIds([])
       setReasonKind('')
       setOtherReason('')
       recent.refetch()
@@ -90,10 +99,39 @@ export function NoClassCard({ accessToken, teachers }: { accessToken: string; te
             </select>
           </FormField>
         </div>
+        {batches.length > 1 && (
+          <FormField label="Batches" htmlFor="nc-batches" hint="Tick only the batches that had no class. Leave all unticked if the whole campus had none.">
+            <div id="nc-batches" role="group" aria-label="Batches" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+              {batches.map((b) => {
+                const checked = batchIds.includes(b._id)
+                return (
+                  <label
+                    key={b._id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer',
+                      padding: '0.5rem 0.75rem', borderRadius: 'var(--radius)',
+                      border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                      background: checked ? 'var(--color-primary-ghost)' : 'var(--color-surface)',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setBatchIds(checked ? batchIds.filter((id) => id !== b._id) : [...batchIds, b._id])}
+                      style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+                    />
+                    {b.name}
+                  </label>
+                )
+              })}
+            </div>
+          </FormField>
+        )}
         <FormField label="Reason" htmlFor="nc-reason" required>
           <select id="nc-reason" className="input" value={reasonKind} onChange={(e) => setReasonKind(e.target.value)}>
             <option value="">— select —</option>
-            <option value={FACULTY_CANCELLATION}>{FACULTY_CANCELLATION}</option>
+            {FIXED_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
             <option value={OTHER}>Other</option>
           </select>
         </FormField>
@@ -120,6 +158,9 @@ export function NoClassCard({ accessToken, teachers }: { accessToken: string; te
             <li key={n._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem' }}>
               <span>
                 <strong>{fmtDay(toLocalISO(new Date(n.date)))}</strong>
+                {n.batchIds?.length ? (
+                  <span> · {n.batchIds.map((id) => batches.find((b) => b._id === id)?.name ?? 'Batch').join(', ')}</span>
+                ) : null}
                 {n.reason && <span style={{ color: 'var(--color-muted)' }}> — {n.reason}</span>}
               </span>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => undo(n._id)}>Undo</button>

@@ -6,7 +6,7 @@ import { Session } from '@/lib/models/Session'
 import { resolveExtraBatches } from '@/lib/utils/extraBatches'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
-import { NoClassDay } from '@/lib/models/NoClassDay'
+import { supersedeNoClass } from '@/lib/services/noClass'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
@@ -384,9 +384,10 @@ export async function POST(req: NextRequest) {
       sessionCategory: sessionCategory ?? 'CLASS',
     })
 
-    // A real entry supersedes a "No Class" marker for the same campus day.
+    // A real entry supersedes a "No Class" marker for the batches (or campus) it covers that day.
     if (campusName) {
-      await NoClassDay.deleteOne({ campusName, date: dayStart }).catch(() => null)
+      const pushCampus = await findPushCampusByName(campusName)
+      await supersedeNoClass(campusName, dayStart, [...(batchOid ? [batchOid] : []), ...extraBatchOids], pushCampus?.batchCampusId ?? null).catch(() => null)
     }
 
     // Auto-mark chapter as facultyClassDone; attach syllabus link if provided

@@ -117,7 +117,8 @@ export function EntriesOverview({ leading }: Props) {
     }
     // Sundays are off days — never flag them as missing.
     for (const m of report.missing) {
-      ensure(m.campusName).missingDays = m.dates.filter((d) => !isSunday(d))
+      const row = ensure(m.campusName)
+      row.missingDays = Array.from(new Set([...row.missingDays, ...m.dates.filter((d) => !isSunday(d))])).sort()
     }
 
     const campuses = Array.from(byCampus.values()).sort((a, b) => a.campusName.localeCompare(b.campusName))

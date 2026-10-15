@@ -4,7 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { resolveExtraBatches } from '@/lib/utils/extraBatches'
-import { NoClassDay } from '@/lib/models/NoClassDay'
+import { supersedeNoClass } from '@/lib/services/noClass'
 import { Campus } from '@/lib/models/Campus'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
 
     // A real entry supersedes a "No Class" marker for the same school day.
     const igCampus = await Campus.findById(batch.campusId).select('name').lean()
-    if (igCampus) await NoClassDay.deleteOne({ campusName: igCampus.name, date: dayStart }).catch(() => null)
+    if (igCampus) await supersedeNoClass(igCampus.name, dayStart, [batchOid, ...extraBatchOids], batch.campusId).catch(() => null)
 
     // Auto-mark chapter as facultyClassDone - for every batch that sat the class
     for (const bOid of [batchOid, ...extraBatchOids]) {

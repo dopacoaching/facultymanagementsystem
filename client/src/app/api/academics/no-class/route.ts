@@ -3,6 +3,9 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { NoClassDay } from '@/lib/models/NoClassDay'
+import { Batch } from '@/lib/models/Batch'
+import { Session } from '@/lib/models/Session'
+import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { countCampusSessionsOnDay, getTrackedCampusNames, resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { dayRangeFilter, parseLocalDate, toLocalISODate } from '@/lib/utils/dateRange'
 
@@ -55,7 +58,7 @@ export async function POST(req: NextRequest) {
     const forbidden = authorize(payload, 'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const { campusName: bodyCampus, date: dateStr, reason, markedByName } = await req.json()
+    const { campusName: bodyCampus, date: dateStr, reason, markedByName, batchIds: rawBatchIds } = await req.json()
 
     await connectDB()
 
@@ -78,10 +81,51 @@ export async function POST(req: NextRequest) {
     }
 
     const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999)
-    const existing = await countCampusSessionsOnDay(campusName, date, dayEnd)
+
+    // Campuses that run batches may mark only some of them. None ticked = the whole campus.
+    let batchOids: Types.ObjectId[] = []
+    if (Array.isArray(rawBatchIds) && rawBatchIds.length > 0) {
+      const pushCampus = await findPushCampusByName(campusName)
+      if (!pushCampus?.batchCampusId) {
+        return withToken(json({ error: 'This campus has no batches to choose from.' }, 400), refreshedToken)
+      }
+      if (!rawBatchIds.every((id) => typeof id === 'string' && Types.ObjectId.isValid(id))) {
+        return withToken(json({ error: 'Invalid batchIds' }, 400), refreshedToken)
+      }
+      const ids = Array.from(new Set(rawBatchIds as string[])).map((id) => new Types.ObjectId(id))
+      const valid = await Batch.countDocuments({ _id: { $in: ids }, campusId: pushCampus.batchCampusId, isActive: true })
+      if (valid !== ids.length) {
+        return withToken(json({ error: 'One or more batches do not belong to this campus.' }, 400), refreshedToken)
+      }
+      batchOids = ids
+    }
+
+    // Overlap with what is already recorded that day.
+    const sameDay = await NoClassDay.find({ campusName, date }).select('batchIds').lean()
+    const conflict = batchOids.length === 0
+      ? sameDay.length > 0
+      : sameDay.some((m) => !m.batchIds?.length || m.batchIds.some((b) => batchOids.some((o) => o.equals(b))))
+    if (conflict) {
+      return withToken(json({
+        error: batchOids.length === 0
+          ? 'This day already has a No Class marker for this campus. Undo it first to mark the whole campus.'
+          : 'One or more of these batches is already marked No Class for that date.',
+        code: 'ALREADY_MARKED',
+      }, 409), refreshedToken)
+    }
+
+    const existing = batchOids.length === 0
+      ? await countCampusSessionsOnDay(campusName, date, dayEnd)
+      : await Session.countDocuments({
+          sessionDate: { $gte: date, $lte: dayEnd },
+          status: { $ne: 'CANCELLED' },
+          $or: [{ batchId: { $in: batchOids } }, { extraBatchIds: { $in: batchOids } }],
+        })
     if (existing > 0) {
       return withToken(json({
-        error: 'Sessions are already recorded for this campus on that date, so it cannot be marked No Class.',
+        error: batchOids.length === 0
+          ? 'Sessions are already recorded for this campus on that date, so it cannot be marked No Class.'
+          : 'Sessions are already recorded for these batches on that date, so they cannot be marked No Class.',
         code: 'SESSIONS_EXIST',
       }, 409), refreshedToken)
     }
@@ -91,6 +135,7 @@ export async function POST(req: NextRequest) {
         campusName,
         date,
         reason: reason.trim().slice(0, 120),
+        batchIds: batchOids.length ? batchOids : undefined,
         markedByUserId: new Types.ObjectId(payload.userId),
         markedByName: typeof markedByName === 'string' && markedByName ? markedByName : undefined,
       })

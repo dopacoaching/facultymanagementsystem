@@ -118,13 +118,13 @@ export default function NotSubmittedPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {missing.map((m) => (
-                <div key={m.campusName} style={{
+                <div key={`${m.campusName}|${m.batchName ?? ''}`} style={{
                   display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.5rem 0.75rem',
                   background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)', borderRadius: 'var(--radius)',
                 }}>
                   <span style={{ paddingTop: 2 }}><FlagIcon /></span>
                   <div style={{ fontSize: '0.875rem' }}>
-                    <strong>{m.campusName}</strong>
+                    <strong>{m.campusName}{m.batchName ? ` · ${m.batchName}` : ''}</strong>
                     <span style={{ marginLeft: '0.5rem' }}>{m.dates.length} {m.dates.length === 1 ? 'day' : 'days'} missing</span>
                     <div style={{ fontSize: '0.8125rem', marginTop: 2 }}>
                       {m.dates.map((d) => fmtDay(d)).join(' · ')}

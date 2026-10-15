@@ -516,7 +516,7 @@ export default function PushBoardPage() {
         )}
       </div>
 
-      {accessToken && campusLabel && <NoClassCard accessToken={accessToken} teachers={teacherNames} />}
+      {accessToken && campusLabel && <NoClassCard accessToken={accessToken} teachers={teacherNames} batches={campusBatches} />}
 
       <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
         Sessions pushed here are recorded immediately. Contact the admin to make corrections.

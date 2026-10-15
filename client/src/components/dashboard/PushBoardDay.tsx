@@ -95,7 +95,7 @@ export function PushBoardDay() {
                 const rows = report.sessions.filter((s) => s.campusName === name)
                 const hours = rows.reduce((n, s) => n + s.durationHours, 0)
                 const submitted = rows.length > 0
-                const noClass = !submitted && report.noClass.some((n) => n.campusName === name)
+                const noClass = !submitted && report.noClass.some((n) => n.campusName === name && n.batchIds.length === 0)
                 const offDay = !submitted && !noClass && isSunday(day)
                 // The server flags a past day with neither entry nor No Class marker; today is still in progress.
                 const missed = !submitted && !noClass && !offDay && !isToday
