@@ -143,7 +143,7 @@ export function EditClassSessionModal({
             )}
           </div>
           {form.entryType !== 'SHOOT' && (
-            <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} />
+            <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} fullDeduction={form.entryType === 'LIVE'} />
           )}
         </div>
         <div className="modal-footer">

@@ -27,7 +27,7 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
 
   async function submit() {
     const isShoot = form.entryType === 'SHOOT'
-    const classDuration = isShoot ? null : computeDuration(form.startTime, form.endTime, form.breaks)
+    const classDuration = isShoot ? null : computeDuration(form.startTime, form.endTime, form.breaks, { fullBreak: form.entryType === 'LIVE' })
     const duration = classDuration ?? computeShootDuration(form.shootHours, form.shootMinutes)
     if (duration.error) { setError(duration.error); return }
     if (!form.sessionDate) { setError('Select the date'); return }

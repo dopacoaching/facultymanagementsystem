@@ -79,9 +79,11 @@ export default function PushBoardPage() {
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
   const dateBounds = monthBounds(form.month)
+  // Studio Live: the break is deducted in full — no 15-minute free grace.
+  const fullBreak = hasEntryTypes && form.entryType === 'LIVE'
   const duration = useMemo(
-    () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak)),
-    [form.startTime, form.endTime, form.teaBreak]
+    () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak), { fullBreak }),
+    [form.startTime, form.endTime, form.teaBreak, fullBreak]
   )
   const isShoot = hasEntryTypes && form.entryType === 'SHOOT'
   const shootDuration = useMemo(
@@ -464,7 +466,7 @@ export default function PushBoardPage() {
                 hint={
                   isShoot && !shootDuration.error
                     ? `${formatHM(shootDuration.hours * 60)} taken × ${SHOOT_MULTIPLIER} for a Shoot`
-                    : duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of tea break deducted` : 'Calculated automatically'
+                    : duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of break deducted` : 'Calculated automatically'
                 }
               >
                 <input
@@ -479,7 +481,7 @@ export default function PushBoardPage() {
               {!isShoot && (
                 <BreakRow
                   label="Break (Tea)"
-                  note="first 15m free"
+                  note={fullBreak ? 'deducted in full' : 'first 15m free'}
                   field={form.teaBreak}
                   onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })}
                 />

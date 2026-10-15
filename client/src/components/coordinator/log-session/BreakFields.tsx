@@ -51,10 +51,12 @@ export function BreakRow({
 /** The three break rows (Morning / Lunch / Afternoon) plus a bulk Nil toggle.
  *  Shared by the log form and the HR edit modals. */
 export function BreakRows({
-  breaks, onBreaksChange,
+  breaks, onBreaksChange, fullDeduction,
 }: {
   breaks: BreaksInput
   onBreaksChange: (b: BreaksInput) => void
+  /** Studio Live: every break is deducted in full, no 15-minute grace. */
+  fullDeduction?: boolean
 }) {
   const patchBreak = (key: keyof BreaksInput, patch: Partial<BreakField>) =>
     onBreaksChange({ ...breaks, [key]: { ...breaks[key], ...patch } })
@@ -81,7 +83,7 @@ export function BreakRows({
           <BreakRow
             key={r.key}
             label={r.label}
-            note={r.note}
+            note={fullDeduction ? 'deducted in full' : r.note}
             field={breaks[r.key]}
             onChange={(patch) => patchBreak(r.key, patch)}
           />

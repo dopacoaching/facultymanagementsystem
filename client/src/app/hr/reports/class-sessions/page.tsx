@@ -59,7 +59,7 @@ export default function ClassSessionsPage() {
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
     const isShoot = editForm.entryType === 'SHOOT'
-    const classDuration = isShoot ? null : computeDuration(editForm.startTime, editForm.endTime, editForm.breaks)
+    const classDuration = isShoot ? null : computeDuration(editForm.startTime, editForm.endTime, editForm.breaks, { fullBreak: editForm.entryType === 'LIVE' })
     const duration = classDuration ?? computeShootDuration(editForm.shootHours, editForm.shootMinutes)
     if (duration.error) { setEditError(duration.error); return }
 

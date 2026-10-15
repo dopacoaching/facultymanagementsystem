@@ -174,7 +174,13 @@ function resolveBreak(b: BreakField): number | { error: string } {
 
 /** Computes payable class duration from start/end time and the three breaks.
  *  payable = (end − start) − lunch − max(0, morning−15) − max(0, afternoon−15). */
-export function computeDuration(startTime: string, endTime: string, breaks: BreaksInput): DurationResult {
+export function computeDuration(
+  startTime: string,
+  endTime: string,
+  breaks: BreaksInput,
+  /** Studio Live entries: every break is deducted in full (no 15-minute grace). */
+  opts: { fullBreak?: boolean } = {},
+): DurationResult {
   const zero = { hours: 0, totalMinutes: 0, morningBreak: 0, lunchBreak: 0, afternoonBreak: 0, deductedMinutes: 0 }
   if (!startTime || !endTime) {
     return { ...zero, error: 'Enter both start and end time' }
@@ -194,7 +200,7 @@ export function computeDuration(startTime: string, endTime: string, breaks: Brea
   const lunchBreak = l as number
   const afternoonBreak = a as number
 
-  const graced = (mins: number) => (mins > FREE_BREAK_MINUTES ? mins - FREE_BREAK_MINUTES : 0)
+  const graced = (mins: number) => (opts.fullBreak ? mins : mins > FREE_BREAK_MINUTES ? mins - FREE_BREAK_MINUTES : 0)
   const deductedMinutes = lunchBreak + graced(morningBreak) + graced(afternoonBreak)
   const payableMinutes = totalMinutes - deductedMinutes
 

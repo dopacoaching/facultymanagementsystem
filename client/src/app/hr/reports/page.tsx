@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
 import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
@@ -31,11 +32,6 @@ function formatHM(hours: number): string {
 function fmtDay(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function isSunday(iso: string): boolean {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).getDay() === 0
 }
 
 /** Sessions → { key → rows } keeping insertion order of the sorted input. */
@@ -122,14 +118,6 @@ function GroupHeader({ title, count, hours, level = 1 }: { title: string; count:
         <strong style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{formatHM(hours)}</strong>
       </span>
     </div>
-  )
-}
-
-function FlagIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <path d="M5 3a1 1 0 0 1 1 1v1h12.5a.5.5 0 0 1 .4.8L16.5 9l2.4 3.2a.5.5 0 0 1-.4.8H6v8a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z" />
-    </svg>
   )
 }
 
@@ -231,8 +219,9 @@ export default function EntriesReportPage() {
 
   const [kind, setKind]       = useState<FacultyKind>('PERMANENT')
   const [group, setGroup]     = useState<GroupBy>('campus')
+  /** Excel layout — starts as the on-screen view but can be changed for the download. */
+  const [exportBy, setExportBy] = useState<GroupBy>('campus')
   const [campus, setCampus]   = useState('')
-  const [skipSundays, setSkipSundays] = useState(false)
 
   const canCopy = role === 'ADMIN'
 
@@ -246,6 +235,7 @@ export default function EntriesReportPage() {
     } finally { setLoading(false) }
   }
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setExportBy(group) }, [group])
 
   /** Month picker drives the same from/to range as the date pickers. */
   function pickMonth(ym: string) {
@@ -280,15 +270,6 @@ export default function EntriesReportPage() {
     return Array.from(map.entries()).sort(([, a], [, b]) => a[0].facultyName.localeCompare(b[0].facultyName))
   }, [rows, group])
 
-  const missing = useMemo(() => {
-    return (report?.missing ?? [])
-      .filter((m) => !campus || m.campusName === campus)
-      .map((m) => ({ ...m, dates: skipSundays ? m.dates.filter((d) => !isSunday(d)) : m.dates }))
-      .filter((m) => m.dates.length > 0)
-  }, [report, campus, skipSundays])
-
-  const noClassCount = (report?.noClass ?? []).filter((n) => !campus || n.campusName === campus).length
-
   async function copyData() {
     try {
       await navigator.clipboard.writeText(toTSV(rows))
@@ -300,7 +281,7 @@ export default function EntriesReportPage() {
 
   async function exportExcel() {
     try {
-      await downloadExcel(rows, group, from, to)
+      await downloadExcel(rows, exportBy, from, to)
     } catch {
       toast.error('Download failed', 'The Excel file could not be created.')
     }
@@ -322,18 +303,24 @@ export default function EntriesReportPage() {
             Sessions pushed by each campus — {fmtDay(from)} to {fmtDay(to)}.
           </p>
         </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <Link href="/hr/reports/not-submitted" className="btn btn-outline">Reports not submitted</Link>
         {rows.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <>
             {canCopy && (
               <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
                 Copy data
               </button>
             )}
-            <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file">
+            <select className="input" aria-label="Excel layout" value={exportBy} onChange={(e) => setExportBy(e.target.value as GroupBy)} style={{ width: 'auto' }}>
+              {GROUP_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+            <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file, laid out as chosen">
               Download Excel
             </button>
-          </div>
+          </>
         )}
+        </div>
       </div>
 
       {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} onRetry={load} /></div>}
@@ -356,47 +343,6 @@ export default function EntriesReportPage() {
         </div>
         <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
       </div>
-
-      {/* ── Not submitted ─────────────────────────────────────────────── */}
-      {report && (
-        <div className="card" style={{ marginBottom: '1rem', borderColor: missing.length ? 'var(--color-danger)' : undefined }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: missing.length ? 'var(--color-danger)' : undefined }}>
-              {missing.length > 0 && <FlagIcon />}
-              Reports not submitted
-            </h3>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-              <input type="checkbox" checked={skipSundays} onChange={(e) => setSkipSundays(e.target.checked)} />
-              Ignore Sundays
-            </label>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', margin: '0.25rem 0 0.75rem' }}>
-            Past days where a campus pushed no entry and did not mark &ldquo;No Class&rdquo;.
-            {noClassCount > 0 && ` ${noClassCount} No Class ${noClassCount === 1 ? 'day' : 'days'} marked in this range.`}
-          </p>
-          {missing.length === 0 ? (
-            <div className="alert alert-success" style={{ margin: 0 }}>Every campus has submitted for all past days in this range.</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {missing.map((m) => (
-                <div key={m.campusName} style={{
-                  display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.5rem 0.75rem',
-                  background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)', borderRadius: 'var(--radius)',
-                }}>
-                  <span style={{ paddingTop: 2 }}><FlagIcon /></span>
-                  <div style={{ fontSize: '0.875rem' }}>
-                    <strong>{m.campusName}</strong>
-                    <span style={{ marginLeft: '0.5rem' }}>{m.dates.length} {m.dates.length === 1 ? 'day' : 'days'} missing</span>
-                    <div style={{ fontSize: '0.8125rem', marginTop: 2 }}>
-                      {m.dates.map((d) => fmtDay(d)).join(' · ')}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ── View switches ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: '1rem' }}>
