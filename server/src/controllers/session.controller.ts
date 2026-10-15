@@ -14,7 +14,8 @@ import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
 import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
 import { PushCampus } from '../models/PushCampus'
-import { isEntryType, shootHours } from '../utils/entryTypes'
+import { isEntryType, shootHours, usesFullBreak } from '../utils/entryTypes'
+import { fullBreakHours } from '../utils/sessionHours'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '../utils/teacherEdit'
 import { Types } from 'mongoose'
 
@@ -330,6 +331,13 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     if (entryType === 'SHOOT') {
       rawDurationHours = storedHours
       storedHours = shootHours(storedHours)
+    } else if (usesFullBreak(entryType) && startTime && endTime) {
+      // Live: recompute so the break is always deducted in full, whatever the client sent.
+      const h = fullBreakHours(startTime, endTime, [Number(breakMinutes ?? 0), Number(lunchBreakMinutes ?? 0), Number(afternoonBreakMinutes ?? 0)])
+      if (h === null) {
+        res.status(400).json({ error: 'Class duration after break deductions must be at least 30 minutes' }); return
+      }
+      storedHours = h
     }
   }
 
@@ -483,17 +491,39 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
   if (req.body.entryType !== undefined && !isEntryType(req.body.entryType)) {
     res.status(400).json({ error: 'entryType must be LIVE or SHOOT' }); return
   }
-  const typeSent = req.body.entryType !== undefined
-  if (existing.entryType || typeSent) {
-    const type = (req.body.entryType ?? existing.entryType) as 'LIVE' | 'SHOOT'
-    const raw = req.body.durationHours !== undefined
-      ? Number(req.body.durationHours)
-      : (existing.rawDurationHours ?? existing.durationHours)
-    if (!(raw >= 0.5)) { res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return }
-    update.entryType = type
-    update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
-    if (type === 'SHOOT') update.rawDurationHours = raw
-    else unset.rawDurationHours = ''
+  // Hours are only recomputed when the timing or the type actually changes, so editing
+  // an unrelated field (e.g. the chapter) never alters hours saved under an older rule.
+  if (existing.entryType || req.body.entryType !== undefined) {
+    const body = req.body as Record<string, unknown>
+    const type = (body.entryType ?? existing.entryType) as 'LIVE' | 'SHOOT'
+    const timingSent = ['startTime', 'endTime', 'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes', 'durationHours']
+      .some((k) => body[k] !== undefined)
+    if (timingSent || type !== existing.entryType) {
+      const start = (body.startTime ?? existing.startTime) as string | undefined
+      const end = (body.endTime ?? existing.endTime) as string | undefined
+      if (usesFullBreak(type) && start && end) {
+        // Live: the break is always deducted in full, whatever the client computed.
+        const num = (k: string, fallback?: number) => Number(body[k] ?? fallback ?? 0)
+        const h = fullBreakHours(start, end, [
+          num('breakMinutes', existing.breakMinutes), num('lunchBreakMinutes', existing.lunchBreakMinutes),
+          num('afternoonBreakMinutes', existing.afternoonBreakMinutes),
+        ])
+        if (h === null) {
+          res.status(400).json({ error: 'Class duration after break deductions must be at least 30 minutes' }); return
+        }
+        update.durationHours = h
+        unset.rawDurationHours = ''
+      } else {
+        const raw = body.durationHours !== undefined
+          ? Number(body.durationHours)
+          : (existing.rawDurationHours ?? existing.durationHours)
+        if (!(raw >= 0.5)) { res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return }
+        update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
+        if (type === 'SHOOT') update.rawDurationHours = raw
+        else unset.rawDurationHours = ''
+      }
+      update.entryType = type
+    }
   }
 
   if (Object.keys(update).length === 0) {

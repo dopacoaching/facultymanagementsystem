@@ -14,7 +14,8 @@ import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
 import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
-import { isEntryType, shootHours } from '@/lib/constants/entryTypes'
+import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
+import { fullBreakHours } from '@/lib/utils/sessionHours'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -338,6 +339,13 @@ export async function POST(req: NextRequest) {
       if (entryType === 'SHOOT') {
         rawDurationHours = storedHours
         storedHours = shootHours(storedHours)
+      } else if (usesFullBreak(entryType) && startTime && endTime) {
+        // Live: recompute so the break is always deducted in full, whatever the client sent.
+        const h = fullBreakHours(startTime, endTime, [Number(breakMinutes ?? 0), Number(lunchBreakMinutes ?? 0), Number(afternoonBreakMinutes ?? 0)])
+        if (h === null) {
+          return withToken(json({ error: 'Class duration after break deductions must be at least 30 minutes' }, 400), refreshedToken)
+        }
+        storedHours = h
       }
     }
 

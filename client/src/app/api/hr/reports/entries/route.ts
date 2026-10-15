@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const from = searchParams.get('from') ?? ''
     const to   = searchParams.get('to') ?? ''
+    // The Reports Not Submitted page needs only the missing days, not every entry row.
+    const missingOnly = searchParams.get('missingOnly') === '1'
     const range = dayRangeFilter(from, to)
     const fromDate = parseLocalDate(from)
     const toDate = parseLocalDate(to)
@@ -130,7 +132,7 @@ export async function GET(req: NextRequest) {
     return withToken(json({
       from, to,
       campuses,
-      sessions: rows,
+      sessions: missingOnly ? [] : rows,
       noClass: noClassRows,
       missing,
       truncated: sessions.length >= MAX_ROWS,

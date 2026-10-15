@@ -19,3 +19,8 @@ export function shootHours(rawHours: number): number {
 export function isEntryType(v: unknown): v is EntryType {
   return v === 'LIVE' || v === 'SHOOT'
 }
+
+/** Studio Live deducts every break in full (no 15-minute free grace). One rule,
+ *  used by the form, both edit screens and the server. Entries with no type
+ *  (everything saved before Live/Shoot existed) keep the normal grace. */
+export const usesFullBreak = (entryType: EntryType | '' | null | undefined): boolean => entryType === 'LIVE'

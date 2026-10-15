@@ -4,7 +4,8 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll, update } from '@/services/session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
-import { EditClassSessionModal, formFromSession, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
+import { EditClassSessionModal, formFromSession, timingChanged, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
+import { usesFullBreak } from '@/lib/constants/entryTypes'
 import { computeDuration, computeShootDuration } from '@/components/coordinator/log-session'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
@@ -59,9 +60,10 @@ export default function ClassSessionsPage() {
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
     const isShoot = editForm.entryType === 'SHOOT'
-    const classDuration = isShoot ? null : computeDuration(editForm.startTime, editForm.endTime, editForm.breaks, { fullBreak: editForm.entryType === 'LIVE' })
+    const changed = timingChanged(editForm, formFromSession(editingSession))
+    const classDuration = isShoot ? null : computeDuration(editForm.startTime, editForm.endTime, editForm.breaks, { fullBreak: usesFullBreak(editForm.entryType) })
     const duration = classDuration ?? computeShootDuration(editForm.shootHours, editForm.shootMinutes)
-    if (duration.error) { setEditError(duration.error); return }
+    if (changed && duration.error) { setEditError(duration.error); return }
 
     setSaving(true); setEditError('')
     try {
@@ -70,19 +72,23 @@ export default function ClassSessionsPage() {
         chapter:       editForm.chapter.trim(),
         classMode:     editForm.classMode || undefined,
         updatedByName: editForm.updatedByName.trim() || undefined,
-        // A Shoot has no start/end/break — only the time taken.
-        ...(classDuration
+        // Timing is only sent when it changed — the server recalculates hours from it.
+        ...(changed
           ? {
-              startTime:             editForm.startTime,
-              endTime:               editForm.endTime,
-              breakMinutes:          classDuration.morningBreak,
-              lunchBreakMinutes:     classDuration.lunchBreak,
-              afternoonBreakMinutes: classDuration.afternoonBreak,
+              durationHours: duration.hours,
+              entryType:     editForm.entryType || undefined,
+              // A Shoot has no start/end/break — only the time taken.
+              ...(classDuration
+                ? {
+                    startTime:             editForm.startTime,
+                    endTime:               editForm.endTime,
+                    breakMinutes:          classDuration.morningBreak,
+                    lunchBreakMinutes:     classDuration.lunchBreak,
+                    afternoonBreakMinutes: classDuration.afternoonBreak,
+                  }
+                : {}),
             }
           : {}),
-        // Time actually taken — the server applies the Shoot multiplier.
-        durationHours: duration.hours,
-        entryType:     editForm.entryType || undefined,
         sessionDate:   editForm.sessionDate,
       }, accessToken)
       toast.success('Session updated', 'The changes have been saved.')

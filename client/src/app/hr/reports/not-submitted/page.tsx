@@ -1,29 +1,12 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
 import { getEntriesReport, type EntriesReport } from '@/services/entries.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { toLocalISO } from '@/utils/date'
-
-function fmtDay(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function isSunday(iso: string): boolean {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).getDay() === 0
-}
-
-function FlagIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <path d="M5 3a1 1 0 0 1 1 1v1h12.5a.5.5 0 0 1 .4.8L16.5 9l2.4 3.2a.5.5 0 0 1-.4.8H6v8a1 1 0 1 1-2 0V4a1 1 0 0 1 1-1z" />
-    </svg>
-  )
-}
+import { FlagIcon, fmtDay, isSunday, monthRange } from '@/components/hr/reports/reportShared'
 
 /** Past days where a campus pushed no entry and did not mark "No Class". */
 export default function NotSubmittedPage() {
@@ -37,25 +20,34 @@ export default function NotSubmittedPage() {
   const [campus, setCampus]   = useState('')
   const [skipSundays, setSkipSundays] = useState(false)
 
+  /** Latest request wins — a slow earlier response must not overwrite newer data. */
+  const requestId = useRef(0)
+
   async function load() {
     if (!accessToken || !from || !to) return
+    if (from > to) { setError('The start date must not be after the end date.'); return }
+    const id = ++requestId.current
     setLoading(true); setError('')
     try {
-      setReport(await getEntriesReport(from, to, accessToken))
+      const data = await getEntriesReport(from, to, accessToken, { missingOnly: true })
+      if (id !== requestId.current) return
+      setReport(data)
+      // A campus picked earlier may not exist in this report — fall back to all campuses.
+      setCampus((c) => (c && !data.campuses.includes(c) ? '' : c))
     } catch (e: unknown) {
+      if (id !== requestId.current) return
       setError(e instanceof Error ? e.message : 'Failed to load the report')
-    } finally { setLoading(false) }
+    } finally {
+      if (id === requestId.current) setLoading(false)
+    }
   }
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Month picker drives the same from/to range as the date pickers. */
   function pickMonth(ym: string) {
     if (!ym) return
-    const [y, m] = ym.split('-').map(Number)
-    const last = new Date(y, m, 0)
-    const end = last > now ? now : last
-    setFrom(toLocalISO(new Date(y, m - 1, 1)))
-    setTo(toLocalISO(end))
+    const r = monthRange(ym, now)
+    setFrom(r.from); setTo(r.to)
   }
 
   const missing = useMemo(() => {

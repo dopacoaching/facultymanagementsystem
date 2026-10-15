@@ -1,5 +1,5 @@
 import type { Session } from '@/types'
-import { ENTRY_TYPES, ENTRY_TYPE_LABELS, type EntryType } from '@/lib/constants/entryTypes'
+import { ENTRY_TYPES, ENTRY_TYPE_LABELS, usesFullBreak, type EntryType } from '@/lib/constants/entryTypes'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditClassSessionForm {
@@ -35,6 +35,17 @@ export function formFromSession(s: Session): EditClassSessionForm {
     breaks:        breaksFromMinutes(s.breakMinutes, s.lunchBreakMinutes, s.afternoonBreakMinutes),
     sessionDate:   s.sessionDate.slice(0, 10),
   }
+}
+
+/** True when the type, times, breaks or Shoot time differ from the saved entry. Hours
+ *  are only recalculated then, so editing e.g. the chapter never alters hours that
+ *  were saved under an older break rule. */
+export function timingChanged(form: EditClassSessionForm, original: EditClassSessionForm): boolean {
+  const b = (x: EditClassSessionForm) => JSON.stringify(x.breaks)
+  return form.entryType !== original.entryType
+    || form.startTime !== original.startTime || form.endTime !== original.endTime
+    || b(form) !== b(original)
+    || form.shootHours !== original.shootHours || form.shootMinutes !== original.shootMinutes
 }
 
 const CLASS_MODE_OPTIONS = [
@@ -143,7 +154,7 @@ export function EditClassSessionModal({
             )}
           </div>
           {form.entryType !== 'SHOOT' && (
-            <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} fullDeduction={form.entryType === 'LIVE'} />
+            <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} fullDeduction={usesFullBreak(form.entryType)} />
           )}
         </div>
         <div className="modal-footer">

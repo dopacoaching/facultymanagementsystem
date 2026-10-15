@@ -4,7 +4,8 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { writeAuditLog } from '@/lib/services/salary/audit'
-import { isEntryType, shootHours } from '@/lib/constants/entryTypes'
+import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
+import { fullBreakHours } from '@/lib/utils/sessionHours'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
@@ -81,18 +82,40 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Live/Shoot (Studio): durationHours arrives as the time actually taken and is
     // stored multiplied for a Shoot; rawDurationHours keeps the real time.
+    // Hours are only recomputed when the timing or the type actually changes, so editing
+    // an unrelated field (e.g. the chapter) never alters hours saved under an older rule.
     if (existing.entryType || body.entryType !== undefined) {
       const type = (body.entryType ?? existing.entryType) as 'LIVE' | 'SHOOT'
-      const raw = body.durationHours !== undefined
-        ? Number(body.durationHours)
-        : (existing.rawDurationHours ?? existing.durationHours)
-      if (!(raw >= 0.5)) {
-        return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
+      const timingSent = ['startTime', 'endTime', 'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes', 'durationHours']
+        .some((k) => body[k] !== undefined)
+      if (timingSent || type !== existing.entryType) {
+        const start = (body.startTime ?? existing.startTime) as string | undefined
+        const end = (body.endTime ?? existing.endTime) as string | undefined
+        if (usesFullBreak(type) && start && end) {
+          // Live: the break is always deducted in full, whatever the client computed.
+          const num = (k: string, fallback?: number) => Number(body[k] ?? fallback ?? 0)
+          const h = fullBreakHours(start, end, [
+            num('breakMinutes', existing.breakMinutes), num('lunchBreakMinutes', existing.lunchBreakMinutes),
+            num('afternoonBreakMinutes', existing.afternoonBreakMinutes),
+          ])
+          if (h === null) {
+            return withToken(json({ error: 'Class duration after break deductions must be at least 30 minutes' }, 400), refreshedToken)
+          }
+          update.durationHours = h
+          unset.rawDurationHours = ''
+        } else {
+          const raw = body.durationHours !== undefined
+            ? Number(body.durationHours)
+            : (existing.rawDurationHours ?? existing.durationHours)
+          if (!(raw >= 0.5)) {
+            return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
+          }
+          update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
+          if (type === 'SHOOT') update.rawDurationHours = raw
+          else unset.rawDurationHours = ''
+        }
+        update.entryType = type
       }
-      update.entryType = type
-      update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
-      if (type === 'SHOOT') update.rawDurationHours = raw
-      else unset.rawDurationHours = ''
     }
 
     if (Object.keys(update).length === 0) {

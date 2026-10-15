@@ -3,7 +3,8 @@ import { useState } from 'react'
 import type { Session } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 import { todayLocal } from '@/utils/date'
-import { EditClassSessionModal, formFromSession, type EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
+import { EditClassSessionModal, formFromSession, timingChanged, type EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
+import { usesFullBreak } from '@/lib/constants/entryTypes'
 import { computeDuration, computeShootDuration } from '@/components/coordinator/log-session'
 
 type SaveFn = (sessionId: string, data: Record<string, unknown>) => Promise<unknown>
@@ -27,9 +28,10 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
 
   async function submit() {
     const isShoot = form.entryType === 'SHOOT'
-    const classDuration = isShoot ? null : computeDuration(form.startTime, form.endTime, form.breaks, { fullBreak: form.entryType === 'LIVE' })
+    const changed = timingChanged(form, formFromSession(session))
+    const classDuration = isShoot ? null : computeDuration(form.startTime, form.endTime, form.breaks, { fullBreak: usesFullBreak(form.entryType) })
     const duration = classDuration ?? computeShootDuration(form.shootHours, form.shootMinutes)
-    if (duration.error) { setError(duration.error); return }
+    if (changed && duration.error) { setError(duration.error); return }
     if (!form.sessionDate) { setError('Select the date'); return }
     if (!form.subject.trim()) { setError('Subject is required'); return }
     if (!form.chapter.trim()) { setError('Chapter is required'); return }
@@ -42,16 +44,22 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
         classMode:     form.classMode || undefined,
         updatedByName: form.updatedByName.trim() || undefined,
         sessionDate:   form.sessionDate,
-        // Time actually taken — the server applies the Shoot multiplier.
-        durationHours: duration.hours,
-        entryType:     form.entryType || undefined,
-        ...(classDuration
+        // Timing is only sent when it changed — the server recalculates hours from it
+        // (a Shoot's multiplier, a Live entry's full break), so an unrelated edit
+        // never alters hours saved under an older rule.
+        ...(changed
           ? {
-              startTime:             form.startTime,
-              endTime:               form.endTime,
-              breakMinutes:          classDuration.morningBreak,
-              lunchBreakMinutes:     classDuration.lunchBreak,
-              afternoonBreakMinutes: classDuration.afternoonBreak,
+              durationHours: duration.hours,
+              entryType:     form.entryType || undefined,
+              ...(classDuration
+                ? {
+                    startTime:             form.startTime,
+                    endTime:               form.endTime,
+                    breakMinutes:          classDuration.morningBreak,
+                    lunchBreakMinutes:     classDuration.lunchBreak,
+                    afternoonBreakMinutes: classDuration.afternoonBreak,
+                  }
+                : {}),
             }
           : {}),
       })

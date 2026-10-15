@@ -13,7 +13,7 @@ import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
 import { NoClassCard } from '@/components/coordinator/NoClassCard'
 import { todayLocal } from '@/utils/date'
-import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours } from '@/lib/constants/entryTypes'
+import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import {
   EMPTY_FORM, FormState, computeDuration, computeShootDuration, monthBounds, teaBreakAsBreaks, formatHM,
   SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChapterField, BreakRow,
@@ -79,9 +79,8 @@ export default function PushBoardPage() {
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
   const dateBounds = monthBounds(form.month)
-  // Studio (Live/Shoot campuses): the break is deducted in full — no 15-minute free grace.
-  // Shoot has no break, so this only matters for Live (and before a type is picked).
-  const fullBreak = hasEntryTypes && form.entryType !== 'SHOOT'
+  // Studio Live: the break is deducted in full — no 15-minute free grace.
+  const fullBreak = usesFullBreak(form.entryType)
   const duration = useMemo(
     () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak), { fullBreak }),
     [form.startTime, form.endTime, form.teaBreak, fullBreak]
@@ -482,7 +481,7 @@ export default function PushBoardPage() {
               {!isShoot && (
                 <BreakRow
                   label="Break (Tea)"
-                  note={fullBreak ? 'deducted in full' : 'first 15m free'}
+                  note={fullBreak ? 'deducted in full' : hasEntryTypes ? 'select the entry type first' : 'first 15m free'}
                   field={form.teaBreak}
                   onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })}
                 />

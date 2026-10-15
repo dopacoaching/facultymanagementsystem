@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
 import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
@@ -7,6 +7,7 @@ import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
+import { fmtDay, monthRange } from '@/components/hr/reports/reportShared'
 
 type FacultyKind = 'PERMANENT' | 'TEMPORARY' | 'ALL'
 type GroupBy = 'campus' | 'subject' | 'faculty'
@@ -27,11 +28,6 @@ function formatHM(hours: number): string {
   const h = Math.floor(total / 60)
   const m = total % 60
   return h > 0 ? `${h}h ${m}m` : `${m}m`
-}
-
-function fmtDay(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 /** Sessions → { key → rows } keeping insertion order of the sorted input. */
@@ -219,32 +215,41 @@ export default function EntriesReportPage() {
 
   const [kind, setKind]       = useState<FacultyKind>('PERMANENT')
   const [group, setGroup]     = useState<GroupBy>('campus')
-  /** Excel layout — starts as the on-screen view but can be changed for the download. */
-  const [exportBy, setExportBy] = useState<GroupBy>('campus')
+  /** Excel layout chosen for the download; null follows the on-screen view. */
+  const [exportChoice, setExportChoice] = useState<GroupBy | null>(null)
+  const exportBy = exportChoice ?? group
   const [campus, setCampus]   = useState('')
 
   const canCopy = role === 'ADMIN'
 
+  /** Latest request wins — a slow earlier response must not overwrite newer data. */
+  const requestId = useRef(0)
+
   async function load() {
     if (!accessToken || !from || !to) return
+    if (from > to) { setError('The start date must not be after the end date.'); return }
+    const id = ++requestId.current
     setLoading(true); setError('')
     try {
-      setReport(await getEntriesReport(from, to, accessToken))
+      const data = await getEntriesReport(from, to, accessToken)
+      if (id !== requestId.current) return
+      setReport(data)
+      // A campus picked earlier may not exist in this report — fall back to all campuses.
+      setCampus((c) => (c && !data.campuses.includes(c) ? '' : c))
     } catch (e: unknown) {
+      if (id !== requestId.current) return
       setError(e instanceof Error ? e.message : 'Failed to load the report')
-    } finally { setLoading(false) }
+    } finally {
+      if (id === requestId.current) setLoading(false)
+    }
   }
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setExportBy(group) }, [group])
 
   /** Month picker drives the same from/to range as the date pickers. */
   function pickMonth(ym: string) {
     if (!ym) return
-    const [y, m] = ym.split('-').map(Number)
-    const last = new Date(y, m, 0)
-    const end = last > now ? now : last
-    setFrom(toLocalISO(new Date(y, m - 1, 1)))
-    setTo(toLocalISO(end))
+    const r = monthRange(ym, now)
+    setFrom(r.from); setTo(r.to)
   }
 
   const rows = useMemo(() => {
@@ -305,21 +310,21 @@ export default function EntriesReportPage() {
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <Link href="/hr/reports/not-submitted" className="btn btn-outline">Reports not submitted</Link>
-        {rows.length > 0 && (
-          <>
-            {canCopy && (
-              <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
-                Copy data
+          {rows.length > 0 && (
+            <>
+              {canCopy && (
+                <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
+                  Copy data
+                </button>
+              )}
+              <select className="input" aria-label="Excel layout" value={exportBy} onChange={(e) => setExportChoice(e.target.value as GroupBy)} style={{ width: 'auto' }}>
+                {GROUP_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+              </select>
+              <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file, laid out as chosen">
+                Download Excel
               </button>
-            )}
-            <select className="input" aria-label="Excel layout" value={exportBy} onChange={(e) => setExportBy(e.target.value as GroupBy)} style={{ width: 'auto' }}>
-              {GROUP_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-            </select>
-            <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file, laid out as chosen">
-              Download Excel
-            </button>
-          </>
-        )}
+            </>
+          )}
         </div>
       </div>
 

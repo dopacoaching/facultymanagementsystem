@@ -41,8 +41,11 @@ export interface EntriesReport {
   truncated: boolean
 }
 
-export function getEntriesReport(from: string, to: string, token: string): Promise<EntriesReport> {
-  return apiFetch<EntriesReport>(`/hr/reports/entries?from=${from}&to=${to}`, { token })
+export function getEntriesReport(
+  from: string, to: string, token: string, opts: { missingOnly?: boolean } = {},
+): Promise<EntriesReport> {
+  const extra = opts.missingOnly ? '&missingOnly=1' : ''
+  return apiFetch<EntriesReport>(`/hr/reports/entries?from=${from}&to=${to}${extra}`, { token })
 }
 
 export interface NoClassDoc {
