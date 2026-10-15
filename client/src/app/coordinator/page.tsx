@@ -79,8 +79,9 @@ export default function PushBoardPage() {
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
   const dateBounds = monthBounds(form.month)
-  // Studio Live: the break is deducted in full — no 15-minute free grace.
-  const fullBreak = hasEntryTypes && form.entryType === 'LIVE'
+  // Studio (Live/Shoot campuses): the break is deducted in full — no 15-minute free grace.
+  // Shoot has no break, so this only matters for Live (and before a type is picked).
+  const fullBreak = hasEntryTypes && form.entryType !== 'SHOOT'
   const duration = useMemo(
     () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak), { fullBreak }),
     [form.startTime, form.endTime, form.teaBreak, fullBreak]
