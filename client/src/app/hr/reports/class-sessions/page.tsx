@@ -73,7 +73,9 @@ export default function ClassSessionsPage() {
         breakMinutes:          duration.morningBreak,
         lunchBreakMinutes:     duration.lunchBreak,
         afternoonBreakMinutes: duration.afternoonBreak,
+        // Time actually taken — the server applies the Shoot multiplier.
         durationHours: duration.hours,
+        entryType:     editForm.entryType || undefined,
         sessionDate:   editForm.sessionDate,
       }, accessToken)
       toast.success('Session updated', 'The changes have been saved.')
@@ -177,7 +179,7 @@ export default function ClassSessionsPage() {
                         {s.startTime ?? '—'}–{s.endTime ?? '—'}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                        {formatHM(s.durationHours)}
+                        {s.entryType && <span className={`badge ${s.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{s.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(s.durationHours)}
                       </td>
                       <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {breakSummary(s)}

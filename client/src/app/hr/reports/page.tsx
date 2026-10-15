@@ -101,7 +101,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
               <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime || '—'}–{r.endTime || '—'}</td>
               <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{breakLabel(r)}</td>
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
-              <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{formatHM(r.durationHours)}</td>
+              <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
             </tr>
           ))}
         </tbody>
@@ -135,14 +135,14 @@ function FlagIcon() {
 
 /** Tab-separated text for the current view, ready to paste into a sheet. */
 function toTSV(rows: EntryRow[]): string {
-  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours']
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours']
   // Neutralise spreadsheet formulas (=, +, -, @) in coordinator-typed text.
   const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ').replace(/^[=+\-@]/, "'$&")
   const lines = rows.map((r) => {
     const mins = Math.round(r.durationHours * 60)
     return [
       r.date, r.campusName, r.batchName, r.facultyName, r.facultyType, r.subject, r.chapter,
-      r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName,
+      r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName, r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : '',
       `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2),
     ].map((v) => clean(String(v))).join('\t')
   })

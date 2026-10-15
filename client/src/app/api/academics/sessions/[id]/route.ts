@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { writeAuditLog } from '@/lib/services/salary/audit'
+import { isEntryType, shootHours } from '@/lib/constants/entryTypes'
 
 /** PATCH /api/academics/sessions/:id — full edit (manager only) */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,6 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       'durationHours', 'sessionDate', 'timeSlot',
     ]
     const update: Record<string, unknown> = {}
+    const unset: Record<string, ''> = {}
 
     for (const key of allowed) {
       if (body[key] !== undefined) {
@@ -49,8 +51,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    if (Object.keys(update).length === 0) {
-      return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
+    if (body.entryType !== undefined && !isEntryType(body.entryType)) {
+      return withToken(json({ error: 'entryType must be LIVE or SHOOT' }, 400), refreshedToken)
     }
 
     await connectDB()
@@ -61,8 +63,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
 
-    const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
-      .populate('facultyId', 'name subject')
+    // Live/Shoot (Studio): durationHours arrives as the time actually taken and is
+    // stored multiplied for a Shoot; rawDurationHours keeps the real time.
+    if (existing.entryType || body.entryType !== undefined) {
+      const type = (body.entryType ?? existing.entryType) as 'LIVE' | 'SHOOT'
+      const raw = body.durationHours !== undefined
+        ? Number(body.durationHours)
+        : (existing.rawDurationHours ?? existing.durationHours)
+      if (!(raw >= 0.5)) {
+        return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
+      }
+      update.entryType = type
+      update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
+      if (type === 'SHOOT') update.rawDurationHours = raw
+      else unset.rawDurationHours = ''
+    }
+
+    if (Object.keys(update).length === 0) {
+      return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
+    }
+
+    const session = await Session.findByIdAndUpdate(
+      oid,
+      { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
+      { new: true, runValidators: true },
+    ).populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
 
     writeAuditLog({

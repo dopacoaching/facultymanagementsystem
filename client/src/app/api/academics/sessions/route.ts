@@ -14,6 +14,7 @@ import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
 import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
+import { isEntryType, shootHours } from '@/lib/constants/entryTypes'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
     const {
       facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
       scheduledTime, scheduledEndTime, updatedByName, durationHours, sessionDate, timeSlot, startTime, endTime,
-      breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, sessionCategory,
+      breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, sessionCategory, entryType: rawEntryType,
     } = await req.json()
     // Multi-batch classes send batchIds; the first is the primary batch.
     const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
@@ -322,6 +323,22 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }, 400), refreshedToken)
     }
 
+    // Campuses with Live/Shoot entries (Studio) must say which; a Shoot counts 1.75x.
+    // durationHours is sent as the time actually taken and stored multiplied.
+    let entryType: 'LIVE' | 'SHOOT' | undefined
+    let storedHours = Number(durationHours)
+    let rawDurationHours: number | undefined
+    if (campusName && (await findPushCampusByName(campusName))?.hasEntryTypes) {
+      if (!isEntryType(rawEntryType)) {
+        return withToken(json({ error: 'entryType (Live or Shoot) is required for this campus' }, 400), refreshedToken)
+      }
+      entryType = rawEntryType
+      if (entryType === 'SHOOT') {
+        rawDurationHours = storedHours
+        storedHours = shootHours(storedHours)
+      }
+    }
+
     // All checks passed — create session
     const session = await Session.create({
       facultyId:     facultyOid,
@@ -339,7 +356,9 @@ export async function POST(req: NextRequest) {
       breakMinutes:          breakMinutes != null ? Number(breakMinutes) : undefined,
       lunchBreakMinutes:     lunchBreakMinutes != null ? Number(lunchBreakMinutes) : undefined,
       afternoonBreakMinutes: afternoonBreakMinutes != null ? Number(afternoonBreakMinutes) : undefined,
-      durationHours: Number(durationHours),
+      durationHours: storedHours,
+      rawDurationHours,
+      entryType,
       sessionDate:   date,
       timeSlot:      timeSlot   ?? undefined,
       // Campus-login class-teacher flow logs sessions retrospectively (real
@@ -388,7 +407,7 @@ export async function POST(req: NextRequest) {
       description: chapter
         ? `Session logged: ${subject} "${chapter}" on ${date.toDateString()}`
         : `Session logged: ${subject} on ${date.toDateString()}`,
-      metadata: { batchId, campusName, facultyId, subject, chapter, sessionDate: date, durationHours: Number(durationHours) },
+      metadata: { batchId, campusName, facultyId, subject, chapter, sessionDate: date, durationHours: storedHours, entryType },
     }).catch(() => null)
 
     return withToken(json(session, 201), refreshedToken)

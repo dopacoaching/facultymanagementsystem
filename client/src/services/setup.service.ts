@@ -9,6 +9,7 @@ export interface SetupCampus {
   isActive: boolean
   teachers: SetupTeacher[]
   hasBatches: boolean
+  hasEntryTypes: boolean
   batchCampusId: string | null
   batchCount: number
   login: { _id: string; username: string; isActive: boolean } | null
@@ -17,13 +18,13 @@ export interface SetupCampus {
 export const getCampuses = (token: string) => apiFetch<SetupCampus[]>('/hr/setup/campuses', { token })
 
 export const createCampus = (
-  data: { name: string; kind: 'CAMPUS' | 'IG'; hasBatches: boolean; location?: string; teachers: string[]; username: string; password: string },
+  data: { name: string; kind: 'CAMPUS' | 'IG'; hasBatches: boolean; hasEntryTypes?: boolean; location?: string; teachers: string[]; username: string; password: string },
   token: string,
 ) => apiFetch<SetupCampus>('/hr/setup/campuses', { method: 'POST', body: data, token })
 
 export const updateCampus = (
   id: string,
-  data: Partial<{ name: string; isActive: boolean; hasBatches: boolean; username: string; password: string }>,
+  data: Partial<{ name: string; isActive: boolean; hasBatches: boolean; hasEntryTypes: boolean; username: string; password: string }>,
   token: string,
 ) => apiFetch<SetupCampus>(`/hr/setup/campuses/${id}`, { method: 'PATCH', body: data, token })
 

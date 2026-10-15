@@ -40,6 +40,10 @@ export interface ISession extends Document {
    *  Only meaningful for faculty on the DOUBT_CLEARANCE_SPLIT_RATE contract type,
    *  who are paid a different rate per category. Defaults to CLASS for everyone else. */
   sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE'
+  /** Only on campuses with Live/Shoot entries (Studio). SHOOT counts 1.75x: durationHours
+   *  holds the multiplied time, rawDurationHours the time actually taken. */
+  entryType?: 'LIVE' | 'SHOOT'
+  rawDurationHours?: number
 }
 
 const SessionSchema = new Schema<ISession>(
@@ -67,6 +71,8 @@ const SessionSchema = new Schema<ISession>(
     cancellationReason: String,
     loggedByUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     sessionCategory: { type: String, enum: ['CLASS', 'DOUBT_CLEARANCE'], default: 'CLASS' },
+    entryType: { type: String, enum: ['LIVE', 'SHOOT'] },
+    rawDurationHours: { type: Number, min: 0 },
   },
   { timestamps: true }
 )

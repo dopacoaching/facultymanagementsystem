@@ -13,6 +13,8 @@ export interface MyCampus {
   teachers: string[]
   /** Campus whose batches this login picks from; null when it has no batches. */
   batchCampusId: string | null
+  /** Entries are Live or Shoot (Studio). */
+  hasEntryTypes: boolean
 }
 
 export async function getMyCampus(token: string): Promise<MyCampus> {

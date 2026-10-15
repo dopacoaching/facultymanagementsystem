@@ -1,7 +1,10 @@
 import type { Session } from '@/types'
+import { ENTRY_TYPES, ENTRY_TYPE_LABELS, type EntryType } from '@/lib/constants/entryTypes'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditClassSessionForm {
+  /** Studio entries only; '' hides the selector. */
+  entryType: EntryType | ''
   subject: string
   chapter: string
   classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE' | ''
@@ -14,6 +17,7 @@ export interface EditClassSessionForm {
 
 export function formFromSession(s: Session): EditClassSessionForm {
   return {
+    entryType:     s.entryType ?? '',
     subject:       s.subject,
     chapter:       s.chapter,
     classMode:     s.classMode ?? '',
@@ -60,6 +64,15 @@ export function EditClassSessionModal({
         <div className="modal-body">
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           <div className="input-group-3">
+            {form.entryType !== '' && (
+              <div className="form-group">
+                <label className="label">Entry type</label>
+                <select className="input" value={form.entryType}
+                  onChange={(e) => setForm((f) => ({ ...f, entryType: e.target.value as EntryType }))}>
+                  {ENTRY_TYPES.map((t) => <option key={t} value={t}>{ENTRY_TYPE_LABELS[t]}</option>)}
+                </select>
+              </div>
+            )}
             <div className="form-group">
               <label className="label">Subject</label>
               <input className="input" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />

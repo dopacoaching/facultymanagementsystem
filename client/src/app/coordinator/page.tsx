@@ -13,6 +13,7 @@ import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
 import { NoClassCard } from '@/components/coordinator/NoClassCard'
 import { todayLocal } from '@/utils/date'
+import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours } from '@/lib/constants/entryTypes'
 import {
   EMPTY_FORM, FormState, computeDuration, monthBounds, teaBreakAsBreaks, formatHM,
   SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChapterField, BreakRow,
@@ -48,6 +49,7 @@ export default function PushBoardPage() {
   const batchCampusId = myCampus?.batchCampusId ?? undefined
   const campusLabel = myCampus?.name ?? (isIG ? null : campusName)
   const teacherNames = myCampus?.teachers ?? []
+  const hasEntryTypes = !isIG && myCampus?.hasEntryTypes === true
 
   const batchesRes = useAsyncResource<Batch[]>(
     () => getBatches(accessToken!),
@@ -81,6 +83,8 @@ export default function PushBoardPage() {
     () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak)),
     [form.startTime, form.endTime, form.teaBreak]
   )
+  const isShoot = hasEntryTypes && form.entryType === 'SHOOT'
+  const countedHours = isShoot ? shootHours(duration.hours) : duration.hours
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
@@ -111,6 +115,7 @@ export default function PushBoardPage() {
   function validate(): string | null {
     if (myCampusRes.status === 'loading') return 'Your campus details are still loading — try again in a moment'
     if (!myCampus || !campusLabel) return 'Your account is not linked to a campus'
+    if (hasEntryTypes && !form.entryType) return 'Select the entry type (Live or Shoot)'
     if (!form.facultyId)           return 'Select the faculty who took the session'
     if (needsSessionCategory && !form.sessionCategory) return 'Select whether this was a Class or Doubt Clearance session'
     if (!form.month)               return 'Select the month & year'
@@ -159,6 +164,8 @@ export default function PushBoardPage() {
           body: {
             ...common,
             campusName,
+            // Sent as the time actually taken; the server multiplies a Shoot.
+            entryType: hasEntryTypes ? form.entryType : undefined,
             batchId: needsBatch ? chosenBatchIds[0] : undefined,
             batchIds: needsBatch ? chosenBatchIds : undefined,
             sessionCategory: needsSessionCategory ? form.sessionCategory : undefined,
@@ -247,6 +254,20 @@ export default function PushBoardPage() {
               onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
               style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
             >
+              {hasEntryTypes && (
+                <FormField label="Entry type" htmlFor="pb-entry-type" required>
+                  <select
+                    id="pb-entry-type"
+                    className="input"
+                    value={form.entryType}
+                    onChange={(e) => setField('entryType', e.target.value as FormState['entryType'])}
+                  >
+                    <option value="">— select —</option>
+                    {ENTRY_TYPES.map((t) => <option key={t} value={t}>{ENTRY_TYPE_LABELS[t]}</option>)}
+                  </select>
+                </FormField>
+              )}
+
               <FormField label="Faculty name" htmlFor="pb-faculty" required>
                 <select
                   id="pb-faculty"
@@ -415,14 +436,18 @@ export default function PushBoardPage() {
               <FormField
                 label="Total hours & minutes"
                 htmlFor="pb-total"
-                hint={duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of tea break deducted` : 'Calculated automatically'}
+                hint={
+                  isShoot && !duration.error
+                    ? `${formatHM(duration.hours * 60)} taken × ${SHOOT_MULTIPLIER} for a Shoot`
+                    : duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of tea break deducted` : 'Calculated automatically'
+                }
               >
                 <input
                   id="pb-total"
                   className="input"
                   readOnly
                   disabled
-                  value={!duration.error ? formatHM(duration.hours * 60) : '—'}
+                  value={!duration.error ? formatHM(countedHours * 60) : '—'}
                 />
               </FormField>
 

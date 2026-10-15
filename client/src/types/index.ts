@@ -52,6 +52,8 @@ export interface Session {
   status: string
   cancellationInitiator?: string
   sessionCategory?: 'CLASS' | 'DOUBT_CLEARANCE'
+  entryType?: 'LIVE' | 'SHOOT'
+  rawDurationHours?: number
 }
 
 // ── Salary result types ────────────────────────────────────────────────────

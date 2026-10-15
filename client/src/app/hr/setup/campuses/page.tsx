@@ -11,13 +11,14 @@ interface FormState {
   name: string
   kind: 'CAMPUS' | 'IG'
   hasBatches: boolean
+  hasEntryTypes: boolean
   location: string
   teachers: string
   username: string
   password: string
 }
 
-const EMPTY: FormState = { name: '', kind: 'CAMPUS', hasBatches: false, location: '', teachers: '', username: '', password: '' }
+const EMPTY: FormState = { name: '', kind: 'CAMPUS', hasBatches: false, hasEntryTypes: false, location: '', teachers: '', username: '', password: '' }
 
 export default function CampusesSetupPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
@@ -34,7 +35,7 @@ export default function CampusesSetupPage() {
     setForm(EMPTY); setError(''); setEditing('new')
   }
   function openEdit(c: SetupCampus) {
-    setForm({ ...EMPTY, name: c.name, kind: c.kind, hasBatches: c.hasBatches, username: c.login?.username ?? '' })
+    setForm({ ...EMPTY, name: c.name, kind: c.kind, hasBatches: c.hasBatches, hasEntryTypes: c.hasEntryTypes, username: c.login?.username ?? '' })
     setError(''); setEditing(c)
   }
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }))
@@ -52,6 +53,7 @@ export default function CampusesSetupPage() {
           name: form.name.trim(),
           kind: form.kind,
           hasBatches: form.kind === 'IG' || form.hasBatches,
+          hasEntryTypes: form.kind === 'CAMPUS' && form.hasEntryTypes,
           location: form.location.trim() || undefined,
           teachers: form.teachers.split('\n').map((t) => t.trim()).filter(Boolean),
           username: form.username.trim(),
@@ -64,6 +66,7 @@ export default function CampusesSetupPage() {
         if (form.username.trim() && form.username.trim().toLowerCase() !== editing.login?.username) patch.username = form.username.trim()
         if (form.password) patch.password = form.password
         if (form.hasBatches && !editing.hasBatches) patch.hasBatches = true
+        if (editing.kind === 'CAMPUS' && form.hasEntryTypes !== editing.hasEntryTypes) patch.hasEntryTypes = form.hasEntryTypes
         if (Object.keys(patch).length === 0) { setEditing(null); setSaving(false); return }
         await updateCampus(editing._id, patch, accessToken)
         toast.success('Campus updated', 'Changes have been saved.')
@@ -180,6 +183,13 @@ export default function CampusesSetupPage() {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.875rem' }}>
                     <input type="checkbox" checked={form.hasBatches} onChange={(e) => set('hasBatches', e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
                     This campus runs batches (teachers pick the batch on the Push Board)
+                  </label>
+                )}
+
+                {(isNew ? form.kind === 'CAMPUS' : editing.kind === 'CAMPUS') && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.875rem' }}>
+                    <input type="checkbox" checked={form.hasEntryTypes} onChange={(e) => set('hasEntryTypes', e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
+                    Entries are Live or Shoot (Shoot hours count 1.75×)
                   </label>
                 )}
 

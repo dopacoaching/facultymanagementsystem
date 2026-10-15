@@ -16,6 +16,8 @@ export interface IPushCampus extends Document {
   teachers: IPushTeacher[]
   /** Campus document whose batches this campus's login may pick. */
   batchCampusId?: Types.ObjectId
+  /** Entries are either Live or Shoot (Shoot hours count 1.75x) — Studio. */
+  hasEntryTypes?: boolean
   isActive: boolean
 }
 
@@ -31,6 +33,7 @@ const PushCampusSchema = new Schema<IPushCampus>(
       default: [],
     },
     batchCampusId: { type: Schema.Types.ObjectId, ref: 'Campus' },
+    hasEntryTypes: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true, collection: 'pushcampuses' },

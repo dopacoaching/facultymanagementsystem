@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
       kind: campus.kind,
       teachers: activeTeacherNames(campus),
       batchCampusId: campus.batchCampusId ? String(campus.batchCampusId) : null,
+      hasEntryTypes: campus.hasEntryTypes === true,
     }), refreshedToken)
   } catch (err) {
     console.error('[GET /api/academics/my-campus]', err)

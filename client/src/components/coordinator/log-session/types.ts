@@ -1,4 +1,5 @@
 import { todayLocal } from '@/utils/date'
+import type { EntryType } from '@/lib/constants/entryTypes'
 
 export interface SubjectOption {
   label: string
@@ -68,6 +69,8 @@ export const breaksFromMinutes = (
 /** Push Board form (class teachers + IG class teachers). */
 export interface FormState {
   facultyId: string
+  /** Live or Shoot — only on campuses that record both (Studio). */
+  entryType: EntryType | ''
   /** "YYYY-MM" — picked first; limits which days the Date field allows. */
   month: string
   sessionDate: string
@@ -89,6 +92,7 @@ export interface FormState {
 
 export const EMPTY_FORM = (): FormState => ({
   facultyId:       '',
+  entryType:       '',
   month:           todayLocal().slice(0, 7),
   sessionDate:     todayLocal(),
   subject:         '',

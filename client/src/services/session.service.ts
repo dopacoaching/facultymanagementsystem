@@ -39,6 +39,7 @@ export async function create(
 export async function update(
   sessionId: string,
   data: Partial<{
+    entryType: 'LIVE' | 'SHOOT'
     facultyId: string
     subject: string
     chapter: string

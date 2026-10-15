@@ -22,7 +22,7 @@ export async function findLogin(c: PushCampusLean) {
 export async function describeCampus(c: IPushCampus | (Record<string, unknown> & PushCampusLean)) {
   const doc = c as unknown as {
     _id: Types.ObjectId; name: string; kind: 'CAMPUS' | 'IG'; isActive: boolean
-    teachers: { name: string; isActive: boolean }[]; batchCampusId?: Types.ObjectId
+    teachers: { name: string; isActive: boolean }[]; batchCampusId?: Types.ObjectId; hasEntryTypes?: boolean
   }
   const [login, batchCount] = await Promise.all([
     findLogin(doc),
@@ -35,6 +35,7 @@ export async function describeCampus(c: IPushCampus | (Record<string, unknown> &
     isActive: doc.isActive,
     teachers: doc.teachers,
     hasBatches: !!doc.batchCampusId,
+    hasEntryTypes: doc.hasEntryTypes === true,
     batchCampusId: doc.batchCampusId ? String(doc.batchCampusId) : null,
     batchCount,
     login: login ? { _id: String(login._id), username: login.username, isActive: login.isActive } : null,

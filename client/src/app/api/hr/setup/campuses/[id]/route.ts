@@ -12,7 +12,7 @@ import { validatePasswordComplexity } from '@/lib/utils/passwordUtils'
 
 /**
  * PATCH /api/hr/setup/campuses/:id — edit a campus.
- * Body (all optional): name, isActive, hasBatches (turn on only), username, password.
+ * Body (all optional): name, isActive, hasBatches (turn on only), hasEntryTypes, username, password.
  * Deactivating also blocks the campus login; reactivating restores it.
  *
  * Everything is validated first; nothing is written until every field is valid,
@@ -68,12 +68,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const enableBatches = body.hasBatches === true && !campus.batchCampusId
+    const nextEntryTypes = typeof body.hasEntryTypes === 'boolean' && body.hasEntryTypes !== (campus.hasEntryTypes === true) ? body.hasEntryTypes : undefined
     const nextActive = typeof body.isActive === 'boolean' && body.isActive !== campus.isActive ? body.isActive : undefined
 
     const changes: string[] = []
     if (newUsername) changes.push(`login username → ${newUsername}`)
     if (newPassword) changes.push('login password reset')
     if (enableBatches) changes.push('batches enabled')
+    if (nextEntryTypes !== undefined) changes.push(nextEntryTypes ? 'Live/Shoot entry types enabled' : 'Live/Shoot entry types disabled')
     if (newName) changes.push(`renamed "${oldName}" → "${newName}"`)
     if (nextActive !== undefined) changes.push(nextActive ? 'activated' : 'deactivated')
     if (changes.length === 0) return withToken(json(await describeCampus(campus)), refreshedToken)
@@ -89,6 +91,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       if (newName) campus.name = newName
       if (nextActive !== undefined) campus.isActive = nextActive
+      if (nextEntryTypes !== undefined) campus.hasEntryTypes = nextEntryTypes
       await campus.save()
     } catch (e) {
       if (createdBatchCampus) await Campus.deleteOne({ _id: createdBatchCampus }).catch(() => null)

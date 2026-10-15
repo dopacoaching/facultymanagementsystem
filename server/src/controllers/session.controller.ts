@@ -14,6 +14,7 @@ import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
 import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
 import { PushCampus } from '../models/PushCampus'
+import { isEntryType, shootHours } from '../utils/entryTypes'
 import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
@@ -103,7 +104,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
     scheduledTime, scheduledEndTime, updatedByName, startTime, endTime,
     breakMinutes, lunchBreakMinutes, afternoonBreakMinutes,
-    durationHours, sessionDate, timeSlot, sessionCategory,
+    durationHours, sessionDate, timeSlot, sessionCategory, entryType: rawEntryType,
   } = req.body
   // Multi-batch classes send batchIds; the first is the primary batch.
   const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
@@ -313,6 +314,22 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }); return
   }
 
+  // Campuses with Live/Shoot entries (Studio) must say which; a Shoot counts 1.75x.
+  // durationHours is sent as the time actually taken and stored multiplied.
+  let entryType: 'LIVE' | 'SHOOT' | undefined
+  let storedHours = Number(durationHours)
+  let rawDurationHours: number | undefined
+  if (campusName && (await PushCampus.findOne({ name: campusName, isActive: true }).lean())?.hasEntryTypes) {
+    if (!isEntryType(rawEntryType)) {
+      res.status(400).json({ error: 'entryType (Live or Shoot) is required for this campus' }); return
+    }
+    entryType = rawEntryType
+    if (entryType === 'SHOOT') {
+      rawDurationHours = storedHours
+      storedHours = shootHours(storedHours)
+    }
+  }
+
   // ── All checks passed — create session ────────────────────────────────────
   const session = await Session.create({
     facultyId:     facultyOid,
@@ -330,7 +347,9 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     breakMinutes:          breakMinutes != null ? Number(breakMinutes) : undefined,
     lunchBreakMinutes:     lunchBreakMinutes != null ? Number(lunchBreakMinutes) : undefined,
     afternoonBreakMinutes: afternoonBreakMinutes != null ? Number(afternoonBreakMinutes) : undefined,
-    durationHours: Number(durationHours),
+    durationHours: storedHours,
+    rawDurationHours,
+    entryType,
     sessionDate:   date,
     timeSlot:      timeSlot ?? undefined,
     // Push Board (class teachers + IG class teachers) logs sessions
@@ -417,6 +436,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     'durationHours', 'sessionDate', 'timeSlot',
   ]
   const update: Record<string, unknown> = {}
+  const unset: Record<string, ''> = {}
 
   for (const key of allowed) {
     if (req.body[key] !== undefined) {
@@ -434,12 +454,33 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
+  // Live/Shoot (Studio): durationHours arrives as the time actually taken and is
+  // stored multiplied for a Shoot; rawDurationHours keeps the real time.
+  if (req.body.entryType !== undefined && !isEntryType(req.body.entryType)) {
+    res.status(400).json({ error: 'entryType must be LIVE or SHOOT' }); return
+  }
+  const typeSent = req.body.entryType !== undefined
+  if (existing.entryType || typeSent) {
+    const type = (req.body.entryType ?? existing.entryType) as 'LIVE' | 'SHOOT'
+    const raw = req.body.durationHours !== undefined
+      ? Number(req.body.durationHours)
+      : (existing.rawDurationHours ?? existing.durationHours)
+    if (!(raw >= 0.5)) { res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return }
+    update.entryType = type
+    update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
+    if (type === 'SHOOT') update.rawDurationHours = raw
+    else unset.rawDurationHours = ''
+  }
+
   if (Object.keys(update).length === 0) {
     res.status(400).json({ error: 'No valid fields provided for update' }); return
   }
 
-  const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
-    .populate('facultyId', 'name subject')
+  const session = await Session.findByIdAndUpdate(
+    oid,
+    { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
+    { new: true, runValidators: true },
+  ).populate('facultyId', 'name subject')
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
   res.json(session)
 })

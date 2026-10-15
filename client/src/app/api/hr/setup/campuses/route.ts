@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
         name, kind,
         teachers: teachers.map((t) => ({ name: t, isActive: true })),
         batchCampusId: batchCampus?._id,
+        hasEntryTypes: kind === 'CAMPUS' && body.hasEntryTypes === true,
         isActive: true,
       })
       await campusDoc.save()
