@@ -44,6 +44,8 @@ export interface ISession extends Document {
    *  holds the multiplied time, rawDurationHours the time actually taken. */
   entryType?: 'LIVE' | 'SHOOT'
   rawDurationHours?: number
+  /** Set by `timestamps` — the teacher's 24-hour edit window counts from here. */
+  createdAt?: Date
 }
 
 const SessionSchema = new Schema<ISession>(

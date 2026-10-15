@@ -39,7 +39,7 @@ router.patch(
 )
 router.patch(
   '/sessions/:id',
-  authorize('HR_MANAGER', 'ADMIN'),
+  authorize('IG_CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'),
   updateSession,
 )
 

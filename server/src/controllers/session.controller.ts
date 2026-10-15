@@ -15,6 +15,7 @@ import { dayRangeFilter } from '../utils/dateRange'
 import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
 import { PushCampus } from '../models/PushCampus'
 import { isEntryType, shootHours } from '../utils/entryTypes'
+import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '../utils/teacherEdit'
 import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
@@ -423,7 +424,8 @@ export const updateSessionStatus = asyncHandler(async (req: AuthRequest, res: Re
 })
 
 /**
- * PATCH /sessions/:id  (full edit — ADMIN / manager roles only)
+ * PATCH /sessions/:id  (full edit — HR/Admin; a class teacher may correct their own
+ * campus's / school's entry for 24 hours after it was pushed)
  */
 export const updateSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const oid = validateObjectId(req.params.id, 'sessionId', res)
@@ -435,7 +437,22 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(409).json({ error: 'Cannot edit a cancelled session' }); return
   }
 
-  const allowed = [
+  const isTeacher = isCoordinator(req.user!.role)
+  if (isTeacher) {
+    if (req.user!.role === 'IG_CLASS_TEACHER') {
+      const batch = existing.batchId ? await Batch.findById(existing.batchId).select('campusId type') : null
+      if (!req.user!.campusId || !batch || batch.type !== 'IG' || batch.campusId.toString() !== req.user!.campusId) {
+        res.status(403).json({ error: 'You can only edit entries for your own school.' }); return
+      }
+    } else if (!req.user!.campusName || existing.campusName !== req.user!.campusName) {
+      res.status(403).json({ error: 'You can only edit entries for your own campus.' }); return
+    }
+    if (!canTeacherEdit(existing.createdAt)) {
+      res.status(403).json({ error: EDIT_WINDOW_CLOSED_MESSAGE }); return
+    }
+  }
+
+  const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
     'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
     'scheduledTime', 'scheduledEndTime', 'updatedByName', 'startTime', 'endTime',
     'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
@@ -449,6 +466,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
       if (key === 'sessionDate') {
         const d = new Date(req.body[key])
         if (isNaN(d.getTime())) { res.status(400).json({ error: 'Invalid sessionDate' }); return }
+        if (isTeacher && d.getTime() > Date.now()) { res.status(400).json({ error: 'The date cannot be in the future' }); return }
         update[key] = d
       } else if (key === 'facultyId' || key === 'batchId') {
         try { update[key] = new Types.ObjectId(req.body[key]) } catch {

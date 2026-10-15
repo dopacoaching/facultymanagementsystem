@@ -6,6 +6,10 @@ import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { toLocalISO } from '@/utils/date'
 import type { Session } from '@/types'
+import { getMyCampus } from '@/services/campus.service'
+import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
+import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
+import { update as updateEntry } from '@/services/ig-session.service'
 
 const SLOT_LABELS: Record<string, string> = {
   SESSION_1: 'Session 1',
@@ -28,6 +32,8 @@ export default function IGSessionHistoryPage() {
   const [to, setTo] = useState(toLocalISO(now))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [teacherNames, setTeacherNames] = useState<string[]>([])
+  const [editing, setEditing] = useState<Session | null>(null)
 
   async function load() {
     if (!accessToken) return
@@ -41,6 +47,10 @@ export default function IGSessionHistoryPage() {
   }
 
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!accessToken) return
+    getMyCampus(accessToken).then((c) => setTeacherNames(c.teachers)).catch(() => setTeacherNames([]))
+  }, [accessToken])
 
   return (
     <div>
@@ -86,6 +96,7 @@ export default function IGSessionHistoryPage() {
                   <th>Start–End</th>
                   <th style={{ textAlign: 'right' }}>Time Taken</th>
                   <th>Updated By</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -109,6 +120,16 @@ export default function IGSessionHistoryPage() {
                         {formatHM(s.durationHours)}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
+                          <>
+                            <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(s)}>Edit</button>
+                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+                              {formatTimeLeft(editWindowRemainingMs(s.createdAt))}
+                            </span>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}
@@ -118,8 +139,18 @@ export default function IGSessionHistoryPage() {
         </div>
       )}
 
+      {editing && (
+        <EditOwnEntry
+          session={editing}
+          teacherNames={teacherNames}
+          save={(id, data) => updateEntry(id, data, accessToken!)}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load() }}
+        />
+      )}
+
       <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-        Read-only — contact HR to make corrections.
+        You can edit an entry for 24 hours after you push it. After that, contact HR to make corrections.
       </p>
     </div>
   )

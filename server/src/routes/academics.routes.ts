@@ -28,7 +28,7 @@ router.post('/sessions', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), crea
 router.post('/sessions/cancel', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), cancelSession)
 router.patch('/sessions/:id/status', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
 // Full edit — HR / admin only
-router.patch('/sessions/:id', authorize('HR_MANAGER', 'ADMIN'), updateSession)
+router.patch('/sessions/:id', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), updateSession)
 
 // ── Chapters ──────────────────────────────────────────────────────────────────
 router.get('/chapters',         authorize('CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ADMIN'), getChapters)

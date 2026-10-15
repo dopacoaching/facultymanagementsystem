@@ -51,10 +51,14 @@ interface EditClassSessionModalProps {
   saving: boolean
   onClose: () => void
   onSubmit: () => void
+  /** Teacher edits: pick "Updated by" from the campus's teachers instead of free text. */
+  teacherNames?: string[]
+  /** Latest selectable date (teachers can't back-date into the future). */
+  maxDate?: string
 }
 
 export function EditClassSessionModal({
-  form, setForm, error, saving, onClose, onSubmit,
+  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate,
 }: EditClassSessionModalProps) {
   return (
     <div
@@ -98,12 +102,21 @@ export function EditClassSessionModal({
             </div>
             <div className="form-group">
               <label className="label">Session Date</label>
-              <input type="date" className="input" value={form.sessionDate}
+              <input type="date" className="input" value={form.sessionDate} max={maxDate}
                 onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))} />
             </div>
             <div className="form-group">
               <label className="label">Updated By</label>
-              <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
+              {teacherNames ? (
+                <select className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))}>
+                  {form.updatedByName && !teacherNames.includes(form.updatedByName) && (
+                    <option value={form.updatedByName}>{form.updatedByName}</option>
+                  )}
+                  {teacherNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              ) : (
+                <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
+              )}
             </div>
             {form.entryType === 'SHOOT' ? (
               <>

@@ -54,6 +54,7 @@ export interface Session {
   sessionCategory?: 'CLASS' | 'DOUBT_CLEARANCE'
   entryType?: 'LIVE' | 'SHOOT'
   rawDurationHours?: number
+  createdAt?: string
 }
 
 // ── Salary result types ────────────────────────────────────────────────────

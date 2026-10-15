@@ -5,15 +5,19 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours } from '@/lib/constants/entryTypes'
+import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
+import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
-/** PATCH /api/academics/sessions/:id — full edit (manager only) */
+/** PATCH /api/academics/sessions/:id — full edit (HR/Admin). A campus class teacher may
+ *  correct their own campus's entry for 24 hours after it was pushed. */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'CLASS_TEACHER')
+    const isTeacher = payload.role === 'CLASS_TEACHER'
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -24,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const body = await req.json() as Record<string, unknown>
-    const allowed = [
+    const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
       'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
       'scheduledTime', 'scheduledEndTime', 'updatedByName', 'startTime', 'endTime',
       'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
@@ -61,6 +65,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!existing) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
+    }
+    if (isTeacher) {
+      const own = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
+      if (!own || existing.campusName !== own) {
+        return withToken(json({ error: 'You can only edit entries for your own campus.' }, 403), refreshedToken)
+      }
+      if (!canTeacherEdit(existing.createdAt)) {
+        return withToken(json({ error: EDIT_WINDOW_CLOSED_MESSAGE }, 403), refreshedToken)
+      }
+      if (update.sessionDate instanceof Date && update.sessionDate.getTime() > Date.now()) {
+        return withToken(json({ error: 'The date cannot be in the future' }, 400), refreshedToken)
+      }
     }
 
     // Live/Shoot (Studio): durationHours arrives as the time actually taken and is

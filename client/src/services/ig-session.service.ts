@@ -48,6 +48,7 @@ export async function update(
   data: Partial<{
     facultyId: string
     batchId: string
+    classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
     subject: string
     chapter: string
     timeSlot: string
