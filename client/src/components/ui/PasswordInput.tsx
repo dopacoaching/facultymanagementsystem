@@ -78,7 +78,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type={show ? 'text' : 'password'}
             className={`input ${className ?? ''}`}
             style={{ paddingRight: '3.75rem', ...style }}
-            value={value ?? ''}
+            {...(value !== undefined ? { value } : {})}
             onChange={handleChange}
           />
           <button

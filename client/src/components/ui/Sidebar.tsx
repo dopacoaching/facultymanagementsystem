@@ -281,10 +281,9 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             )}
             <div className="form-stack">
               <FormField label="Current password" htmlFor="pwd-current">
-                <input
+                <PasswordInput
                   id="pwd-current"
-                  type="password"
-                  className="input"
+                  showStrength={false}
                   autoFocus
                   value={pwdForm.current}
                   onChange={(e) => setPwdForm({ ...pwdForm, current: e.target.value })}
@@ -306,10 +305,9 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
               </FormField>
 
               <FormField label="Confirm new password" htmlFor="pwd-confirm">
-                <input
+                <PasswordInput
                   id="pwd-confirm"
-                  type="password"
-                  className="input"
+                  showStrength={false}
                   value={pwdForm.confirm}
                   onChange={(e) => setPwdForm({ ...pwdForm, confirm: e.target.value })}
                   autoComplete="new-password"

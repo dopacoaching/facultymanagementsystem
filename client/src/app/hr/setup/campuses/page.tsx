@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import PasswordInput from '@/components/ui/PasswordInput'
 import { useAppSelector } from '@/store/hooks'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { useToast } from '@/components/ui/Toast'
@@ -214,7 +215,7 @@ export default function CampusesSetupPage() {
                   required={isNew}
                   hint={isNew ? '8+ characters with upper, lower, digit and special character' : 'Leave blank to keep the current password'}
                 >
-                  <input id="cs-pass" type="password" className="input" autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} />
+                  <PasswordInput id="cs-pass" showStrength={false} autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} />
                 </FormField>
               </div>
               <div className="modal-footer">

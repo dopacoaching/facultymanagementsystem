@@ -1,5 +1,6 @@
 ﻿'use client'
 import Image from 'next/image'
+import PasswordInput from '@/components/ui/PasswordInput'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -222,10 +223,9 @@ export default function LoginPage() {
 
               <div>
                 <label className="label">Password</label>
-                <input
+                <PasswordInput
                   {...register('password')}
-                  type="password"
-                  className="input"
+                  showStrength={false}
                   placeholder="Enter your password"
                   autoComplete="current-password"
                   style={{ fontSize: '0.9375rem' }}
