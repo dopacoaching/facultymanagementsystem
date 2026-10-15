@@ -149,16 +149,19 @@ function toTSV(rows: EntryRow[]): string {
   return [head.join('\t'), ...lines].join('\n')
 }
 
-/** One sheet of the entries in view, same columns as the copied text. Loaded on
- *  demand so the xlsx writer stays out of the page's initial bundle. */
-async function downloadExcel(rows: EntryRow[], from: string, to: string) {
+/** One sheet laid out like the screen: a bold header row per group (with its entry
+ *  count and total hours), that group's entries in date order, then a blank row.
+ *  Loaded on demand so the xlsx writer stays out of the page's initial bundle. */
+async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string) {
   const { default: writeXlsxFile } = await import('write-excel-file/browser')
   const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Entry type',
     'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours']
+  const hm = (hours: number) => { const m = Math.round(hours * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
   const text = (value: string | undefined) => ({ value: value || undefined, type: String })
+  const blank = () => head.map(() => null)
+
   const header = head.map((h) => ({ value: h, type: String, fontWeight: 'bold' as const }))
-  const body = rows.map((r) => {
-    const mins = Math.round(r.durationHours * 60)
+  const entryRow = (r: EntryRow) => {
     const brk = breakTotal(r)
     return [
       text(r.date), text(r.campusName), text(r.batchName), text(r.facultyName), text(r.facultyType),
@@ -167,12 +170,53 @@ async function downloadExcel(rows: EntryRow[], from: string, to: string) {
       text(r.startTime), text(r.endTime),
       { value: brk ?? undefined, type: Number },
       text(r.updatedByName),
-      text(`${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`),
+      text(hm(r.durationHours)),
       { value: Math.round(r.durationHours * 100) / 100, type: Number, format: '0.00' },
     ]
-  })
+  }
+  /** Bold shaded row: title on the left, "N entries" under Entered by, totals under Time / Hours. */
+  const groupRow = (title: string, list: EntryRow[], indent = false) => {
+    const total = sumHours(list)
+    const cell = (value: string | number | undefined, extra: object = {}) =>
+      ({ value, type: typeof value === 'number' ? Number : String, fontWeight: 'bold' as const, backgroundColor: indent ? '#f1f5f9' : '#dbe4f5', ...extra })
+    const r: unknown[] = head.map(() => cell(undefined))
+    r[0] = cell(indent ? `    ${title}` : title)
+    r[12] = cell(`${list.length} ${list.length === 1 ? 'entry' : 'entries'}`)
+    r[13] = cell(hm(total))
+    r[14] = cell(Math.round(total * 100) / 100, { format: '0.00' })
+    return r
+  }
+
+  const body: unknown[][] = []
+  const addGroup = (title: string, list: EntryRow[], indent = false) => {
+    body.push(groupRow(title, list, indent), ...list.map(entryRow))
+  }
+  const byName = ([a]: [string, unknown], [b]: [string, unknown]) => a.localeCompare(b)
+
+  if (group === 'faculty') {
+    const groups = Array.from(groupBy(rows, (r) => r.facultyId).entries())
+      .sort(([, a], [, b]) => a[0].facultyName.localeCompare(b[0].facultyName))
+    for (const [, list] of groups) {
+      addGroup(`${list[0].facultyName} · ${typeLabel(list[0].facultyType)} · ${list[0].subject}`, list)
+      body.push(blank())
+    }
+  } else {
+    for (const [campusName, campusRows] of Array.from(groupBy(rows, (r) => r.campusName).entries()).sort(byName)) {
+      if (group === 'campus') {
+        addGroup(campusName, campusRows)
+      } else {
+        body.push(groupRow(campusName, campusRows))
+        for (const [subject, list] of Array.from(groupBy(campusRows, (r) => r.subject).entries()).sort(byName)) {
+          addGroup(subject, list, true)
+        }
+      }
+      body.push(blank())
+    }
+  }
+  body.push(groupRow('Total', rows))
+
   const columns = [12, 22, 18, 24, 14, 14, 30, 16, 11, 8, 8, 12, 18, 11, 9].map((width) => ({ width }))
-  await writeXlsxFile([header, ...body], { columns, stickyRowsCount: 1 }).toFile(`entries-report_${from}_to_${to}.xlsx`)
+  await writeXlsxFile([header, ...body] as never, { columns, stickyRowsCount: 1 }).toFile(`entries-report_${from}_to_${to}.xlsx`)
 }
 
 export default function EntriesReportPage() {
@@ -256,7 +300,7 @@ export default function EntriesReportPage() {
 
   async function exportExcel() {
     try {
-      await downloadExcel(rows, from, to)
+      await downloadExcel(rows, group, from, to)
     } catch {
       toast.error('Download failed', 'The Excel file could not be created.')
     }
