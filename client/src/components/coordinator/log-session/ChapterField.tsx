@@ -26,9 +26,18 @@ export function ChapterField({ subject, accessToken, value, onChange }: ChapterF
     if (!accessToken || !subject) { setOptions([]); return }
     let cancelled = false
     setLoading(true)
-    apiFetch<SyllabusChapter[]>(`/academics/syllabus/chapters?subject=${encodeURIComponent(subject)}`, { token: accessToken })
-      .then((data) => { if (!cancelled) setOptions(data.map((c) => c.chapterName)) })
-      .catch(() => { if (!cancelled) setOptions([]) })
+    // Syllabus chapters (a few subjects) plus any chapters HR/Admin added for the subject.
+    Promise.all([
+      apiFetch<SyllabusChapter[]>(`/academics/syllabus/chapters?subject=${encodeURIComponent(subject)}`, { token: accessToken })
+        .then((data) => data.map((c) => c.chapterName)).catch(() => [] as string[]),
+      apiFetch<string[]>(`/academics/chapter-options?subject=${encodeURIComponent(subject)}`, { token: accessToken })
+        .catch(() => [] as string[]),
+    ])
+      .then(([syllabus, added]) => {
+        if (cancelled) return
+        const seen = new Set(syllabus.map((n) => n.toLowerCase()))
+        setOptions([...syllabus, ...added.filter((n) => !seen.has(n.toLowerCase()))])
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [subject, accessToken])

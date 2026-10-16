@@ -67,3 +67,14 @@ export const updateBatch = (
   data: Partial<{ name: string; isActive: boolean; type: BatchType; campusId: string; stream: string; ig1Subgroup: string }>,
   token: string,
 ) => apiFetch<SetupBatch>(`/hr/setup/batches/${id}`, { method: 'PATCH', body: data, token })
+
+export interface SetupChapter { _id: string; subject: string; name: string }
+
+export const getChapterOptions = (subject: string, token: string) =>
+  apiFetch<SetupChapter[]>(`/hr/setup/chapters?subject=${encodeURIComponent(subject)}`, { token })
+
+export const addChapterOptions = (subject: string, names: string[], token: string) =>
+  apiFetch<{ added: number; skipped: number }>('/hr/setup/chapters', { method: 'POST', body: { subject, names }, token })
+
+export const removeChapterOption = (id: string, token: string) =>
+  apiFetch<{ ok: true }>(`/hr/setup/chapters/${id}`, { method: 'DELETE', token })

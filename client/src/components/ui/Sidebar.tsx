@@ -49,6 +49,7 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
     { href: '/hr/reports/ig-sessions' },
     { href: '/hr/setup/campuses' },
     { href: '/hr/setup/batches' },
+    { href: '/hr/setup/chapters' },
     { href: '/hr/setup/teachers' },
     { section: 'Academics' },
     { href: '/academics/sessions' },
@@ -66,6 +67,7 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
     { href: '/hr/reports/ig-sessions' },
     { href: '/hr/setup/campuses' },
     { href: '/hr/setup/batches' },
+    { href: '/hr/setup/chapters' },
     { href: '/hr/setup/teachers' },
   ],
   CLASS_TEACHER: [
