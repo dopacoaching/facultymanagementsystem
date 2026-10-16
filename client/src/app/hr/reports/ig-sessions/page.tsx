@@ -70,6 +70,7 @@ export default function IGClassSessionsPage() {
         chapter:       editForm.chapter.trim(),
         timeSlot:      editForm.timeSlot,
         updatedByName: editForm.updatedByName.trim() || undefined,
+        ...(editForm.comment.trim() !== (editingSession.comment ?? '').trim() ? { comment: editForm.comment.trim() } : {}),
         startTime:     editForm.startTime,
         endTime:       editForm.endTime,
         breakMinutes:          duration.morningBreak,
@@ -161,6 +162,7 @@ export default function IGClassSessionsPage() {
                   <th style={{ textAlign: 'right' }}>Time Taken</th>
                   <th style={{ textAlign: 'right' }}>Break</th>
                   <th>Updated By</th>
+                  <th>Comment</th>
                   <th>Status</th>
                   {canManage && <th></th>}
                 </tr>
@@ -190,6 +192,7 @@ export default function IGClassSessionsPage() {
                         {breakSummary(s)}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
+                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
                       <td>
                         <span className={`badge ${isCancelled ? 'badge-red' : 'badge-green'}`}>{s.status}</span>
                       </td>

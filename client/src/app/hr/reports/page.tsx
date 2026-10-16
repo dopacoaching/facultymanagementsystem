@@ -77,6 +77,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
             <th>Start–End</th>
             <th style={{ textAlign: 'right' }} title="Total break minutes as entered on the form — not the amount deducted from the time taken.">Break</th>
             <th>Entered by</th>
+            <th>Comment</th>
             <th style={{ textAlign: 'right' }}>Time</th>
           </tr>
         </thead>
@@ -93,6 +94,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
               <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
               <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{breakLabel(r)}</td>
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
+              <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
             </tr>
           ))}
@@ -119,7 +121,7 @@ function GroupHeader({ title, count, hours, level = 1 }: { title: string; count:
 
 /** Tab-separated text for the current view, ready to paste into a sheet. */
 function toTSV(rows: EntryRow[]): string {
-  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours']
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours', 'Comment']
   // Neutralise spreadsheet formulas (=, +, -, @) in coordinator-typed text.
   const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ').replace(/^[=+\-@]/, "'$&")
   const lines = rows.map((r) => {
@@ -127,7 +129,7 @@ function toTSV(rows: EntryRow[]): string {
     return [
       r.date, r.campusName, r.batchName, r.facultyName, r.facultyType, r.subject, r.chapter,
       r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName, r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : '',
-      `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2),
+      `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2), r.comment,
     ].map((v) => clean(String(v))).join('\t')
   })
   return [head.join('\t'), ...lines].join('\n')
@@ -139,7 +141,7 @@ function toTSV(rows: EntryRow[]): string {
 async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string) {
   const { default: writeXlsxFile } = await import('write-excel-file/browser')
   const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Entry type',
-    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours']
+    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours', 'Comment']
   const hm = (hours: number) => { const m = Math.round(hours * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
   const text = (value: string | undefined) => ({ value: value || undefined, type: String })
   const blank = () => head.map(() => null)
@@ -156,6 +158,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
       text(r.updatedByName),
       text(hm(r.durationHours)),
       { value: Math.round(r.durationHours * 100) / 100, type: Number, format: '0.00' },
+      text(r.comment ? r.comment.replace(/^[=+\-@]/, "'$&") : ''),
     ]
   }
   /** Bold shaded row: title on the left, "N entries" under Entered by, totals under Time / Hours. */
@@ -199,7 +202,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
   }
   body.push(groupRow('Total', rows))
 
-  const columns = [12, 22, 18, 24, 14, 14, 30, 16, 11, 8, 8, 12, 18, 11, 9].map((width) => ({ width }))
+  const columns = [12, 22, 18, 24, 14, 14, 30, 16, 11, 8, 8, 12, 18, 11, 9, 40].map((width) => ({ width }))
   await writeXlsxFile([header, ...body] as never, { columns, stickyRowsCount: 1 }).toFile(`entries-report_${from}_to_${to}.xlsx`)
 }
 

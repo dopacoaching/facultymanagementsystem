@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
           { batchId: { $in: igBatches.map((b) => b._id) } },
         ],
       })
-        .select('facultyId campusName batchId extraBatchIds subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName entryType')
+        .select('facultyId campusName batchId extraBatchIds subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName comment entryType')
         .populate('facultyId', 'name type subject')
         .sort({ sessionDate: 1 })
         .limit(MAX_ROWS)
@@ -98,6 +98,7 @@ export async function GET(req: NextRequest) {
           durationHours: s.durationHours,
           entryType: s.entryType ?? null,
           updatedByName: s.updatedByName ?? '',
+          comment: s.comment ?? '',
           batchName: [batchId, ...(s.extraBatchIds ?? []).map(String)].map((id) => batchNames.get(id)).filter(Boolean).join(', '),
           breakMinutes: s.breakMinutes ?? null,
           lunchBreakMinutes: s.lunchBreakMinutes ?? null,

@@ -11,6 +11,7 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
+import { normalizeComment } from '@/lib/utils/teacherEdit'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     const {
       facultyId, batchId: rawBatchId, batchIds, subject, chapter, durationHours, sessionDate, timeSlot, classMode,
-      scheduledTime, scheduledEndTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName,
+      scheduledTime, scheduledEndTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName, comment,
     } = await req.json()
     const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
@@ -223,6 +224,7 @@ export async function POST(req: NextRequest) {
       lunchBreakMinutes:     lunchBreakMinutes     ?? undefined,
       afternoonBreakMinutes: afternoonBreakMinutes ?? undefined,
       updatedByName: updatedByName ?? undefined,
+      comment:       normalizeComment(comment) || undefined,
       durationHours: Number(durationHours),
       sessionDate:   date,
       timeSlot:      timeSlot || undefined,

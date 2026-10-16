@@ -6,7 +6,7 @@ import { Session } from '@/lib/models/Session'
 import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
-import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
+import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
 /** PATCH /api/ig/sessions/:id — full edit (HR/Admin). An IG class teacher may correct an
  *  entry for their own school for 24 hours after it was pushed. */
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json() as Record<string, unknown>
     const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
       'facultyId', 'batchId', 'subject', 'chapter', 'timeSlot',
-      'scheduledTime', 'scheduledEndTime', 'startTime', 'endTime', 'updatedByName',
+      'scheduledTime', 'scheduledEndTime', 'startTime', 'endTime', 'updatedByName', 'comment',
       'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
       'durationHours', 'sessionDate',
     ]
@@ -48,6 +48,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           try { update[key] = new Types.ObjectId(body[key] as string) } catch {
             return withToken(json({ error: `Invalid ${key}` }, 400), refreshedToken)
           }
+        } else if (key === 'comment') {
+          const v = normalizeComment(body[key])
+          if (v === null) return withToken(json({ error: 'comment must be text' }, 400), refreshedToken)
+          update[key] = v
         } else {
           update[key] = body[key]
         }

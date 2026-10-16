@@ -134,7 +134,7 @@ async function main() {
 
   // Jidhu — Biology, fixed monthly with min 18 days AND min 108 hours (warning-only)
   await upsertNewFaculty(
-    { name: 'Jidhu', subject: 'Biology', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY' },
+    { name: 'Jidhu', subject: 'Biology', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', requiresSessionCategory: false },
     {
       contractType: 'FIXED_MONTHLY_MIN_DAYS',
       fixedMonthlySalary: 110000,
@@ -162,7 +162,7 @@ async function main() {
   // guessed academic subject) — adjust via the faculty edit screen if needed.
   for (const name of ['Parvathy', 'Thamanna', 'Manju']) {
     await upsertNewFaculty(
-      { name, subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', requiresSessionCategory: true },
+      { name, subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY' },
       {
         contractType: 'DOUBT_CLEARANCE_SPLIT_RATE',
         fixedMonthlySalary: 20000,

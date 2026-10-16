@@ -35,6 +35,7 @@ export async function create(
     lunchBreakMinutes?: number
     afternoonBreakMinutes?: number
     updatedByName: string
+    comment?: string
     durationHours: number
     sessionDate: string
   },
@@ -54,6 +55,7 @@ export async function update(
     timeSlot: string
     scheduledTime: string
     updatedByName: string
+    comment: string
     startTime: string
     endTime: string
     breakMinutes: number

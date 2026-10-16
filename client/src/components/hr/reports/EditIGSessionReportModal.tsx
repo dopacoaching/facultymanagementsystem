@@ -6,6 +6,7 @@ export interface EditIGSessionForm {
   chapter: string
   timeSlot: 'SESSION_1' | 'SESSION_2' | 'SESSION_3' | ''
   updatedByName: string
+  comment: string
   startTime: string
   endTime: string
   breaks: BreaksInput
@@ -18,6 +19,7 @@ export function formFromIGSession(s: Session): EditIGSessionForm {
     chapter:       s.chapter,
     timeSlot:      (s.timeSlot as EditIGSessionForm['timeSlot']) ?? '',
     updatedByName: s.updatedByName ?? '',
+    comment:       s.comment ?? '',
     startTime:     s.startTime ?? '',
     endTime:       s.endTime ?? '',
     breaks:        breaksFromMinutes(s.breakMinutes, s.lunchBreakMinutes, s.afternoonBreakMinutes),
@@ -82,6 +84,11 @@ export function EditIGSessionReportModal({
             <div className="form-group">
               <label className="label">Updated By</label>
               <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
+            </div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="label">Comment</label>
+              <textarea className="input" rows={2} maxLength={500} value={form.comment} style={{ resize: 'vertical' }}
+                onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))} />
             </div>
             <div className="form-group">
               <label className="label">Start Time</label>

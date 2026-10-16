@@ -43,6 +43,7 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
         chapter:       form.chapter.trim(),
         classMode:     form.classMode || undefined,
         updatedByName: form.updatedByName.trim() || undefined,
+        ...(form.comment.trim() !== (session.comment ?? '').trim() ? { comment: form.comment.trim() } : {}),
         sessionDate:   form.sessionDate,
         // Timing is only sent when it changed — the server recalculates hours from it
         // (a Shoot's multiplier, a Live entry's full break), so an unrelated edit

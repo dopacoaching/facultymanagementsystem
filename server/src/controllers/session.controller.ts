@@ -16,7 +16,7 @@ import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
 import { PushCampus } from '../models/PushCampus'
 import { isEntryType, shootHours, usesFullBreak } from '../utils/entryTypes'
 import { fullBreakHours } from '../utils/sessionHours'
-import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '../utils/teacherEdit'
+import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '../utils/teacherEdit'
 import { Types } from 'mongoose'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
@@ -104,7 +104,7 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
     facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
-    scheduledTime, scheduledEndTime, updatedByName, startTime, endTime,
+    scheduledTime, scheduledEndTime, updatedByName, comment, startTime, endTime,
     breakMinutes, lunchBreakMinutes, afternoonBreakMinutes,
     durationHours, sessionDate, timeSlot, sessionCategory, entryType: rawEntryType,
   } = req.body
@@ -357,6 +357,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     scheduledTime: scheduledTime || undefined,
     scheduledEndTime: scheduledEndTime || undefined,
     updatedByName: updatedByName || undefined,
+    comment:       normalizeComment(comment) || undefined,
     startTime:     startTime ?? undefined,
     endTime:       endTime   ?? undefined,
     breakMinutes:          breakMinutes != null ? Number(breakMinutes) : undefined,
@@ -462,7 +463,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
 
   const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
     'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
-    'scheduledTime', 'scheduledEndTime', 'updatedByName', 'startTime', 'endTime',
+    'scheduledTime', 'scheduledEndTime', 'updatedByName', 'comment', 'startTime', 'endTime',
     'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
     'durationHours', 'sessionDate', 'timeSlot',
   ]
@@ -480,6 +481,10 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
         try { update[key] = new Types.ObjectId(req.body[key]) } catch {
           res.status(400).json({ error: `Invalid ${key}` }); return
         }
+      } else if (key === 'comment') {
+        const v = normalizeComment(req.body[key])
+        if (v === null) { res.status(400).json({ error: 'comment must be text' }); return }
+        update[key] = v
       } else {
         update[key] = req.body[key]
       }

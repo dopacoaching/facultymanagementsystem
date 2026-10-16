@@ -41,6 +41,7 @@ export interface Session {
   scheduledTime?: string
   scheduledEndTime?: string
   updatedByName?: string
+  comment?: string
   startTime?: string
   endTime?: string
   breakMinutes?: number

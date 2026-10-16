@@ -91,6 +91,7 @@ export interface FormState {
   /** The single Tea break — first 15 minutes are free. */
   teaBreak: BreakField
   updatedByName: string
+  comment: string
 }
 
 export const EMPTY_FORM = (): FormState => ({
@@ -110,6 +111,7 @@ export const EMPTY_FORM = (): FormState => ({
   sessionCategory: '',
   teaBreak:        { nil: false, minutes: '' },
   updatedByName:   '',
+  comment:         '',
 })
 
 /** Shoot time entered as hours + minutes (no start/end, no break). */

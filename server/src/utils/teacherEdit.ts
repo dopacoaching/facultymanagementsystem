@@ -7,9 +7,17 @@ export const TEACHER_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 /** Fields a teacher may change — never the faculty, batch or campus. */
 export const TEACHER_EDITABLE_FIELDS = [
-  'classMode', 'subject', 'chapter', 'updatedByName', 'startTime', 'endTime',
+  'classMode', 'subject', 'chapter', 'updatedByName', 'comment', 'startTime', 'endTime',
   'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes', 'durationHours', 'sessionDate',
 ] as const
+
+/** Max length of the free-text comment a teacher can leave on an entry. */
+export const COMMENT_MAX_LENGTH = 500
+
+/** Trimmed, length-capped comment; '' when blank, null when not a string. */
+export function normalizeComment(value: unknown): string | null {
+  return typeof value === 'string' ? value.trim().slice(0, COMMENT_MAX_LENGTH) : null
+}
 
 /** Milliseconds left in the teacher's edit window (<= 0 once closed). */
 export function editWindowRemainingMs(createdAt: Date | string | undefined, now: number = Date.now()): number {

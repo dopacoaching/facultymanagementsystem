@@ -19,6 +19,8 @@ export interface ISession extends Document {
   scheduledEndTime?: string
   /** The person (from the campus's teacher list) who actually filled in this entry. */
   updatedByName?: string
+  /** Free-text note from the teacher entering the class on the Push Board. */
+  comment?: string
   startTime?: string          // "HH:MM" 24-hour format, e.g. "09:30"
   endTime?: string
   /** Morning / first break, raw minutes as entered — the first 15 minutes are
@@ -60,6 +62,7 @@ const SessionSchema = new Schema<ISession>(
     scheduledTime: { type: String, match: /^\d{2}:\d{2}$/ },
     scheduledEndTime: { type: String, match: /^\d{2}:\d{2}$/ },
     updatedByName: { type: String },
+    comment: { type: String, trim: true, maxlength: 500 },
     startTime: { type: String, match: /^\d{2}:\d{2}$/ },
     endTime: { type: String, match: /^\d{2}:\d{2}$/ },
     breakMinutes: { type: Number, min: 0 },

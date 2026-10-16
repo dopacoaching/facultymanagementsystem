@@ -157,6 +157,7 @@ export default function PushBoardPage() {
       lunchBreakMinutes:     0,
       afternoonBreakMinutes: 0,
       updatedByName:    form.updatedByName,
+      comment:          form.comment.trim() || undefined,
       durationHours:    duration.hours,
       sessionDate:      form.sessionDate,
     }
@@ -486,6 +487,18 @@ export default function PushBoardPage() {
                   onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })}
                 />
               )}
+
+              <FormField label="Comment" htmlFor="pb-comment" hint="Optional — anything HR should know about this class">
+                <textarea
+                  id="pb-comment"
+                  className="input"
+                  rows={3}
+                  maxLength={500}
+                  value={form.comment}
+                  onChange={(e) => setField('comment', e.target.value)}
+                  style={{ resize: 'vertical' }}
+                />
+              </FormField>
 
               <FormField label="Updated by" htmlFor="pb-updated-by" required>
                 <select

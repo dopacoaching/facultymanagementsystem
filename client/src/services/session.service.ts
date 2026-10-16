@@ -45,6 +45,7 @@ export async function update(
     chapter: string
     classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
     updatedByName: string
+    comment: string
     startTime: string
     endTime: string
     breakMinutes: number

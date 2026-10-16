@@ -97,6 +97,7 @@ export default function CampusHistoryPage() {
                   <th>Start–End</th>
                   <th style={{ textAlign: 'right' }}>Time Taken</th>
                   <th>Updated By</th>
+                  <th>Comment</th>
                   <th></th>
                 </tr>
               </thead>
@@ -123,6 +124,7 @@ export default function CampusHistoryPage() {
                         {formatHM(s.durationHours)}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
+                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
                           <>

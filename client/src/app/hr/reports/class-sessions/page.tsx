@@ -72,6 +72,7 @@ export default function ClassSessionsPage() {
         chapter:       editForm.chapter.trim(),
         classMode:     editForm.classMode || undefined,
         updatedByName: editForm.updatedByName.trim() || undefined,
+        ...(editForm.comment.trim() !== (editingSession.comment ?? '').trim() ? { comment: editForm.comment.trim() } : {}),
         // Timing is only sent when it changed — the server recalculates hours from it.
         ...(changed
           ? {
@@ -165,6 +166,7 @@ export default function ClassSessionsPage() {
                   <th style={{ textAlign: 'right' }}>Time Taken</th>
                   <th style={{ textAlign: 'right' }}>Break</th>
                   <th>Updated By</th>
+                  <th>Comment</th>
                   {canEdit && <th></th>}
                 </tr>
               </thead>
@@ -198,6 +200,7 @@ export default function ClassSessionsPage() {
                         {breakSummary(s)}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
+                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
                       {canEdit && (
                         <td>
                           <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>Edit</button>

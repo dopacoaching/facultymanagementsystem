@@ -12,6 +12,7 @@ export interface EditClassSessionForm {
   chapter: string
   classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE' | ''
   updatedByName: string
+  comment: string
   startTime: string
   endTime: string
   breaks: BreaksInput
@@ -29,6 +30,7 @@ export function formFromSession(s: Session): EditClassSessionForm {
     chapter:       s.chapter,
     classMode:     s.classMode ?? '',
     updatedByName: s.updatedByName ?? '',
+    comment:       s.comment ?? '',
     startTime:     s.startTime ?? '',
     endTime:       s.endTime ?? '',
     // 0 / absent ⇒ Nil row; the manager re-confirms any real value here.
@@ -128,6 +130,11 @@ export function EditClassSessionModal({
               ) : (
                 <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
               )}
+            </div>
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="label">Comment</label>
+              <textarea className="input" rows={2} maxLength={500} value={form.comment} style={{ resize: 'vertical' }}
+                onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))} />
             </div>
             {form.entryType === 'SHOOT' ? (
               <>

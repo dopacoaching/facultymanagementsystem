@@ -16,6 +16,7 @@ import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
+import { normalizeComment } from '@/lib/utils/teacherEdit'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
 
     const {
       facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
-      scheduledTime, scheduledEndTime, updatedByName, durationHours, sessionDate, timeSlot, startTime, endTime,
+      scheduledTime, scheduledEndTime, updatedByName, comment, durationHours, sessionDate, timeSlot, startTime, endTime,
       breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, sessionCategory, entryType: rawEntryType,
     } = await req.json()
     // Multi-batch classes send batchIds; the first is the primary batch.
@@ -365,6 +366,7 @@ export async function POST(req: NextRequest) {
       scheduledTime: scheduledTime || undefined,
       scheduledEndTime: scheduledEndTime || undefined,
       updatedByName: updatedByName || undefined,
+      comment:       normalizeComment(comment) || undefined,
       startTime:     startTime  ?? undefined,
       endTime:       endTime    ?? undefined,
       breakMinutes:          breakMinutes != null ? Number(breakMinutes) : undefined,

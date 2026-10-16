@@ -7,7 +7,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
-import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
+import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
 /** PATCH /api/academics/sessions/:id — full edit (HR/Admin). A campus class teacher may
  *  correct their own campus's entry for 24 hours after it was pushed. */
@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json() as Record<string, unknown>
     const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
       'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
-      'scheduledTime', 'scheduledEndTime', 'updatedByName', 'startTime', 'endTime',
+      'scheduledTime', 'scheduledEndTime', 'updatedByName', 'comment', 'startTime', 'endTime',
       'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
       'durationHours', 'sessionDate', 'timeSlot',
     ]
@@ -50,6 +50,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           try { update[key] = new Types.ObjectId(body[key] as string) } catch {
             return withToken(json({ error: `Invalid ${key}` }, 400), refreshedToken)
           }
+        } else if (key === 'comment') {
+          const v = normalizeComment(body[key])
+          if (v === null) return withToken(json({ error: 'comment must be text' }, 400), refreshedToken)
+          update[key] = v
         } else {
           update[key] = body[key]
         }

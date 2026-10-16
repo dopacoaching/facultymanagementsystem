@@ -17,6 +17,7 @@ export interface EntryRow {
   /** Studio only. SHOOT hours are already multiplied in durationHours. */
   entryType: 'LIVE' | 'SHOOT' | null
   updatedByName: string
+  comment: string
   batchName: string
   breakMinutes: number | null
   lunchBreakMinutes: number | null
