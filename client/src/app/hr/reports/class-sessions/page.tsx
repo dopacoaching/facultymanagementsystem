@@ -169,6 +169,7 @@ export default function ClassSessionsPage() {
                   <th>Faculty</th>
                   <th>Date</th>
                   <th>Subject</th>
+                  <th>Batch</th>
                   <th>Chapter</th>
                   <th>Campus</th>
                   <th>Mode</th>
@@ -191,6 +192,7 @@ export default function ClassSessionsPage() {
                         {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.subject}</td>
+                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.campusName}</td>
                       <td>

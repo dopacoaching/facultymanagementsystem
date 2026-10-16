@@ -58,6 +58,8 @@ export interface NoClassDoc {
   date: string
   reason?: string
   batchIds?: string[]
+  batchNames?: string[]
+  markedByName?: string
 }
 
 export function markNoClass(
@@ -69,6 +71,10 @@ export function markNoClass(
 
 export function listNoClass(from: string, to: string, token: string): Promise<NoClassDoc[]> {
   return apiFetch<NoClassDoc[]>(`/academics/no-class?from=${from}&to=${to}`, { token })
+}
+
+export function updateNoClass(id: string, reason: string, token: string): Promise<NoClassDoc> {
+  return apiFetch<NoClassDoc>(`/academics/no-class?id=${id}`, { method: 'PATCH', body: { reason }, token })
 }
 
 export function removeNoClass(id: string, token: string): Promise<{ ok: true }> {

@@ -41,7 +41,15 @@ export async function GET(req: NextRequest) {
     }
 
     const rows = await NoClassDay.find(filter).sort({ date: -1 }).limit(500).lean()
-    return withToken(json(rows), refreshedToken)
+    const batchIds = Array.from(new Set(rows.flatMap((r) => (r.batchIds ?? []).map(String))))
+    const names = new Map<string, string>()
+    if (batchIds.length) {
+      for (const b of await Batch.find({ _id: { $in: batchIds } }).select('name').lean()) names.set(String(b._id), b.name)
+    }
+    return withToken(json(rows.map((r) => ({
+      ...r,
+      batchNames: (r.batchIds ?? []).map((id) => names.get(String(id))).filter((n): n is string => !!n),
+    }))), refreshedToken)
   } catch (err) {
     console.error('[GET /api/academics/no-class]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -108,7 +116,7 @@ export async function POST(req: NextRequest) {
     if (conflict) {
       return withToken(json({
         error: batchOids.length === 0
-          ? 'This day already has a No Class marker for this campus. Undo it first to mark the whole campus.'
+          ? 'This day already has a No Class marker for this campus. Ask HR to remove it first to mark the whole campus.'
           : 'One or more of these batches is already marked No Class for that date.',
         code: 'ALREADY_MARKED',
       }, 409), refreshedToken)
@@ -152,14 +160,43 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** DELETE /api/academics/no-class?id= — undo a No Class marker */
+/** PATCH /api/academics/no-class?id= — HR/Admin edit the reason of a No Class marker */
+export async function PATCH(req: NextRequest) {
+  try {
+    const auth = authenticate(req)
+    if (auth instanceof NextResponse) return auth
+    const { payload, refreshedToken } = auth
+
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
+    if (forbidden) return withToken(forbidden, refreshedToken)
+
+    const id = new URL(req.url).searchParams.get('id')
+    if (!id || !Types.ObjectId.isValid(id)) {
+      return withToken(json({ error: 'Invalid id' }, 400), refreshedToken)
+    }
+    const { reason } = await req.json()
+    if (typeof reason !== 'string' || !reason.trim()) {
+      return withToken(json({ error: 'A reason is required' }, 400), refreshedToken)
+    }
+
+    await connectDB()
+    const doc = await NoClassDay.findByIdAndUpdate(id, { $set: { reason: reason.trim().slice(0, 120) } }, { new: true })
+    if (!doc) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
+    return withToken(json(doc), refreshedToken)
+  } catch (err) {
+    console.error('[PATCH /api/academics/no-class]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/** DELETE /api/academics/no-class?id= — HR/Admin remove a No Class marker (class teachers cannot undo) */
 export async function DELETE(req: NextRequest) {
   try {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const id = new URL(req.url).searchParams.get('id')
@@ -170,9 +207,6 @@ export async function DELETE(req: NextRequest) {
     await connectDB()
     const doc = await NoClassDay.findById(id)
     if (!doc) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
-    if (isCoordinator(payload.role) && doc.campusName !== await resolveCoordinatorCampusName(payload)) {
-      return withToken(json({ error: 'You can only change your own campus.' }, 403), refreshedToken)
-    }
     await doc.deleteOne()
     return withToken(json({ ok: true }), refreshedToken)
   } catch (err) {

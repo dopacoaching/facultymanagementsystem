@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { attachBatchNames } from '@/lib/utils/batchNames'
 import { resolveExtraBatches } from '@/lib/utils/extraBatches'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
@@ -107,10 +108,10 @@ export async function GET(req: NextRequest) {
 
     // scheduledTime (lateness tracking) is HR/Admin-only — strip it for every other role.
     const canSeeScheduledTime = payload.role === 'HR_MANAGER' || payload.role === 'ADMIN'
+    const withNames = await attachBatchNames(sessions)
     const responseBody = canSeeScheduledTime
-      ? sessions
-      : sessions.map((s) => {
-          const obj = s.toObject()
+      ? withNames
+      : withNames.map((obj) => {
           delete obj.scheduledTime
           delete obj.scheduledEndTime
           return obj

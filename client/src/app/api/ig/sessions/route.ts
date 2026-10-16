@@ -7,6 +7,7 @@ import { resolveExtraBatches } from '@/lib/utils/extraBatches'
 import { supersedeNoClass } from '@/lib/services/noClass'
 import { Campus } from '@/lib/models/Campus'
 import { Batch, IBatch } from '@/lib/models/Batch'
+import { attachBatchNames } from '@/lib/utils/batchNames'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
       .sort({ sessionDate: -1 })
       .limit(requestedLimit)
 
-    return withToken(json(sessions), refreshedToken)
+    return withToken(json(await attachBatchNames(sessions)), refreshedToken)
   } catch (err) {
     console.error('[GET /api/ig/sessions]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

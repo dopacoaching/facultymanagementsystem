@@ -91,6 +91,7 @@ export default function IGSessionHistoryPage() {
                   <th>Date</th>
                   <th>Faculty</th>
                   <th>Subject</th>
+                  <th>Batch</th>
                   <th>Chapter</th>
                   <th>Session</th>
                   <th>Start–End</th>
@@ -110,6 +111,7 @@ export default function IGSessionHistoryPage() {
                       </td>
                       <td style={{ fontWeight: 600 }}>{facultyName}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.subject}</td>
+                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
                       <td>
                         <span className="badge badge-green">{s.timeSlot ? SLOT_LABELS[s.timeSlot] ?? s.timeSlot : '—'}</span>

@@ -92,6 +92,7 @@ export default function CampusHistoryPage() {
                   <th>Date</th>
                   <th>Faculty</th>
                   <th>Subject</th>
+                  <th>Batch</th>
                   <th>Chapter</th>
                   <th>Mode</th>
                   <th>Start–End</th>
@@ -111,6 +112,7 @@ export default function CampusHistoryPage() {
                       </td>
                       <td style={{ fontWeight: 600 }}>{facultyName}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.subject}</td>
+                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
                       <td>
                         <span className={`badge ${s.classMode?.startsWith('ONLINE') ? 'badge-blue' : 'badge-green'}`}>

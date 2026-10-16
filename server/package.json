@@ -18,6 +18,7 @@
     "migrate:salary-period": "tsx --env-file=../.env src/scripts/migrate-salary-record-period-index.ts",
     "migrate:salary-period-range": "tsx --env-file=../.env src/scripts/migrate-salary-record-add-period-range.ts",
     "migrate:noclass-index": "tsx --env-file=../.env src/scripts/migrate-noclass-index.ts",
+    "migrate:junior-subjects": "tsx --env-file=../.env src/scripts/set-junior-faculty-subjects.ts",
     "migrate:unset-doubt-category": "tsx --env-file=../.env src/scripts/unset-doubt-clearance-category.ts"
   },
   "dependencies": {

@@ -158,11 +158,11 @@ async function main() {
 
   // Parvathy, Thamanna, Manju — doubt clearance staff. ₹20,000 flat for up to 18
   // doubt-clearance hours, ₹300/hr beyond that; separately, ₹550/hr for every
-  // regular "Class" hour. Subject set to "Doubt Clearance" (their role, not a
-  // guessed academic subject) — adjust via the faculty edit screen if needed.
+  // regular "Class" hour. Shown as ordinary faculty with their own subject.
+  const doubtStaffSubject: Record<string, string> = { Parvathy: 'Physics', Thamanna: 'Physics', Manju: 'Biology' }
   for (const name of ['Parvathy', 'Thamanna', 'Manju']) {
     await upsertNewFaculty(
-      { name, subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY' },
+      { name, subject: doubtStaffSubject[name], type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY' },
       {
         contractType: 'DOUBT_CLEARANCE_SPLIT_RATE',
         fixedMonthlySalary: 20000,

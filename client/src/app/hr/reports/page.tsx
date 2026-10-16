@@ -59,7 +59,20 @@ const typeLabel = (t?: string) => (t ? t.charAt(0) + t.slice(1).toLowerCase() : 
 
 const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours, 0)
 
-function EntryTable({ rows, hideCols, showBatch, onDelete }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; onDelete?: (r: EntryRow) => void }) {
+/** Running total of hours per faculty, in date order. Keyed by entry id. */
+function cumulativeHours(rows: EntryRow[]): Map<string, number> {
+  const ordered = [...rows].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+  const sums = new Map<string, number>()
+  const out = new Map<string, number>()
+  for (const r of ordered) {
+    const next = (sums.get(r.facultyId) ?? 0) + r.durationHours
+    sums.set(r.facultyId, next)
+    out.set(r._id, next)
+  }
+  return out
+}
+
+function EntryTable({ rows, hideCols, showBatch, onDelete, totals }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; onDelete?: (r: EntryRow) => void; totals: Map<string, number> }) {
   const showCampus = !hideCols?.includes('campus')
   const showFaculty = !hideCols?.includes('faculty')
   const showSubject = !hideCols?.includes('subject')
@@ -80,6 +93,7 @@ function EntryTable({ rows, hideCols, showBatch, onDelete }: { rows: EntryRow[];
             <th>Entered by</th>
             <th>Comment</th>
             <th style={{ textAlign: 'right' }}>Time</th>
+            <th style={{ textAlign: 'right' }} title="This faculty's hours added up day by day over the selected range and filters.">Total so far</th>
             {onDelete && <th></th>}
           </tr>
         </thead>
@@ -98,6 +112,7 @@ function EntryTable({ rows, hideCols, showBatch, onDelete }: { rows: EntryRow[];
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
               <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
+              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{formatHM(totals.get(r._id) ?? r.durationHours)}</td>
               {onDelete && <td><button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onDelete(r)}>Delete</button></td>}
             </tr>
           ))}
@@ -123,8 +138,9 @@ function GroupHeader({ title, count, hours, level = 1 }: { title: string; count:
 }
 
 /** Tab-separated text for the current view, ready to paste into a sheet. */
-function toTSV(rows: EntryRow[]): string {
-  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours', 'Comment']
+function toTSV(rows: EntryRow[], totals: Map<string, number>): string {
+  const hmOf = (h: number) => { const m = Math.round(h * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)']
   // Neutralise spreadsheet formulas (=, +, -, @) in coordinator-typed text.
   const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ').replace(/^[=+\-@]/, "'$&")
   const lines = rows.map((r) => {
@@ -132,7 +148,7 @@ function toTSV(rows: EntryRow[]): string {
     return [
       r.date, r.campusName, r.batchName, r.facultyName, r.facultyType, r.subject, r.chapter,
       r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName, r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : '',
-      `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2), r.comment,
+      `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2), r.comment, hmOf(totals.get(r._id) ?? r.durationHours),
     ].map((v) => clean(String(v))).join('\t')
   })
   return [head.join('\t'), ...lines].join('\n')
@@ -141,10 +157,10 @@ function toTSV(rows: EntryRow[]): string {
 /** One sheet laid out like the screen: a bold header row per group (with its entry
  *  count and total hours), that group's entries in date order, then a blank row.
  *  Loaded on demand so the xlsx writer stays out of the page's initial bundle. */
-async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string) {
+async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string, totals: Map<string, number>) {
   const { default: writeXlsxFile } = await import('write-excel-file/browser')
   const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Entry type',
-    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours', 'Comment']
+    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)']
   const hm = (hours: number) => { const m = Math.round(hours * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
   const text = (value: string | undefined) => ({ value: value || undefined, type: String })
   const blank = () => head.map(() => null)
@@ -162,6 +178,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
       text(hm(r.durationHours)),
       { value: Math.round(r.durationHours * 100) / 100, type: Number, format: '0.00' },
       text(r.comment ? r.comment.replace(/^[=+\-@]/, "'$&") : ''),
+      text(hm(totals.get(r._id) ?? r.durationHours)),
     ]
   }
   /** Bold shaded row: title on the left, "N entries" under Entered by, totals under Time / Hours. */
@@ -205,7 +222,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
   }
   body.push(groupRow('Total', rows))
 
-  const columns = [12, 22, 18, 24, 14, 14, 30, 16, 11, 8, 8, 12, 18, 11, 9, 40].map((width) => ({ width }))
+  const columns = [12, 22, 18, 24, 14, 14, 30, 16, 11, 8, 8, 12, 18, 11, 9, 40, 14].map((width) => ({ width }))
   await writeXlsxFile([header, ...body] as never, { columns, stickyRowsCount: 1 }).toFile(`entries-report_${from}_to_${to}.xlsx`)
 }
 
@@ -278,6 +295,9 @@ export default function EntriesReportPage() {
       .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
   }, [report, kind, campus])
 
+  /** Each faculty's hours added up in date order across the filtered rows (6h, then 12h, then 17h...). */
+  const totals = useMemo(() => cumulativeHours(rows), [rows])
+
   const byCampus = useMemo(() => {
     if (group === 'faculty') return []
     const map = groupBy(rows, (r) => r.campusName)
@@ -295,7 +315,7 @@ export default function EntriesReportPage() {
 
   async function copyData() {
     try {
-      await navigator.clipboard.writeText(toTSV(rows))
+      await navigator.clipboard.writeText(toTSV(rows, totals))
       toast.success('Copied', `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} copied — paste into a sheet.`)
     } catch {
       toast.error('Copy failed', 'Your browser blocked clipboard access.')
@@ -304,7 +324,7 @@ export default function EntriesReportPage() {
 
   async function exportExcel() {
     try {
-      await downloadExcel(rows, exportBy, from, to)
+      await downloadExcel(rows, exportBy, from, to, totals)
     } catch {
       toast.error('Download failed', 'The Excel file could not be created.')
     }
@@ -312,7 +332,7 @@ export default function EntriesReportPage() {
 
   /** One place decides the table's shared props, so the faculty and campus layouts can't drift apart. */
   const table = (list: EntryRow[], hideCols: ('campus' | 'faculty' | 'subject')[]) => (
-    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} onDelete={canDelete ? deleteEntry : undefined} />
+    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} onDelete={canDelete ? deleteEntry : undefined} totals={totals} />
   )
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()

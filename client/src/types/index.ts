@@ -34,6 +34,8 @@ export interface Session {
   _id: string
   facultyId: { _id: string; name: string; subject: string } | string
   batchId?: string
+  /** Names of the batch(es) the class was for — set by the session list APIs. */
+  batchNames?: string[]
   campusName?: string
   classMode?: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
   subject: string

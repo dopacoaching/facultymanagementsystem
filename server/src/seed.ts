@@ -150,9 +150,9 @@ async function seed() {
     // 15 – Promod — at/above 135h: fixed + overtime; below 135h: pure hourly at a higher rate
     { name: 'Promod', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_PROMOD_FIXED', 200000), overtimeThreshold: e('SALARY_PROMOD_THRESHOLD', 135), overtimeRate: e('SALARY_PROMOD_OT_RATE', 1800) },
     // 16-18 – Parvathy, Thamanna, Manju — doubt-clearance staff (Class vs Doubt Clearance rates)
-    { name: 'Parvathy', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300) },
-    { name: 'Thamanna', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300) },
-    { name: 'Manju', subject: 'Doubt Clearance', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300) },
+    { name: 'Parvathy', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300) },
+    { name: 'Thamanna', subject: 'Physics', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300) },
+    { name: 'Manju', subject: 'Biology', type: 'PERMANENT', salaryModel: 'FIXED_MONTHLY', fixedMonthlySalary: e('SALARY_DOUBT_FIXED', 20000), overtimeThreshold: e('SALARY_DOUBT_THRESHOLD', 18), overtimeRate: e('SALARY_DOUBT_OT_RATE', 300) },
     // 19 – Afsal Safwan
     { name: 'Afsal Safwan', subject: 'Physics', type: 'PERMANENT', salaryModel: 'HOURLY', hourlyRate: e('SALARY_AFSAL_RATE', 1000) },
     // 20 – Shahid — office staff: fixed base + extra hours beyond 80h (see OFFICE_STAFF_LEAVE_BASED)

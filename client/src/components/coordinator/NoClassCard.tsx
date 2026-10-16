@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { listNoClass, markNoClass, removeNoClass } from '@/services/entries.service'
+import { listNoClass, markNoClass } from '@/services/entries.service'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { FormField } from '@/components/ui/FormField'
 import { ErrorAlert } from '@/components/ui/Skeleton'
@@ -62,15 +62,6 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not mark No Class')
     } finally { setSaving(false) }
-  }
-
-  async function undo(id: string) {
-    try {
-      await removeNoClass(id, accessToken)
-      recent.refetch()
-    } catch (e: unknown) {
-      toast.error('Could not undo', e instanceof Error ? e.message : undefined)
-    }
   }
 
   return (
@@ -163,7 +154,6 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
                 ) : null}
                 {n.reason && <span style={{ color: 'var(--color-muted)' }}> — {n.reason}</span>}
               </span>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => undo(n._id)}>Undo</button>
             </li>
           ))}
         </ul>
