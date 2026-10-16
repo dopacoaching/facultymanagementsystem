@@ -4,6 +4,8 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { NoClassDay } from '@/lib/models/NoClassDay'
 import { Batch } from '@/lib/models/Batch'
+import { batchNameMap } from '@/lib/utils/batchNames'
+import { writeAuditLog } from '@/lib/services/salary/audit'
 import { Session } from '@/lib/models/Session'
 import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { countCampusSessionsOnDay, getTrackedCampusNames, resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
@@ -41,13 +43,11 @@ export async function GET(req: NextRequest) {
     }
 
     const rows = await NoClassDay.find(filter).sort({ date: -1 }).limit(500).lean()
-    const batchIds = Array.from(new Set(rows.flatMap((r) => (r.batchIds ?? []).map(String))))
-    const names = new Map<string, string>()
-    if (batchIds.length) {
-      for (const b of await Batch.find({ _id: { $in: batchIds } }).select('name').lean()) names.set(String(b._id), b.name)
-    }
+    const names = await batchNameMap(rows.flatMap((r) => r.batchIds ?? []))
     return withToken(json(rows.map((r) => ({
       ...r,
+      // The calendar day as written by the server, so every browser timezone shows the same date.
+      day: toLocalISODate(new Date(r.date)),
       batchNames: (r.batchIds ?? []).map((id) => names.get(String(id))).filter((n): n is string => !!n),
     }))), refreshedToken)
   } catch (err) {
@@ -174,14 +174,23 @@ export async function PATCH(req: NextRequest) {
     if (!id || !Types.ObjectId.isValid(id)) {
       return withToken(json({ error: 'Invalid id' }, 400), refreshedToken)
     }
-    const { reason } = await req.json()
-    if (typeof reason !== 'string' || !reason.trim()) {
-      return withToken(json({ error: 'A reason is required' }, 400), refreshedToken)
-    }
+    const body = await req.json().catch(() => null) as { reason?: unknown } | null
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : ''
+    if (!reason) return withToken(json({ error: 'A reason is required' }, 400), refreshedToken)
+    if (reason.length > 120) return withToken(json({ error: 'The reason can be at most 120 characters' }, 400), refreshedToken)
 
     await connectDB()
-    const doc = await NoClassDay.findByIdAndUpdate(id, { $set: { reason: reason.trim().slice(0, 120) } }, { new: true })
+    const before = await NoClassDay.findById(id).select('reason')
+    const doc = await NoClassDay.findByIdAndUpdate(id, { $set: { reason } }, { new: true })
     if (!doc) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
+
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'NO_CLASS_UPDATED',
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
+      targetType: 'NoClassDay', targetId: id, targetName: doc.campusName,
+      description: `No Class reason changed for ${doc.campusName} on ${toLocalISODate(doc.date)}`,
+      metadata: { from: before?.reason, to: reason },
+    }).catch(() => null)
     return withToken(json(doc), refreshedToken)
   } catch (err) {
     console.error('[PATCH /api/academics/no-class]', err)
@@ -208,6 +217,13 @@ export async function DELETE(req: NextRequest) {
     const doc = await NoClassDay.findById(id)
     if (!doc) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
     await doc.deleteOne()
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'NO_CLASS_DELETED',
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
+      targetType: 'NoClassDay', targetId: id, targetName: doc.campusName,
+      description: `No Class marker removed for ${doc.campusName} on ${toLocalISODate(doc.date)}`,
+      metadata: { reason: doc.reason, batchIds: (doc.batchIds ?? []).map(String), markedByName: doc.markedByName },
+    }).catch(() => null)
     return withToken(json({ ok: true }), refreshedToken)
   } catch (err) {
     console.error('[DELETE /api/academics/no-class]', err)

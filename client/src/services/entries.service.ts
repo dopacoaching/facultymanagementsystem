@@ -59,6 +59,8 @@ export interface NoClassDoc {
   reason?: string
   batchIds?: string[]
   batchNames?: string[]
+  /** YYYY-MM-DD as written by the server (timezone-proof). */
+  day?: string
   markedByName?: string
 }
 

@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { NoClassDay } from '@/lib/models/NoClassDay'
+import { batchNameMap } from '@/lib/utils/batchNames'
 import { Batch } from '@/lib/models/Batch'
 import { Types } from 'mongoose'
 import { getIgCampusNames } from '@/lib/utils/coordinatorCampus'
@@ -73,10 +74,7 @@ export async function GET(req: NextRequest) {
     const otherBatchIds = Array.from(new Set(
       sessions.flatMap((s) => [s.batchId, ...(s.extraBatchIds ?? [])].filter(Boolean).map(String)),
     )).filter((id) => !batchNames.has(id))
-    if (otherBatchIds.length) {
-      const docs = await Batch.find({ _id: { $in: otherBatchIds } }).select('name').lean()
-      for (const b of docs) batchNames.set(String(b._id), b.name)
-    }
+    for (const [id, name] of await batchNameMap(otherBatchIds)) batchNames.set(id, name)
 
     const rows = sessions
       .filter((s) => s.facultyId && typeof s.facultyId === 'object' && (s.campusName || igBatchCampus.has(String(s.batchId))))

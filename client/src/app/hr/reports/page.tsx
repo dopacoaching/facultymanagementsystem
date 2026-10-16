@@ -60,8 +60,11 @@ const typeLabel = (t?: string) => (t ? t.charAt(0) + t.slice(1).toLowerCase() : 
 const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours, 0)
 
 /** Running total of hours per faculty, in date order. Keyed by entry id. */
+const byEntryOrder = (a: EntryRow, b: EntryRow) =>
+  a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || a.endTime.localeCompare(b.endTime) || a._id.localeCompare(b._id)
+
 function cumulativeHours(rows: EntryRow[]): Map<string, number> {
-  const ordered = [...rows].sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+  const ordered = [...rows].sort(byEntryOrder)
   const sums = new Map<string, number>()
   const out = new Map<string, number>()
   for (const r of ordered) {
@@ -93,7 +96,7 @@ function EntryTable({ rows, hideCols, showBatch, onDelete, totals }: { rows: Ent
             <th>Entered by</th>
             <th>Comment</th>
             <th style={{ textAlign: 'right' }}>Time</th>
-            <th style={{ textAlign: 'right' }} title="This faculty's hours added up day by day over the selected range and filters.">Total so far</th>
+            <th style={{ textAlign: 'right' }} title="This faculty's hours added up in date order, counting only the dates and filters selected above, not their full-period total.">Total so far*</th>
             {onDelete && <th></th>}
           </tr>
         </thead>
@@ -292,7 +295,7 @@ export default function EntriesReportPage() {
     return all
       .filter((r) => kind === 'ALL' || (kind === 'PERMANENT') === (r.facultyType === 'PERMANENT'))
       .filter((r) => !campus || r.campusName === campus)
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+      .sort(byEntryOrder)
   }, [report, kind, campus])
 
   /** Each faculty's hours added up in date order across the filtered rows (6h, then 12h, then 17h...). */

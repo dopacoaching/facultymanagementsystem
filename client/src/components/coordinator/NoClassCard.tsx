@@ -69,7 +69,7 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
       <h3 style={{ marginTop: 0 }}>No Class</h3>
       <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: 0 }}>
         If no class was held at your campus on a day, mark it here. Otherwise the day shows as
-        &ldquo;report not submitted&rdquo; for HR.
+        &ldquo;report not submitted&rdquo; for HR. Marked by mistake? Ask HR to change or remove it.
       </p>
 
       {error && (
@@ -148,7 +148,7 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
           {recent.data!.map((n) => (
             <li key={n._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem' }}>
               <span>
-                <strong>{fmtDay(toLocalISO(new Date(n.date)))}</strong>
+                <strong>{fmtDay(n.day ?? toLocalISO(new Date(n.date)))}</strong>
                 {n.batchIds?.length ? (
                   <span> · {n.batchIds.map((id) => batches.find((b) => b._id === id)?.name ?? 'Batch').join(', ')}</span>
                 ) : null}

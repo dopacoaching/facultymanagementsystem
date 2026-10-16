@@ -23,7 +23,12 @@ async function main() {
   const coll = mongoose.connection.db!.collection('faculties')
 
   for (const [name, subject] of Object.entries(SUBJECTS)) {
-    const res = await coll.updateMany({ name }, { $set: { subject } })
+    const count = await coll.countDocuments({ name })
+    if (count !== 1) {
+      console.warn(`${name}: expected exactly 1 faculty, found ${count} - skipped. Fix it by hand.`)
+      continue
+    }
+    const res = await coll.updateOne({ name }, { $set: { subject } })
     console.log(`${name} -> ${subject}: matched ${res.matchedCount}, modified ${res.modifiedCount}`)
   }
 
