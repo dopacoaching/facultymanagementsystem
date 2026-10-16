@@ -630,3 +630,36 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
 
   res.json({ success: true, session })
 })
+
+/** DELETE /academics/sessions/:id — permanently remove an entry (HR/Admin only).
+ *  The audit log keeps a snapshot of what was deleted. */
+export const deleteSession = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = String(req.params.id)
+  if (!Types.ObjectId.isValid(id)) { res.status(400).json({ error: 'Invalid sessionId' }); return }
+
+  const session = await Session.findByIdAndDelete(id).populate('facultyId', 'name')
+  if (!session) { res.status(404).json({ error: 'Session not found' }); return }
+
+  // The chapter was marked "class done" by this entry — reopen it.
+  await BatchChapter.updateMany(
+    { sessionId: session._id, facultyClassDone: true },
+    { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } },
+  ).catch(() => null)
+
+  const facultyName = (session.facultyId as unknown as { name?: string })?.name
+  await writeAuditLog({
+    category: 'ACADEMICS', eventType: 'SESSION_DELETED',
+    actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
+    targetType: 'Session', targetId: id,
+    targetName: session.chapter ? `${session.subject} — ${session.chapter}` : session.subject,
+    description: `Session deleted: ${facultyName ?? 'faculty'} · ${session.subject}` +
+      `${session.chapter ? ` "${session.chapter}"` : ''} on ${session.sessionDate.toDateString()}`,
+    metadata: {
+      campusName: session.campusName, batchId: session.batchId?.toString(), classMode: session.classMode,
+      startTime: session.startTime, endTime: session.endTime, durationHours: session.durationHours,
+      entryType: session.entryType, updatedByName: session.updatedByName, comment: session.comment,
+    },
+  }).catch(() => null)
+
+  res.json({ ok: true })
+})

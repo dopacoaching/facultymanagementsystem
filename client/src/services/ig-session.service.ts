@@ -80,3 +80,7 @@ export async function cancel(
     token,
   })
 }
+
+export async function remove(sessionId: string, token: string): Promise<void> {
+  await apiFetch(`/ig/sessions/${sessionId}`, { method: 'DELETE', token })
+}

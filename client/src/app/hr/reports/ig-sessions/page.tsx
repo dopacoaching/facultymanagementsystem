@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
-import { getAll, update, cancel } from '@/services/ig-session.service'
+import { getAll, update, cancel, remove } from '@/services/ig-session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditIGSessionReportModal, formFromIGSession, EditIGSessionForm } from '@/components/hr/reports/EditIGSessionReportModal'
@@ -87,6 +87,17 @@ export default function IGClassSessionsPage() {
       setEditError(e instanceof Error ? e.message : 'Failed to update session')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!accessToken || !window.confirm('Delete this entry permanently? This cannot be undone.')) return
+    try {
+      await remove(id, accessToken)
+      toast.success('Entry deleted', 'The entry has been removed.')
+      await load()
+    } catch (e: unknown) {
+      toast.error('Delete failed', e instanceof Error ? e.message : 'Could not delete the entry')
     }
   }
 
@@ -222,6 +233,7 @@ export default function IGClassSessionsPage() {
                               </button>
                             </div>
                           )}
+                          <button type="button" className="btn btn-danger-ghost btn-sm" style={{ marginTop: isCancelled ? 0 : '0.375rem' }} onClick={() => handleDelete(s._id)}>Delete</button>
                         </td>
                       )}
                     </tr>

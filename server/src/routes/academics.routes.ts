@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { authenticate, authorize } from '../middleware/auth'
-import { getSessions, createSession, cancelSession, updateSessionStatus, updateSession } from '../controllers/session.controller'
+import { getSessions, createSession, cancelSession, updateSessionStatus, updateSession, deleteSession } from '../controllers/session.controller'
 import { getChapters } from '../controllers/chapter.controller'
 import {
   getAnnualSyllabus, getSyllabusChapters, getBatchProgress,
@@ -29,6 +29,8 @@ router.post('/sessions/cancel', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'
 router.patch('/sessions/:id/status', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), updateSessionStatus)
 // Full edit — HR / admin only
 router.patch('/sessions/:id', authorize('CLASS_TEACHER', 'HR_MANAGER', 'ADMIN'), updateSession)
+// Delete — HR / admin only
+router.delete('/sessions/:id', authorize('HR_MANAGER', 'ADMIN'), deleteSession)
 
 // ── Chapters ──────────────────────────────────────────────────────────────────
 router.get('/chapters',         authorize('CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ADMIN'), getChapters)

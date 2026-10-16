@@ -70,3 +70,7 @@ export async function cancel(
     token,
   })
 }
+
+export async function remove(sessionId: string, token: string): Promise<void> {
+  await apiFetch(`/academics/sessions/${sessionId}`, { method: 'DELETE', token })
+}

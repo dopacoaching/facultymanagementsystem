@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
+import { remove as removeSession } from '@/services/session.service'
 import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
@@ -58,7 +59,7 @@ const typeLabel = (t?: string) => (t ? t.charAt(0) + t.slice(1).toLowerCase() : 
 
 const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours, 0)
 
-function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean }) {
+function EntryTable({ rows, hideCols, showBatch, onDelete }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; onDelete?: (r: EntryRow) => void }) {
   const showCampus = !hideCols?.includes('campus')
   const showFaculty = !hideCols?.includes('faculty')
   const showSubject = !hideCols?.includes('subject')
@@ -79,6 +80,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
             <th>Entered by</th>
             <th>Comment</th>
             <th style={{ textAlign: 'right' }}>Time</th>
+            {onDelete && <th></th>}
           </tr>
         </thead>
         <tbody>
@@ -96,6 +98,7 @@ function EntryTable({ rows, hideCols, showBatch }: { rows: EntryRow[]; hideCols?
               <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
               <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
+              {onDelete && <td><button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onDelete(r)}>Delete</button></td>}
             </tr>
           ))}
         </tbody>
@@ -224,6 +227,18 @@ export default function EntriesReportPage() {
   const [campus, setCampus]   = useState('')
 
   const canCopy = role === 'ADMIN'
+  const canDelete = role === 'ADMIN' || role === 'HR_MANAGER'
+
+  async function deleteEntry(r: EntryRow) {
+    if (!accessToken || !window.confirm(`Delete ${r.facultyName}'s entry on ${fmtDay(r.date)} permanently? This cannot be undone.`)) return
+    try {
+      await removeSession(r._id, accessToken)
+      toast.success('Entry deleted', 'The entry has been removed.')
+      await load()
+    } catch (e: unknown) {
+      toast.error('Delete failed', e instanceof Error ? e.message : 'Could not delete the entry')
+    }
+  }
 
   /** Latest request wins — a slow earlier response must not overwrite newer data. */
   const requestId = useRef(0)
@@ -297,7 +312,7 @@ export default function EntriesReportPage() {
 
   /** One place decides the table's shared props, so the faculty and campus layouts can't drift apart. */
   const table = (list: EntryRow[], hideCols: ('campus' | 'faculty' | 'subject')[]) => (
-    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} />
+    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} onDelete={canDelete ? deleteEntry : undefined} />
   )
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()

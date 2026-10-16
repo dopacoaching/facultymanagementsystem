@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
-import { getAll, update } from '@/services/session.service'
+import { getAll, update, remove } from '@/services/session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditClassSessionModal, formFromSession, timingChanged, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
@@ -50,6 +50,17 @@ export default function ClassSessionsPage() {
 
   const canSeeScheduledTime = role === 'HR_MANAGER' || role === 'ADMIN'
   const canEdit = role === 'HR_MANAGER' || role === 'ADMIN'
+
+  async function handleDelete(s: Session) {
+    if (!accessToken || !window.confirm('Delete this entry permanently? This cannot be undone.')) return
+    try {
+      await remove(s._id, accessToken)
+      toast.success('Entry deleted', 'The entry has been removed.')
+      await load()
+    } catch (e: unknown) {
+      toast.error('Delete failed', e instanceof Error ? e.message : 'Could not delete the entry')
+    }
+  }
 
   function openEdit(s: Session) {
     setEditingSession(s)
@@ -203,7 +214,10 @@ export default function ClassSessionsPage() {
                       <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
                       {canEdit && (
                         <td>
-                          <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>Edit</button>
+                          <div style={{ display: 'flex', gap: '0.375rem' }}>
+                            <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>Edit</button>
+                            <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => handleDelete(s)}>Delete</button>
+                          </div>
                         </td>
                       )}
                     </tr>

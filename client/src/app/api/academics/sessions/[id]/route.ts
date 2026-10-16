@@ -3,6 +3,7 @@ import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
+import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
@@ -147,6 +148,55 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return withToken(json(session), refreshedToken)
   } catch (err) {
     console.error('[PATCH /api/academics/sessions/:id]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+/** DELETE /api/academics/sessions/:id — permanently remove an entry (HR/Admin only).
+ *  The audit log keeps a snapshot of what was deleted. */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const auth = authenticate(req)
+    if (auth instanceof NextResponse) return auth
+    const { payload, refreshedToken } = auth
+
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
+    if (forbidden) return withToken(forbidden, refreshedToken)
+
+    const { id } = await params
+    let oid: Types.ObjectId
+    try { oid = new Types.ObjectId(id) } catch {
+      return withToken(json({ error: 'Invalid sessionId' }, 400), refreshedToken)
+    }
+
+    await connectDB()
+    const session = await Session.findByIdAndDelete(oid).populate('facultyId', 'name')
+    if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+
+    // The chapter was marked "class done" by this entry — reopen it.
+    await BatchChapter.updateMany(
+      { sessionId: oid, facultyClassDone: true },
+      { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } },
+    ).catch(() => null)
+
+    const facultyName = (session.facultyId as unknown as { name?: string })?.name
+    writeAuditLog({
+      category: 'ACADEMICS', eventType: 'SESSION_DELETED',
+      actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
+      targetType: 'Session', targetId: id,
+      targetName: session.chapter ? `${session.subject} — ${session.chapter}` : session.subject,
+      description: `Session deleted: ${facultyName ?? 'faculty'} · ${session.subject}` +
+        `${session.chapter ? ` "${session.chapter}"` : ''} on ${session.sessionDate.toDateString()}`,
+      metadata: {
+        campusName: session.campusName, batchId: session.batchId?.toString(), classMode: session.classMode,
+        startTime: session.startTime, endTime: session.endTime, durationHours: session.durationHours,
+        entryType: session.entryType, updatedByName: session.updatedByName, comment: session.comment,
+      },
+    }).catch(() => null)
+
+    return withToken(json({ ok: true }), refreshedToken)
+  } catch (err) {
+    console.error('[DELETE /api/academics/sessions/:id]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
