@@ -68,7 +68,7 @@ const SessionSchema = new Schema<ISession>(
     breakMinutes: { type: Number, min: 0 },
     lunchBreakMinutes: { type: Number, min: 0 },
     afternoonBreakMinutes: { type: Number, min: 0 },
-    durationHours: { type: Number, required: true, min: 0.5 },
+    durationHours: { type: Number, required: true, min: 0 },
     sessionDate: { type: Date, required: true },
     timeSlot: { type: String, enum: ['MORNING', 'AFTERNOON', 'SESSION_1', 'SESSION_2', 'SESSION_3'] },
     status: { type: String, enum: ['SCHEDULED', 'COMPLETED', 'CANCELLED', 'NOT_COMPLETED'], default: 'SCHEDULED' },

@@ -131,8 +131,8 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   if (campusName && !startTime && rawEntryType !== 'SHOOT') {
     res.status(400).json({ error: 'startTime is required for campus-logged sessions' }); return
   }
-  if (Number(durationHours) < 0.5) {
-    res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return
+  if (!(Number(durationHours) > 0)) {
+    res.status(400).json({ error: 'durationHours must be greater than 0' }); return
   }
 
   let facultyOid: Types.ObjectId
@@ -335,7 +335,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
       // Live: recompute so the break is always deducted in full, whatever the client sent.
       const h = fullBreakHours(startTime, endTime, [Number(breakMinutes ?? 0), Number(lunchBreakMinutes ?? 0), Number(afternoonBreakMinutes ?? 0)])
       if (h === null) {
-        res.status(400).json({ error: 'Class duration after break deductions must be at least 30 minutes' }); return
+        res.status(400).json({ error: 'Break time must be shorter than the class time' }); return
       }
       storedHours = h
     }
@@ -514,7 +514,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
           num('afternoonBreakMinutes', existing.afternoonBreakMinutes),
         ])
         if (h === null) {
-          res.status(400).json({ error: 'Class duration after break deductions must be at least 30 minutes' }); return
+          res.status(400).json({ error: 'Break time must be shorter than the class time' }); return
         }
         update.durationHours = h
         unset.rawDurationHours = ''
@@ -522,7 +522,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
         const raw = body.durationHours !== undefined
           ? Number(body.durationHours)
           : (existing.rawDurationHours ?? existing.durationHours)
-        if (!(raw >= 0.5)) { res.status(400).json({ error: 'durationHours must be at least 0.5 (30 minutes)' }); return }
+        if (!(raw > 0)) { res.status(400).json({ error: 'durationHours must be greater than 0' }); return }
         update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
         if (type === 'SHOOT') update.rawDurationHours = raw
         else unset.rawDurationHours = ''

@@ -160,8 +160,8 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: 'startTime is required for campus-logged sessions' }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
-    if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
-      return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
+    if (!durationHours || isNaN(parsedDuration) || parsedDuration <= 0) {
+      return withToken(json({ error: 'durationHours must be greater than 0' }, 400), refreshedToken)
     }
 
     let facultyOid: Types.ObjectId
@@ -344,7 +344,7 @@ export async function POST(req: NextRequest) {
         // Live: recompute so the break is always deducted in full, whatever the client sent.
         const h = fullBreakHours(startTime, endTime, [Number(breakMinutes ?? 0), Number(lunchBreakMinutes ?? 0), Number(afternoonBreakMinutes ?? 0)])
         if (h === null) {
-          return withToken(json({ error: 'Class duration after break deductions must be at least 30 minutes' }, 400), refreshedToken)
+          return withToken(json({ error: 'Break time must be shorter than the class time' }, 400), refreshedToken)
         }
         storedHours = h
       }

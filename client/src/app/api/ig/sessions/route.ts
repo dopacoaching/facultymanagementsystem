@@ -130,8 +130,8 @@ export async function POST(req: NextRequest) {
       return withToken(json({ error: `classMode must be one of: ${VALID_CLASS_MODES.join(', ')}` }, 400), refreshedToken)
     }
     const parsedDuration = Number(durationHours)
-    if (!durationHours || isNaN(parsedDuration) || parsedDuration < 0.5) {
-      return withToken(json({ error: 'durationHours must be at least 0.5' }, 400), refreshedToken)
+    if (!durationHours || isNaN(parsedDuration) || parsedDuration <= 0) {
+      return withToken(json({ error: 'durationHours must be greater than 0' }, 400), refreshedToken)
     }
 
     let facultyOid: Types.ObjectId, batchOid: Types.ObjectId

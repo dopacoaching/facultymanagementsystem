@@ -103,7 +103,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             num('afternoonBreakMinutes', existing.afternoonBreakMinutes),
           ])
           if (h === null) {
-            return withToken(json({ error: 'Class duration after break deductions must be at least 30 minutes' }, 400), refreshedToken)
+            return withToken(json({ error: 'Break time must be shorter than the class time' }, 400), refreshedToken)
           }
           update.durationHours = h
           unset.rawDurationHours = ''
@@ -111,8 +111,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           const raw = body.durationHours !== undefined
             ? Number(body.durationHours)
             : (existing.rawDurationHours ?? existing.durationHours)
-          if (!(raw >= 0.5)) {
-            return withToken(json({ error: 'durationHours must be at least 0.5 (30 minutes)' }, 400), refreshedToken)
+          if (!(raw > 0)) {
+            return withToken(json({ error: 'durationHours must be greater than 0' }, 400), refreshedToken)
           }
           update.durationHours = type === 'SHOOT' ? shootHours(raw) : raw
           if (type === 'SHOOT') update.rawDurationHours = raw

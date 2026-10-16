@@ -123,7 +123,7 @@ export function computeShootDuration(hoursStr: string, minutesStr: string): { ho
   }
   if (m > 59) return { hours: 0, error: 'Minutes must be 0–59' }
   const total = h * 60 + m
-  if (total < 30) return { hours: 0, error: 'Time must be at least 30 minutes' }
+  if (total <= 0) return { hours: 0, error: 'Enter the time taken' }
   return { hours: total / 60 }
 }
 
@@ -207,8 +207,8 @@ export function computeDuration(
   const payableMinutes = totalMinutes - deductedMinutes
 
   const base = { totalMinutes, morningBreak, lunchBreak, afternoonBreak, deductedMinutes }
-  if (payableMinutes < 30) {
-    return { ...base, hours: 0, error: 'Class duration after break deductions must be at least 30 minutes' }
+  if (payableMinutes <= 0) {
+    return { ...base, hours: 0, error: 'Break time must be shorter than the class time' }
   }
   return { ...base, hours: payableMinutes / 60 }
 }
