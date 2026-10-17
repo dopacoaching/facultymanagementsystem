@@ -87,6 +87,8 @@ export interface FormState {
   batchIds: string[]
   classMode: ClassMode | ''
   chapter: string
+  /** Push Board: every chapter the class covered. */
+  chapters: string[]
   sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE' | ''
   /** The single Tea break — first 15 minutes are free. */
   teaBreak: BreakField
@@ -108,6 +110,7 @@ export const EMPTY_FORM = (): FormState => ({
   batchIds:        [],
   classMode:       '',
   chapter:         '',
+  chapters:        [],
   sessionCategory: '',
   teaBreak:        { nil: false, minutes: '' },
   updatedByName:   '',

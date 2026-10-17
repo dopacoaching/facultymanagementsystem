@@ -13,6 +13,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
 import { normalizeComment } from '@/lib/utils/teacherEdit'
+import { normalizeChapters, joinChapters } from '@/lib/utils/chapters'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -108,9 +109,11 @@ export async function POST(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {
-      facultyId, batchId: rawBatchId, batchIds, subject, chapter, durationHours, sessionDate, timeSlot, classMode,
+      facultyId, batchId: rawBatchId, batchIds, subject, chapter: rawChapter, chapters: rawChapters, durationHours, sessionDate, timeSlot, classMode,
       scheduledTime, scheduledEndTime, startTime, endTime, breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, updatedByName, comment,
     } = await req.json()
+    const chapterList = normalizeChapters(rawChapters, rawChapter)
+    const chapter = joinChapters(chapterList)
     const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {
@@ -216,6 +219,7 @@ export async function POST(req: NextRequest) {
       extraBatchIds: extraBatchOids.length ? extraBatchOids : undefined,
       subject,
       chapter,
+      chapters:      chapterList.length > 1 ? chapterList : undefined,
       classMode:     classMode     || undefined,
       scheduledTime: scheduledTime || undefined,
       scheduledEndTime: scheduledEndTime || undefined,
@@ -239,18 +243,20 @@ export async function POST(req: NextRequest) {
 
     // Auto-mark chapter as facultyClassDone - for every batch that sat the class
     for (const bOid of [batchOid, ...extraBatchOids]) {
-      await BatchChapter.findOneAndUpdate(
-        { batchId: bOid, subject: subject.toUpperCase(), chapterName: chapter },
-        {
-          $set: {
-            facultyClassDone:   true,
-            facultyClassDoneAt: date,
-            sessionId:          session._id,
+      for (const chapterName of chapterList) {
+        await BatchChapter.findOneAndUpdate(
+          { batchId: bOid, subject: subject.toUpperCase(), chapterName },
+          {
+            $set: {
+              facultyClassDone:   true,
+              facultyClassDoneAt: date,
+              sessionId:          session._id,
+            },
+            $setOnInsert: { chapterOrder: 0, videoComplete: false },
           },
-          $setOnInsert: { chapterOrder: 0, videoComplete: false },
-        },
-        { upsert: true }
-      )
+          { upsert: true }
+        )
+      }
     }
 
     writeAuditLog({

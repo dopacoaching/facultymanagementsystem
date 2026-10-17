@@ -25,6 +25,7 @@ export async function create(
     batchIds?: string[]
     subject: string
     chapter: string
+    chapters?: string[]
     timeSlot?: string
     classMode?: string
     scheduledTime?: string

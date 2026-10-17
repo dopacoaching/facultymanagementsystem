@@ -16,7 +16,7 @@ import { todayLocal } from '@/utils/date'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import {
   EMPTY_FORM, FormState, computeDuration, computeShootDuration, monthBounds, teaBreakAsBreaks, formatHM,
-  SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChapterField, BreakRow,
+  SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChaptersField, BreakRow,
 } from '@/components/coordinator/log-session'
 
 const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
@@ -103,11 +103,11 @@ export default function PushBoardPage() {
         if (match) {
           // Auto-fill subject from the faculty's profile — and because chapter
           // options are subject-specific, drop a now-mismatched chapter too.
-          if (match.value !== prev.subject) updated.chapter = ''
+          if (match.value !== prev.subject) updated.chapters = []
           updated.subject = match.value
         }
       }
-      if (key === 'subject' && prev.subject !== value) updated.chapter = ''
+      if (key === 'subject' && prev.subject !== value) updated.chapters = []
       if (key === 'month') {
         // Keep the date only if it still falls inside the newly picked month.
         const { min, max } = monthBounds(value as string)
@@ -134,7 +134,7 @@ export default function PushBoardPage() {
     if (!form.subject.trim())      return 'Subject is required'
     if (needsBatch && !chosenBatchIds.length) return multiBatch ? 'Select at least one batch' : 'Select the batch'
     if (!form.classMode)           return 'Select the class mode'
-    if (!form.chapter.trim())      return 'Chapter is required'
+    if (form.chapters.length === 0) return 'Add at least one chapter'
     if (activeDuration.error)      return activeDuration.error
     if (!form.updatedByName)       return 'Select who is filling in this form'
     return null
@@ -150,7 +150,8 @@ export default function PushBoardPage() {
       facultyId:        form.facultyId,
       classMode:        form.classMode || undefined,
       subject:          form.subject.trim(),
-      chapter:          form.chapter.trim(),
+      chapter:          form.chapters.join(', '),
+      chapters:         form.chapters,
       startTime:        form.startTime,
       endTime:          form.endTime,
       breakMinutes:          duration.morningBreak,
@@ -454,11 +455,11 @@ export default function PushBoardPage() {
                 </select>
               </FormField>
 
-              <ChapterField
+              <ChaptersField
                 subject={form.subject}
                 accessToken={accessToken}
-                value={form.chapter}
-                onChange={(v) => setField('chapter', v)}
+                value={form.chapters}
+                onChange={(v) => setField('chapters', v)}
               />
 
               <FormField

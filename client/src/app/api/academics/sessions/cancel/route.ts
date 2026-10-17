@@ -6,6 +6,7 @@ import { Session } from '@/lib/models/Session'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
+import { chapterNamesOf } from '@/lib/utils/chapters'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -102,8 +103,8 @@ export async function POST(req: NextRequest) {
     // Reset the chapter's class-done status so it can be re-logged correctly.
     // Match by batchId+subject+chapterName (not sessionId, which may not be set if chapter was
     // marked done via the chapter endpoint rather than via a session status update).
-    await BatchChapter.findOneAndUpdate(
-      { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
+    await BatchChapter.updateMany(
+      { batchId: session.batchId, subject: session.subject, chapterName: { $in: chapterNamesOf(session) }, facultyClassDone: true },
       { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
     ).catch(() => null)
 

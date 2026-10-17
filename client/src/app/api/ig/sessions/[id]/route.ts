@@ -86,7 +86,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    const session = await Session.findByIdAndUpdate(oid, update, { new: true, runValidators: true })
+    // Edited chapter text no longer matches the stored list of names.
+    const dropChapters = update.chapter !== undefined && update.chapter !== existing.chapter
+    const session = await Session.findByIdAndUpdate(oid, dropChapters ? { $set: update, $unset: { chapters: '' } } : update, { new: true, runValidators: true })
       .populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
 

@@ -13,6 +13,8 @@ export interface ISession extends Document {
   classMode?: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
   subject: string
   chapter?: string
+  /** Individual chapter names when one class covered several (chapter holds them joined). */
+  chapters?: string[]
   /** What time the class was supposed to start, for lateness tracking. HR/Admin-only visibility. */
   scheduledTime?: string
   /** When the class was supposed to end (Push Board scheduled range, e.g. 09:00–13:00). HR/Admin-only visibility. */
@@ -59,6 +61,7 @@ const SessionSchema = new Schema<ISession>(
     classMode: { type: String, enum: ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE'] },
     subject: { type: String, required: true },
     chapter: { type: String },
+    chapters: { type: [String], default: undefined },
     scheduledTime: { type: String, match: /^\d{2}:\d{2}$/ },
     scheduledEndTime: { type: String, match: /^\d{2}:\d{2}$/ },
     updatedByName: { type: String },

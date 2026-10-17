@@ -69,6 +69,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const existing = await Session.findById(oid)
     if (!existing) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+    // Edited chapter text no longer matches the stored list of names.
+    if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }

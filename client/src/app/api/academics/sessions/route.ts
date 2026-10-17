@@ -18,6 +18,7 @@ import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
 import { normalizeComment } from '@/lib/utils/teacherEdit'
+import { normalizeChapters, joinChapters } from '@/lib/utils/chapters'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -135,10 +136,12 @@ export async function POST(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const {
-      facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
+      facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter: rawChapter, chapters: rawChapters, syllabusChapterId,
       scheduledTime, scheduledEndTime, updatedByName, comment, durationHours, sessionDate, timeSlot, startTime, endTime,
       breakMinutes, lunchBreakMinutes, afternoonBreakMinutes, sessionCategory, entryType: rawEntryType,
     } = await req.json()
+    const chapterList = normalizeChapters(rawChapters, rawChapter)
+    const chapter = joinChapters(chapterList)
     // Multi-batch classes send batchIds; the first is the primary batch.
     const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
@@ -364,6 +367,7 @@ export async function POST(req: NextRequest) {
       classMode:     classMode  || undefined,
       subject,
       chapter:       chapter || undefined,
+      chapters:      chapterList.length > 1 ? chapterList : undefined,
       scheduledTime: scheduledTime || undefined,
       scheduledEndTime: scheduledEndTime || undefined,
       updatedByName: updatedByName || undefined,
@@ -407,14 +411,17 @@ export async function POST(req: NextRequest) {
       if (resolvedSyllabus)     bcSet.scheduledMonth    = resolvedSyllabus.scheduledMonth
       if (resolvedSyllabus)     bcSet.totalVideos       = resolvedSyllabus.totalVideos
 
-      await BatchChapter.findOneAndUpdate(
-        { batchId: batchOid, subject: normSubject, chapterName: chapter },
-        {
-          $set: bcSet,
-          $setOnInsert: { chapterOrder: 0, videoComplete: false },
-        },
-        { upsert: true }
-      )
+      for (const chapterName of chapterList) {
+        await BatchChapter.findOneAndUpdate(
+          { batchId: batchOid, subject: normSubject, chapterName },
+          {
+            // The syllabus link only makes sense for a single chapter.
+            $set: chapterList.length === 1 ? bcSet : { facultyClassDone: true, facultyClassDoneAt: date, sessionId: session._id },
+            $setOnInsert: { chapterOrder: 0, videoComplete: false },
+          },
+          { upsert: true }
+        )
+      }
     }
 
     writeAuditLog({

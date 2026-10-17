@@ -40,6 +40,7 @@ export interface Session {
   classMode?: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
   subject: string
   chapter: string
+  chapters?: string[]
   scheduledTime?: string
   scheduledEndTime?: string
   updatedByName?: string

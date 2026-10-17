@@ -23,6 +23,7 @@ export async function create(
     batchId: string
     subject: string
     chapter: string
+    chapters?: string[]
     syllabusChapterId?: string
     startTime?: string
     /** Required by the API — requests without a positive duration are rejected. */

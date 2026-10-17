@@ -16,6 +16,7 @@ import { CAMPUS_LOGIN_CAMPUS_IDS } from '../utils/campusBatches'
 import { PushCampus } from '../models/PushCampus'
 import { isEntryType, shootHours, usesFullBreak } from '../utils/entryTypes'
 import { fullBreakHours } from '../utils/sessionHours'
+import { normalizeChapters, joinChapters, chapterNamesOf } from '../utils/chapters'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '../utils/teacherEdit'
 import { Types } from 'mongoose'
 
@@ -103,11 +104,13 @@ export const getSessions = asyncHandler(async (req: AuthRequest, res: Response) 
  */
 export const createSession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const {
-    facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter, syllabusChapterId,
+    facultyId, batchId: rawBatchId, batchIds, campusName, classMode, subject, chapter: rawChapter, chapters: rawChapters, syllabusChapterId,
     scheduledTime, scheduledEndTime, updatedByName, comment, startTime, endTime,
     breakMinutes, lunchBreakMinutes, afternoonBreakMinutes,
     durationHours, sessionDate, timeSlot, sessionCategory, entryType: rawEntryType,
   } = req.body
+  const chapterList = normalizeChapters(rawChapters, rawChapter)
+  const chapter = joinChapters(chapterList)
   // Multi-batch classes send batchIds; the first is the primary batch.
   const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
@@ -354,6 +357,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     classMode:     classMode  || undefined,
     subject,
     chapter:       chapter || undefined,
+    chapters:      chapterList.length > 1 ? chapterList : undefined,
     scheduledTime: scheduledTime || undefined,
     scheduledEndTime: scheduledEndTime || undefined,
     updatedByName: updatedByName || undefined,
@@ -395,14 +399,17 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     if (resolvedSyllabusChapter)      bcSet.totalVideos       = resolvedSyllabusChapter.totalVideos
 
     for (const bOid of [batchOid, ...extraBatchOids]) {
-      await BatchChapter.findOneAndUpdate(
-        { batchId: bOid, subject: normalisedSubject, chapterName: chapter },
-        {
-          $set: bcSet,
-          $setOnInsert: { chapterOrder: 0, videoComplete: false },
-        },
-        { upsert: true }
-      )
+      for (const chapterName of chapterList) {
+        await BatchChapter.findOneAndUpdate(
+          { batchId: bOid, subject: normalisedSubject, chapterName },
+          {
+            // The syllabus link only makes sense for a single chapter.
+            $set: chapterList.length === 1 ? bcSet : { facultyClassDone: true, facultyClassDoneAt: date, sessionId: session._id },
+            $setOnInsert: { chapterOrder: 0, videoComplete: false },
+          },
+          { upsert: true }
+        )
+      }
     }
   }
 
@@ -535,6 +542,9 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'No valid fields provided for update' }); return
   }
 
+  // Edited chapter text no longer matches the stored list of names.
+  if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
+
   const session = await Session.findByIdAndUpdate(
     oid,
     { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
@@ -595,8 +605,8 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
   // Reset the chapter's class-done status so it can be re-logged correctly.
   // Match by batchId+subject+chapterName (not sessionId, which may not be set if the chapter
   // was marked done via the chapter endpoint rather than via a session status update).
-  await BatchChapter.findOneAndUpdate(
-    { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
+  await BatchChapter.updateMany(
+    { batchId: session.batchId, subject: session.subject, chapterName: { $in: chapterNamesOf(session) }, facultyClassDone: true },
     { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } }
   ).catch(() => null)
 

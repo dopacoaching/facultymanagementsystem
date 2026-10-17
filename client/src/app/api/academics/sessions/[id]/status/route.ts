@@ -5,6 +5,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
+import { chapterNamesOf } from '@/lib/utils/chapters'
 
 /** PATCH /api/academics/sessions/:id/status */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -72,8 +73,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     // When a class is marked NOT_COMPLETED the faculty didn't actually take it —
     // reset the chapter by batchId+subject+chapterName (not sessionId, which may not be set).
     if (status === 'NOT_COMPLETED') {
-      await BatchChapter.findOneAndUpdate(
-        { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
+      await BatchChapter.updateMany(
+        { batchId: session.batchId, subject: session.subject, chapterName: { $in: chapterNamesOf(session) }, facultyClassDone: true },
         { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
       ).catch(() => null)
     }

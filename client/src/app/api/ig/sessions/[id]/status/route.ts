@@ -6,6 +6,7 @@ import { Session } from '@/lib/models/Session'
 import { Batch } from '@/lib/models/Batch'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
+import { chapterNamesOf } from '@/lib/utils/chapters'
 
 /** PATCH /api/ig/sessions/:id/status */
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -74,8 +75,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (status === 'NOT_COMPLETED') {
       // Reset by batchId+subject+chapterName (not sessionId, which may not be set).
-      await BatchChapter.findOneAndUpdate(
-        { batchId: session.batchId, subject: session.subject, chapterName: session.chapter, facultyClassDone: true },
+      await BatchChapter.updateMany(
+        { batchId: session.batchId, subject: session.subject, chapterName: { $in: chapterNamesOf(session) }, facultyClassDone: true },
         { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
       ).catch(() => null)
     }
