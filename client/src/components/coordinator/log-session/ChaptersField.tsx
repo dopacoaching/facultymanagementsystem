@@ -6,21 +6,10 @@ interface SyllabusChapter {
   chapterName: string
 }
 
-interface ChaptersFieldProps {
-  subject: string
-  accessToken: string | null
-  value: string[]
-  onChange: (v: string[]) => void
-}
-
-/** Multi-select chapter picker: choose from the subject's chapter list (syllabus plus the
- *  ones HR added) or type a chapter that is not listed, and add as many as the class covered. */
-export function ChaptersField({ subject, accessToken, value, onChange }: ChaptersFieldProps) {
-  const id = useId()
-  const listId = `${id}-list`
+/** Chapters a subject offers: the syllabus plus those HR/Admin added. Teachers can only pick from these. */
+export function useChapterOptions(subject: string, accessToken: string | null): { options: string[]; loading: boolean } {
   const [options, setOptions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  const [text, setText] = useState('')
 
   useEffect(() => {
     if (!accessToken || !subject) { setOptions([]); return }
@@ -41,26 +30,24 @@ export function ChaptersField({ subject, accessToken, value, onChange }: Chapter
     return () => { cancelled = true }
   }, [subject, accessToken])
 
-  const has = (name: string) => value.some((v) => v.toLowerCase() === name.toLowerCase())
+  return { options, loading }
+}
 
-  function add(raw: string) {
-    const name = raw.trim().replace(/\s+/g, ' ')
-    if (!name) return
-    if (!has(name)) {
-      // Use the list's own spelling when the typed text matches a listed chapter.
-      const listed = options.find((o) => o.toLowerCase() === name.toLowerCase())
-      onChange([...value, listed ?? name])
-    }
-    setText('')
-  }
+interface ChaptersFieldProps {
+  subject: string
+  accessToken: string | null
+  value: string[]
+  onChange: (v: string[]) => void
+}
 
-  function onInput(next: string) {
-    // Picking an entry from the datalist fills the exact chapter name: add it straight away.
-    if (options.some((o) => o === next)) add(next)
-    else setText(next)
-  }
+/** Multi-select chapter picker. Only chapters on the subject's list can be chosen; new ones
+ *  are added by HR/Admin on the Chapters page. */
+export function ChaptersField({ subject, accessToken, value, onChange }: ChaptersFieldProps) {
+  const id = useId()
+  const { options, loading } = useChapterOptions(subject, accessToken)
 
-  const available = options.filter((o) => !has(o))
+  const available = options.filter((o) => !value.includes(o))
+  const noList = !!subject && !loading && options.length === 0
 
   return (
     <div className="form-group">
@@ -90,34 +77,28 @@ export function ChaptersField({ subject, accessToken, value, onChange }: Chapter
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <input
-          id={id}
-          type="text"
-          className="input"
-          list={listId}
-          value={text}
-          onChange={(e) => onInput(e.target.value)}
-          // Enter adds the chapter instead of submitting the form.
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(text) } }}
-          // Leaving the box with a chapter typed in does not lose it.
-          onBlur={() => add(text)}
-          placeholder={
-            !subject ? 'Select a subject first'
+      <select
+        id={id}
+        className="input"
+        value=""
+        disabled={!subject || loading || available.length === 0}
+        onChange={(e) => { if (e.target.value) onChange([...value, e.target.value]) }}
+      >
+        <option value="">
+          {!subject ? 'Select a subject first'
             : loading ? 'Loading chapters…'
-            : value.length ? 'Add another chapter'
-            : available.length ? 'Search or type a chapter'
-            : 'No chapter list for this subject — type it'
-          }
-        />
-        <button type="button" className="btn btn-outline" onClick={() => add(text)} disabled={!text.trim()}>
-          Add
-        </button>
-      </div>
-      <datalist id={listId}>
-        {available.map((name) => <option key={name} value={name} />)}
-      </datalist>
-      <span className="help-text">Add every chapter this class covered.</span>
+            : noList ? 'No chapters for this subject yet'
+            : available.length === 0 ? 'All chapters added'
+            : value.length ? '— add another chapter —'
+            : '— select a chapter —'}
+        </option>
+        {available.map((name) => <option key={name} value={name}>{name}</option>)}
+      </select>
+      {noList ? (
+        <span className="help-text">No chapters are set up for this subject. Ask HR to add them before pushing this class.</span>
+      ) : (
+        <span className="help-text">Add every chapter this class covered. A missing chapter must be added by HR.</span>
+      )}
     </div>
   )
 }

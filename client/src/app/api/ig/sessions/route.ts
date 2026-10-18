@@ -14,6 +14,7 @@ import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
 import { dayRangeFilter } from '@/lib/utils/dateRange'
 import { normalizeComment } from '@/lib/utils/teacherEdit'
 import { normalizeChapters, joinChapters } from '@/lib/utils/chapters'
+import { unlistedChapters, unlistedChapterMessage } from '@/lib/services/chapterRules'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -114,6 +115,10 @@ export async function POST(req: NextRequest) {
     } = await req.json()
     const chapterList = normalizeChapters(rawChapters, rawChapter)
     const chapter = joinChapters(chapterList)
+    if (payload.role === 'IG_CLASS_TEACHER' && typeof subject === 'string') {
+      const bad = await unlistedChapters(subject, chapterList)
+      if (bad.length) return withToken(json({ error: unlistedChapterMessage(subject, bad) }, 400), refreshedToken)
+    }
     const batchId = rawBatchId ?? (Array.isArray(batchIds) ? batchIds[0] : undefined)
 
     if (!facultyId || !batchId || !subject || !chapter || !sessionDate) {

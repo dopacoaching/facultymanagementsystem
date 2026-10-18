@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
+import { useAppSelector } from '@/store/hooks'
 import type { Session } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 import { todayLocal } from '@/utils/date'
 import { EditClassSessionModal, formFromSession, timingChanged, type EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
 import { usesFullBreak } from '@/lib/constants/entryTypes'
 import { computeDuration, computeShootDuration } from '@/components/coordinator/log-session'
+import { useChapterOptions } from '@/components/coordinator/log-session/ChaptersField'
 
 type SaveFn = (sessionId: string, data: Record<string, unknown>) => Promise<unknown>
 
@@ -22,9 +24,11 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
   onSaved: () => void
 }) {
   const toast = useToast()
+  const accessToken = useAppSelector((s) => s.auth.accessToken)
   const [form, setForm] = useState<EditClassSessionForm>(() => formFromSession(session))
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const { options: chapterOptions } = useChapterOptions(form.subject, accessToken)
 
   async function submit() {
     const isShoot = form.entryType === 'SHOOT'
@@ -83,6 +87,7 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
       onSubmit={submit}
       teacherNames={teacherNames}
       maxDate={todayLocal()}
+      chapterOptions={chapterOptions}
     />
   )
 }

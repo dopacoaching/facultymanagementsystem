@@ -58,6 +58,8 @@ const CLASS_MODE_OPTIONS = [
 ] as const
 
 interface EditClassSessionModalProps {
+  /** Teacher edits: chapters the subject offers, suggested on the Chapter box. */
+  chapterOptions?: string[]
   form: EditClassSessionForm
   setForm: (updater: (f: EditClassSessionForm) => EditClassSessionForm) => void
   error: string
@@ -71,7 +73,7 @@ interface EditClassSessionModalProps {
 }
 
 export function EditClassSessionModal({
-  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate,
+  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate, chapterOptions,
 }: EditClassSessionModalProps) {
   return (
     <div
@@ -103,7 +105,15 @@ export function EditClassSessionModal({
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="label">Chapter</label>
-              <input className="input" value={form.chapter} onChange={(e) => setForm((f) => ({ ...f, chapter: e.target.value }))} />
+              <input className="input" list={chapterOptions ? 'edit-chapter-options' : undefined} value={form.chapter} onChange={(e) => setForm((f) => ({ ...f, chapter: e.target.value }))} />
+              {chapterOptions && (
+                <>
+                  <datalist id="edit-chapter-options">
+                    {chapterOptions.map((c) => <option key={c} value={c} />)}
+                  </datalist>
+                  <span className="help-text">Pick a chapter from the list. A missing chapter must be added by HR.</span>
+                </>
+              )}
             </div>
             <div className="form-group">
               <label className="label">Class Mode</label>

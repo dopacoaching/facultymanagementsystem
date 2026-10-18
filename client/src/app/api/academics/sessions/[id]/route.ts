@@ -7,6 +7,7 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
+import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
@@ -69,6 +70,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const existing = await Session.findById(oid)
     if (!existing) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+    if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
+      const subj = String(update.subject ?? existing.subject)
+      const bad = await unlistedInChapterText(subj, update.chapter)
+      if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
+    }
     // Edited chapter text no longer matches the stored list of names.
     if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
     if (existing.status === 'CANCELLED') {

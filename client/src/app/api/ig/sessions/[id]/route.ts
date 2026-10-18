@@ -7,6 +7,7 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
+import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
 /** PATCH /api/ig/sessions/:id — full edit (HR/Admin). An IG class teacher may correct an
@@ -86,6 +87,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
+    if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
+      const subj = String(update.subject ?? existing.subject)
+      const bad = await unlistedInChapterText(subj, update.chapter)
+      if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
+    }
     // Edited chapter text no longer matches the stored list of names.
     const dropChapters = update.chapter !== undefined && update.chapter !== existing.chapter
     const session = await Session.findByIdAndUpdate(oid, dropChapters ? { $set: update, $unset: { chapters: '' } } : update, { new: true, runValidators: true })
