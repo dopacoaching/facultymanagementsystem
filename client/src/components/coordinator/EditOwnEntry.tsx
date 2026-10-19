@@ -16,9 +16,11 @@ type SaveFn = (sessionId: string, data: Record<string, unknown>) => Promise<unkn
  * 24-hour window and ownership). Reuses the HR edit form, minus the fields a
  * teacher may not change.
  */
-export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: {
+export function EditOwnEntry({ session, teacherNames, batches, save, onClose, onSaved }: {
   session: Session
   teacherNames: string[]
+  /** The login's campus batches; the batch picker only shows when there are several. */
+  batches?: { _id: string; name: string }[]
   save: SaveFn
   onClose: () => void
   onSaved: () => void
@@ -26,6 +28,9 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
   const toast = useToast()
   const accessToken = useAppSelector((s) => s.auth.accessToken)
   const [form, setForm] = useState<EditClassSessionForm>(() => formFromSession(session))
+  const [batchIds, setBatchIds] = useState<string[]>(
+    () => [session.batchId, ...(session.extraBatchIds ?? [])].filter((id): id is string => !!id),
+  )
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const { options: chapterOptions } = useChapterOptions(form.subject, accessToken)
@@ -39,6 +44,11 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
     if (!form.sessionDate) { setError('Select the date'); return }
     if (!form.subject.trim()) { setError('Subject is required'); return }
     if (!form.chapter.trim()) { setError('Chapter is required'); return }
+    const pickBatches = !!batches && batches.length > 1 && !!session.batchId
+    if (pickBatches && batchIds.length === 0) { setError('Select at least one batch'); return }
+    const original = [session.batchId, ...(session.extraBatchIds ?? [])]
+    const batchesChanged = pickBatches
+      && (batchIds.length !== original.length || batchIds.some((id) => !original.includes(id)))
 
     setSaving(true); setError('')
     try {
@@ -49,6 +59,7 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
         updatedByName: form.updatedByName.trim() || undefined,
         ...(form.comment.trim() !== (session.comment ?? '').trim() ? { comment: form.comment.trim() } : {}),
         sessionDate:   form.sessionDate,
+        ...(batchesChanged ? { batchIds } : {}),
         // Timing is only sent when it changed — the server recalculates hours from it
         // (a Shoot's multiplier, a Live entry's full break), so an unrelated edit
         // never alters hours saved under an older rule.
@@ -87,6 +98,9 @@ export function EditOwnEntry({ session, teacherNames, save, onClose, onSaved }: 
       onSubmit={submit}
       teacherNames={teacherNames}
       maxDate={todayLocal()}
+      batches={session.batchId ? batches : undefined}
+      batchIds={batchIds}
+      onBatchIdsChange={setBatchIds}
       chapterOptions={chapterOptions}
     />
   )

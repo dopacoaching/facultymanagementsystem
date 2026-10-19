@@ -41,3 +41,29 @@ export async function resolveExtraBatches(
   }
   return { ok: true, extras }
 }
+
+/**
+ * A class teacher correcting which batches sat a class they pushed. The campus is
+ * anchored to the entry's current primary batch (already verified as theirs), so the
+ * new selection can only ever contain batches of that same campus. The current primary
+ * stays primary when still selected; otherwise the first selected batch takes over.
+ */
+export async function resolveTeacherBatchEdit(
+  batchIds: unknown,
+  existingBatchId: unknown,
+  opts: { igOnly?: boolean } = {},
+): Promise<{ ok: true; batchId: Types.ObjectId; extras: Types.ObjectId[] } | { ok: false; status: number; error: string }> {
+  if (!Array.isArray(batchIds) || batchIds.length === 0) {
+    return { ok: false, status: 400, error: 'Select at least one batch' }
+  }
+  if (!existingBatchId) return { ok: false, status: 400, error: 'This entry has no batch to change' }
+  const anchor = await Batch.findById(existingBatchId)
+  if (!anchor) return { ok: false, status: 404, error: 'Batch not found' }
+
+  const r = await resolveExtraBatches(batchIds, anchor, opts)
+  if (!r.ok) return r
+  const keepsAnchor = batchIds.some((id) => String(id) === String(anchor._id))
+  const all = keepsAnchor ? [anchor._id as Types.ObjectId, ...r.extras] : r.extras
+  if (all.length === 0) return { ok: false, status: 400, error: 'Select at least one batch' }
+  return { ok: true, batchId: all[0], extras: all.slice(1) }
+}

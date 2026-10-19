@@ -8,7 +8,7 @@ import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
-import { resolveExtraBatches } from '../utils/extraBatches'
+import { resolveExtraBatches, resolveTeacherBatchEdit } from '../utils/extraBatches'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
@@ -496,6 +496,17 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
         update[key] = req.body[key]
       }
     }
+  }
+
+  // A class teacher may correct which batches sat the class (same campus only).
+  if (isTeacher && req.body.batchIds !== undefined) {
+    const r = await resolveTeacherBatchEdit(
+      req.body.batchIds, existing.batchId, { igOnly: req.user!.role === 'IG_CLASS_TEACHER' },
+    )
+    if (!r.ok) { res.status(r.status).json({ error: r.error }); return }
+    update.batchId = r.batchId
+    if (r.extras.length) update.extraBatchIds = r.extras
+    else unset.extraBatchIds = ''
   }
 
   // Live/Shoot (Studio): durationHours arrives as the time actually taken and is

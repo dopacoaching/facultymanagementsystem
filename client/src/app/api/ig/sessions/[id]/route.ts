@@ -8,6 +8,7 @@ import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
 import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
+import { resolveTeacherBatchEdit } from '@/lib/utils/extraBatches'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
 /** PATCH /api/ig/sessions/:id — full edit (HR/Admin). An IG class teacher may correct an
@@ -37,6 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       'durationHours', 'sessionDate',
     ]
     const update: Record<string, unknown> = {}
+    const unset: Record<string, ''> = {}
 
     for (const key of allowed) {
       if (body[key] !== undefined) {
@@ -60,7 +62,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    if (Object.keys(update).length === 0) {
+    if (Object.keys(update).length === 0 && !(isTeacher && body.batchIds !== undefined)) {
       return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
     }
 
@@ -85,6 +87,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (body.entryType !== undefined && !isEntryType(body.entryType)) {
         return withToken(json({ error: 'entryType must be LIVE or SHOOT' }, 400), refreshedToken)
       }
+      if (body.batchIds !== undefined) {
+        const r = await resolveTeacherBatchEdit(body.batchIds, existing.batchId, { igOnly: true })
+        if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
+        update.batchId = r.batchId
+        if (r.extras.length) update.extraBatchIds = r.extras
+        else unset.extraBatchIds = ''
+      }
     }
 
     if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
@@ -93,8 +102,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
     }
     // Edited chapter text no longer matches the stored list of names.
-    const dropChapters = update.chapter !== undefined && update.chapter !== existing.chapter
-    const session = await Session.findByIdAndUpdate(oid, dropChapters ? { $set: update, $unset: { chapters: '' } } : update, { new: true, runValidators: true })
+    if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
+    const session = await Session.findByIdAndUpdate(
+      oid,
+      { ...(Object.keys(update).length ? { $set: update } : {}), ...(Object.keys(unset).length ? { $unset: unset } : {}) },
+      { new: true, runValidators: true },
+    )
       .populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
 

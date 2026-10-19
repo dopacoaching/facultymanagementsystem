@@ -64,6 +64,7 @@ export async function update(
     afternoonBreakMinutes: number
     durationHours: number
     sessionDate: string
+    batchIds: string[]
   }>,
   token: string
 ): Promise<Session> {

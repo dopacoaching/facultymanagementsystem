@@ -86,7 +86,7 @@ async function seed() {
     { name: 'Calicut Offline Batch 2',    type: 'OFFLINE', campusId: campusCalicutOffline._id },
     { name: 'Kottakkal Offline Batch 1',  type: 'OFFLINE', campusId: campusKottakkalOffline._id },
     { name: 'Kottakkal Offline Batch 2',  type: 'OFFLINE', campusId: campusKottakkalOffline._id },
-    { name: 'Tamil Batch',                type: 'OFFLINE', campusId: campusTamilNadu._id },
+    { name: 'R3 Tamil',                  type: 'OFFLINE', campusId: campusKottakkalOffline._id },
     { name: 'Thrissur Offline',           type: 'OFFLINE', campusId: campusThrissurOffline._id },
     // ── Integrated School (IS) ────────────────────────────────────────────────
     { name: 'R1', type: 'IG', campusId: melmuri._id, ig1Subgroup: 'PLUS_ONE' },

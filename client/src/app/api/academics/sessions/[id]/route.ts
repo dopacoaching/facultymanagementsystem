@@ -8,6 +8,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
 import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
+import { resolveTeacherBatchEdit } from '@/lib/utils/extraBatches'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
@@ -90,6 +91,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       if (update.sessionDate instanceof Date && update.sessionDate.getTime() > Date.now()) {
         return withToken(json({ error: 'The date cannot be in the future' }, 400), refreshedToken)
+      }
+      if (body.batchIds !== undefined) {
+        const r = await resolveTeacherBatchEdit(body.batchIds, existing.batchId)
+        if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
+        update.batchId = r.batchId
+        if (r.extras.length) update.extraBatchIds = r.extras
+        else unset.extraBatchIds = ''
       }
     }
 

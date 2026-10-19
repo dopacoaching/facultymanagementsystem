@@ -20,9 +20,8 @@ export const CAMPUSES: CampusConfig[] = [
   { campusName: 'Thrissur Residential',      username: 'dopathrissurresidential@gmail.com',        teachers: ['Reshma', 'Sreeja'] },
   { campusName: 'Calicut Boys',              username: 'dopaaiimsboys@gmail.com',                  teachers: ['Basil', 'Akash'] },
   { campusName: 'Kottakkal Girls',           username: 'chattiparambdopa@gmail.com',               teachers: ['Remya', 'Gopika', 'Nadha'] },
-  { campusName: 'Kottakkal Offline',         username: 'kottakkalofflineacademics@gmail.com',      teachers: ['Vijay', 'Sinsina', 'Amrutha'], campusId: '6a2288d2c59b10a9bd1d5525' },
+  { campusName: 'Kottakkal Offline',         username: 'kottakkalofflineacademics@gmail.com',      teachers: ['Vijay', 'Sinsina', 'Amrutha', 'Shilpa', 'Hasna'], campusId: '6a2288d2c59b10a9bd1d5525' },
   { campusName: 'Thrissur Offline',          username: 'dopathrissuracc@gmail.com',                teachers: ['Vasannya'], campusId: '6a2288d2c59b10a9bd1d5527' },
-  { campusName: 'Kottakkal Offline Tamil',   username: 'dopatamilrepeaters@gmail.com',             teachers: ['Hasna', 'Shilpa'], campusId: '6a2288d2c59b10a9bd1d5526' },
   { campusName: 'Studio',                    username: 'studiodopa5@gmail.com',                    teachers: ['Savin'] },
 ]
 
