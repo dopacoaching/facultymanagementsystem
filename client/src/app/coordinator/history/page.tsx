@@ -6,8 +6,7 @@ import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { toLocalISO } from '@/utils/date'
 import type { Session } from '@/types'
-import { getMyCampus } from '@/services/campus.service'
-import { getBatches } from '@/services/faculty.service'
+import { useCampusTeacherInfo } from '@/hooks/useCampusTeacherInfo'
 import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
 import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
 import { update as updateEntry } from '@/services/session.service'
@@ -34,8 +33,7 @@ export default function CampusHistoryPage() {
   const [to, setTo] = useState(toLocalISO(now))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [teacherNames, setTeacherNames] = useState<string[]>([])
-  const [campusBatches, setCampusBatches] = useState<{ _id: string; name: string }[]>([])
+  const { teacherNames, batches: campusBatches } = useCampusTeacherInfo(accessToken)
   const [editing, setEditing] = useState<Session | null>(null)
 
   async function load() {
@@ -50,15 +48,6 @@ export default function CampusHistoryPage() {
   }
 
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!accessToken) return
-    getMyCampus(accessToken).then(async (c) => {
-      setTeacherNames(c.teachers)
-      if (!c.batchCampusId) return
-      const all = await getBatches(accessToken)
-      setCampusBatches(all.filter((b) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId) === c.batchCampusId))
-    }).catch(() => setTeacherNames([]))
-  }, [accessToken])
 
   return (
     <div>

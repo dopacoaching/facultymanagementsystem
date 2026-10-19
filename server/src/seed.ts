@@ -39,7 +39,7 @@ async function seed() {
   const [
     campusFeroke, campusKottakkal, campusCalicut, campusPVT,
     campusNarikuni, campusThrissur, campusOnline,
-    campusCalicutOffline, campusKottakkalOffline, campusTamilNadu, campusThrissurOffline,
+    campusCalicutOffline, campusKottakkalOffline, campusThrissurOffline,
     // IS campuses
     melmuri, ayikk,
   ] = await Campus.insertMany([
@@ -54,7 +54,6 @@ async function seed() {
     // Offline
     { name: 'Calicut Offline Center',   location: 'Calicut' },
     { name: 'Kottakkal Offline Center', location: 'Kottakkal' },
-    { name: 'Tamil Nadu Campus',        location: 'Tamil Nadu' },
     { name: 'Thrissur Offline Center',  location: 'Thrissur' },
     // Integrated School
     { name: 'IG-1',                      location: 'Melmuri' },
@@ -67,7 +66,7 @@ async function seed() {
     batchFerGirls, batchKotGirls, batchKotBoys, batchCalBoys,
     batchPVTGirls, batchNarGirls, batchThrGirls, batchOnline,
     // 6 Offline
-    batchCalOff1, batchCalOff2, batchKotOff1, batchKotOff2, batchTamil, batchThrOff,
+    batchCalOff1, batchCalOff2, batchKotOff1, batchKotOff2, batchThrOff,
     // IG batches
     r1, r2, r3, s1, s2, s3, r4, s4, s5,
   ] = await Batch.insertMany([
@@ -103,7 +102,7 @@ async function seed() {
   void batchKotGirls; void batchKotBoys; void batchCalBoys
   void batchPVTGirls; void batchNarGirls; void batchThrGirls; void batchOnline
   void batchCalOff1;  void batchCalOff2;  void batchKotOff1;  void batchKotOff2
-  void batchTamil;    void batchThrOff
+  void batchThrOff
   void r2; void r3; void s1; void s2; void s3; void s4; void s5
 
   // ── Faculty ───────────────────────────────────────────────────────────────

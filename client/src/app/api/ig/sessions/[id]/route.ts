@@ -8,7 +8,7 @@ import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
 import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
-import { resolveTeacherBatchEdit } from '@/lib/utils/extraBatches'
+import { moveChapterLinks, resolveTeacherBatchEdit } from '@/lib/utils/extraBatches'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
 /** PATCH /api/ig/sessions/:id — full edit (HR/Admin). An IG class teacher may correct an
@@ -62,6 +62,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
+    if (isTeacher && body.batchIds !== undefined && (!Array.isArray(body.batchIds) || body.batchIds.length === 0)) {
+      return withToken(json({ error: 'Select at least one batch' }, 400), refreshedToken)
+    }
     if (Object.keys(update).length === 0 && !(isTeacher && body.batchIds !== undefined)) {
       return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
     }
@@ -110,6 +113,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     )
       .populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
+    if (update.batchId && !existing.batchId?.equals(update.batchId as Types.ObjectId)) {
+      await moveChapterLinks(oid, update.batchId as Types.ObjectId).catch(() => null)
+    }
 
     writeAuditLog({
       category: 'ACADEMICS', eventType: 'SESSION_UPDATED',

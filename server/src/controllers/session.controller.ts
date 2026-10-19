@@ -8,7 +8,7 @@ import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
-import { resolveExtraBatches, resolveTeacherBatchEdit } from '../utils/extraBatches'
+import { moveChapterLinks, resolveExtraBatches, resolveTeacherBatchEdit } from '../utils/extraBatches'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
@@ -562,6 +562,9 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     { new: true, runValidators: true },
   ).populate('facultyId', 'name subject')
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
+  if (update.batchId && !existing.batchId?.equals(update.batchId as Types.ObjectId)) {
+    await moveChapterLinks(oid, update.batchId as Types.ObjectId).catch(() => null)
+  }
   res.json(session)
 })
 

@@ -1,4 +1,5 @@
 import { Types } from 'mongoose'
+import { BatchChapter } from '../models/BatchChapter'
 import { Batch, IBatch } from '../models/Batch'
 
 /**
@@ -29,11 +30,14 @@ export async function resolveExtraBatches(
   if (extras.length === 0) return { ok: true, extras }
   if (extras.length > 20) return { ok: false, status: 400, error: 'Too many batches selected' }
 
-  const found = await Batch.find({ _id: { $in: extras } }).select('campusId type').lean()
+  const found = await Batch.find({ _id: { $in: extras } }).select('campusId type isActive').lean()
   if (found.length !== extras.length) return { ok: false, status: 404, error: 'Batch not found' }
   for (const b of found) {
     if (b.campusId.toString() !== primary.campusId.toString()) {
       return { ok: false, status: 403, error: 'All selected batches must belong to the same campus.' }
+    }
+    if (b.isActive === false) {
+      return { ok: false, status: 400, error: 'A selected batch is no longer active.' }
     }
     if (opts.igOnly && b.type !== 'IG') {
       return { ok: false, status: 400, error: 'Sessions can only be logged against IG batches on this endpoint' }
@@ -66,4 +70,23 @@ export async function resolveTeacherBatchEdit(
   const all = keepsAnchor ? [anchor._id as Types.ObjectId, ...r.extras] : r.extras
   if (all.length === 0) return { ok: false, status: 400, error: 'Select at least one batch' }
   return { ok: true, batchId: all[0], extras: all.slice(1) }
+}
+
+/**
+ * A teacher moved an entry to a different primary batch: the syllabus "class done"
+ * marks it wrote live on the old batch's chapters. Move them to the new primary, or
+ * (when that batch already has the chapter row) just unmark the old one.
+ */
+export async function moveChapterLinks(sessionId: Types.ObjectId, newBatchId: Types.ObjectId) {
+  const linked = await BatchChapter.find({ sessionId, facultyClassDone: true })
+  for (const bc of linked) {
+    if (bc.batchId.equals(newBatchId)) continue
+    const clash = await BatchChapter.exists({ batchId: newBatchId, subject: bc.subject, chapterName: bc.chapterName })
+    if (clash) {
+      await BatchChapter.updateOne({ _id: bc._id }, { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } })
+      await BatchChapter.updateOne({ _id: clash._id }, { $set: { facultyClassDone: true, facultyClassDoneAt: bc.facultyClassDoneAt, sessionId } })
+    } else {
+      await BatchChapter.updateOne({ _id: bc._id }, { $set: { batchId: newBatchId } })
+    }
+  }
 }
