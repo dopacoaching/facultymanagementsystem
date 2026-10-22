@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { apiFetch } from '@/services/api'
+import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 
 interface SyllabusChapter {
   _id: string
@@ -7,7 +8,8 @@ interface SyllabusChapter {
 }
 
 /** Chapters a subject offers: the syllabus plus those HR/Admin added. Teachers can only pick from these. */
-export function useChapterOptions(subject: string, accessToken: string | null): { options: string[]; loading: boolean } {
+export function useChapterOptions(subjectRaw: string, accessToken: string | null): { options: string[]; loading: boolean } {
+  const subject = subjectRaw ? chapterSubjectOf(subjectRaw) : ''
   const [options, setOptions] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 

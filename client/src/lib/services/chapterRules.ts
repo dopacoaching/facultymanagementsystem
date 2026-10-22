@@ -1,9 +1,10 @@
 import { SyllabusChapter } from '@/lib/models/SyllabusChapter'
 import { ChapterOption } from '@/lib/models/ChapterOption'
+import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 
 /** Lower-cased names of every chapter a subject offers: the syllabus plus those HR/Admin added. */
 async function allowedChapterNames(subject: string): Promise<Set<string>> {
-  const key = subject.trim().toUpperCase()
+  const key = chapterSubjectOf(subject)
   const [syllabus, added] = await Promise.all([
     SyllabusChapter.find({ subject: key }).select('chapterName').lean(),
     ChapterOption.find({ subject: key }).select('name').lean(),

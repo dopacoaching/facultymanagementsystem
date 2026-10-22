@@ -20,6 +20,11 @@ export const SUBJECT_OPTIONS: SubjectOption[] = [
   { label: 'Malayalam',         value: 'MALAYALAM' },
   { label: 'Arabic',            value: 'ARABIC' },
   { label: 'Hindi',             value: 'HINDI' },
+  { label: 'Mathematics Lab',      value: 'MATHS LAB' },
+  { label: 'Physics Lab',          value: 'PHYSICS LAB' },
+  { label: 'Chemistry Lab',        value: 'CHEMISTRY LAB' },
+  { label: 'Biology Lab',          value: 'BIOLOGY LAB' },
+  { label: 'Computer Science Lab', value: 'COMPUTER SCIENCE LAB' },
 ]
 
 export type ClassMode = 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'

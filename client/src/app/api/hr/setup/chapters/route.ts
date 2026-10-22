@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { ChapterOption } from '@/lib/models/ChapterOption'
+import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 
 const MAX_BULK = 200
@@ -16,8 +17,9 @@ export async function GET(req: NextRequest) {
     const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
-    const subject = new URL(req.url).searchParams.get('subject')?.trim().toUpperCase()
-    if (!subject) return withToken(json({ error: 'subject query parameter is required' }, 400), refreshedToken)
+    const raw = new URL(req.url).searchParams.get('subject')
+    if (!raw?.trim()) return withToken(json({ error: 'subject query parameter is required' }, 400), refreshedToken)
+    const subject = chapterSubjectOf(raw)
 
     await connectDB()
     const chapters = await ChapterOption.find({ subject }).sort({ createdAt: 1 }).lean()
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const body = await req.json() as Record<string, unknown>
-    const subject = typeof body.subject === 'string' ? body.subject.trim().toUpperCase() : ''
+    const subject = typeof body.subject === 'string' ? chapterSubjectOf(body.subject) : ''
     if (subject.length < 2 || subject.length > 40) {
       return withToken(json({ error: 'Select a subject' }, 400), refreshedToken)
     }
