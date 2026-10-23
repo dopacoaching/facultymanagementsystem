@@ -7,6 +7,7 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { PermanentFacultyContract } from '@/lib/models/PermanentFacultyContract'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { chapterNamesOf } from '@/lib/utils/chapters'
+import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
     // Match by batchId+subject+chapterName (not sessionId, which may not be set if chapter was
     // marked done via the chapter endpoint rather than via a session status update).
     await BatchChapter.updateMany(
-      { batchId: session.batchId, subject: session.subject, chapterName: { $in: chapterNamesOf(session) }, facultyClassDone: true },
+      { batchId: session.batchId, subject: chapterSubjectOf(session.subject), chapterName: { $in: chapterNamesOf(session) }, facultyClassDone: true },
       { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: '', sessionId: '' } },
     ).catch(() => null)
 

@@ -8,7 +8,7 @@ import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
 import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
-import { moveChapterLinks, resolveTeacherBatchEdit } from '@/lib/utils/extraBatches'
+import { resolveTeacherBatchEdit, syncChapterLinks } from '@/lib/utils/extraBatches'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
@@ -149,8 +149,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       { new: true, runValidators: true },
     ).populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-    if (update.batchId && !existing.batchId?.equals(update.batchId as Types.ObjectId)) {
-      await moveChapterLinks(oid, update.batchId as Types.ObjectId).catch(() => null)
+    if (update.batchId) {
+      await syncChapterLinks(session, { perBatch: false }).catch(() => null)
     }
 
     writeAuditLog({

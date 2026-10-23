@@ -8,7 +8,7 @@ import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
-import { moveChapterLinks, resolveExtraBatches, resolveTeacherBatchEdit } from '../utils/extraBatches'
+import { resolveExtraBatches, resolveTeacherBatchEdit, syncChapterLinks } from '../utils/extraBatches'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
@@ -19,6 +19,7 @@ import { fullBreakHours } from '../utils/sessionHours'
 import { normalizeChapters, joinChapters, chapterNamesOf } from '../utils/chapters'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '../utils/teacherEdit'
 import { Types } from 'mongoose'
+import { chapterSubjectOf } from '../utils/labSubjects'
 
 /** Return true when the caller's role restricts them to their assigned batch only. */
 function isCoordinator(role: string): boolean {
@@ -387,7 +388,7 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
   // Reuse the syllabusChapter doc already fetched in gate 2b — no second query.
   // Normalise subject to uppercase so it matches SyllabusChapter enum values.
   if (chapter && batchOid) {
-    const normalisedSubject = subject.toUpperCase()
+    const normalisedSubject = chapterSubjectOf(subject)
 
     const bcSet: Record<string, unknown> = {
       facultyClassDone:   true,
@@ -562,8 +563,8 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     { new: true, runValidators: true },
   ).populate('facultyId', 'name subject')
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
-  if (update.batchId && !existing.batchId?.equals(update.batchId as Types.ObjectId)) {
-    await moveChapterLinks(oid, update.batchId as Types.ObjectId).catch(() => null)
+  if (update.batchId) {
+    await syncChapterLinks(session, { perBatch: req.user!.role === 'IG_CLASS_TEACHER' }).catch(() => null)
   }
   res.json(session)
 })

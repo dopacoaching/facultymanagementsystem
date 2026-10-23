@@ -5,6 +5,7 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { attachBatchNames } from '@/lib/utils/batchNames'
 import { resolveExtraBatches } from '@/lib/utils/extraBatches'
+import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
 import { supersedeNoClass } from '@/lib/services/noClass'
@@ -406,7 +407,7 @@ export async function POST(req: NextRequest) {
     // (only meaningful when a chapter was given AND a batch is known — campus-only
     // Push Board entries don't participate in the chapters/syllabus workflow)
     if (chapter && batchOid) {
-      const normSubject = subject.toUpperCase()
+      const normSubject = chapterSubjectOf(subject)
       const bcSet: Record<string, unknown> = {
         facultyClassDone:   true,
         facultyClassDoneAt: date,

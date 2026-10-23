@@ -2,6 +2,9 @@ import { useEffect, useId, useState } from 'react'
 import { apiFetch } from '@/services/api'
 import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 
+/** Subjects the syllabus endpoint knows; others (Psychology, Computer Science...) only have HR-added chapters. */
+const SYLLABUS_SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC']
+
 interface SyllabusChapter {
   _id: string
   chapterName: string
@@ -18,8 +21,10 @@ export function useChapterOptions(subjectRaw: string, accessToken: string | null
     let cancelled = false
     setLoading(true)
     Promise.all([
-      apiFetch<SyllabusChapter[]>(`/academics/syllabus/chapters?subject=${encodeURIComponent(subject)}`, { token: accessToken })
-        .then((data) => data.map((c) => c.chapterName)).catch(() => [] as string[]),
+      (SYLLABUS_SUBJECTS.includes(subject)
+        ? apiFetch<SyllabusChapter[]>(`/academics/syllabus/chapters?subject=${encodeURIComponent(subject)}`, { token: accessToken })
+            .then((data) => data.map((c) => c.chapterName)).catch(() => [] as string[])
+        : Promise.resolve([] as string[])),
       apiFetch<string[]>(`/academics/chapter-options?subject=${encodeURIComponent(subject)}`, { token: accessToken })
         .catch(() => [] as string[]),
     ])

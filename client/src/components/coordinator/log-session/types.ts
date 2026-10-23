@@ -1,4 +1,5 @@
 import { todayLocal } from '@/utils/date'
+import { LAB_SUBJECTS } from '@/lib/constants/labSubjects'
 import type { EntryType } from '@/lib/constants/entryTypes'
 
 export interface SubjectOption {
@@ -20,11 +21,7 @@ export const SUBJECT_OPTIONS: SubjectOption[] = [
   { label: 'Malayalam',         value: 'MALAYALAM' },
   { label: 'Arabic',            value: 'ARABIC' },
   { label: 'Hindi',             value: 'HINDI' },
-  { label: 'Mathematics Lab',      value: 'MATHS LAB' },
-  { label: 'Physics Lab',          value: 'PHYSICS LAB' },
-  { label: 'Chemistry Lab',        value: 'CHEMISTRY LAB' },
-  { label: 'Biology Lab',          value: 'BIOLOGY LAB' },
-  { label: 'Computer Science Lab', value: 'COMPUTER SCIENCE LAB' },
+  ...LAB_SUBJECTS.map((l) => ({ label: l.label, value: l.value })),
 ]
 
 export type ClassMode = 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'

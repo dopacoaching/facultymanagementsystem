@@ -1,4 +1,6 @@
 import { Types } from 'mongoose'
+import { chapterNamesOf } from './chapters'
+import { chapterSubjectOf } from './labSubjects'
 import { BatchChapter } from '../models/BatchChapter'
 import { Batch, IBatch } from '../models/Batch'
 
@@ -73,20 +75,30 @@ export async function resolveTeacherBatchEdit(
 }
 
 /**
- * A teacher moved an entry to a different primary batch: the syllabus "class done"
- * marks it wrote live on the old batch's chapters. Move them to the new primary, or
- * (when that batch already has the chapter row) just unmark the old one.
+ * A teacher changed which batches sat an entry: keep the syllabus "class done" marks in
+ * step. Marks on batches no longer in the entry are cleared; the batches now in it are
+ * marked (every batch for IG schools, which track chapters per batch; just the primary
+ * for campus entries). Chapters are keyed by the theory subject (labs share it).
  */
-export async function moveChapterLinks(sessionId: Types.ObjectId, newBatchId: Types.ObjectId) {
-  const linked = await BatchChapter.find({ sessionId, facultyClassDone: true })
-  for (const bc of linked) {
-    if (bc.batchId.equals(newBatchId)) continue
-    const clash = await BatchChapter.exists({ batchId: newBatchId, subject: bc.subject, chapterName: bc.chapterName })
-    if (clash) {
-      await BatchChapter.updateOne({ _id: bc._id }, { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } })
-      await BatchChapter.updateOne({ _id: clash._id }, { $set: { facultyClassDone: true, facultyClassDoneAt: bc.facultyClassDoneAt, sessionId } })
-    } else {
-      await BatchChapter.updateOne({ _id: bc._id }, { $set: { batchId: newBatchId } })
+export async function syncChapterLinks(
+  session: { _id: Types.ObjectId; batchId?: Types.ObjectId; extraBatchIds?: Types.ObjectId[]; subject: string; chapter?: string; chapters?: string[]; sessionDate: Date },
+  opts: { perBatch: boolean },
+) {
+  if (!session.batchId) return
+  const all = [session.batchId, ...(session.extraBatchIds ?? [])]
+  const targets = opts.perBatch ? all : [session.batchId]
+  await BatchChapter.updateMany(
+    { sessionId: session._id, facultyClassDone: true, batchId: { $nin: targets } },
+    { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } },
+  )
+  const subject = chapterSubjectOf(session.subject)
+  for (const batchId of targets) {
+    for (const chapterName of chapterNamesOf(session)) {
+      await BatchChapter.findOneAndUpdate(
+        { batchId, subject, chapterName },
+        { $set: { facultyClassDone: true, facultyClassDoneAt: session.sessionDate, sessionId: session._id }, $setOnInsert: { chapterOrder: 0, videoComplete: false } },
+        { upsert: true },
+      )
     }
   }
 }

@@ -8,6 +8,7 @@ import { supersedeNoClass } from '@/lib/services/noClass'
 import { Campus } from '@/lib/models/Campus'
 import { Batch, IBatch } from '@/lib/models/Batch'
 import { attachBatchNames } from '@/lib/utils/batchNames'
+import { chapterSubjectOf } from '@/lib/constants/labSubjects'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isVideoFirstBatch } from '@/lib/utils/batchUtils'
@@ -250,7 +251,7 @@ export async function POST(req: NextRequest) {
     for (const bOid of [batchOid, ...extraBatchOids]) {
       for (const chapterName of chapterList) {
         await BatchChapter.findOneAndUpdate(
-          { batchId: bOid, subject: subject.toUpperCase(), chapterName },
+          { batchId: bOid, subject: chapterSubjectOf(subject), chapterName },
           {
             $set: {
               facultyClassDone:   true,

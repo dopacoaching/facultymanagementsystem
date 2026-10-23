@@ -28,7 +28,7 @@ export async function unlistedInChapterText(subject: string, text: string): Prom
 }
 
 export const unlistedChapterMessage = (subject: string, bad: string[]) =>
-  allowedHint(subject, bad)
+  allowedHint(chapterSubjectOf(subject), bad)
 
 function allowedHint(subject: string, bad: string[]): string {
   return `${bad.length === 1 ? 'This chapter is' : 'These chapters are'} not in the ${subject} list: ${bad.join(', ')}. Ask HR to add ${bad.length === 1 ? 'it' : 'them'} first.`
