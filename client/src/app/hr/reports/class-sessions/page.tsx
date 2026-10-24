@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, update, remove } from '@/services/session.service'
+import { getBatches, type Batch } from '@/services/faculty.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditClassSessionModal, formFromSession, timingChanged, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
@@ -46,6 +47,14 @@ export default function ClassSessionsPage() {
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [editForm, setEditForm] = useState<EditClassSessionForm | null>(null)
   const [editError, setEditError] = useState('')
+  const [batchOptions, setBatchOptions] = useState<Batch[]>([])
+  const [editBatchIds, setEditBatchIds] = useState<string[]>([])
+  useEffect(() => {
+    if (!accessToken) return
+    getBatches(accessToken).then(setBatchOptions).catch(() => setBatchOptions([]))
+  }, [accessToken])
+  const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+  const batchIdsOf = (s: Session) => [s.batchId, ...(s.extraBatchIds ?? [])].filter((id): id is string => !!id)
   const [saving, setSaving] = useState(false)
 
   const canSeeScheduledTime = role === 'HR_MANAGER' || role === 'ADMIN'
@@ -65,8 +74,15 @@ export default function ClassSessionsPage() {
   function openEdit(s: Session) {
     setEditingSession(s)
     setEditForm(formFromSession(s))
+    setEditBatchIds(batchIdsOf(s))
     setEditError('')
   }
+
+  // HR can only regroup batches inside the entry's own campus.
+  const editCampusId = editingSession?.batchId
+    ? batchOptions.find((b) => b._id === editingSession.batchId)?.campusId
+    : undefined
+  const editPickerBatches = editCampusId === undefined ? [] : batchOptions.filter((b) => batchCampusOf(b) === (typeof editCampusId === 'object' ? editCampusId._id : editCampusId))
 
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
@@ -75,6 +91,9 @@ export default function ClassSessionsPage() {
     const classDuration = isShoot ? null : computeDuration(editForm.startTime, editForm.endTime, editForm.breaks, { fullBreak: usesFullBreak(editForm.entryType) })
     const duration = classDuration ?? computeShootDuration(editForm.shootHours, editForm.shootMinutes)
     if (changed && duration.error) { setEditError(duration.error); return }
+    const original = batchIdsOf(editingSession)
+    const batchesChanged = editBatchIds.length !== original.length || editBatchIds.some((id) => !original.includes(id))
+    if (editPickerBatches.length > 1 && editBatchIds.length === 0) { setEditError('Select at least one batch'); return }
 
     setSaving(true); setEditError('')
     try {
@@ -102,6 +121,7 @@ export default function ClassSessionsPage() {
             }
           : {}),
         sessionDate:   editForm.sessionDate,
+        ...(batchesChanged && editBatchIds.length ? { batchIds: editBatchIds } : {}),
       }, accessToken)
       toast.success('Session updated', 'The changes have been saved.')
       setEditingSession(null)
@@ -239,6 +259,9 @@ export default function ClassSessionsPage() {
           saving={saving}
           onClose={() => { setEditingSession(null); setEditForm(null) }}
           onSubmit={saveEdit}
+          batches={editPickerBatches}
+          batchIds={editBatchIds}
+          onBatchIdsChange={setEditBatchIds}
         />
       )}
     </div>

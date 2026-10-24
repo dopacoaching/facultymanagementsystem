@@ -8,7 +8,7 @@ import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
 import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
-import { resolveTeacherBatchEdit, syncChapterLinks } from '@/lib/utils/extraBatches'
+import { resolveHrBatchSet, resolveTeacherBatchEdit, syncChapterLinks } from '@/lib/utils/extraBatches'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
 /** PATCH /api/ig/sessions/:id — full edit (HR/Admin). An IG class teacher may correct an
@@ -62,10 +62,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    if (isTeacher && body.batchIds !== undefined && (!Array.isArray(body.batchIds) || body.batchIds.length === 0)) {
+    if (body.batchIds !== undefined && (!Array.isArray(body.batchIds) || body.batchIds.length === 0)) {
       return withToken(json({ error: 'Select at least one batch' }, 400), refreshedToken)
     }
-    if (Object.keys(update).length === 0 && !(isTeacher && body.batchIds !== undefined)) {
+    if (Object.keys(update).length === 0 && body.batchIds === undefined) {
       return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
     }
 
@@ -90,13 +90,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (body.entryType !== undefined && !isEntryType(body.entryType)) {
         return withToken(json({ error: 'entryType must be LIVE or SHOOT' }, 400), refreshedToken)
       }
-      if (body.batchIds !== undefined) {
-        const r = await resolveTeacherBatchEdit(body.batchIds, existing.batchId, { igOnly: true })
-        if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
-        update.batchId = r.batchId
-        if (r.extras.length) update.extraBatchIds = r.extras
-        else unset.extraBatchIds = ''
-      }
+    }
+    // Which batches sat the class. A teacher stays inside their school; HR/Admin may move it to any IG school.
+    if (body.batchIds !== undefined) {
+      const r = isTeacher
+        ? await resolveTeacherBatchEdit(body.batchIds, existing.batchId, { igOnly: true })
+        : await resolveHrBatchSet(body.batchIds, { igOnly: true })
+      if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
+      update.batchId = r.batchId
+      if (r.extras.length) update.extraBatchIds = r.extras
+      else unset.extraBatchIds = ''
     }
 
     if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {

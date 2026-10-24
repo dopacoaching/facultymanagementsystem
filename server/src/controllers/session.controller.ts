@@ -8,7 +8,7 @@ import { SyllabusChapter, ISyllabusChapter } from '../models/SyllabusChapter'
 import { PermanentFacultyContract } from '../models/PermanentFacultyContract'
 import { writeAuditLog } from '../services/salary/audit'
 import { asyncHandler } from '../utils/asyncHandler'
-import { resolveExtraBatches, resolveTeacherBatchEdit, syncChapterLinks } from '../utils/extraBatches'
+import { resolveExtraBatches, resolveHrBatchSet, resolveTeacherBatchEdit, syncChapterLinks } from '../utils/extraBatches'
 import { isVideoFirstBatch } from '../utils/batchUtils'
 import { validateObjectId } from '../utils/objectId'
 import { dayRangeFilter } from '../utils/dateRange'
@@ -499,11 +499,14 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
-  // A class teacher may correct which batches sat the class (same campus only).
-  if (isTeacher && req.body.batchIds !== undefined) {
-    const r = await resolveTeacherBatchEdit(
-      req.body.batchIds, existing.batchId, { igOnly: req.user!.role === 'IG_CLASS_TEACHER' },
-    )
+  // Which batches sat the class: a teacher (same campus only) or HR/Admin may correct it.
+  // HR may move an IG entry to any IG school; everything else stays inside the entry's campus.
+  if (req.body.batchIds !== undefined) {
+    const existingBatch = existing.batchId ? await Batch.findById(existing.batchId).select('type') : null
+    const hrIg = !isTeacher && existingBatch?.type === 'IG'
+    const r = hrIg
+      ? await resolveHrBatchSet(req.body.batchIds, { igOnly: true })
+      : await resolveTeacherBatchEdit(req.body.batchIds, existing.batchId, { igOnly: req.user!.role === 'IG_CLASS_TEACHER' })
     if (!r.ok) { res.status(r.status).json({ error: r.error }); return }
     update.batchId = r.batchId
     if (r.extras.length) update.extraBatchIds = r.extras

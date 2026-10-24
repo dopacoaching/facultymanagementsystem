@@ -1,4 +1,5 @@
 import type { Session } from '@/types'
+import { BatchPicker, type BatchChoice } from './BatchPicker'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditIGSessionForm {
@@ -40,10 +41,14 @@ interface EditIGSessionReportModalProps {
   saving: boolean
   onClose: () => void
   onSubmit: () => void
+  /** HR/Admin: change which batches sat the class. */
+  batches?: BatchChoice[]
+  batchIds?: string[]
+  onBatchIdsChange?: (ids: string[]) => void
 }
 
 export function EditIGSessionReportModal({
-  form, setForm, error, saving, onClose, onSubmit,
+  form, setForm, error, saving, onClose, onSubmit, batches, batchIds, onBatchIdsChange,
 }: EditIGSessionReportModalProps) {
   return (
     <div
@@ -68,6 +73,9 @@ export function EditIGSessionReportModal({
               <label className="label">Chapter</label>
               <input className="input" value={form.chapter} onChange={(e) => setForm((f) => ({ ...f, chapter: e.target.value }))} />
             </div>
+            {batches && batches.length > 0 && batchIds && onBatchIdsChange && (
+              <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />
+            )}
             <div className="form-group">
               <label className="label">Session Slot</label>
               <select className="input" value={form.timeSlot}

@@ -1,5 +1,6 @@
 import type { Session } from '@/types'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, usesFullBreak, type EntryType } from '@/lib/constants/entryTypes'
+import { BatchPicker } from './BatchPicker'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditClassSessionForm {
@@ -120,34 +121,7 @@ export function EditClassSessionModal({
               )}
             </div>
             {batches && batches.length > 1 && batchIds && onBatchIdsChange && (
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="label">Batches</label>
-                <div role="group" aria-label="Batches" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {batches.map((b) => {
-                    const checked = batchIds.includes(b._id)
-                    return (
-                      <label
-                        key={b._id}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer',
-                          padding: '0.375rem 0.75rem', borderRadius: 'var(--radius)', fontSize: '0.875rem',
-                          border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                          background: checked ? 'var(--color-primary-ghost)' : 'var(--color-surface)',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => onBatchIdsChange(checked ? batchIds.filter((id) => id !== b._id) : [...batchIds, b._id])}
-                          style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
-                        />
-                        {b.name}
-                      </label>
-                    )
-                  })}
-                </div>
-                <span className="help-text">Tick every batch that attended this class together.</span>
-              </div>
+              <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />
             )}
             <div className="form-group">
               <label className="label">Class Mode</label>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, update, cancel, remove } from '@/services/ig-session.service'
+import { getBatches, type Batch } from '@/services/faculty.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditIGSessionReportModal, formFromIGSession, EditIGSessionForm } from '@/components/hr/reports/EditIGSessionReportModal'
@@ -44,6 +45,14 @@ export default function IGClassSessionsPage() {
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [editForm, setEditForm] = useState<EditIGSessionForm | null>(null)
   const [editError, setEditError] = useState('')
+  const [batchOptions, setBatchOptions] = useState<Batch[]>([])
+  const [editBatchIds, setEditBatchIds] = useState<string[]>([])
+  useEffect(() => {
+    if (!accessToken) return
+    getBatches(accessToken).then(setBatchOptions).catch(() => setBatchOptions([]))
+  }, [accessToken])
+  const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+  const batchIdsOf = (s: Session) => [s.batchId, ...(s.extraBatchIds ?? [])].filter((id): id is string => !!id)
   const [saving, setSaving] = useState(false)
 
   const [cancelInitiator, setCancelInitiator] = useState<Record<string, string>>({})
@@ -54,14 +63,23 @@ export default function IGClassSessionsPage() {
   function openEdit(s: Session) {
     setEditingSession(s)
     setEditForm(formFromIGSession(s))
+    setEditBatchIds(batchIdsOf(s))
     setEditError('')
   }
+
+  // HR can move an IG entry to any IG batch; the server checks that the selection is one school.
+  const igBatchOptions = batchOptions
+    .filter((b) => b.type === 'IG')
+    .map((b) => ({ _id: b._id, name: typeof b.campusId === 'object' ? `${b.name} · ${b.campusId.name}` : b.name }))
 
   async function saveEdit() {
     if (!editingSession || !editForm || !accessToken) return
     const duration = computeDuration(editForm.startTime, editForm.endTime, editForm.breaks)
     if (duration.error) { setEditError(duration.error); return }
     if (!editForm.timeSlot) { setEditError('Select the session slot'); return }
+    if (editBatchIds.length === 0) { setEditError('Select at least one batch'); return }
+    const original = batchIdsOf(editingSession)
+    const batchesChanged = editBatchIds.length !== original.length || editBatchIds.some((id, i) => id !== original[i])
 
     setSaving(true); setEditError('')
     try {
@@ -78,6 +96,7 @@ export default function IGClassSessionsPage() {
         afternoonBreakMinutes: duration.afternoonBreak,
         durationHours: duration.hours,
         sessionDate:   editForm.sessionDate,
+        ...(batchesChanged ? { batchIds: editBatchIds } : {}),
       }, accessToken)
       toast.success('Session updated', 'The changes have been saved.')
       setEditingSession(null)
@@ -255,6 +274,9 @@ export default function IGClassSessionsPage() {
           saving={saving}
           onClose={() => { setEditingSession(null); setEditForm(null) }}
           onSubmit={saveEdit}
+          batches={igBatchOptions}
+          batchIds={editBatchIds}
+          onBatchIdsChange={setEditBatchIds}
         />
       )}
     </div>

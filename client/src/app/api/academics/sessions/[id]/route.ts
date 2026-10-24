@@ -92,13 +92,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (update.sessionDate instanceof Date && update.sessionDate.getTime() > Date.now()) {
         return withToken(json({ error: 'The date cannot be in the future' }, 400), refreshedToken)
       }
-      if (body.batchIds !== undefined) {
-        const r = await resolveTeacherBatchEdit(body.batchIds, existing.batchId)
-        if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
-        update.batchId = r.batchId
-        if (r.extras.length) update.extraBatchIds = r.extras
-        else unset.extraBatchIds = ''
-      }
+    }
+    // Which batches sat the class — HR/Admin may regroup inside the entry's campus, like a teacher.
+    if (body.batchIds !== undefined) {
+      const r = await resolveTeacherBatchEdit(body.batchIds, existing.batchId)
+      if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
+      update.batchId = r.batchId
+      if (r.extras.length) update.extraBatchIds = r.extras
+      else unset.extraBatchIds = ''
     }
 
     // Live/Shoot (Studio): durationHours arrives as the time actually taken and is

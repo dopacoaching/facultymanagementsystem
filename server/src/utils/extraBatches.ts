@@ -102,3 +102,28 @@ export async function syncChapterLinks(
     }
   }
 }
+
+/**
+ * HR/Admin choosing the batches of an IG entry from scratch: the first batch becomes the
+ * primary and every batch must be an IG batch of one school.
+ */
+export async function resolveHrBatchSet(
+  batchIds: unknown,
+  opts: { igOnly?: boolean } = {},
+): Promise<{ ok: true; batchId: Types.ObjectId; extras: Types.ObjectId[] } | { ok: false; status: number; error: string }> {
+  if (!Array.isArray(batchIds) || batchIds.length === 0) {
+    return { ok: false, status: 400, error: 'Select at least one batch' }
+  }
+  let first: Types.ObjectId
+  try { first = new Types.ObjectId(String(batchIds[0])) } catch {
+    return { ok: false, status: 400, error: 'Invalid batchId in batchIds' }
+  }
+  const primary = await Batch.findById(first)
+  if (!primary) return { ok: false, status: 404, error: 'Batch not found' }
+  if (opts.igOnly && primary.type !== 'IG') {
+    return { ok: false, status: 400, error: 'Sessions can only be logged against IG batches on this endpoint' }
+  }
+  const r = await resolveExtraBatches(batchIds, primary, opts)
+  if (!r.ok) return r
+  return { ok: true, batchId: primary._id as Types.ObjectId, extras: r.extras }
+}
