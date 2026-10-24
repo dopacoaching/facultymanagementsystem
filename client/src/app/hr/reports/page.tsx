@@ -2,7 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
-import { remove as removeSession } from '@/services/session.service'
+import { remove as removeSession, update as updateCampusSession } from '@/services/session.service'
+import { update as updateIGSession } from '@/services/ig-session.service'
+import { getBatches, type Batch } from '@/services/faculty.service'
+import { EditBatchesModal } from '@/components/hr/reports/EditBatchesModal'
 import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
@@ -75,7 +78,7 @@ function cumulativeHours(rows: EntryRow[]): Map<string, number> {
   return out
 }
 
-function EntryTable({ rows, hideCols, showBatch, onDelete, totals }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; onDelete?: (r: EntryRow) => void; totals: Map<string, number> }) {
+function EntryTable({ rows, hideCols, showBatch, onDelete, onEditBatches, totals }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; onDelete?: (r: EntryRow) => void; onEditBatches?: (r: EntryRow) => void; totals: Map<string, number> }) {
   const showCampus = !hideCols?.includes('campus')
   const showFaculty = !hideCols?.includes('faculty')
   const showSubject = !hideCols?.includes('subject')
@@ -97,7 +100,7 @@ function EntryTable({ rows, hideCols, showBatch, onDelete, totals }: { rows: Ent
             <th>Comment</th>
             <th style={{ textAlign: 'right' }}>Time</th>
             <th style={{ textAlign: 'right' }} title="This faculty's hours added up in date order, counting only the dates and filters selected above, not their full-period total.">Total so far*</th>
-            {onDelete && <th></th>}
+            {(onDelete || onEditBatches) && <th></th>}
           </tr>
         </thead>
         <tbody>
@@ -116,7 +119,14 @@ function EntryTable({ rows, hideCols, showBatch, onDelete, totals }: { rows: Ent
               <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
               <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{formatHM(totals.get(r._id) ?? r.durationHours)}</td>
-              {onDelete && <td><button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onDelete(r)}>Delete</button></td>}
+              {(onDelete || onEditBatches) && (
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  {onEditBatches && r.batchIds.length > 0 && (
+                    <button type="button" className="btn btn-outline btn-sm" style={{ marginRight: '0.375rem' }} onClick={() => onEditBatches(r)}>Batches</button>
+                  )}
+                  {onDelete && <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onDelete(r)}>Delete</button>}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -249,6 +259,35 @@ export default function EntriesReportPage() {
   const canCopy = role === 'ADMIN'
   const canDelete = role === 'ADMIN' || role === 'HR_MANAGER'
 
+  const [allBatches, setAllBatches] = useState<Batch[]>([])
+  const [editingBatches, setEditingBatches] = useState<EntryRow | null>(null)
+  useEffect(() => {
+    if (!accessToken || !canDelete) return
+    getBatches(accessToken).then(setAllBatches).catch(() => setAllBatches([]))
+  }, [accessToken, canDelete])
+
+  const campusIdOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+  /** Campus entries regroup inside their own campus; IG entries can move to any IG batch (one school). */
+  function batchChoicesFor(r: EntryRow) {
+    if (r.isIG) {
+      return allBatches.filter((b) => b.type === 'IG')
+        .map((b) => ({ _id: b._id, name: typeof b.campusId === 'object' ? `${b.name} · ${b.campusId.name}` : b.name }))
+    }
+    const campusId = allBatches.find((b) => b._id === r.batchIds[0])?.campusId
+    const id = typeof campusId === 'object' ? campusId._id : campusId
+    return allBatches.filter((b) => campusIdOf(b) === id).map((b) => ({ _id: b._id, name: b.name }))
+  }
+
+  async function saveBatches(r: EntryRow, ids: string[]) {
+    const unchanged = ids.length === r.batchIds.length && ids.every((id, i) => id === r.batchIds[i])
+    if (!unchanged) {
+      await (r.isIG ? updateIGSession : updateCampusSession)(r._id, { batchIds: ids }, accessToken!)
+    }
+    toast.success('Batches updated', 'The entry has been saved.')
+    setEditingBatches(null)
+    await load()
+  }
+
   async function deleteEntry(r: EntryRow) {
     if (!accessToken || !window.confirm(`Delete ${r.facultyName}'s entry on ${fmtDay(r.date)} permanently? This cannot be undone.`)) return
     try {
@@ -335,7 +374,7 @@ export default function EntriesReportPage() {
 
   /** One place decides the table's shared props, so the faculty and campus layouts can't drift apart. */
   const table = (list: EntryRow[], hideCols: ('campus' | 'faculty' | 'subject')[]) => (
-    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} onDelete={canDelete ? deleteEntry : undefined} totals={totals} />
+    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} onDelete={canDelete ? deleteEntry : undefined} onEditBatches={canDelete ? setEditingBatches : undefined} totals={totals} />
   )
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()
@@ -463,6 +502,16 @@ export default function EntriesReportPage() {
             </div>
           ))}
         </>
+      )}
+
+      {editingBatches && (
+        <EditBatchesModal
+          title={`${editingBatches.facultyName} · ${editingBatches.subject}${editingBatches.chapter ? ` — ${editingBatches.chapter}` : ''} · ${fmtDay(editingBatches.date)}`}
+          batches={batchChoicesFor(editingBatches)}
+          initial={editingBatches.batchIds}
+          onClose={() => setEditingBatches(null)}
+          onSave={(ids) => saveBatches(editingBatches, ids)}
+        />
       )}
     </div>
   )

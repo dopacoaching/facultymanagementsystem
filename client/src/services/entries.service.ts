@@ -19,6 +19,10 @@ export interface EntryRow {
   updatedByName: string
   comment: string
   batchName: string
+  /** Primary batch first, then any others that sat the same class. */
+  batchIds: string[]
+  /** Logged by an IG school (no campus name) — edited through the IG endpoints. */
+  isIG: boolean
   breakMinutes: number | null
   lunchBreakMinutes: number | null
   afternoonBreakMinutes: number | null

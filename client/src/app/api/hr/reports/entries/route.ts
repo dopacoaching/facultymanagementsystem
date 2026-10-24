@@ -97,6 +97,8 @@ export async function GET(req: NextRequest) {
           entryType: s.entryType ?? null,
           updatedByName: s.updatedByName ?? '',
           comment: s.comment ?? '',
+          batchIds: [batchId, ...(s.extraBatchIds ?? []).map(String)].filter(Boolean),
+          isIG: !s.campusName,
           batchName: [batchId, ...(s.extraBatchIds ?? []).map(String)].map((id) => batchNames.get(id)).filter(Boolean).join(', '),
           breakMinutes: s.breakMinutes ?? null,
           lunchBreakMinutes: s.lunchBreakMinutes ?? null,
