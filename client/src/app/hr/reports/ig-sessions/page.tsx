@@ -84,7 +84,7 @@ export default function IGClassSessionsPage() {
     try {
       await update(editingSession._id, {
         subject:       editForm.subject.trim(),
-        chapter:       editForm.chapter.trim(),
+        chapters:      editForm.chapters,
         timeSlot:      editForm.timeSlot,
         updatedByName: editForm.updatedByName.trim() || undefined,
         ...(editForm.comment.trim() !== (editingSession.comment ?? '').trim() ? { comment: editForm.comment.trim() } : {}),

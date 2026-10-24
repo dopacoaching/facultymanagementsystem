@@ -44,6 +44,7 @@ export async function update(
     facultyId: string
     subject: string
     chapter: string
+    chapters: string[]
     classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
     updatedByName: string
     comment: string

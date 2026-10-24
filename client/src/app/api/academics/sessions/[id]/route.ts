@@ -7,7 +7,8 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
-import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
+import { chapterNamesOf, normalizeChapters, joinChapters } from '@/lib/utils/chapters'
+import { unlistedChapters, unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { resolveTeacherBatchEdit, syncChapterLinks } from '@/lib/utils/extraBatches'
 import { resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
@@ -71,13 +72,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const existing = await Session.findById(oid)
     if (!existing) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-    if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
+    // A class covers one subject and one or more chapters; teachers may only log listed chapters.
+    if (Array.isArray(body.chapters)) {
+      const list = normalizeChapters(body.chapters)
+      if (isTeacher) {
+        const subj = String(update.subject ?? existing.subject)
+        const bad = await unlistedChapters(subj, list.filter((n) => !chapterNamesOf(existing).includes(n)))
+        if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
+      }
+      update.chapter = joinChapters(list)
+      if (list.length > 1) update.chapters = list
+      else unset.chapters = ''
+    } else if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
       const subj = String(update.subject ?? existing.subject)
       const bad = await unlistedInChapterText(subj, update.chapter)
       if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
     }
     // Edited chapter text no longer matches the stored list of names.
-    if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
+    if (!Array.isArray(body.chapters) && update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
@@ -150,7 +162,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       { new: true, runValidators: true },
     ).populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-    if (update.batchId) {
+    if (update.batchId || update.chapter !== undefined || update.subject !== undefined) {
       await syncChapterLinks(session, { perBatch: false }).catch(() => null)
     }
 

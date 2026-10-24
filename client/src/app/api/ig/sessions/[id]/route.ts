@@ -7,7 +7,8 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
-import { unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
+import { chapterNamesOf, normalizeChapters, joinChapters } from '@/lib/utils/chapters'
+import { unlistedChapters, unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { resolveHrBatchSet, resolveTeacherBatchEdit, syncChapterLinks } from '@/lib/utils/extraBatches'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE, normalizeComment, TEACHER_EDITABLE_FIELDS } from '@/lib/utils/teacherEdit'
 
@@ -65,7 +66,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.batchIds !== undefined && (!Array.isArray(body.batchIds) || body.batchIds.length === 0)) {
       return withToken(json({ error: 'Select at least one batch' }, 400), refreshedToken)
     }
-    if (Object.keys(update).length === 0 && body.batchIds === undefined) {
+    if (Object.keys(update).length === 0 && body.batchIds === undefined && !Array.isArray(body.chapters)) {
       return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
     }
 
@@ -102,13 +103,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       else unset.extraBatchIds = ''
     }
 
-    if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
+    // A class covers one subject and one or more chapters; teachers may only log listed chapters.
+    if (Array.isArray(body.chapters)) {
+      const list = normalizeChapters(body.chapters)
+      if (isTeacher) {
+        const subj = String(update.subject ?? existing.subject)
+        const bad = await unlistedChapters(subj, list.filter((n) => !chapterNamesOf(existing).includes(n)))
+        if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
+      }
+      update.chapter = joinChapters(list)
+      if (list.length > 1) update.chapters = list
+      else unset.chapters = ''
+    } else if (isTeacher && typeof update.chapter === 'string' && update.chapter !== existing.chapter) {
       const subj = String(update.subject ?? existing.subject)
       const bad = await unlistedInChapterText(subj, update.chapter)
       if (bad.length) return withToken(json({ error: unlistedChapterMessage(subj, bad) }, 400), refreshedToken)
     }
     // Edited chapter text no longer matches the stored list of names.
-    if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
+    if (!Array.isArray(body.chapters) && update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
     const session = await Session.findByIdAndUpdate(
       oid,
       { ...(Object.keys(update).length ? { $set: update } : {}), ...(Object.keys(unset).length ? { $unset: unset } : {}) },
@@ -116,7 +128,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     )
       .populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
-    if (update.batchId) {
+    if (update.batchId || update.chapter !== undefined || update.subject !== undefined) {
       await syncChapterLinks(session, { perBatch: true }).catch(() => null)
     }
 

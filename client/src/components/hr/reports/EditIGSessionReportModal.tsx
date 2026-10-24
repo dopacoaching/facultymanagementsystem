@@ -1,10 +1,11 @@
 import type { Session } from '@/types'
+import { ChapterChips } from '@/components/coordinator/log-session/ChapterChips'
 import { BatchPicker, type BatchChoice } from './BatchPicker'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditIGSessionForm {
   subject: string
-  chapter: string
+  chapters: string[]
   timeSlot: 'SESSION_1' | 'SESSION_2' | 'SESSION_3' | ''
   updatedByName: string
   comment: string
@@ -17,7 +18,7 @@ export interface EditIGSessionForm {
 export function formFromIGSession(s: Session): EditIGSessionForm {
   return {
     subject:       s.subject,
-    chapter:       s.chapter,
+    chapters:      s.chapters?.length ? s.chapters : s.chapter ? [s.chapter] : [],
     timeSlot:      (s.timeSlot as EditIGSessionForm['timeSlot']) ?? '',
     updatedByName: s.updatedByName ?? '',
     comment:       s.comment ?? '',
@@ -42,13 +43,15 @@ interface EditIGSessionReportModalProps {
   onClose: () => void
   onSubmit: () => void
   /** HR/Admin: change which batches sat the class. */
+  /** Chapters the subject offers, suggested while typing. */
+  chapterOptions?: string[]
   batches?: BatchChoice[]
   batchIds?: string[]
   onBatchIdsChange?: (ids: string[]) => void
 }
 
 export function EditIGSessionReportModal({
-  form, setForm, error, saving, onClose, onSubmit, batches, batchIds, onBatchIdsChange,
+  form, setForm, error, saving, onClose, onSubmit, chapterOptions, batches, batchIds, onBatchIdsChange,
 }: EditIGSessionReportModalProps) {
   return (
     <div
@@ -70,8 +73,8 @@ export function EditIGSessionReportModal({
               <input className="input" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="label">Chapter</label>
-              <input className="input" value={form.chapter} onChange={(e) => setForm((f) => ({ ...f, chapter: e.target.value }))} />
+              <label className="label">Chapters</label>
+              <ChapterChips value={form.chapters} onChange={(v) => setForm((f) => ({ ...f, chapters: v }))} options={chapterOptions} />
             </div>
             {batches && batches.length > 0 && batchIds && onBatchIdsChange && (
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />

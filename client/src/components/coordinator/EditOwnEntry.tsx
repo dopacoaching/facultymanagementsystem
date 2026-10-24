@@ -43,7 +43,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
     if (changed && duration.error) { setError(duration.error); return }
     if (!form.sessionDate) { setError('Select the date'); return }
     if (!form.subject.trim()) { setError('Subject is required'); return }
-    if (!form.chapter.trim()) { setError('Chapter is required'); return }
+    if (form.chapters.length === 0) { setError('Add at least one chapter'); return }
     const pickBatches = !!batches && batches.length > 1 && !!session.batchId
     if (pickBatches && batchIds.length === 0) { setError('Select at least one batch'); return }
     const original = [session.batchId, ...(session.extraBatchIds ?? [])]
@@ -54,7 +54,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
     try {
       await save(session._id, {
         subject:       form.subject.trim(),
-        chapter:       form.chapter.trim(),
+        chapters:      form.chapters,
         classMode:     form.classMode || undefined,
         updatedByName: form.updatedByName.trim() || undefined,
         ...(form.comment.trim() !== (session.comment ?? '').trim() ? { comment: form.comment.trim() } : {}),

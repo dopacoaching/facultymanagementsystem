@@ -499,6 +499,14 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
+  // A class covers one subject and one or more chapters.
+  if (Array.isArray(req.body.chapters)) {
+    const list = normalizeChapters(req.body.chapters)
+    update.chapter = joinChapters(list)
+    if (list.length > 1) update.chapters = list
+    else unset.chapters = ''
+  }
+
   // Which batches sat the class: a teacher (same campus only) or HR/Admin may correct it.
   // HR may move an IG entry to any IG school; everything else stays inside the entry's campus.
   if (req.body.batchIds !== undefined) {
@@ -558,7 +566,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   // Edited chapter text no longer matches the stored list of names.
-  if (update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
+  if (!Array.isArray(req.body.chapters) && update.chapter !== undefined && update.chapter !== existing.chapter) unset.chapters = ''
 
   const session = await Session.findByIdAndUpdate(
     oid,
@@ -566,7 +574,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     { new: true, runValidators: true },
   ).populate('facultyId', 'name subject')
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
-  if (update.batchId) {
+  if (update.batchId || update.chapter !== undefined || update.subject !== undefined) {
     await syncChapterLinks(session, { perBatch: req.user!.role === 'IG_CLASS_TEACHER' }).catch(() => null)
   }
   res.json(session)

@@ -1,6 +1,7 @@
 import type { Session } from '@/types'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, usesFullBreak, type EntryType } from '@/lib/constants/entryTypes'
 import { BatchPicker } from './BatchPicker'
+import { ChapterChips } from '@/components/coordinator/log-session/ChapterChips'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditClassSessionForm {
@@ -10,7 +11,8 @@ export interface EditClassSessionForm {
   shootHours: string
   shootMinutes: string
   subject: string
-  chapter: string
+  /** One class, one subject, one or more chapters. */
+  chapters: string[]
   classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE' | ''
   updatedByName: string
   comment: string
@@ -28,7 +30,7 @@ export function formFromSession(s: Session): EditClassSessionForm {
     shootHours:    s.entryType === 'SHOOT' ? String(Math.floor(rawMins / 60)) : '',
     shootMinutes:  s.entryType === 'SHOOT' ? String(rawMins % 60) : '',
     subject:       s.subject,
-    chapter:       s.chapter,
+    chapters:      s.chapters?.length ? s.chapters : s.chapter ? [s.chapter] : [],
     classMode:     s.classMode ?? '',
     updatedByName: s.updatedByName ?? '',
     comment:       s.comment ?? '',
@@ -109,16 +111,18 @@ export function EditClassSessionModal({
               <input className="input" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="label">Chapter</label>
-              <input className="input" list={chapterOptions ? 'edit-chapter-options' : undefined} value={form.chapter} onChange={(e) => setForm((f) => ({ ...f, chapter: e.target.value }))} />
-              {chapterOptions && (
-                <>
-                  <datalist id="edit-chapter-options">
-                    {chapterOptions.map((c) => <option key={c} value={c} />)}
-                  </datalist>
-                  <span className="help-text">Pick a chapter from the list. A missing chapter must be added by HR.</span>
-                </>
-              )}
+              <label className="label">Chapters</label>
+              <ChapterChips
+                value={form.chapters}
+                onChange={(v) => setForm((f) => ({ ...f, chapters: v }))}
+                options={chapterOptions}
+                restrict={!!chapterOptions}
+              />
+              <span className="help-text">
+                {chapterOptions
+                  ? 'Add every chapter this class covered. A missing chapter must be added by HR.'
+                  : 'Add every chapter this class covered.'}
+              </span>
             </div>
             {batches && batches.length > 1 && batchIds && onBatchIdsChange && (
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />

@@ -75,7 +75,7 @@ export async function resolveTeacherBatchEdit(
 }
 
 /**
- * A teacher changed which batches sat an entry: keep the syllabus "class done" marks in
+ * A teacher/HR changed an entry's batches, chapters or subject: keep the syllabus "class done" marks in
  * step. Marks on batches no longer in the entry are cleared; the batches now in it are
  * marked (every batch for IG schools, which track chapters per batch; just the primary
  * for campus entries). Chapters are keyed by the theory subject (labs share it).
@@ -87,13 +87,15 @@ export async function syncChapterLinks(
   if (!session.batchId) return
   const all = [session.batchId, ...(session.extraBatchIds ?? [])]
   const targets = opts.perBatch ? all : [session.batchId]
+  const subject = chapterSubjectOf(session.subject)
+  const names = chapterNamesOf(session)
+  // Marks this entry wrote on a batch, chapter or subject it no longer covers.
   await BatchChapter.updateMany(
-    { sessionId: session._id, facultyClassDone: true, batchId: { $nin: targets } },
+    { sessionId: session._id, facultyClassDone: true, $or: [{ batchId: { $nin: targets } }, { chapterName: { $nin: names } }, { subject: { $ne: subject } }] },
     { $set: { facultyClassDone: false }, $unset: { facultyClassDoneAt: 1, sessionId: 1 } },
   )
-  const subject = chapterSubjectOf(session.subject)
   for (const batchId of targets) {
-    for (const chapterName of chapterNamesOf(session)) {
+    for (const chapterName of names) {
       await BatchChapter.findOneAndUpdate(
         { batchId, subject, chapterName },
         { $set: { facultyClassDone: true, facultyClassDoneAt: session.sessionDate, sessionId: session._id }, $setOnInsert: { chapterOrder: 0, videoComplete: false } },
