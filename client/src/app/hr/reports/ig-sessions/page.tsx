@@ -51,7 +51,6 @@ export default function IGClassSessionsPage() {
     if (!accessToken) return
     getBatches(accessToken).then(setBatchOptions).catch(() => setBatchOptions([]))
   }, [accessToken])
-  const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
   const batchIdsOf = (s: Session) => [s.batchId, ...(s.extraBatchIds ?? [])].filter((id): id is string => !!id)
   const [saving, setSaving] = useState(false)
 
