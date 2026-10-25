@@ -7,3 +7,6 @@ export const SALARY_ENABLED = process.env.NEXT_PUBLIC_SALARY_ENABLED === 'true'
 
 export const SALARY_ON_HOLD_MESSAGE =
   'Salary calculation is on hold. Only session entries and reports are available right now.'
+
+/** "Not submitted" days are only tracked from this date; earlier days are never reported as missing. */
+export const NOT_SUBMITTED_FROM = '2026-10-01'

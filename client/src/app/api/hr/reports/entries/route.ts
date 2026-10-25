@@ -6,6 +6,7 @@ import { NoClassDay } from '@/lib/models/NoClassDay'
 import { batchNameMap } from '@/lib/utils/batchNames'
 import { Batch } from '@/lib/models/Batch'
 import { Types } from 'mongoose'
+import { NOT_SUBMITTED_FROM } from '@/lib/constants/features'
 import { getIgCampusNames, resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { listActivePushCampuses } from '@/lib/services/pushCampuses'
 import { dayRangeFilter, parseLocalDate, toLocalISODate } from '@/lib/utils/dateRange'
@@ -129,7 +130,7 @@ export async function GET(req: NextRequest) {
     const days: string[] = []
     for (const d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
       const iso = toLocalISODate(d)
-      if (iso < today) days.push(iso)
+      if (iso < today && iso >= NOT_SUBMITTED_FROM) days.push(iso)
     }
 
     const pushCampuses = await listActivePushCampuses()
