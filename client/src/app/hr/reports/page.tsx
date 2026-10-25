@@ -14,7 +14,7 @@ import { toLocalISO } from '@/utils/date'
 import { fmtDay, monthRange } from '@/components/hr/reports/reportShared'
 import { useActiveFaculty } from '@/hooks/useActiveFaculty'
 import {
-  VIEW_TABS, buildWholeDays, noClassRowsFor, cleanCell, hmText, downloadSimpleSheet,
+  VIEW_TABS, buildWholeDays, wholeDaysEnd, noClassRowsFor, cleanCell, hmText, downloadSimpleSheet,
   type ReportView, type WholeDayRow,
 } from '@/components/hr/reports/entriesViews'
 
@@ -353,10 +353,15 @@ export default function EntriesReportPage() {
 
   /** Faculty for the dropdown: only the type picked in the tabs (Permanent / Temporary). */
   const facultyChoices = useMemo(
-    () => allFaculty
+    () => [
+      ...allFaculty,
+      // Former faculty who still have entries in this range stay selectable.
+      ...Array.from(new Map((report?.sessions ?? []).map((r) => [r.facultyId, { _id: r.facultyId, name: r.facultyName, subject: '', type: r.facultyType }])).values())
+        .filter((f) => !allFaculty.some((a) => a._id === f._id)),
+    ]
       .filter((f) => kind === 'ALL' || (kind === 'PERMANENT') === (f.type === 'PERMANENT'))
       .sort((a, b) => a.name.localeCompare(b.name)),
-    [allFaculty, kind],
+    [allFaculty, report, kind],
   )
 
   /** Each faculty's hours added up in date order across the filtered rows (6h, then 12h, then 17h...). */
@@ -393,7 +398,7 @@ export default function EntriesReportPage() {
       const sheet = view === 'noclass' ? noClassSheet : wholeSheet
       const text = view === 'classes'
         ? toTSV(rows, totals)
-        : [sheet.head.join('\t'), ...sheet.body.map((r) => r.map((v) => cleanCell(String(v))).join('\t'))].join('\n')
+        : [sheet.head.join('\t'), ...sheet.body.map((r) => r.map((v) => (typeof v === 'string' ? cleanCell(v) : String(v))).join('\t'))].join('\n')
       await navigator.clipboard.writeText(text)
       toast.success('Copied', `${sheetCount} ${sheetCount === 1 ? 'row' : 'rows'} copied — paste into a sheet.`)
     } catch {
@@ -508,7 +513,7 @@ export default function EntriesReportPage() {
         </div>
       )}
 
-      {loading && !report ? (
+      {loading && (!report || view !== 'classes') ? (
         <div className="card"><SkeletonTable rows={8} cols={6} /></div>
       ) : view === 'noclass' ? (
         noClassRows.length === 0 ? (
@@ -541,7 +546,7 @@ export default function EntriesReportPage() {
         ) : (
           <div className="card">
             <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
-              Every day from {fmtDay(from)} to {fmtDay(to < toLocalISO(now) ? to : toLocalISO(now))}, campus by campus.
+              Every day from {fmtDay(from)} to {fmtDay(wholeDaysEnd(to))}, campus by campus — all faculty, all types.
             </p>
             <div className="table-wrapper">
               <table>

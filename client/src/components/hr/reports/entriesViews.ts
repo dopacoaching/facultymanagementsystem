@@ -1,4 +1,4 @@
-import type { EntriesReport, EntryRow, NoClassRow } from '@/services/entries.service'
+import type { EntriesReport, NoClassRow } from '@/services/entries.service'
 import { toLocalISO } from '@/utils/date'
 
 /** Which slice of the entries report is on screen — and in the Copy / Excel sheet. */
@@ -13,7 +13,7 @@ export const VIEW_TABS: { key: ReportView; label: string }[] = [
 export interface WholeDayRow {
   date: string
   campusName: string
-  status: 'Classes' | 'No Class' | 'Not submitted' | 'Pending'
+  status: 'Classes' | 'No Class' | 'Not submitted' | 'Pending' | 'Unknown'
   entries: number
   hours: number
   /** Batch-level notes: partly No Class / partly not submitted. */
@@ -22,14 +22,19 @@ export interface WholeDayRow {
 
 const dayKey = (campus: string, date: string) => `${campus}|${date}`
 
+/** Last day the Whole days view covers: the range end, capped at today. */
+export const wholeDaysEnd = (to: string) => { const today = toLocalISO(new Date()); return to < today ? to : today }
+
 /** One row per campus per day (today and earlier) saying what happened: classes taken, a
- *  No Class marker, or nothing submitted. Newest day first. */
+ *  No Class marker, or nothing submitted. Newest day first. The server's `missing` list is the
+ *  source of truth for "Not submitted"; a day it says nothing about is never shown as missing. */
 export function buildWholeDays(report: EntriesReport, campus: string, from: string, to: string): WholeDayRow[] {
   const today = toLocalISO(new Date())
   const campuses = report.campuses.filter((c) => !campus || c === campus)
 
   const classes = new Map<string, { n: number; h: number }>()
   for (const s of report.sessions) {
+    if (campus && s.campusName !== campus) continue
     const k = dayKey(s.campusName, s.date)
     const cur = classes.get(k) ?? { n: 0, h: 0 }
     cur.n += 1; cur.h += s.durationHours
@@ -42,12 +47,15 @@ export function buildWholeDays(report: EntriesReport, campus: string, from: stri
   }
   const missing = new Map<string, string[]>()   // campus|date -> batch names ('' = whole campus)
   for (const m of report.missing) {
-    for (const d of m.dates) missing.set(dayKey(m.campusName, d), [...(missing.get(dayKey(m.campusName, d)) ?? []), m.batchName ?? ''])
+    for (const d of m.dates) {
+      const k = dayKey(m.campusName, d)
+      missing.set(k, [...(missing.get(k) ?? []), m.batchName ?? ''])
+    }
   }
 
   const rows: WholeDayRow[] = []
   const [fy, fm, fd] = from.split('-').map(Number)
-  const end = to < today ? to : today
+  const end = wholeDaysEnd(to)
   for (let d = new Date(fy, fm - 1, fd); toLocalISO(d) <= end; d.setDate(d.getDate() + 1)) {
     const date = toLocalISO(d)
     for (const name of campuses) {
@@ -55,20 +63,28 @@ export function buildWholeDays(report: EntriesReport, campus: string, from: stri
       const c = classes.get(k)
       const marks = noClass.get(k) ?? []
       const miss = missing.get(k) ?? []
-      const markedBatches = marks.flatMap((m) => m.batchNames)
       const wholeMarked = marks.some((m) => m.batchIds.length === 0)
+      const noClassNote = marks.length ? `No Class: ${wholeMarked ? 'whole campus' : marks.flatMap((m) => m.batchNames).join(', ')}` : ''
+      const missNote = miss.length ? `Not submitted: ${miss.map((b) => b || 'whole campus').join(', ')}` : ''
       const notes: string[] = []
-      if (c && marks.length) notes.push(`No Class: ${wholeMarked ? 'whole campus' : markedBatches.join(', ')}`)
-      if (c && miss.length) notes.push(`Not submitted: ${miss.map((b) => b || 'whole campus').join(', ')}`)
       let status: WholeDayRow['status']
-      if (c) status = 'Classes'
-      else if (marks.length && miss.length === 0) status = 'No Class'
-      else if (miss.length) status = 'Not submitted'
-      else if (marks.length) status = 'No Class'
-      else status = date === today ? 'Pending' : 'Not submitted'
-      if (!c && marks.length && miss.length) notes.push(`No Class: ${wholeMarked ? 'whole campus' : markedBatches.join(', ')}`, `Not submitted: ${miss.map((b) => b || 'whole campus').join(', ')}`)
-      if (!c && status === 'No Class' && marks[0]?.reason) notes.push(marks[0].reason)
-      rows.push({ date, campusName: name, status, entries: c?.n ?? 0, hours: c?.h ?? 0, detail: notes.join(' · ') })
+      if (c) {
+        status = 'Classes'
+        notes.push(noClassNote, missNote)
+      } else if (miss.length) {
+        status = 'Not submitted'
+        notes.push(noClassNote, missNote)
+      } else if (marks.length) {
+        status = 'No Class'
+        if (marks[0].reason) notes.push(marks[0].reason)
+      } else if (date === today) {
+        status = 'Pending'
+      } else {
+        // The server found this day covered but sent no visible entry (list capped) — or didn't check it.
+        status = 'Unknown'
+        notes.push(report.truncated ? 'Too many entries to show — narrow the dates' : 'No data for this day')
+      }
+      rows.push({ date, campusName: name, status, entries: c?.n ?? 0, hours: c?.h ?? 0, detail: notes.filter(Boolean).join(' · ') })
     }
   }
   return rows.sort((a, b) => b.date.localeCompare(a.date) || a.campusName.localeCompare(b.campusName))
@@ -93,5 +109,3 @@ export async function downloadSimpleSheet(head: string[], body: (string | number
     : { value: v ? cleanCell(v) : undefined, type: String })))
   await writeXlsxFile([header, ...rows] as never, { columns: widths.map((width) => ({ width })), stickyRowsCount: 1 }).toFile(filename)
 }
-
-export type { EntryRow }

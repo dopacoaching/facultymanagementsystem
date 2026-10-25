@@ -1072,7 +1072,7 @@ function finalizeSalaryResult(
 // ─── Date-range entry point (TEMPORARY faculty only) ──────────────────────────
 
 /** Parse a 'YYYY-MM-DD' string into a local Date at midnight, or null if malformed. */
-function parseLocalDate(iso: string): Date | null {
+export function parseLocalDate(iso: string): Date | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '')
   if (!m) return null
   const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3])
