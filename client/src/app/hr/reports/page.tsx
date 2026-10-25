@@ -12,6 +12,11 @@ import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
 import { fmtDay, monthRange } from '@/components/hr/reports/reportShared'
+import { useActiveFaculty } from '@/hooks/useActiveFaculty'
+import {
+  VIEW_TABS, buildWholeDays, noClassRowsFor, cleanCell, hmText, downloadSimpleSheet,
+  type ReportView, type WholeDayRow,
+} from '@/components/hr/reports/entriesViews'
 
 type FacultyKind = 'PERMANENT' | 'TEMPORARY' | 'ALL'
 type GroupBy = 'campus' | 'subject' | 'faculty'
@@ -255,6 +260,11 @@ export default function EntriesReportPage() {
   const [exportChoice, setExportChoice] = useState<GroupBy | null>(null)
   const exportBy = exportChoice ?? group
   const [campus, setCampus]   = useState('')
+  /** Class days (entries) / No class markers / Whole days (every campus-day's status). */
+  const [view, setView]       = useState<ReportView>('classes')
+  /** One faculty of the chosen type; '' = all of that type. */
+  const [facultyId, setFacultyId] = useState('')
+  const allFaculty = useActiveFaculty(accessToken)
 
   const canCopy = role === 'ADMIN'
   const canDelete = role === 'ADMIN' || role === 'HR_MANAGER'
@@ -334,8 +344,20 @@ export default function EntriesReportPage() {
     return all
       .filter((r) => kind === 'ALL' || (kind === 'PERMANENT') === (r.facultyType === 'PERMANENT'))
       .filter((r) => !campus || r.campusName === campus)
+      .filter((r) => !facultyId || r.facultyId === facultyId)
       .sort(byEntryOrder)
-  }, [report, kind, campus])
+  }, [report, kind, campus, facultyId])
+
+  const noClassRows = useMemo(() => noClassRowsFor(report, campus), [report, campus])
+  const wholeRows = useMemo(() => (report ? buildWholeDays(report, campus, from, to) : []), [report, campus, from, to])
+
+  /** Faculty for the dropdown: only the type picked in the tabs (Permanent / Temporary). */
+  const facultyChoices = useMemo(
+    () => allFaculty
+      .filter((f) => kind === 'ALL' || (kind === 'PERMANENT') === (f.type === 'PERMANENT'))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [allFaculty, kind],
+  )
 
   /** Each faculty's hours added up in date order across the filtered rows (6h, then 12h, then 17h...). */
   const totals = useMemo(() => cumulativeHours(rows), [rows])
@@ -355,10 +377,25 @@ export default function EntriesReportPage() {
     return Array.from(map.entries()).sort(([, a], [, b]) => a[0].facultyName.localeCompare(b[0].facultyName))
   }, [rows, group])
 
+  /** Header + body of the No class / Whole days sheets (the Class days sheet has its own layout). */
+  const noClassSheet = useMemo(() => ({
+    head: ['Date', 'Campus', 'Batches', 'Reason'],
+    body: noClassRows.map((n) => [n.date, n.campusName, n.batchNames.length ? n.batchNames.join(', ') : 'Whole campus', n.reason] as (string | number)[]),
+  }), [noClassRows])
+  const wholeSheet = useMemo(() => ({
+    head: ['Date', 'Campus', 'Status', 'Entries', 'Time (h:mm)', 'Hours', 'Details'],
+    body: wholeRows.map((w: WholeDayRow) => [w.date, w.campusName, w.status, w.entries, w.entries ? hmText(w.hours) : '', Math.round(w.hours * 100) / 100, w.detail] as (string | number)[]),
+  }), [wholeRows])
+  const sheetCount = view === 'classes' ? rows.length : view === 'noclass' ? noClassRows.length : wholeRows.length
+
   async function copyData() {
     try {
-      await navigator.clipboard.writeText(toTSV(rows, totals))
-      toast.success('Copied', `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} copied — paste into a sheet.`)
+      const sheet = view === 'noclass' ? noClassSheet : wholeSheet
+      const text = view === 'classes'
+        ? toTSV(rows, totals)
+        : [sheet.head.join('\t'), ...sheet.body.map((r) => r.map((v) => cleanCell(String(v))).join('\t'))].join('\n')
+      await navigator.clipboard.writeText(text)
+      toast.success('Copied', `${sheetCount} ${sheetCount === 1 ? 'row' : 'rows'} copied — paste into a sheet.`)
     } catch {
       toast.error('Copy failed', 'Your browser blocked clipboard access.')
     }
@@ -366,7 +403,13 @@ export default function EntriesReportPage() {
 
   async function exportExcel() {
     try {
-      await downloadExcel(rows, exportBy, from, to, totals)
+      if (view === 'noclass') {
+        await downloadSimpleSheet(noClassSheet.head, noClassSheet.body, [12, 24, 30, 40], `no-class-report_${from}_to_${to}.xlsx`)
+      } else if (view === 'whole') {
+        await downloadSimpleSheet(wholeSheet.head, wholeSheet.body, [12, 24, 14, 9, 12, 9, 50], `whole-days-report_${from}_to_${to}.xlsx`)
+      } else {
+        await downloadExcel(rows, exportBy, from, to, totals)
+      }
     } catch {
       toast.error('Download failed', 'The Excel file could not be created.')
     }
@@ -390,16 +433,16 @@ export default function EntriesReportPage() {
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <Link href="/hr/reports/not-submitted" className="btn btn-outline">Reports not submitted</Link>
-          {rows.length > 0 && (
+          {sheetCount > 0 && (
             <>
               {canCopy && (
                 <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
                   Copy data
                 </button>
               )}
-              <select className="input" aria-label="Excel layout" value={exportBy} onChange={(e) => setExportChoice(e.target.value as GroupBy)} style={{ width: 'auto' }}>
+              {view === 'classes' && <select className="input" aria-label="Excel layout" value={exportBy} onChange={(e) => setExportChoice(e.target.value as GroupBy)} style={{ width: 'auto' }}>
                 {GROUP_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-              </select>
+              </select>}
               <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file, laid out as chosen">
                 Download Excel
               </button>
@@ -419,6 +462,12 @@ export default function EntriesReportPage() {
               onChange={(e) => pickMonth(e.target.value)} style={{ minWidth: 150 }} />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
+            <label className="label" htmlFor="er-view">Report</label>
+            <select id="er-view" className="input" value={view} onChange={(e) => setView(e.target.value as ReportView)} style={{ minWidth: 190 }}>
+              {VIEW_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
             <label className="label" htmlFor="er-campus">Campus</label>
             <select id="er-campus" className="input" value={campus} onChange={(e) => setCampus(e.target.value)} style={{ minWidth: 190 }}>
               <option value="">All campuses</option>
@@ -431,15 +480,21 @@ export default function EntriesReportPage() {
 
       {/* ── View switches ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-          {KIND_TABS.map((t) => (
-            <button key={t.key} type="button" className={`btn btn-sm ${kind === t.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => setKind(t.key)}>
+        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {view === 'classes' && KIND_TABS.map((t) => (
+            <button key={t.key} type="button" className={`btn btn-sm ${kind === t.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setKind(t.key); setFacultyId('') }}>
               {t.label}
             </button>
           ))}
+          {view === 'classes' && (
+            <select className="input" aria-label="Faculty" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} style={{ width: 'auto', minWidth: 200 }}>
+              <option value="">{kind === 'PERMANENT' ? 'All permanent faculty' : kind === 'TEMPORARY' ? 'All temporary faculty' : 'All faculty'}</option>
+              {facultyChoices.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
+            </select>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-          {GROUP_TABS.map((t) => (
+          {view === 'classes' && GROUP_TABS.map((t) => (
             <button key={t.key} type="button" className={`btn btn-sm ${group === t.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => setGroup(t.key)}>
               {t.label}
             </button>
@@ -455,6 +510,60 @@ export default function EntriesReportPage() {
 
       {loading && !report ? (
         <div className="card"><SkeletonTable rows={8} cols={6} /></div>
+      ) : view === 'noclass' ? (
+        noClassRows.length === 0 ? (
+          <div className="card"><EmptyState title="No No-Class days" description={`No No Class markers for ${campus || 'any campus'} between ${fmtDay(from)} and ${fmtDay(to)}.`} /></div>
+        ) : (
+          <div className="card">
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
+              {noClassRows.length} No Class {noClassRows.length === 1 ? 'day' : 'days'} marked
+            </p>
+            <div className="table-wrapper">
+              <table>
+                <thead><tr><th>Date</th><th>Campus</th><th>Batches</th><th>Reason</th></tr></thead>
+                <tbody>
+                  {noClassRows.map((n) => (
+                    <tr key={n._id}>
+                      <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(n.date)}</td>
+                      <td style={{ fontWeight: 600 }}>{n.campusName}</td>
+                      <td style={{ color: 'var(--color-text-secondary)' }}>{n.batchNames.length ? n.batchNames.join(', ') : 'Whole campus'}</td>
+                      <td style={{ color: 'var(--color-text-secondary)' }}>{n.reason || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      ) : view === 'whole' ? (
+        wholeRows.length === 0 ? (
+          <div className="card"><EmptyState title="No days" description="Nothing to show for this range." /></div>
+        ) : (
+          <div className="card">
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
+              Every day from {fmtDay(from)} to {fmtDay(to < toLocalISO(now) ? to : toLocalISO(now))}, campus by campus.
+            </p>
+            <div className="table-wrapper">
+              <table>
+                <thead><tr><th>Date</th><th>Campus</th><th>Status</th><th style={{ textAlign: 'right' }}>Entries</th><th style={{ textAlign: 'right' }}>Time</th><th>Details</th></tr></thead>
+                <tbody>
+                  {wholeRows.map((w) => (
+                    <tr key={`${w.campusName}|${w.date}`}>
+                      <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(w.date)}</td>
+                      <td style={{ fontWeight: 600 }}>{w.campusName}</td>
+                      <td>
+                        <span className={`badge ${w.status === 'Classes' ? 'badge-green' : w.status === 'Not submitted' ? 'badge-red' : 'badge-gray'}`}>{w.status}</span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w.entries || '—'}</td>
+                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{w.entries ? formatHM(w.hours) : '—'}</td>
+                      <td style={{ color: 'var(--color-text-secondary)' }}>{w.detail || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       ) : rows.length === 0 ? (
         <div className="card">
           <EmptyState title="No entries" description={`No ${kindLabel} entries for ${campus || 'any campus'} between ${fmtDay(from)} and ${fmtDay(to)}.`} />
