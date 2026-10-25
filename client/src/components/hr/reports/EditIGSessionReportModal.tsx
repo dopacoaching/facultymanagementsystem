@@ -1,9 +1,11 @@
 import type { Session } from '@/types'
+import { SUBJECT_OPTIONS } from '@/components/coordinator/log-session/types'
 import { ChapterChips } from '@/components/coordinator/log-session/ChapterChips'
 import { BatchPicker, type BatchChoice } from './BatchPicker'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditIGSessionForm {
+  facultyId: string
   subject: string
   chapters: string[]
   timeSlot: 'SESSION_1' | 'SESSION_2' | 'SESSION_3' | ''
@@ -17,6 +19,7 @@ export interface EditIGSessionForm {
 
 export function formFromIGSession(s: Session): EditIGSessionForm {
   return {
+    facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId,
     subject:       s.subject,
     chapters:      s.chapters?.length ? s.chapters : s.chapter ? [s.chapter] : [],
     timeSlot:      (s.timeSlot as EditIGSessionForm['timeSlot']) ?? '',
@@ -45,13 +48,15 @@ interface EditIGSessionReportModalProps {
   /** HR/Admin: change which batches sat the class. */
   /** Chapters the subject offers, suggested while typing. */
   chapterOptions?: string[]
+  /** Active faculty to choose from; omit to hide the selector. */
+  faculty?: { _id: string; name: string; subject: string }[]
   batches?: BatchChoice[]
   batchIds?: string[]
   onBatchIdsChange?: (ids: string[]) => void
 }
 
 export function EditIGSessionReportModal({
-  form, setForm, error, saving, onClose, onSubmit, chapterOptions, batches, batchIds, onBatchIdsChange,
+  form, setForm, error, saving, onClose, onSubmit, chapterOptions, faculty, batches, batchIds, onBatchIdsChange,
 }: EditIGSessionReportModalProps) {
   return (
     <div
@@ -68,13 +73,29 @@ export function EditIGSessionReportModal({
         <div className="modal-body">
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           <div className="input-group-3">
+            {faculty && (
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="label">Faculty</label>
+                <select className="input" value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
+                  {!faculty.some((x) => x._id === form.facultyId) && <option value={form.facultyId}>(current faculty)</option>}
+                  {faculty.map((x) => <option key={x._id} value={x._id}>{x.name} — {x.subject}</option>)}
+                </select>
+              </div>
+            )}
             <div className="form-group">
               <label className="label">Subject</label>
-              <input className="input" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
+              <select
+                className="input"
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value, chapters: f.subject === e.target.value ? f.chapters : [] }))}
+              >
+                {!SUBJECT_OPTIONS.some((o) => o.value === form.subject) && <option value={form.subject}>{form.subject}</option>}
+                {SUBJECT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="label">Chapters</label>
-              <ChapterChips value={form.chapters} onChange={(v) => setForm((f) => ({ ...f, chapters: v }))} options={chapterOptions} />
+              <ChapterChips value={form.chapters} onChange={(v) => setForm((f) => ({ ...f, chapters: v }))} options={chapterOptions} restrict={!!chapterOptions} />
             </div>
             {batches && batches.length > 0 && batchIds && onBatchIdsChange && (
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />

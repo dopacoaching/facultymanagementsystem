@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { BatchChapter } from '@/lib/models/BatchChapter'
+import { Faculty } from '@/lib/models/Faculty'
 import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
@@ -90,6 +91,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       if (body.entryType !== undefined && !isEntryType(body.entryType)) {
         return withToken(json({ error: 'entryType must be LIVE or SHOOT' }, 400), refreshedToken)
+      }
+    }
+    if (update.facultyId) {
+      const fac = await Faculty.findById(update.facultyId).select('isActive')
+      if (!fac) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
+      if (isTeacher && fac.isActive === false && String(existing.facultyId) !== String(update.facultyId)) {
+        return withToken(json({ error: 'That faculty is no longer active.' }, 400), refreshedToken)
       }
     }
     // Which batches sat the class. A teacher stays inside their school; HR/Admin may move it to any IG school.

@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, update, cancel, remove } from '@/services/ig-session.service'
 import { getBatches, type Batch } from '@/services/faculty.service'
+import { useActiveFaculty } from '@/hooks/useActiveFaculty'
+import { useChapterOptions } from '@/components/coordinator/log-session/ChaptersField'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditIGSessionReportModal, formFromIGSession, EditIGSessionForm } from '@/components/hr/reports/EditIGSessionReportModal'
@@ -45,6 +47,8 @@ export default function IGClassSessionsPage() {
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [editForm, setEditForm] = useState<EditIGSessionForm | null>(null)
   const [editError, setEditError] = useState('')
+  const facultyOptions = useActiveFaculty(accessToken)
+  const { options: chapterOptions } = useChapterOptions(editForm?.subject ?? '', accessToken)
   const [batchOptions, setBatchOptions] = useState<Batch[]>([])
   const [editBatchIds, setEditBatchIds] = useState<string[]>([])
   useEffect(() => {
@@ -83,6 +87,7 @@ export default function IGClassSessionsPage() {
     setSaving(true); setEditError('')
     try {
       await update(editingSession._id, {
+        ...(editForm.facultyId !== formFromIGSession(editingSession).facultyId ? { facultyId: editForm.facultyId } : {}),
         subject:       editForm.subject.trim(),
         chapters:      editForm.chapters,
         timeSlot:      editForm.timeSlot,
@@ -273,6 +278,8 @@ export default function IGClassSessionsPage() {
           saving={saving}
           onClose={() => { setEditingSession(null); setEditForm(null) }}
           onSubmit={saveEdit}
+          chapterOptions={chapterOptions}
+          faculty={facultyOptions}
           batches={igBatchOptions}
           batchIds={editBatchIds}
           onBatchIdsChange={setEditBatchIds}

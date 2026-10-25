@@ -12,6 +12,9 @@ import { ErrorAlert } from '@/components/ui/Skeleton'
 import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
 import { NoClassCard } from '@/components/coordinator/NoClassCard'
+import { NotSubmittedNotice } from '@/components/coordinator/NotSubmittedNotice'
+import { ConfirmEntryModal } from '@/components/coordinator/ConfirmEntryModal'
+import { fmtDay } from '@/components/hr/reports/reportShared'
 import { todayLocal } from '@/utils/date'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import {
@@ -72,6 +75,10 @@ export default function PushBoardPage() {
   /** The POST itself failed — retry re-runs the submit. */
   const [submitError, setSubmitError] = useState('')
   const [savedFor, setSavedFor] = useState<string | null>(null)
+  /** "Verify your entry" review step, shown after validation and before saving. */
+  const [confirming, setConfirming] = useState(false)
+  /** Bumped after a save so the not-submitted notice refreshes. */
+  const [noticeKey, setNoticeKey] = useState(0)
 
   // Multi-batch campuses use the checkbox list; single-batch ones the plain select.
   const chosenBatchIds = multiBatch ? form.batchIds : form.batchId ? [form.batchId] : []
@@ -140,11 +147,18 @@ export default function PushBoardPage() {
     return null
   }
 
-  async function handleSubmit() {
+  /** Validate, then ask the teacher to verify the entry before it is saved. */
+  function handleSubmit() {
     if (saving || savedFor) return
     setValidationError(''); setSubmitError('')
     const invalid = validate()
     if (invalid) { setValidationError(invalid); return }
+    setConfirming(true)
+  }
+
+  async function submitEntry() {
+    if (saving || savedFor) return
+    setValidationError(''); setSubmitError('')
 
     const common = {
       facultyId:        form.facultyId,
@@ -192,10 +206,12 @@ export default function PushBoardPage() {
       }
       toast.success('Session pushed', 'The session has been recorded.')
       setSavedFor(selectedFaculty?.name ?? 'the session')
+      setNoticeKey((k) => k + 1)
     } catch (e: unknown) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to submit session')
     } finally {
       setSaving(false)
+      setConfirming(false)
     }
   }
 
@@ -228,6 +244,8 @@ export default function PushBoardPage() {
           <p className="page-subtitle">Record a class that has already been taught at {campusLabel ?? 'your campus'}.</p>
         </div>
       </div>
+
+      {accessToken && <NotSubmittedNotice accessToken={accessToken} refreshKey={noticeKey} />}
 
       <div className="card">
         {savedFor ? (
@@ -262,7 +280,7 @@ export default function PushBoardPage() {
                 <ErrorAlert
                   message={submitError}
                   what="Session could not be submitted"
-                  onRetry={handleSubmit}
+                  onRetry={submitEntry}
                   onDismiss={() => setSubmitError('')}
                 />
               </div>
@@ -529,6 +547,27 @@ export default function PushBoardPage() {
           </>
         )}
       </div>
+
+      {confirming && (
+        <ConfirmEntryModal
+          saving={saving}
+          onBack={() => setConfirming(false)}
+          onConfirm={submitEntry}
+          rows={[
+            { label: 'Faculty', value: selectedFaculty?.name ?? '' },
+            ...(hasEntryTypes ? [{ label: 'Entry type', value: form.entryType ? ENTRY_TYPE_LABELS[form.entryType] : '' }] : []),
+            { label: 'Subject', value: SUBJECT_OPTIONS.find((o) => o.value === form.subject)?.label ?? form.subject },
+            { label: 'Chapters', value: form.chapters.join(', ') },
+            ...(needsBatch ? [{ label: chosenBatchIds.length > 1 ? 'Batches' : 'Batch', value: campusBatches.filter((b) => chosenBatchIds.includes(b._id)).map((b) => b.name).join(', ') }] : []),
+            { label: 'Class mode', value: CLASS_MODE_OPTIONS.find((m) => m.value === form.classMode)?.label ?? '' },
+            { label: 'Date', value: fmtDay(form.sessionDate) },
+            ...(isShoot ? [] : [{ label: 'Time', value: `${form.startTime} – ${form.endTime}` }]),
+            { label: 'Total hours', value: formatHM(countedHours * 60) },
+            { label: 'Updated by', value: form.updatedByName },
+            ...(form.comment.trim() ? [{ label: 'Comment', value: form.comment.trim() }] : []),
+          ]}
+        />
+      )}
 
       {accessToken && campusLabel && <NoClassCard accessToken={accessToken} teachers={teacherNames} batches={campusBatches} />}
 

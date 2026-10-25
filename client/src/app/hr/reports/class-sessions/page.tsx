@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, update, remove } from '@/services/session.service'
 import { getBatches, type Batch } from '@/services/faculty.service'
+import { useActiveFaculty } from '@/hooks/useActiveFaculty'
+import { useChapterOptions } from '@/components/coordinator/log-session/ChaptersField'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { EditClassSessionModal, formFromSession, timingChanged, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
@@ -47,6 +49,8 @@ export default function ClassSessionsPage() {
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [editForm, setEditForm] = useState<EditClassSessionForm | null>(null)
   const [editError, setEditError] = useState('')
+  const facultyOptions = useActiveFaculty(accessToken)
+  const { options: chapterOptions } = useChapterOptions(editForm?.subject ?? '', accessToken)
   const [batchOptions, setBatchOptions] = useState<Batch[]>([])
   const [editBatchIds, setEditBatchIds] = useState<string[]>([])
   useEffect(() => {
@@ -98,6 +102,7 @@ export default function ClassSessionsPage() {
     setSaving(true); setEditError('')
     try {
       await update(editingSession._id, {
+        ...(editForm.facultyId !== formFromSession(editingSession).facultyId ? { facultyId: editForm.facultyId } : {}),
         subject:       editForm.subject.trim(),
         chapters:      editForm.chapters,
         classMode:     editForm.classMode || undefined,
@@ -259,6 +264,8 @@ export default function ClassSessionsPage() {
           saving={saving}
           onClose={() => { setEditingSession(null); setEditForm(null) }}
           onSubmit={saveEdit}
+          chapterOptions={chapterOptions}
+          faculty={facultyOptions}
           batches={editPickerBatches}
           batchIds={editBatchIds}
           onBatchIdsChange={setEditBatchIds}

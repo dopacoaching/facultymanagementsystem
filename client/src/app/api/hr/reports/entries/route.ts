@@ -6,7 +6,7 @@ import { NoClassDay } from '@/lib/models/NoClassDay'
 import { batchNameMap } from '@/lib/utils/batchNames'
 import { Batch } from '@/lib/models/Batch'
 import { Types } from 'mongoose'
-import { getIgCampusNames } from '@/lib/utils/coordinatorCampus'
+import { getIgCampusNames, resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { listActivePushCampuses } from '@/lib/services/pushCampuses'
 import { dayRangeFilter, parseLocalDate, toLocalISODate } from '@/lib/utils/dateRange'
 
@@ -25,14 +25,16 @@ export async function GET(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'CLASS_TEACHER', 'IG_CLASS_TEACHER')
     if (forbidden) return withToken(forbidden, refreshedToken)
+    // Class teachers get only their own campus's missing days — never entries or No Class rows.
+    const isTeacher = payload.role === 'CLASS_TEACHER' || payload.role === 'IG_CLASS_TEACHER'
 
     const { searchParams } = new URL(req.url)
     const from = searchParams.get('from') ?? ''
     const to   = searchParams.get('to') ?? ''
     // The Reports Not Submitted page needs only the missing days, not every entry row.
-    const missingOnly = searchParams.get('missingOnly') === '1'
+    const missingOnly = isTeacher || searchParams.get('missingOnly') === '1'
     const range = dayRangeFilter(from, to)
     const fromDate = parseLocalDate(from)
     const toDate = parseLocalDate(to)
@@ -44,6 +46,10 @@ export async function GET(req: NextRequest) {
     }
 
     await connectDB()
+    const ownCampus = isTeacher ? await resolveCoordinatorCampusName(payload) : undefined
+    if (isTeacher && !ownCampus) {
+      return withToken(json({ error: 'Your account is not linked to a campus.' }, 403), refreshedToken)
+    }
 
     // IG sessions carry a batch rather than a campus name — map batch → school name.
     const igNames = await getIgCampusNames()
@@ -177,10 +183,10 @@ export async function GET(req: NextRequest) {
 
     return withToken(json({
       from, to,
-      campuses,
+      campuses: ownCampus ? [ownCampus] : campuses,
       sessions: missingOnly ? [] : rows,
-      noClass: noClassRows,
-      missing,
+      noClass: isTeacher ? [] : noClassRows,
+      missing: ownCampus ? missing.filter((m) => m.campusName === ownCampus) : missing,
       truncated: sessions.length >= MAX_ROWS,
     }), refreshedToken)
   } catch (err) {

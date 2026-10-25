@@ -8,6 +8,7 @@ import { EditClassSessionModal, formFromSession, timingChanged, type EditClassSe
 import { usesFullBreak } from '@/lib/constants/entryTypes'
 import { computeDuration, computeShootDuration } from '@/components/coordinator/log-session'
 import { useChapterOptions } from '@/components/coordinator/log-session/ChaptersField'
+import { useActiveFaculty } from '@/hooks/useActiveFaculty'
 
 type SaveFn = (sessionId: string, data: Record<string, unknown>) => Promise<unknown>
 
@@ -34,6 +35,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const { options: chapterOptions } = useChapterOptions(form.subject, accessToken)
+  const faculty = useActiveFaculty(accessToken)
 
   async function submit() {
     const isShoot = form.entryType === 'SHOOT'
@@ -53,6 +55,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
     setSaving(true); setError('')
     try {
       await save(session._id, {
+        ...(form.facultyId !== formFromSession(session).facultyId ? { facultyId: form.facultyId } : {}),
         subject:       form.subject.trim(),
         chapters:      form.chapters,
         classMode:     form.classMode || undefined,
@@ -102,6 +105,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
       batchIds={batchIds}
       onBatchIdsChange={setBatchIds}
       chapterOptions={chapterOptions}
+      faculty={faculty}
     />
   )
 }

@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { BatchChapter } from '@/lib/models/BatchChapter'
+import { Faculty } from '@/lib/models/Faculty'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
@@ -103,6 +104,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       if (update.sessionDate instanceof Date && update.sessionDate.getTime() > Date.now()) {
         return withToken(json({ error: 'The date cannot be in the future' }, 400), refreshedToken)
+      }
+    }
+    if (update.facultyId) {
+      const fac = await Faculty.findById(update.facultyId).select('isActive')
+      if (!fac) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
+      if (isTeacher && fac.isActive === false && String(existing.facultyId) !== String(update.facultyId)) {
+        return withToken(json({ error: 'That faculty is no longer active.' }, 400), refreshedToken)
       }
     }
     // Which batches sat the class — HR/Admin may regroup inside the entry's campus, like a teacher.

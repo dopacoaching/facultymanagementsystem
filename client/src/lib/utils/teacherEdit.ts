@@ -5,9 +5,10 @@
  */
 export const TEACHER_EDIT_WINDOW_MS = 24 * 60 * 60 * 1000
 
-/** Fields a teacher may change — never the faculty, batch or campus. */
+/** Fields a teacher may change — never the campus. (Faculty and batches are changed through
+ *  their own checked paths: an active faculty, and batches of the entry's own campus.) */
 export const TEACHER_EDITABLE_FIELDS = [
-  'classMode', 'subject', 'chapter', 'updatedByName', 'comment', 'startTime', 'endTime',
+  'facultyId', 'classMode', 'subject', 'chapter', 'updatedByName', 'comment', 'startTime', 'endTime',
   'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes', 'durationHours', 'sessionDate',
 ] as const
 

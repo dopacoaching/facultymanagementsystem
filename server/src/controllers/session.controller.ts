@@ -499,6 +499,14 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
+  if (update.facultyId) {
+    const fac = await Faculty.findById(update.facultyId).select('isActive')
+    if (!fac) { res.status(404).json({ error: 'Faculty not found' }); return }
+    if (isTeacher && fac.isActive === false && String(existing.facultyId) !== String(update.facultyId)) {
+      res.status(400).json({ error: 'That faculty is no longer active.' }); return
+    }
+  }
+
   // A class covers one subject and one or more chapters.
   if (Array.isArray(req.body.chapters)) {
     const list = normalizeChapters(req.body.chapters)

@@ -1,10 +1,12 @@
 import type { Session } from '@/types'
+import { SUBJECT_OPTIONS } from '@/components/coordinator/log-session/types'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, usesFullBreak, type EntryType } from '@/lib/constants/entryTypes'
 import { BatchPicker } from './BatchPicker'
 import { ChapterChips } from '@/components/coordinator/log-session/ChapterChips'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
 export interface EditClassSessionForm {
+  facultyId: string
   /** Studio entries only; '' hides the selector. */
   entryType: EntryType | ''
   /** Shoot entries: time taken as whole hours + minutes (no start/end/break). */
@@ -26,6 +28,7 @@ export function formFromSession(s: Session): EditClassSessionForm {
   // A Shoot is edited by the time actually taken, not the multiplied hours.
   const rawMins = s.entryType === 'SHOOT' ? Math.round((s.rawDurationHours ?? s.durationHours) * 60) : 0
   return {
+    facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId,
     entryType:     s.entryType ?? '',
     shootHours:    s.entryType === 'SHOOT' ? String(Math.floor(rawMins / 60)) : '',
     shootMinutes:  s.entryType === 'SHOOT' ? String(rawMins % 60) : '',
@@ -74,13 +77,15 @@ interface EditClassSessionModalProps {
   /** Latest selectable date (teachers can't back-date into the future). */
   maxDate?: string
   /** Teacher edits at a campus with several batches: which batches sat this class. */
+  /** Active faculty to choose from; omit to hide the selector. */
+  faculty?: { _id: string; name: string; subject: string }[]
   batches?: { _id: string; name: string }[]
   batchIds?: string[]
   onBatchIdsChange?: (ids: string[]) => void
 }
 
 export function EditClassSessionModal({
-  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate, chapterOptions, batches, batchIds, onBatchIdsChange,
+  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate, chapterOptions, faculty, batches, batchIds, onBatchIdsChange,
 }: EditClassSessionModalProps) {
   return (
     <div
@@ -97,6 +102,15 @@ export function EditClassSessionModal({
         <div className="modal-body">
           {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
           <div className="input-group-3">
+            {faculty && (
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="label">Faculty</label>
+                <select className="input" value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
+                  {!faculty.some((x) => x._id === form.facultyId) && <option value={form.facultyId}>(current faculty)</option>}
+                  {faculty.map((x) => <option key={x._id} value={x._id}>{x.name} — {x.subject}</option>)}
+                </select>
+              </div>
+            )}
             {form.entryType !== '' && (
               <div className="form-group">
                 <label className="label">Entry type</label>
@@ -108,7 +122,14 @@ export function EditClassSessionModal({
             )}
             <div className="form-group">
               <label className="label">Subject</label>
-              <input className="input" value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} />
+              <select
+                className="input"
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value, chapters: f.subject === e.target.value ? f.chapters : [] }))}
+              >
+                {!SUBJECT_OPTIONS.some((o) => o.value === form.subject) && <option value={form.subject}>{form.subject}</option>}
+                {SUBJECT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="label">Chapters</label>
