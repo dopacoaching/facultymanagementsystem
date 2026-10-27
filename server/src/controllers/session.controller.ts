@@ -277,27 +277,6 @@ export const createSession = asyncHandler(async (req: AuthRequest, res: Response
     return
   }
 
-  // ── 4. OFFLINE 1-CAMPUS LIMIT (legacy Batch flow only) ────────────────────
-  if (batch?.type === 'OFFLINE') {
-    const todaySessions = await Session.find({
-      facultyId: facultyOid,
-      sessionDate: { $gte: dayStart, $lte: dayEnd },
-      status: { $ne: 'CANCELLED' },
-    }).populate<{ batchId: IBatch }>('batchId', 'type campusId')
-
-    const offlineOtherCampus = todaySessions.find((s) => {
-      const b = s.batchId as unknown as IBatch | undefined
-      return b && b.type === 'OFFLINE' && b.campusId.toString() !== batch!.campusId.toString()
-    })
-    if (offlineOtherCampus) {
-      res.status(409).json({
-        error: 'Offline faculty can only be assigned to one campus per day. Faculty is already assigned to a different offline campus today.',
-        code: 'OFFLINE_CAMPUS_CONFLICT',
-      })
-      return
-    }
-  }
-
   // ── 5. RESIDENTIAL/ONLINE MAX 2-CAMPUS CHECK (legacy Batch flow only) ─────
   if (batch && isVideoFirstBatch(batch.type)) {
     const todaySessions = await Session.find({
