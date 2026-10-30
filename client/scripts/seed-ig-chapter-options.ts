@@ -6,7 +6,7 @@ import mongoose from 'mongoose'
 
 /**
  * Adds the Plus One (+1 / XI) and Plus Two (+2 / XII) chapter lists of the Integrated School
- * subjects English, Hindi, Arabic and Computer Science to the Push Board chapter lists
+ * subjects English, Hindi, Arabic, Malayalam and Computer Science to the Push Board chapter lists
  * (ChapterOption). Names carry a "+1 · " / "+2 · " prefix because the list is per subject, not
  * per class.
  *
@@ -36,6 +36,11 @@ const PLUS_ONE: Record<string, string[]> = {
     'أنت المميز', 'يقظة الروح', 'في سبيل الحرية', 'الوطن كل شيء', 'حقوق المرأة', 'الصداقة حلوة',
     'ظل ظليل', 'بانسة',
   ],
+  MALAYALAM: [
+    'ആശ', 'മരപ്പാവകൾ', 'ഇൻ തണ്ടർ ലൈറ്റ്നിങ് ആൻഡ് റെയ്ൻ', 'വിശപ്പ്', 'എന്റെ രാഷ്ട്രീയം', 'കവിതയുടെ ഭാവലോകം', 'മറിയം',
+    'ഉശിരൻ', 'ഏകാന്തതയുടെ മഹാതീരം', 'ഒറ്റാലിൽ പിടയുന്ന സംസ്കാരം', 'ആ ബാക്കി', 'നവോത്ഥാനത്തിന്റെ പാഠങ്ങൾ',
+    'ജാതിലക്ഷണം', 'സാംസയുടെ ലൈബ്രറി',
+  ],
   'COMPUTER SCIENCE': [
     'Introduction to Computing', 'Data Representation and Boolean Algebra', 'Computer System Organisation',
     'Getting Started with Python', 'Python Fundamentals', 'Control Statements', 'Functions', 'Strings',
@@ -60,6 +65,12 @@ const PLUS_TWO: Record<string, string[]> = {
   ARABIC: [
     'خير الله', 'عبقري من أبناء كيرلا', 'كيرلا ... نعم الله', 'ناموا ولا تستيقظوا', 'شرطي المرور', 'كيمياء السعادة',
     'لا تلمني', 'لآلي لغوية', 'هل أنت وحيدة؟', 'لا تقتلوا أنفسكم', 'وصية من الودود', 'أين المفر؟', 'أخبار اليوم',
+  ],
+  MALAYALAM: [
+    'കണ്ണാടി കാൺമേളവും', 'പ്രകാശം ജലം പോലെയാണ്', 'കിരാതവൃത്തം', 'അവകാശങ്ങളുടെ പ്രശ്നം', 'കേശിനീമൊഴി',
+    'അഗ്നിവർണ്ണന്റെ കാലുകൾ', 'പദത്തിന്റെ പഥത്തിൽ', 'മാപ്പിളപ്പാട്ടിലെ കേരളീയത', 'കൊള്ളിവാക്കല്ലാതൊന്നും', 'ഗൗളിജന്മം',
+    'തേങ്ങ', 'ബദരിയും പരിസരങ്ങളും', 'യമുനേത്രിയുടെ ഊഷ്മളതയിൽ', 'വാഖെഡയുടെ ഹൃദയത്തുടിപ്പുകൾ', 'മാധ്യമ വിചാരം',
+    'നവമാധ്യമങ്ങൾ ശക്തിയും സാധ്യതയും', 'കൈയൊപ്പില്ലാത്ത സന്ദേശങ്ങൾ',
   ],
   'COMPUTER SCIENCE': [
     'Structures and Pointers', 'Concepts of Object Oriented Programming', 'Data Structures and Operations',
