@@ -7,8 +7,8 @@ import mongoose from 'mongoose'
 /**
  * Adds the Plus One (+1 / XI) and Plus Two (+2 / XII) chapter lists of the Integrated School
  * subjects English, Hindi, Arabic, Malayalam and Computer Science to the Push Board chapter lists
- * (ChapterOption). Names carry a "+1 · " / "+2 · " prefix because the list is per subject, not
- * per class.
+ * (ChapterOption), with the names exactly as written in the scheme-of-work PDFs (no prefix, no
+ * period counts). The list is per subject, so +1 and +2 chapters sit together in PDF order.
  *
  * Sources: HSSLiVE scheme-of-work PDFs. Hindi and Arabic are the II-Language schemes; the
  * XII Computer Science scheme on file is the 2015-16 one.
@@ -63,7 +63,7 @@ const PLUS_TWO: Record<string, string[]> = {
     'कुमुद फूल बेचनेवाली लड़की', 'वह भटका हुआ पीर', 'आदमी का चेहरा', 'दवा',
   ],
   ARABIC: [
-    'خير الله', 'عبقري من أبناء كيرلا', 'كيرلا ... نعم الله', 'ناموا ولا تستيقظوا', 'شرطي المرور', 'كيمياء السعادة',
+    'خير الله', 'عبقري من أبناء كيرلا', 'كيرلا ...، نعم الله', 'ناموا ولا تستيقظوا', 'شرطي المرور', 'كيمياء السعادة',
     'لا تلمني', 'لآلي لغوية', 'هل أنت وحيدة؟', 'لا تقتلوا أنفسكم', 'وصية من الودود', 'أين المفر؟', 'أخبار اليوم',
   ],
   MALAYALAM: [
@@ -74,8 +74,10 @@ const PLUS_TWO: Record<string, string[]> = {
   ],
   'COMPUTER SCIENCE': [
     'Structures and Pointers', 'Concepts of Object Oriented Programming', 'Data Structures and Operations',
-    'Web Technology', 'Web Designing using HTML', 'Client side scripting using JavaScript', 'Web Hosting',
-    'Database Management System', 'Structured Query Language', 'Server side Scripting using PHP',
+    'Web Technology - Upto Section 4.10', 'Web Technology - Section 4.10 onwards', 'Web Designing using HTML',
+    'Client side scripting using JavaScript - Upto Secion 6.8', 'Client side scripting using JavaScript - Section 6.8 onwards',
+    'Web Hosting', 'Database Management System', 'Structured Query Language',
+    'Server side Scripting using PHP - Upto Section 10.5', 'Server side Scripting using PHP - Sections 10.5 onwards',
     'Advances in Computing', 'ICT and Society',
   ],
 }
@@ -91,8 +93,8 @@ async function run() {
   let added = 0, skipped = 0
   for (const subject of Object.keys(PLUS_ONE)) {
     const wanted = [
-      ...PLUS_ONE[subject].map((n) => `+1 · ${n}`),
-      ...PLUS_TWO[subject].map((n) => `+2 · ${n}`),
+      ...PLUS_ONE[subject],
+      ...PLUS_TWO[subject],
     ]
     const existing = new Set((await col.find({ subject }).project({ key: 1 }).toArray()).map((d) => d.key as string))
     const fresh = wanted.filter((n) => !existing.has(n.toLowerCase()))
