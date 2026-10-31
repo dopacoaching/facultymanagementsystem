@@ -71,7 +71,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     await connectDB()
 
-    const user = await User.findByIdAndUpdate(id, update, { new: true })
+    const user = await User.findByIdAndUpdate(id, update, { returnDocument: 'after' })
       .select('-passwordHash')
       .populate('facultyId', 'name subject')
       .populate('batchId',   'name type')

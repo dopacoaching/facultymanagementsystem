@@ -179,7 +179,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const session = await Session.findByIdAndUpdate(
       oid,
       { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     ).populate('facultyId', 'name subject')
     if (!session) return withToken(json({ error: 'Session not found' }, 404), refreshedToken)
     if (update.batchId || update.chapter !== undefined || update.subject !== undefined) {

@@ -181,7 +181,7 @@ export async function PATCH(req: NextRequest) {
 
     await connectDB()
     const before = await NoClassDay.findById(id).select('reason')
-    const doc = await NoClassDay.findByIdAndUpdate(id, { $set: { reason } }, { new: true })
+    const doc = await NoClassDay.findByIdAndUpdate(id, { $set: { reason } }, { returnDocument: 'after' })
     if (!doc) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
 
     writeAuditLog({

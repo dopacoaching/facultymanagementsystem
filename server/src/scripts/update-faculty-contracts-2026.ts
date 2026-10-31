@@ -39,7 +39,7 @@ async function updateExistingContract(
   const contract = await PermanentFacultyContract.findOneAndUpdate(
     { facultyId: faculty._id },
     { $set: contractSet },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
   )
   console.log(`  Updated contract for ${name} (${contract.contractType})`)
 }
@@ -51,12 +51,12 @@ async function upsertNewFaculty(
   const faculty = await Faculty.findOneAndUpdate(
     { name: facultyData.name },
     { $set: facultyData },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
   )
   await PermanentFacultyContract.findOneAndUpdate(
     { facultyId: faculty._id },
     { $set: contractSet },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
   )
   console.log(`  Upserted ${facultyData.name} (${contractSet.contractType})`)
 }

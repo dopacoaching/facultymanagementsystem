@@ -103,7 +103,7 @@ export const approveSalary = asyncHandler(async (req: AuthRequest, res: Response
         approvedByUserId: new Types.ObjectId(req.user!.userId),
         approvedAt: new Date(),
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     )
 
     await writeAuditLog({
@@ -322,7 +322,7 @@ export const setPayableDaysCtrl = asyncHandler(async (req: AuthRequest, res: Res
   const record = await PayableDays.findOneAndUpdate(
     { facultyId: fid, month, year },
     { payableDays, enteredByUserId: new Types.ObjectId(req.user!.userId) },
-    { upsert: true, new: true, runValidators: true },
+    { upsert: true, returnDocument: 'after', runValidators: true },
   )
 
   await writeAuditLog({
@@ -683,7 +683,7 @@ export const updateContract = asyncHandler(async (req: AuthRequest, res: Respons
   const contract = await PermanentFacultyContract.findOneAndUpdate(
     { facultyId: fid },
     { $set: safeUpdate },
-    { new: true, runValidators: true },
+    { returnDocument: 'after', runValidators: true },
   )
   if (!contract) { res.status(404).json({ error: 'No contract found for this faculty' }); return }
 

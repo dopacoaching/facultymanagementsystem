@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         cancellationInitiator: effectiveInitiator,
         cancellationReason:    cancellationReason || `Cancelled by ${cancellationInitiator.toLowerCase()}`,
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('facultyId', 'name')
 
     if (!session) {

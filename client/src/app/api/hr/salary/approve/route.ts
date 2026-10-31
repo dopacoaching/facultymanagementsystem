@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           approvedByUserId: new Types.ObjectId(payload.userId),
           approvedAt:       new Date(),
         },
-        { upsert: true, new: true },
+        { upsert: true, returnDocument: 'after' },
       )
 
       await writeAuditLog({

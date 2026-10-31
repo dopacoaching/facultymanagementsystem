@@ -121,7 +121,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
-    const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { new: true, runValidators: true })
+    const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { returnDocument: 'after', runValidators: true })
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
     if (rateChange) {
@@ -179,7 +179,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await connectDB()
 
-    const faculty = await Faculty.findByIdAndUpdate(oid, { isActive: false }, { new: true })
+    const faculty = await Faculty.findByIdAndUpdate(oid, { isActive: false }, { returnDocument: 'after' })
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
     return withToken(json({ success: true }), refreshedToken)

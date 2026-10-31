@@ -407,7 +407,7 @@ export const updateSessionStatus = asyncHandler(async (req: AuthRequest, res: Re
   const session = await Session.findOneAndUpdate(
     { _id: oid, status: { $ne: 'CANCELLED' } },
     { status },
-    { new: true },
+    { returnDocument: 'after' },
   )
   if (!session) {
     const exists = await Session.exists({ _id: oid })
@@ -558,7 +558,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
   const session = await Session.findByIdAndUpdate(
     oid,
     { $set: update, ...(Object.keys(unset).length ? { $unset: unset } : {}) },
-    { new: true, runValidators: true },
+    { returnDocument: 'after', runValidators: true },
   ).populate('facultyId', 'name subject')
   if (!session) { res.status(404).json({ error: 'Session not found' }); return }
   if (update.batchId || update.chapter !== undefined || update.subject !== undefined) {
@@ -602,7 +602,7 @@ export const cancelSession = asyncHandler(async (req: AuthRequest, res: Response
       cancellationInitiator: storedInitiator,
       cancellationReason: cancellationReason || `Cancelled by ${cancellationInitiator.toLowerCase()}`,
     },
-    { new: true }
+    { returnDocument: 'after' }
   ).populate('facultyId', 'name')
 
   if (!session) {

@@ -144,7 +144,7 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
     if (Object.keys(safeData).length === 0) { res.json(existing); return }
   }
 
-  const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { new: true, runValidators: true })
+  const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { returnDocument: 'after', runValidators: true })
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
 
   const SALARY_FIELDS: FacultyWritable[] = [
@@ -182,7 +182,7 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
 export const deactivateFaculty = asyncHandler(async (req: AuthRequest, res: Response) => {
   const oid = validateObjectId(req.params.id, 'facultyId', res)
   if (!oid) return
-  const faculty = await Faculty.findByIdAndUpdate(oid, { isActive: false }, { new: true })
+  const faculty = await Faculty.findByIdAndUpdate(oid, { isActive: false }, { returnDocument: 'after' })
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
   res.json({ success: true })
 })

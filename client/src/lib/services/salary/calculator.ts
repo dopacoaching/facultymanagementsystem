@@ -261,7 +261,7 @@ async function calcFixedQuotaCarryForward(
     await CarryForwardBalance.findOneAndUpdate(
       { facultyId: fId, month, year },
       { balanceHours: combinedTotal },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     )
   }
 
@@ -525,7 +525,7 @@ async function calcSplitFixedVariable(
     await CarryForwardBalance.findOneAndUpdate(
       { facultyId: fId, month, year },
       { balanceHours: combinedTotal },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     )
   }
 

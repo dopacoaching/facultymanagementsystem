@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ fa
     const contract = await PermanentFacultyContract.findOneAndUpdate(
       { facultyId: fid },
       { $set: safeUpdate },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     )
     if (!contract) {
       return withToken(json({ error: 'No contract found for this faculty' }, 404), refreshedToken)

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const record = await PayableDays.findOneAndUpdate(
       { facultyId: fid, month, year },
       { payableDays, enteredByUserId: new Types.ObjectId(payload.userId) },
-      { upsert: true, new: true, runValidators: true },
+      { upsert: true, returnDocument: 'after', runValidators: true },
     )
 
     await writeAuditLog({

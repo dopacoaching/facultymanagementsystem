@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const session = await Session.findOneAndUpdate(
       { _id: oid, status: { $ne: 'CANCELLED' } },
       { status },
-      { new: true },
+      { returnDocument: 'after' },
     )
 
     if (!session) {

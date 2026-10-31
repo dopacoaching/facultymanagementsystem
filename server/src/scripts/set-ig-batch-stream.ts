@@ -28,7 +28,7 @@ async function run() {
     const result = await Batch.findOneAndUpdate(
       { name: u.name, type: 'IG' },
       { $set: { stream: u.stream, ig1Subgroup: u.ig1Subgroup } },
-      { new: true },
+      { returnDocument: 'after' },
     )
     if (result) {
       console.log(`  ✓ ${result.name} → stream=${result.stream}, ig1Subgroup=${result.ig1Subgroup}`)

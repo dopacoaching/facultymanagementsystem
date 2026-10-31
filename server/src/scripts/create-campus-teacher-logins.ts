@@ -60,7 +60,7 @@ async function run() {
         },
         $unset: { batchId: '', batchType: '' },
       },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     )
     createdUsernames.push(username)
     console.log(`  ✓ ${c.campusName.padEnd(24)} ${username}`)

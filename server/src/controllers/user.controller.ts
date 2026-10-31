@@ -118,7 +118,7 @@ export const updateUser = asyncHandler(async (req: AuthRequest, res: Response) =
     res.status(400).json({ error: 'No valid fields to update' }); return
   }
 
-  const user = await User.findByIdAndUpdate(id, update, { new: true })
+  const user = await User.findByIdAndUpdate(id, update, { returnDocument: 'after' })
     .select('-passwordHash')
     .populate('facultyId', 'name subject')
     .populate('batchId', 'name type')
