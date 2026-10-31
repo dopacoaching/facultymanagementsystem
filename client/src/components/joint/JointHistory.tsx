@@ -6,6 +6,9 @@ import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { fmtDay } from '@/components/hr/reports/reportShared'
 import { toLocalISO } from '@/utils/date'
+import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
+import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
+import type { Session } from '@/types'
 import type { JointHistoryRow } from '@/lib/utils/jointHistory'
 
 const MODE_LABELS: Record<string, string> = {
@@ -22,9 +25,15 @@ function formatHM(durationHours: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
-/** Every joint class entered through a joint-entry login, newest first. Read-only — HR/Admin
- *  change or delete an entry from the Entries Report. */
-export function JointHistory({ endpoint, subject }: { endpoint: string; subject: string }) {
+/** Every joint class entered through a joint-entry login, newest first. The login can correct
+ *  an entry for 24 hours after it was entered (the server enforces it); after that HR/Admin
+ *  change or delete it from the Entries Report. */
+export function JointHistory({ endpoint, subject, save }: {
+  endpoint: string
+  subject: string
+  /** PATCH for one entry — the IG or the campus session endpoint. */
+  save: (sessionId: string, data: Record<string, unknown>, token: string) => Promise<unknown>
+}) {
   const { accessToken } = useAppSelector((s) => s.auth)
   const now = new Date()
   const [from, setFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
@@ -32,6 +41,7 @@ export function JointHistory({ endpoint, subject }: { endpoint: string; subject:
   const [rows, setRows] = useState<JointHistoryRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [editing, setEditing] = useState<Session | null>(null)
 
   async function load() {
     if (!accessToken) return
@@ -80,7 +90,7 @@ export function JointHistory({ endpoint, subject }: { endpoint: string; subject:
                 <thead>
                   <tr>
                     <th>Date</th><th>Faculty</th><th>Subject</th><th>Chapter</th><th>Campuses</th><th>Batches</th>
-                    <th>Class mode</th><th>Start–End</th><th style={{ textAlign: 'right' }}>Time</th><th>Entered by</th><th>Comment</th>
+                    <th>Class mode</th><th>Start–End</th><th style={{ textAlign: 'right' }}>Time</th><th>Entered by</th><th>Comment</th><th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -97,6 +107,16 @@ export function JointHistory({ endpoint, subject }: { endpoint: string; subject:
                       <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatHM(r.durationHours)}</td>
                       <td style={{ color: 'var(--color-text-secondary)' }}>{r.enteredBy || '—'}</td>
                       <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {editWindowRemainingMs(r.createdAt) > 0 && (
+                          <>
+                            <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(r.session)}>Edit</button>
+                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+                              {formatTimeLeft(editWindowRemainingMs(r.createdAt))}
+                            </span>
+                          </>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -104,6 +124,16 @@ export function JointHistory({ endpoint, subject }: { endpoint: string; subject:
             </div>
           </div>
         </>
+      )}
+
+      {editing && (
+        <EditOwnEntry
+          session={editing}
+          teacherNames={editing.updatedByName ? [editing.updatedByName] : []}
+          save={(id, data) => save(id, data, accessToken!)}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load() }}
+        />
       )}
     </div>
   )

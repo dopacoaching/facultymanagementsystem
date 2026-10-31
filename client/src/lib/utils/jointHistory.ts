@@ -3,6 +3,7 @@ import { Batch } from '@/lib/models/Batch'
 import { batchNameMap } from '@/lib/utils/batchNames'
 import { getIgCampusNames } from '@/lib/utils/coordinatorCampus'
 import { dayRangeFilter, toLocalISODate } from '@/lib/utils/dateRange'
+import type { Session as SessionDTO } from '@/types'
 
 export interface JointHistoryRow {
   _id: string
@@ -21,6 +22,8 @@ export interface JointHistoryRow {
   enteredBy: string
   comment: string
   createdAt: string
+  /** The saved entry, for the 24-hour edit form. */
+  session: SessionDTO
 }
 
 /** Joint classes in a date range, newest day first. IG joint classes carry the jointIG flag;
@@ -74,6 +77,30 @@ export async function listJointHistory(kind: 'IG' | 'REPEATERS', from: string | 
       enteredBy: s.updatedByName ?? '',
       comment: s.comment ?? '',
       createdAt: new Date((s as { createdAt?: Date }).createdAt ?? s.sessionDate).toISOString(),
+      session: {
+        _id: String(s._id),
+        facultyId: String((s.facultyId as unknown as { _id?: unknown } | null)?._id ?? ''),
+        batchId: s.batchId ? String(s.batchId) : undefined,
+        extraBatchIds: s.extraBatchIds?.map(String),
+        jointIG: s.jointIG,
+        jointCampuses: s.jointCampuses,
+        campusName: s.campusName,
+        classMode: s.classMode,
+        subject: s.subject,
+        chapter: s.chapter ?? '',
+        chapters: s.chapters,
+        updatedByName: s.updatedByName,
+        comment: s.comment,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        breakMinutes: s.breakMinutes,
+        lunchBreakMinutes: s.lunchBreakMinutes,
+        afternoonBreakMinutes: s.afternoonBreakMinutes,
+        durationHours: s.durationHours,
+        sessionDate: new Date(s.sessionDate).toISOString(),
+        status: s.status,
+        createdAt: new Date((s as { createdAt?: Date }).createdAt ?? s.sessionDate).toISOString(),
+      },
     }
   })
 }

@@ -22,8 +22,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'CLASS_TEACHER')
-    const isTeacher = payload.role === 'CLASS_TEACHER'
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'CLASS_TEACHER', 'REPEATERS_JOINT_TEACHER')
+    // The joint-entry login edits joint classes only, under the same field list and 24-hour window.
+    const isJointTeacher = payload.role === 'REPEATERS_JOINT_TEACHER'
+    const isTeacher = payload.role === 'CLASS_TEACHER' || isJointTeacher
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -94,13 +96,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
-    if (isTeacher && existing.jointCampuses?.length) {
+    if (isJointTeacher) {
+      if (!existing.jointCampuses?.length) return withToken(json({ error: 'You can only edit joint classes.' }, 403), refreshedToken)
+      if (body.batchIds !== undefined) {
+        return withToken(json({ error: 'The campuses and batches of a joint class cannot be changed — contact HR.' }, 403), refreshedToken)
+      }
+    } else if (isTeacher && existing.jointCampuses?.length) {
       return withToken(json({ error: 'This is a joint class for several campuses — contact HR to change it.' }, 403), refreshedToken)
     }
     if (isTeacher) {
-      const own = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
-      if (!own || existing.campusName !== own) {
-        return withToken(json({ error: 'You can only edit entries for your own campus.' }, 403), refreshedToken)
+      if (!isJointTeacher) {
+        const own = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
+        if (!own || existing.campusName !== own) {
+          return withToken(json({ error: 'You can only edit entries for your own campus.' }, 403), refreshedToken)
+        }
       }
       if (!canTeacherEdit(existing.createdAt)) {
         return withToken(json({ error: EDIT_WINDOW_CLOSED_MESSAGE }, 403), refreshedToken)

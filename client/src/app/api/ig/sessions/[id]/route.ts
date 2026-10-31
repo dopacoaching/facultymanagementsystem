@@ -21,8 +21,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'IG_CLASS_TEACHER')
-    const isTeacher = payload.role === 'IG_CLASS_TEACHER'
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER')
+    // The joint-entry login edits joint classes only, under the same field list and 24-hour window.
+    const isJointTeacher = payload.role === 'IG_JOINT_TEACHER'
+    const isTeacher = payload.role === 'IG_CLASS_TEACHER' || isJointTeacher
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const { id } = await params
@@ -78,13 +80,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
-    if (isTeacher && existing.jointIG) {
+    if (isJointTeacher) {
+      if (!existing.jointIG) return withToken(json({ error: 'You can only edit joint classes.' }, 403), refreshedToken)
+      if (body.batchIds !== undefined) {
+        return withToken(json({ error: 'The schools and batches of a joint class cannot be changed — contact HR.' }, 403), refreshedToken)
+      }
+    } else if (isTeacher && existing.jointIG) {
       return withToken(json({ error: 'This is a joint class for several schools — contact HR to change it.' }, 403), refreshedToken)
     }
     if (isTeacher) {
-      const batch = existing.batchId ? await Batch.findById(existing.batchId).select('campusId type') : null
-      if (!payload.campusId || !batch || batch.type !== 'IG' || batch.campusId.toString() !== payload.campusId) {
-        return withToken(json({ error: 'You can only edit entries for your own school.' }, 403), refreshedToken)
+      if (!isJointTeacher) {
+        const batch = existing.batchId ? await Batch.findById(existing.batchId).select('campusId type') : null
+        if (!payload.campusId || !batch || batch.type !== 'IG' || batch.campusId.toString() !== payload.campusId) {
+          return withToken(json({ error: 'You can only edit entries for your own school.' }, 403), refreshedToken)
+        }
       }
       if (!canTeacherEdit(existing.createdAt)) {
         return withToken(json({ error: EDIT_WINDOW_CLOSED_MESSAGE }, 403), refreshedToken)
