@@ -17,7 +17,7 @@ const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
 // Accounts left on a removed role (former Academics Manager / IG Academics
 // Manager) are refused until an admin reassigns them. Mirrors client
 // `lib/roleHome.ts` isActiveRole.
-const ACTIVE_ROLES: string[] = ['ADMIN', 'HR_MANAGER', 'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY'] satisfies UserRole[]
+const ACTIVE_ROLES: string[] = ['ADMIN', 'HR_MANAGER', 'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER', 'FACULTY'] satisfies UserRole[]
 const REMOVED_ROLE_ERROR = "This account's role has been removed. Ask an admin to assign a new role."
 
 const signAccess = (p: JWTPayload) =>

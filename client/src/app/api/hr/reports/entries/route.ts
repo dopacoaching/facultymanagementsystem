@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
           { batchId: { $in: igBatches.map((b) => b._id) } },
         ],
       })
-        .select('facultyId campusName batchId extraBatchIds subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName comment entryType')
+        .select('facultyId campusName batchId extraBatchIds jointIG subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName comment entryType')
         .populate('facultyId', 'name type subject')
         .sort({ sessionDate: 1 })
         .limit(MAX_ROWS)
@@ -88,10 +88,17 @@ export async function GET(req: NextRequest) {
       .map((s) => {
         const f = s.facultyId as unknown as { _id: { toString(): string }; name: string; type: string }
         const batchId = s.batchId ? String(s.batchId) : ''
+        const allBatchIds = [batchId, ...(s.extraBatchIds ?? []).map(String)].filter(Boolean)
+        // A joint IG class covers several schools: one entry, listed under each of them.
+        const campusNames = s.jointIG
+          ? Array.from(new Set(allBatchIds.map((id) => igBatchCampus.get(id)).filter(Boolean))) as string[]
+          : [(s.campusName ?? igBatchCampus.get(batchId)) as string]
         return {
           _id: String(s._id),
           date: toLocalISODate(new Date(s.sessionDate)),
-          campusName: (s.campusName ?? igBatchCampus.get(batchId)) as string,
+          campusName: campusNames.join(' + '),
+          campusNames,
+          isJoint: !!s.jointIG,
           facultyId: f._id.toString(),
           facultyName: f.name,
           facultyType: f.type ?? '',
@@ -153,10 +160,20 @@ export async function GET(req: NextRequest) {
     const wholeCovered = new Set<string>()      // campus|date — covers every batch (whole-campus marker, or an entry with no batch)
     const batchCovered = new Set<string>()      // campus|batchId|date
     for (const s of sessions) {
-      const campus = (s.campusName ?? igBatchCampus.get(s.batchId ? String(s.batchId) : '')) as string | undefined
-      if (!campus) continue
       const date = toLocalISODate(new Date(s.sessionDate))
       const ids = [s.batchId, ...(s.extraBatchIds ?? [])].filter(Boolean).map(String)
+      if (s.jointIG) {
+        // Every school the joint class covered has that batch accounted for.
+        for (const id of ids) {
+          const school = igBatchCampus.get(id)
+          if (!school) continue
+          campusCovered.add(`${school}|${date}`)
+          batchCovered.add(`${school}|${id}|${date}`)
+        }
+        continue
+      }
+      const campus = (s.campusName ?? igBatchCampus.get(s.batchId ? String(s.batchId) : '')) as string | undefined
+      if (!campus) continue
       campusCovered.add(`${campus}|${date}`)
       if (ids.length === 0) wholeCovered.add(`${campus}|${date}`)
       for (const id of ids) batchCovered.add(`${campus}|${id}|${date}`)

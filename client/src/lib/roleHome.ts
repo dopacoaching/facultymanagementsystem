@@ -11,6 +11,7 @@ export const ROLE_HOME: Record<string, string> = {
   HR_MANAGER:           '/hr',
   CLASS_TEACHER:        '/coordinator',
   IG_CLASS_TEACHER:     '/coordinator',
+  IG_JOINT_TEACHER:     '/ig-joint',
   FACULTY:              '/faculty',
 }
 

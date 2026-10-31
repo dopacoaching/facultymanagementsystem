@@ -43,5 +43,5 @@ export async function countCampusSessionsOnDay(campusName: string, dayStart: Dat
   const igId = Array.from((await getIgCampusNames()).entries()).find(([, n]) => n === campusName)?.[0]
   if (!igId) return direct
   const batchIds = await Batch.find({ type: 'IG', campusId: new Types.ObjectId(igId) }).distinct('_id')
-  return direct + await Session.countDocuments({ ...base, batchId: { $in: batchIds } })
+  return direct + await Session.countDocuments({ ...base, $or: [{ batchId: { $in: batchIds } }, { extraBatchIds: { $in: batchIds } }] })
 }

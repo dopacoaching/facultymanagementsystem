@@ -10,6 +10,7 @@ const ROLE_HOMES: Record<string, string> = {
   ADMIN: '/admin',
   HR_MANAGER: '/hr',
   IG_CLASS_TEACHER: '/coordinator',
+  IG_JOINT_TEACHER: '/ig-joint',
   CLASS_TEACHER: '/coordinator',
   FACULTY: '/faculty',
 }

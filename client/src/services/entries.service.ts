@@ -4,7 +4,12 @@ export interface EntryRow {
   _id: string
   /** YYYY-MM-DD */
   date: string
+  /** A joint IG class lists every school as 'IG 1 + IG 2'. */
   campusName: string
+  /** The schools/campuses the entry covers (several for a joint IG class). */
+  campusNames: string[]
+  /** One class taught to several IG schools at once. */
+  isJoint: boolean
   facultyId: string
   facultyName: string
   facultyType: string

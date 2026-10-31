@@ -80,6 +80,9 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
     { href: '/coordinator' },
     { href: '/ig/sessions/history' },
   ],
+  IG_JOINT_TEACHER: [
+    { href: '/ig-joint' },
+  ],
   FACULTY: [
     { href: '/faculty' },
     { href: '/faculty/sessions' },
@@ -102,6 +105,7 @@ function roleLabel(role: string | null): string {
     HR_MANAGER:           'HR Manager',
     CLASS_TEACHER:        'Class Teacher',
     IG_CLASS_TEACHER:     'IG Class Teacher',
+    IG_JOINT_TEACHER:     'IG Joint Entry',
     FACULTY:              'Faculty',
   }
   return map[role] ?? role.replace(/_/g, ' ')

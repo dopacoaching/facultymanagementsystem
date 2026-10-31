@@ -314,7 +314,7 @@ export default function EntriesReportPage() {
     const all = report?.sessions ?? []
     return all
       .filter((r) => kind === 'ALL' || (kind === 'PERMANENT') === (r.facultyType === 'PERMANENT'))
-      .filter((r) => !campus || r.campusName === campus)
+      .filter((r) => !campus || r.campusNames.includes(campus))
       .filter((r) => !facultyId || r.facultyId === facultyId)
       .sort(byEntryOrder)
   }, [report, kind, campus, facultyId])

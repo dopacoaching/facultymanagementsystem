@@ -78,6 +78,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
+    if (isTeacher && existing.jointIG) {
+      return withToken(json({ error: 'This is a joint class for several schools — contact HR to change it.' }, 403), refreshedToken)
+    }
     if (isTeacher) {
       const batch = existing.batchId ? await Batch.findById(existing.batchId).select('campusId type') : null
       if (!payload.campusId || !batch || batch.type !== 'IG' || batch.campusId.toString() !== payload.campusId) {
@@ -104,7 +107,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.batchIds !== undefined) {
       const r = isTeacher
         ? await resolveTeacherBatchEdit(body.batchIds, existing.batchId, { igOnly: true })
-        : await resolveHrBatchSet(body.batchIds, { igOnly: true })
+        : await resolveHrBatchSet(body.batchIds, { igOnly: true, anyCampus: !!existing.jointIG })
       if (!r.ok) return withToken(json({ error: r.error }, r.status), refreshedToken)
       update.batchId = r.batchId
       if (r.extras.length) update.extraBatchIds = r.extras

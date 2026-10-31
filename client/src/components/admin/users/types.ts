@@ -14,7 +14,7 @@ export function validatePasswordComplexity(pw: string): string | null {
 
 export const ALL_ROLES: UserRole[] = [
   'ADMIN', 'HR_MANAGER',
-  'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'FACULTY',
+  'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER', 'FACULTY',
 ]
 
 export const ROLE_BADGE: Record<string, string> = {
@@ -24,6 +24,7 @@ export const ROLE_BADGE: Record<string, string> = {
   IG_ACADEMICS_MANAGER: 'badge-blue',
   CLASS_TEACHER:          'badge-green',
   IG_CLASS_TEACHER:       'badge-green',
+  IG_JOINT_TEACHER:       'badge-green',
   FACULTY:              'badge-gray',
 }
 
@@ -34,6 +35,7 @@ export const ROLE_DISPLAY: Record<string, string> = {
   IG_ACADEMICS_MANAGER: 'IG Academics Manager',
   CLASS_TEACHER:          'Class Teacher',
   IG_CLASS_TEACHER:       'IG Class Teacher',
+  IG_JOINT_TEACHER:       'IG Joint Entry',
   FACULTY:              'Faculty',
 }
 

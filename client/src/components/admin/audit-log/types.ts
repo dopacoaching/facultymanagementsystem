@@ -77,6 +77,7 @@ export const ROLE_LABEL: Record<string, string> = {
   IG_ACADEMICS_MANAGER: 'IG Academics Mgr',
   CLASS_TEACHER:        'Class Teacher',
   IG_CLASS_TEACHER:     'IG Class Teacher',
+  IG_JOINT_TEACHER:     'IG Joint Entry',
   COORDINATOR:          'Class Teacher',    // legacy actorRole on audit rows predating the CLASS_TEACHER rename
   IG_COORDINATOR:       'IG Class Teacher', // legacy actorRole on audit rows predating the IG_CLASS_TEACHER rename
   FACULTY:              'Faculty',

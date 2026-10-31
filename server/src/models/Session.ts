@@ -8,6 +8,8 @@ export interface ISession extends Document {
   batchId?: Types.ObjectId
   /** Other batches taught in the same class at the same time (multi-batch campuses). One session, so the faculty's hours count once. */
   extraBatchIds?: Types.ObjectId[]
+  /** One class taught to several IG schools at once (entered by the joint-entry login). extraBatchIds may then belong to other schools; the faculty's hours still count once. */
+  jointIG?: boolean
   /** Campus-login class-teacher flow only — a fixed campus name, independent of Batch. */
   campusName?: string
   classMode?: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE'
@@ -57,6 +59,7 @@ const SessionSchema = new Schema<ISession>(
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty', required: true },
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch' },
     extraBatchIds: { type: [{ type: Schema.Types.ObjectId, ref: 'Batch' }], default: undefined },
+    jointIG: { type: Boolean, default: undefined },
     campusName: { type: String },
     classMode: { type: String, enum: ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE'] },
     subject: { type: String, required: true },

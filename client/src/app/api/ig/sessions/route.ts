@@ -66,7 +66,8 @@ export async function GET(req: NextRequest) {
       } else if (payload.batchId) {
         try { allowedBatchIds = [new Types.ObjectId(payload.batchId)] } catch { allowedBatchIds = [] }
       }
-      filter.batchId = { $in: allowedBatchIds }
+      // A joint class lists the school's batch as an extra batch of someone else's entry.
+      filter.$or = [{ batchId: { $in: allowedBatchIds } }, { extraBatchIds: { $in: allowedBatchIds } }]
     } else if (batchId) {
       try { filter.batchId = new Types.ObjectId(batchId) } catch {
         return withToken(json({ error: 'Invalid batchId' }, 400), refreshedToken)

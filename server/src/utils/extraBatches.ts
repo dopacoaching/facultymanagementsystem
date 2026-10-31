@@ -15,7 +15,7 @@ import { Batch, IBatch } from '../models/Batch'
 export async function resolveExtraBatches(
   batchIds: unknown,
   primary: IBatch,
-  opts: { igOnly?: boolean } = {},
+  opts: { igOnly?: boolean; anyCampus?: boolean } = {},
 ): Promise<{ ok: true; extras: Types.ObjectId[] } | { ok: false; status: number; error: string }> {
   if (!Array.isArray(batchIds)) return { ok: true, extras: [] }
 
@@ -35,7 +35,8 @@ export async function resolveExtraBatches(
   const found = await Batch.find({ _id: { $in: extras } }).select('campusId type isActive').lean()
   if (found.length !== extras.length) return { ok: false, status: 404, error: 'Batch not found' }
   for (const b of found) {
-    if (b.campusId.toString() !== primary.campusId.toString()) {
+    // A joint IG class (one class for several schools) is the one case that may span campuses.
+    if (!opts.anyCampus && b.campusId.toString() !== primary.campusId.toString()) {
       return { ok: false, status: 403, error: 'All selected batches must belong to the same campus.' }
     }
     if (b.isActive === false) {
@@ -111,7 +112,7 @@ export async function syncChapterLinks(
  */
 export async function resolveHrBatchSet(
   batchIds: unknown,
-  opts: { igOnly?: boolean } = {},
+  opts: { igOnly?: boolean; anyCampus?: boolean } = {},
 ): Promise<{ ok: true; batchId: Types.ObjectId; extras: Types.ObjectId[] } | { ok: false; status: number; error: string }> {
   if (!Array.isArray(batchIds) || batchIds.length === 0) {
     return { ok: false, status: 400, error: 'Select at least one batch' }

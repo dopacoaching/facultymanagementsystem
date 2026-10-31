@@ -34,11 +34,14 @@ export function buildWholeDays(report: EntriesReport, campus: string, from: stri
 
   const classes = new Map<string, { n: number; h: number }>()
   for (const s of report.sessions) {
-    if (campus && s.campusName !== campus) continue
-    const k = dayKey(s.campusName, s.date)
-    const cur = classes.get(k) ?? { n: 0, h: 0 }
-    cur.n += 1; cur.h += s.durationHours
-    classes.set(k, cur)
+    // A joint IG class counts under every school it covered.
+    for (const name of s.campusNames) {
+      if (campus && name !== campus) continue
+      const k = dayKey(name, s.date)
+      const cur = classes.get(k) ?? { n: 0, h: 0 }
+      cur.n += 1; cur.h += s.durationHours
+      classes.set(k, cur)
+    }
   }
   const noClass = new Map<string, NoClassRow[]>()
   for (const n of report.noClass) {

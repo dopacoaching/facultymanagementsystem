@@ -4,6 +4,7 @@
   | 'CLASS_TEACHER'
   | 'FACULTY'
   | 'IG_CLASS_TEACHER'
+  | 'IG_JOINT_TEACHER'
 
 export type FacultyType = 'PERMANENT' | 'TEMPORARY' | 'REGULAR' | 'VISITING' | 'CONTRACTUAL'
 

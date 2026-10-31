@@ -121,7 +121,8 @@ export default function IGSessionHistoryPage() {
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
                       <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
-                        {editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
+                        {s.jointIG && <span className="badge badge-gray">Joint class</span>}
+                        {!s.jointIG && editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
                           <>
                             <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(s)}>Edit</button>
                             <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
