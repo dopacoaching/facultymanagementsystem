@@ -75,11 +75,21 @@ export const ROUTES: RouteMeta[] = [
     path: '/ig-joint', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
     navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
   },
+  {
+    path: '/ig-joint/history', title: 'Joint Class History', navLabel: 'History',
+    navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
+    parent: '/ig-joint',
+  },
 
   // ── Repeaters Joint Entry (one class taught to several campuses at once) ─
   {
     path: '/joint-entry', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
     navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
+  },
+  {
+    path: '/joint-entry/history', title: 'Joint Class History', navLabel: 'History',
+    navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
+    parent: '/joint-entry',
   },
 
   // ── HR ──────────────────────────────────────────────────────────────────

@@ -82,9 +82,11 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
   ],
   IG_JOINT_TEACHER: [
     { href: '/ig-joint' },
+    { href: '/ig-joint/history' },
   ],
   REPEATERS_JOINT_TEACHER: [
     { href: '/joint-entry' },
+    { href: '/joint-entry/history' },
   ],
   FACULTY: [
     { href: '/faculty' },
