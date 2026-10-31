@@ -22,7 +22,7 @@ const UserSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true },
     role: {
       type: String,
-      enum: ['ADMIN', 'HR_MANAGER', 'CLASS_TEACHER', 'FACULTY', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER'],
+      enum: ['ADMIN', 'HR_MANAGER', 'CLASS_TEACHER', 'FACULTY', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER', 'REPEATERS_JOINT_TEACHER'],
       required: true,
     },
     facultyId: { type: Schema.Types.ObjectId, ref: 'Faculty' },

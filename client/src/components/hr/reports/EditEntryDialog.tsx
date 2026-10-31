@@ -36,7 +36,7 @@ function ClassEditor({ session, accessToken, onClose, onSaved }: EditorProps) {
 
   // HR can only regroup batches inside the entry's own campus.
   const campusId = batchOptions.find((b) => b._id === session.batchId)?.campusId
-  const pickerBatches = campusId === undefined ? [] : batchOptions.filter((b) => campusIdOf(b) === (typeof campusId === 'object' ? campusId._id : campusId))
+  const pickerBatches = campusId === undefined || session.jointCampuses?.length ? [] : batchOptions.filter((b) => campusIdOf(b) === (typeof campusId === 'object' ? campusId._id : campusId))
 
   async function save() {
     const original = formFromSession(session)

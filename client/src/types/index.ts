@@ -5,6 +5,7 @@ export type UserRole =
   | 'FACULTY'
   | 'IG_CLASS_TEACHER'
   | 'IG_JOINT_TEACHER'
+  | 'REPEATERS_JOINT_TEACHER'
 
 export interface Faculty {
   _id: string
@@ -39,6 +40,8 @@ export interface Session {
   extraBatchIds?: string[]
   /** One class taught to several IG schools at once; only HR/Admin can change it. */
   jointIG?: boolean
+  /** One class taught to several campuses at once; only HR/Admin can change it. */
+  jointCampuses?: string[]
   /** Names of the batch(es) the class was for — set by the session list APIs. */
   batchNames?: string[]
   campusName?: string

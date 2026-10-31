@@ -12,7 +12,7 @@ import type { UserRole } from '@/lib/types'
 
 const VALID_ROLES: UserRole[] = [
   'HR_MANAGER',
-  'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER', 'FACULTY',
+  'CLASS_TEACHER', 'IG_CLASS_TEACHER', 'IG_JOINT_TEACHER', 'REPEATERS_JOINT_TEACHER', 'FACULTY',
 ]
 
 /** GET /api/admin/users — list all users */

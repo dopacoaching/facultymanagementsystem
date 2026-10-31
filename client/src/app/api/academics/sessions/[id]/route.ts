@@ -94,6 +94,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
+    if (isTeacher && existing.jointCampuses?.length) {
+      return withToken(json({ error: 'This is a joint class for several campuses — contact HR to change it.' }, 403), refreshedToken)
+    }
     if (isTeacher) {
       const own = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
       if (!own || existing.campusName !== own) {

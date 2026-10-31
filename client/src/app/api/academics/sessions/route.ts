@@ -68,7 +68,8 @@ export async function GET(req: NextRequest) {
     }
 
     if (campusName) {
-      filter.campusName = campusName
+      // A joint class lists the campus among the campuses of someone else's entry.
+      filter.$or = [{ campusName }, { jointCampuses: campusName }]
     }
 
     if (facultyId) {

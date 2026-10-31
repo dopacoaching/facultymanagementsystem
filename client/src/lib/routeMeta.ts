@@ -18,6 +18,7 @@ export type Role =
   | 'CLASS_TEACHER'
   | 'IG_CLASS_TEACHER'
   | 'IG_JOINT_TEACHER'
+  | 'REPEATERS_JOINT_TEACHER'
   | 'FACULTY'
 
 export interface RouteMeta {
@@ -73,6 +74,12 @@ export const ROUTES: RouteMeta[] = [
   {
     path: '/ig-joint', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
     navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
+  },
+
+  // ── Repeaters Joint Entry (one class taught to several campuses at once) ─
+  {
+    path: '/joint-entry', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
+    navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
   },
 
   // ── HR ──────────────────────────────────────────────────────────────────

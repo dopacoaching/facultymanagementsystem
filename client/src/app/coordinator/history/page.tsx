@@ -124,7 +124,8 @@ export default function CampusHistoryPage() {
                       <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
                       <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
                       <td style={{ whiteSpace: 'nowrap' }}>
-                        {editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
+                        {s.jointCampuses?.length ? <span className="badge badge-gray">Joint class</span> : null}
+                        {!s.jointCampuses?.length && editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
                           <>
                             <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(s)}>Edit</button>
                             <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>

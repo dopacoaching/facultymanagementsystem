@@ -38,7 +38,7 @@ export async function resolveCoordinatorCampusName(
  *  rows carry campusName; IG rows are matched through their batch's school. */
 export async function countCampusSessionsOnDay(campusName: string, dayStart: Date, dayEnd: Date): Promise<number> {
   const base = { sessionDate: { $gte: dayStart, $lte: dayEnd }, status: { $ne: 'CANCELLED' as const } }
-  const direct = await Session.countDocuments({ ...base, campusName })
+  const direct = await Session.countDocuments({ ...base, $or: [{ campusName }, { jointCampuses: campusName }] })
 
   const igId = Array.from((await getIgCampusNames()).entries()).find(([, n]) => n === campusName)?.[0]
   if (!igId) return direct

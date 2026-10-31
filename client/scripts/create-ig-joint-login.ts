@@ -8,15 +8,21 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 
 /**
- * Creates (or resets) the IG joint-entry login — the one account allowed to enter a class
- * taught to several IG schools at once. It gets the same shared password as the campus
+ * Creates a joint-entry login — the one account allowed to enter a class taught to several
+ * IG schools (IG_JOINT_TEACHER) or several repeaters campuses (REPEATERS_JOINT_TEACHER) at once. It gets the same shared password as the campus
  * teacher logins, read from the campus-login script so the password is not copied here.
  *
- * Run:  npx tsx scripts/create-ig-joint-login.ts <email>
+ * An existing account is never overwritten unless --force is given (it prints the current role).
+ *
+ * Run:  npx tsx scripts/create-ig-joint-login.ts <email> [IG_JOINT_TEACHER|REPEATERS_JOINT_TEACHER] [--force]
  */
 async function run() {
-  const username = process.argv[2]?.trim().toLowerCase()
-  if (!username) throw new Error('Usage: create-ig-joint-login.ts <email>')
+  const args = process.argv.slice(2).filter((a) => !a.startsWith('--'))
+  const force = process.argv.includes('--force')
+  const username = args[0]?.trim().toLowerCase()
+  const role = args[1] ?? 'IG_JOINT_TEACHER'
+  if (!username) throw new Error('Usage: create-ig-joint-login.ts <email> [role] [--force]')
+  if (role !== 'IG_JOINT_TEACHER' && role !== 'REPEATERS_JOINT_TEACHER') throw new Error('Unknown role ' + role)
   const uri = process.env.MONGODB_URI
   if (!uri) throw new Error('MONGODB_URI is required')
 
@@ -27,17 +33,23 @@ async function run() {
 
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 10_000 })
   const users = mongoose.connection.db!.collection('users')
+  const existing = await users.findOne({ username }, { projection: { role: 1, isActive: 1, campusName: 1 } })
+  if (existing && !force) {
+    console.log(`${username} already exists (role ${existing.role}, ${existing.isActive ? 'active' : 'inactive'}) — nothing changed. Re-run with --force to overwrite.`)
+    await mongoose.disconnect()
+    return
+  }
   const now = new Date()
   const result = await users.updateOne(
     { username },
     {
-      $set: { username, passwordHash, role: 'IG_JOINT_TEACHER', isActive: true, updatedAt: now },
+      $set: { username, passwordHash, role, isActive: true, updatedAt: now },
       $setOnInsert: { createdAt: now },
       $unset: { campusName: '', campusId: '', batchId: '', batchType: '', facultyId: '' },
     },
     { upsert: true },
   )
-  console.log(`${username}: ${result.upsertedCount ? 'created' : 'updated'} as IG_JOINT_TEACHER on ${mongoose.connection.host}/${mongoose.connection.name}`)
+  console.log(`${username}: ${result.upsertedCount ? 'created' : 'updated'} as ${role} on ${mongoose.connection.host}/${mongoose.connection.name}`)
   await mongoose.disconnect()
 }
 
