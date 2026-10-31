@@ -1,6 +1,6 @@
 /**
  * Campuses that may share one class on the repeaters Joint Class Entry (one faculty teaching
- * several campuses at the same time). Online Repeat and Studio are deliberately not on it.
+ * several campuses at the same time). Studio is deliberately not on it.
  * Matched against the PushCampus name; a campus that is inactive or renamed simply drops out.
  */
 export const JOINT_REPEATER_CAMPUSES = [
@@ -11,6 +11,7 @@ export const JOINT_REPEATER_CAMPUSES = [
   'Kottakkal Girls',
   'Kottakkal Offline',
   'Narikkuni Girls',
+  'Online Repeat',
   'PVT Girls',
   'Thrissur Offline',
   'Thrissur Residential',
