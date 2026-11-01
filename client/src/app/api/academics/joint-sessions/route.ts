@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
-import { authenticate, authorize, json, withToken } from '@/lib/auth'
+import { authenticate, json, withToken } from '@/lib/auth'
+import { jointAccessFor } from '@/lib/utils/jointAccess'
 import { Session } from '@/lib/models/Session'
 import { Batch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
 import { BatchChapter } from '@/lib/models/BatchChapter'
 import { supersedeNoClass } from '@/lib/services/noClass'
-import { listActivePushCampuses } from '@/lib/services/pushCampuses'
+import { listActivePushCampuses, findPushCampusByName, activeTeacherNames } from '@/lib/services/pushCampuses'
 import { unlistedChapters, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { chapterSubjectOf } from '@/lib/constants/labSubjects'
@@ -40,14 +41,16 @@ export async function GET(req: NextRequest) {
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'REPEATERS_JOINT_TEACHER')
-    if (forbidden) return withToken(forbidden, refreshedToken)
-
     await connectDB()
+    const access = await jointAccessFor(payload)
+    if (!access) return withToken(json({ error: 'Forbidden' }, 403), refreshedToken)
     const campuses = await jointCampusOptions()
+    // A campus login picks who filled in the form from its own teacher list; the dedicated login is one fixed person.
+    const teacherNames = access.kind === 'CAMPUS' ? activeTeacherNames(await findPushCampusByName(access.campusName)) : undefined
     const faculty = await Faculty.find({ isActive: true }).select('name subject').sort({ name: 1 }).lean()
     return withToken(json({
-      enteredBy: JOINT_REPEATER_ENTERED_BY,
+      enteredBy: access.kind === 'DEDICATED' ? JOINT_REPEATER_ENTERED_BY : null,
+      teacherNames,
       campuses: campuses.map((c) => ({ name: c.name, batches: c.batches })),
       faculty: faculty.map((f) => ({ _id: String(f._id), name: f.name, subject: f.subject })),
     }), refreshedToken)
@@ -65,9 +68,6 @@ export async function POST(req: NextRequest) {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
-
-    const forbidden = authorize(payload, 'REPEATERS_JOINT_TEACHER')
-    if (forbidden) return withToken(forbidden, refreshedToken)
 
     const body = await req.json() as Record<string, unknown>
     const { facultyId, subject, classMode, startTime, endTime, sessionDate } = body
@@ -117,6 +117,17 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB()
+
+    const access = await jointAccessFor(payload)
+    if (!access) return withToken(json({ error: 'Forbidden' }, 403), refreshedToken)
+    let enteredBy = JOINT_REPEATER_ENTERED_BY
+    if (access.kind === 'CAMPUS') {
+      const names = activeTeacherNames(await findPushCampusByName(access.campusName))
+      if (typeof body.updatedByName !== 'string' || !names.includes(body.updatedByName)) {
+        return withToken(json({ error: 'Select who is filling in this form' }, 400), refreshedToken)
+      }
+      enteredBy = body.updatedByName
+    }
 
     const faculty = await Faculty.findById(facultyOid).select('isActive')
     if (!faculty || faculty.isActive === false) {
@@ -172,7 +183,7 @@ export async function POST(req: NextRequest) {
       breakMinutes,
       lunchBreakMinutes: 0,
       afternoonBreakMinutes: 0,
-      updatedByName: JOINT_REPEATER_ENTERED_BY,
+      updatedByName: enteredBy,
       comment: normalizeComment(body.comment) || undefined,
       durationHours: duration,
       sessionDate: date,

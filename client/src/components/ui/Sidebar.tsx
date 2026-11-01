@@ -1,4 +1,5 @@
 'use client'
+import { JOINT_ENTRY_CAMPUS_LOGINS } from '@/lib/constants/jointCampuses'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -97,8 +98,12 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
 
 const SALARY_PATHS = new Set(['/hr/salary', '/hr/reports/salary', '/faculty/salary'])
 
-function navForRole(role: string | null): NavEntry[] {
-  const entries = (role && ROLE_NAV[role]) || []
+function navForRole(role: string | null, campusName: string | null): NavEntry[] {
+  let entries = (role && ROLE_NAV[role]) || []
+  // Campus logins with joint-entry permission (Studio) keep their own pages and add the joint ones.
+  if (role === 'CLASS_TEACHER' && campusName && (JOINT_ENTRY_CAMPUS_LOGINS as readonly string[]).includes(campusName)) {
+    entries = [...entries, { href: '/joint-entry' }, { href: '/joint-entry/history' }]
+  }
   // Salary calculation is on hold — hide its screens from the nav.
   return SALARY_ENABLED ? entries : entries.filter((e) => !('href' in e) || !SALARY_PATHS.has(e.href))
 }
@@ -135,8 +140,8 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const { role, accessToken } = useAppSelector((s) => s.auth)
-  const entries = navForRole(role)
+  const { role, accessToken, campusName } = useAppSelector((s) => s.auth)
+  const entries = navForRole(role, campusName)
   const linkPaths = entries
     .filter((e): e is { href: string } => 'href' in e)
     .map((e) => e.href)

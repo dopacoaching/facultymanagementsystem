@@ -76,7 +76,7 @@ export const ROUTES: RouteMeta[] = [
     navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
   },
   {
-    path: '/ig-joint/history', title: 'Joint Class History', navLabel: 'History',
+    path: '/ig-joint/history', title: 'Joint Class History', navLabel: 'Joint History',
     navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
     parent: '/ig-joint',
   },
@@ -87,7 +87,7 @@ export const ROUTES: RouteMeta[] = [
     navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
   },
   {
-    path: '/joint-entry/history', title: 'Joint Class History', navLabel: 'History',
+    path: '/joint-entry/history', title: 'Joint Class History', navLabel: 'Joint History',
     navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
     parent: '/joint-entry',
   },

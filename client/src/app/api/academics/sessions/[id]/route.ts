@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
+import { jointAccessFor } from '@/lib/utils/jointAccess'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Session } from '@/lib/models/Session'
 import { BatchChapter } from '@/lib/models/BatchChapter'
@@ -96,16 +97,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (existing.status === 'CANCELLED') {
       return withToken(json({ error: 'Cannot edit a cancelled session' }, 409), refreshedToken)
     }
-    if (isJointTeacher) {
-      if (!existing.jointCampuses?.length) return withToken(json({ error: 'You can only edit joint classes.' }, 403), refreshedToken)
-      if (body.batchIds !== undefined) {
-        return withToken(json({ error: 'The campuses and batches of a joint class cannot be changed — contact HR.' }, 403), refreshedToken)
-      }
-    } else if (isTeacher && existing.jointCampuses?.length) {
+    // The joint-entry logins (the dedicated one, and Studio's campus login) may edit joint classes.
+    const isJointEntry = !!existing.jointCampuses?.length
+    const viaJoint = isTeacher && isJointEntry && !!(await jointAccessFor(payload))
+    if (isJointTeacher && !isJointEntry) {
+      return withToken(json({ error: 'You can only edit joint classes.' }, 403), refreshedToken)
+    }
+    if (viaJoint && body.batchIds !== undefined) {
+      return withToken(json({ error: 'The campuses and batches of a joint class cannot be changed — contact HR.' }, 403), refreshedToken)
+    }
+    if (isTeacher && isJointEntry && !viaJoint) {
       return withToken(json({ error: 'This is a joint class for several campuses — contact HR to change it.' }, 403), refreshedToken)
     }
     if (isTeacher) {
-      if (!isJointTeacher) {
+      if (!viaJoint) {
         const own = payload.campusName ? await resolveCoordinatorCampusName(payload) : undefined
         if (!own || existing.campusName !== own) {
           return withToken(json({ error: 'You can only edit entries for your own campus.' }, 403), refreshedToken)

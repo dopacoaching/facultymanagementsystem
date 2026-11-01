@@ -13,7 +13,9 @@ import {
 } from '@/components/coordinator/log-session'
 
 interface JointOptions {
-  enteredBy: string
+  /** The dedicated login's fixed name; null for a campus login, which picks from teacherNames. */
+  enteredBy: string | null
+  teacherNames?: string[]
   campuses: { name: string; batches: { _id: string; name: string }[] }[]
   faculty: { _id: string; name: string; subject: string }[]
 }
@@ -90,6 +92,7 @@ export default function JointEntryPage() {
     if (!form.classMode) return 'Select the class mode'
     if (form.chapters.length === 0) return 'Add at least one chapter'
     if (duration.error) return duration.error
+    if (options.data?.teacherNames && !form.updatedByName) return 'Select who is filling in this form'
     return null
   }
 
@@ -113,6 +116,7 @@ export default function JointEntryPage() {
           startTime: form.startTime,
           endTime: form.endTime,
           breakMinutes: duration.morningBreak,
+          updatedByName: options.data?.teacherNames ? form.updatedByName : undefined,
           comment: form.comment.trim() || undefined,
           durationHours: duration.hours,
           sessionDate: form.sessionDate,
@@ -258,9 +262,18 @@ export default function JointEntryPage() {
               <BreakRow label="Break (Tea)" note="first 15m free" field={form.teaBreak}
                 onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })} />
 
-              <FormField label="Entered by" htmlFor="jc-by">
-                <input id="jc-by" className="input" readOnly disabled value={options.data?.enteredBy ?? ''} />
-              </FormField>
+              {options.data?.teacherNames ? (
+                <FormField label="Updated by" htmlFor="jc-by" required hint="Who is filling in this form">
+                  <select id="jc-by" className="input" value={form.updatedByName} onChange={(e) => setField('updatedByName', e.target.value)}>
+                    <option value="">— select —</option>
+                    {options.data.teacherNames.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </FormField>
+              ) : (
+                <FormField label="Entered by" htmlFor="jc-by">
+                  <input id="jc-by" className="input" readOnly disabled value={options.data?.enteredBy ?? ''} />
+                </FormField>
+              )}
 
               <FormField label="Comment" htmlFor="jc-comment" hint="Optional — anything HR should know about this class">
                 <textarea id="jc-comment" className="input" rows={3} maxLength={500} value={form.comment}

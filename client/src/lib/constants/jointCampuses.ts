@@ -17,5 +17,9 @@ export const JOINT_REPEATER_CAMPUSES = [
   'Thrissur Residential',
 ] as const
 
+/** Campus logins (by campus name) that may also use the repeaters Joint Class Entry, besides the
+ *  dedicated joint-entry login. They keep their Push Board and History. */
+export const JOINT_ENTRY_CAMPUS_LOGINS = ['Studio'] as const
+
 /** Shown as "Entered by" on every repeaters joint entry — the login is held by one person. */
 export const JOINT_REPEATER_ENTERED_BY = 'Badardhuja K'
