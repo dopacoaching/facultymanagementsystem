@@ -15,7 +15,6 @@ export function toLocalISO(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-/** Today's date as YYYY-MM-DD in the user's local timezone. */
 /** Start of a history list's default range: the 1st of this month, or a week back if that is earlier —
  *  so on the 1st the last days of the previous month (still editable) are not hidden. */
 export function defaultHistoryFrom(now: Date = new Date()): string {
@@ -24,6 +23,7 @@ export function defaultHistoryFrom(now: Date = new Date()): string {
   return toLocalISO(weekAgo < monthStart ? weekAgo : monthStart)
 }
 
+/** Today's date as YYYY-MM-DD in the user's local timezone. */
 export function todayLocal(): string {
   return toLocalISO(new Date())
 }
@@ -33,4 +33,22 @@ export function addDays(dateStr: string, n: number): string {
   const d = new Date(dateStr + 'T12:00:00')
   d.setDate(d.getDate() + n)
   return toLocalISO(d)
+}
+
+/** True for a complete 'YYYY-MM' value. Browsers without a month picker (desktop Firefox/Safari) hand
+ *  over half-typed text such as '2' or '2026-1' while the user is still typing. */
+export const isMonthValue = (v: string): boolean => /^\d{4}-(0[1-9]|1[0-2])$/.test(v)
+
+/** The date to show after the month changes: the current one if it still falls in the month, else
+ *  today if that is in the month, else the month's last selectable day. Never empty for a past month —
+ *  an empty date input opens its picker on today's month, where every day is out of range. */
+export function dateForMonth(prevDate: string, month: string, today: string = todayLocal()): string {
+  if (!isMonthValue(month)) return prevDate
+  const [y, m] = month.split('-').map(Number)
+  const end = `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+  const min = `${month}-01`
+  const max = end < today ? end : today
+  if (max < min) return ''                       // a future month: nothing is selectable
+  if (prevDate >= min && prevDate <= max) return prevDate
+  return today >= min && today <= max ? today : max
 }

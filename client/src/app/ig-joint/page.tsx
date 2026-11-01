@@ -6,7 +6,7 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
-import { todayLocal } from '@/utils/date'
+import { todayLocal, dateForMonth, isMonthValue } from '@/utils/date'
 import {
   EMPTY_FORM, FormState, computeDuration, monthBounds, teaBreakAsBreaks, formatHM,
   CLASS_MODE_OPTIONS, SubjectField, ChaptersField, BreakRow,
@@ -40,7 +40,8 @@ export default function IGJointEntryPage() {
   const [submitError, setSubmitError] = useState('')
   const [saved, setSaved] = useState(false)
 
-  const dateBounds = monthBounds(form.month)
+  // A half-typed month (browsers without a month picker) falls back to this month's bounds.
+  const dateBounds = monthBounds(isMonthValue(form.month) ? form.month : todayLocal().slice(0, 7))
   const duration = useMemo(
     () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak), { fullBreak: false }),
     [form.startTime, form.endTime, form.teaBreak],
@@ -51,11 +52,8 @@ export default function IGJointEntryPage() {
       const updated = { ...prev, [key]: value }
       if (key === 'subject' && prev.subject !== value) updated.chapters = []
       if (key === 'month') {
-        const { min, max } = monthBounds(value as string)
-        if (prev.sessionDate < min || prev.sessionDate > max) {
-          const today = todayLocal()
-          updated.sessionDate = today >= min && today <= max ? today : ''
-        }
+        // Keep the date if it is still in the new month; otherwise land on a day that can be picked.
+        updated.sessionDate = dateForMonth(prev.sessionDate, value as string)
       }
       return updated
     })
@@ -173,7 +171,7 @@ export default function IGJointEntryPage() {
                 </FormField>
                 <FormField label="Date" htmlFor="jc-date" required>
                   <input id="jc-date" type="date" className="input" value={form.sessionDate} min={dateBounds.min} max={dateBounds.max}
-                    disabled={!form.month} onChange={(e) => setField('sessionDate', e.target.value)} />
+                    disabled={!isMonthValue(form.month)} onChange={(e) => setField('sessionDate', e.target.value)} />
                 </FormField>
               </div>
 

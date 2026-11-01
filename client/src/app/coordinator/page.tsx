@@ -15,7 +15,7 @@ import { NoClassCard } from '@/components/coordinator/NoClassCard'
 import { NotSubmittedNotice } from '@/components/coordinator/NotSubmittedNotice'
 import { ConfirmEntryModal } from '@/components/coordinator/ConfirmEntryModal'
 import { fmtDay } from '@/components/hr/reports/reportShared'
-import { todayLocal } from '@/utils/date'
+import { todayLocal, dateForMonth, isMonthValue } from '@/utils/date'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
 import {
   EMPTY_FORM, FormState, computeDuration, computeShootDuration, monthBounds, teaBreakAsBreaks, formatHM,
@@ -85,7 +85,8 @@ export default function PushBoardPage() {
 
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
-  const dateBounds = monthBounds(form.month)
+  // A half-typed month (browsers without a month picker) falls back to this month's bounds.
+  const dateBounds = monthBounds(isMonthValue(form.month) ? form.month : todayLocal().slice(0, 7))
   // Studio Live: the break is deducted in full — no 15-minute free grace.
   const fullBreak = usesFullBreak(form.entryType)
   const duration = useMemo(
@@ -116,12 +117,8 @@ export default function PushBoardPage() {
       }
       if (key === 'subject' && prev.subject !== value) updated.chapters = []
       if (key === 'month') {
-        // Keep the date only if it still falls inside the newly picked month.
-        const { min, max } = monthBounds(value as string)
-        if (prev.sessionDate < min || prev.sessionDate > max) {
-          const today = todayLocal()
-          updated.sessionDate = today >= min && today <= max ? today : ''
-        }
+        // Keep the date if it is still in the new month; otherwise land on a day that can be picked.
+        updated.sessionDate = dateForMonth(prev.sessionDate, value as string)
       }
       return updated
     })
@@ -355,7 +352,7 @@ export default function PushBoardPage() {
                     value={form.sessionDate}
                     min={dateBounds.min}
                     max={dateBounds.max}
-                    disabled={!form.month}
+                    disabled={!isMonthValue(form.month)}
                     onChange={(e) => setField('sessionDate', e.target.value)}
                   />
                 </FormField>
