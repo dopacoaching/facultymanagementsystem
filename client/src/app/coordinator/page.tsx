@@ -85,8 +85,7 @@ export default function PushBoardPage() {
 
   const selectedFaculty = facultyList.find((f) => f._id === form.facultyId)
   const needsSessionCategory = !isIG && Boolean(selectedFaculty?.requiresSessionCategory)
-  // A half-typed month (browsers without a month picker) falls back to this month's bounds.
-  const dateBounds = monthBounds(isMonthValue(form.month) ? form.month : todayLocal().slice(0, 7))
+  const dateBounds = monthBounds(form.month)
   // Studio Live: the break is deducted in full — no 15-minute free grace.
   const fullBreak = usesFullBreak(form.entryType)
   const duration = useMemo(
@@ -130,7 +129,7 @@ export default function PushBoardPage() {
     if (hasEntryTypes && !form.entryType) return 'Select the entry type (Live or Shoot)'
     if (!form.facultyId)           return 'Select the faculty who took the session'
     if (needsSessionCategory && !form.sessionCategory) return 'Select whether this was a Class or Doubt Clearance session'
-    if (!form.month)               return 'Select the month & year'
+    if (!isMonthValue(form.month)) return 'Select a valid month & year'
     if (!form.sessionDate)         return 'Select the date'
     if (form.sessionDate < dateBounds.min || form.sessionDate > dateBounds.max) {
       return 'The date must be inside the selected month, and not in the future'

@@ -50,8 +50,7 @@ export default function JointEntryPage() {
   const [submitError, setSubmitError] = useState('')
   const [saved, setSaved] = useState(false)
 
-  // A half-typed month (browsers without a month picker) falls back to this month's bounds.
-  const dateBounds = monthBounds(isMonthValue(form.month) ? form.month : todayLocal().slice(0, 7))
+  const dateBounds = monthBounds(form.month)
   const duration = useMemo(
     () => computeDuration(form.startTime, form.endTime, teaBreakAsBreaks(form.teaBreak), { fullBreak: false }),
     [form.startTime, form.endTime, form.teaBreak],
@@ -80,7 +79,7 @@ export default function JointEntryPage() {
 
   function validate(): string | null {
     if (!form.facultyId) return 'Select the faculty who took the class'
-    if (!form.month) return 'Select the month & year'
+    if (!isMonthValue(form.month)) return 'Select a valid month & year'
     if (!form.sessionDate) return 'Select the date'
     if (form.sessionDate < dateBounds.min || form.sessionDate > dateBounds.max) return 'The date must be inside the selected month, and not in the future'
     if (!form.subject.trim()) return 'Subject is required'

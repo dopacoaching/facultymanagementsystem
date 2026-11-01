@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { dateForMonth, isMonthValue, defaultHistoryFrom } from './date'
+import { dateForMonth, isMonthValue, monthRange, defaultHistoryFrom } from './date'
 
 const TODAY = '2026-11-01'
 
@@ -31,4 +31,19 @@ test('a half-typed month (no month picker) leaves the date alone', () => {
 test('history opens a week back early in the month so last month stays visible', () => {
   assert.equal(defaultHistoryFrom(new Date(2026, 10, 1)), '2026-10-25')
   assert.equal(defaultHistoryFrom(new Date(2026, 10, 20)), '2026-11-01')
+})
+
+test('an implausible typed year is not a complete month', () => {
+  // While typing '2026' a text-style month input passes through '0002-10' and '0202-10'.
+  assert.equal(isMonthValue('0002-10'), false)
+  assert.equal(isMonthValue('0202-10'), false)
+  assert.equal(isMonthValue('2026-10'), true)
+  assert.equal(dateForMonth('2026-11-01', '0002-10', TODAY), '2026-11-01')
+})
+
+test('monthRange caps the month at today and spots a future month', () => {
+  assert.deepEqual(monthRange('2026-10', TODAY), { min: '2026-10-01', max: '2026-10-31' })
+  assert.deepEqual(monthRange('2026-02', TODAY), { min: '2026-02-01', max: '2026-02-28' })
+  assert.deepEqual(monthRange('2026-11', '2026-11-15'), { min: '2026-11-01', max: '2026-11-15' })
+  assert.ok(monthRange('2026-12', TODAY).max < monthRange('2026-12', TODAY).min)
 })

@@ -1,4 +1,4 @@
-import { todayLocal } from '@/utils/date'
+import { todayLocal, isMonthValue, monthRange } from '@/utils/date'
 import { LAB_SUBJECTS } from '@/lib/constants/labSubjects'
 import type { EntryType } from '@/lib/constants/entryTypes'
 
@@ -134,11 +134,8 @@ export function computeShootDuration(hoursStr: string, minutesStr: string): { ho
 
 /** First and last selectable day for a "YYYY-MM" month — never later than today. */
 export function monthBounds(month: string): { min: string; max: string } {
-  const [y, m] = month.split('-').map(Number)
-  const lastDay = new Date(y, m, 0).getDate()
-  const end = `${month}-${String(lastDay).padStart(2, '0')}`
-  const today = todayLocal()
-  return { min: `${month}-01`, max: end < today ? end : today }
+  // A half-typed month (browsers without a month picker) falls back to the current month's bounds.
+  return monthRange(isMonthValue(month) ? month : todayLocal().slice(0, 7))
 }
 
 /** Push Board records one Tea break; it is stored as the morning break (15-min

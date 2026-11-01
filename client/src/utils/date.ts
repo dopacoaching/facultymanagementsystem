@@ -35,19 +35,27 @@ export function addDays(dateStr: string, n: number): string {
   return toLocalISO(d)
 }
 
-/** True for a complete 'YYYY-MM' value. Browsers without a month picker (desktop Firefox/Safari) hand
- *  over half-typed text such as '2' or '2026-1' while the user is still typing. */
-export const isMonthValue = (v: string): boolean => /^\d{4}-(0[1-9]|1[0-2])$/.test(v)
+/** True for a complete 'YYYY-MM' value with a plausible year. Browsers without a month picker (desktop
+ *  Firefox/Safari) hand over half-typed text such as '2', '2026-1' or '0002-10' while the user types. */
+export const isMonthValue = (v: string): boolean => {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(v)
+  return !!m && Number(m[1]) >= 2000
+}
+
+/** First and last selectable day of a 'YYYY-MM' month: the end of the month, capped at today.
+ *  `max < min` means the whole month is in the future. */
+export function monthRange(month: string, today: string = todayLocal()): { min: string; max: string } {
+  const [y, m] = month.split('-').map(Number)
+  const end = `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
+  return { min: `${month}-01`, max: end < today ? end : today }
+}
 
 /** The date to show after the month changes: the current one if it still falls in the month, else
  *  today if that is in the month, else the month's last selectable day. Never empty for a past month —
  *  an empty date input opens its picker on today's month, where every day is out of range. */
 export function dateForMonth(prevDate: string, month: string, today: string = todayLocal()): string {
   if (!isMonthValue(month)) return prevDate
-  const [y, m] = month.split('-').map(Number)
-  const end = `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`
-  const min = `${month}-01`
-  const max = end < today ? end : today
+  const { min, max } = monthRange(month, today)
   if (max < min) return ''                       // a future month: nothing is selectable
   if (prevDate >= min && prevDate <= max) return prevDate
   return today >= min && today <= max ? today : max
