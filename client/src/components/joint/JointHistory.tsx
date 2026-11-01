@@ -5,7 +5,7 @@ import { apiFetch } from '@/services/api'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { fmtDay } from '@/components/hr/reports/reportShared'
-import { toLocalISO } from '@/utils/date'
+import { toLocalISO, defaultHistoryFrom } from '@/utils/date'
 import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
 import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
 import type { Session } from '@/types'
@@ -36,7 +36,7 @@ export function JointHistory({ endpoint, subject, save }: {
 }) {
   const { accessToken } = useAppSelector((s) => s.auth)
   const now = new Date()
-  const [from, setFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [from, setFrom] = useState(defaultHistoryFrom(now))
   const [to, setTo] = useState(toLocalISO(now))
   const [rows, setRows] = useState<JointHistoryRow[]>([])
   const [loading, setLoading] = useState(false)

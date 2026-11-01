@@ -4,7 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll } from '@/services/session.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
-import { toLocalISO } from '@/utils/date'
+import { toLocalISO, defaultHistoryFrom } from '@/utils/date'
 import type { Session } from '@/types'
 import { useCampusTeacherInfo } from '@/hooks/useCampusTeacherInfo'
 import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
@@ -29,7 +29,7 @@ export default function CampusHistoryPage() {
   const { accessToken, campusName } = useAppSelector((s) => s.auth)
   const [sessions, setSessions] = useState<Session[]>([])
   const now = new Date()
-  const [from, setFrom] = useState(toLocalISO(new Date(now.getFullYear(), now.getMonth(), 1)))
+  const [from, setFrom] = useState(defaultHistoryFrom(now))
   const [to, setTo] = useState(toLocalISO(now))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

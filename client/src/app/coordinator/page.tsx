@@ -337,7 +337,7 @@ export default function PushBoardPage() {
               )}
 
               <div className="input-group">
-                <FormField label="Month & year" htmlFor="pb-month" required>
+                <FormField label="Month & year" htmlFor="pb-month" required hint="Entering a day from last month? Change this first">
                   <input
                     id="pb-month"
                     type="month"

@@ -16,6 +16,14 @@ export function toLocalISO(d: Date): string {
 }
 
 /** Today's date as YYYY-MM-DD in the user's local timezone. */
+/** Start of a history list's default range: the 1st of this month, or a week back if that is earlier —
+ *  so on the 1st the last days of the previous month (still editable) are not hidden. */
+export function defaultHistoryFrom(now: Date = new Date()): string {
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
+  return toLocalISO(weekAgo < monthStart ? weekAgo : monthStart)
+}
+
 export function todayLocal(): string {
   return toLocalISO(new Date())
 }

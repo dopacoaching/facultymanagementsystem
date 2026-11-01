@@ -167,7 +167,7 @@ export default function IGJointEntryPage() {
               </FormField>
 
               <div className="input-group">
-                <FormField label="Month & year" htmlFor="jc-month" required>
+                <FormField label="Month & year" htmlFor="jc-month" required hint="Entering a day from last month? Change this first">
                   <input id="jc-month" type="month" className="input" value={form.month} max={todayLocal().slice(0, 7)}
                     onChange={(e) => setField('month', e.target.value)} />
                 </FormField>
