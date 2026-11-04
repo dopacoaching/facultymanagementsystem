@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED, SALARY_ON_HOLD_MESSAGE } from '@/lib/constants/features'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { SalaryRecord } from '@/lib/models/SalaryRecord'
@@ -8,7 +8,7 @@ import { salaryPeriodOverlapFilter } from '@/lib/utils/dateRange'
 /** GET /api/hr/salary/reports?from=&to= */
 export async function GET(req: NextRequest) {
   try {
-    if (!SALARY_ENABLED) return NextResponse.json({ error: SALARY_ON_HOLD_MESSAGE }, { status: 503 })
+    if (!SALARY_ENABLED && !SALARY_TEMPORARY_ENABLED) return NextResponse.json({ error: SALARY_ON_HOLD_MESSAGE }, { status: 503 })
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
     const records = await SalaryRecord.find({
       ...overlap,
       status: 'APPROVED',
+      // Month-based pay is on hold: only temporary faculty's date-range records are reported.
+      ...(SALARY_ENABLED ? {} : { periodType: 'RANGE' }),
     })
       .populate('facultyId', 'name subject type')
       .sort({ finalPayable: -1 })

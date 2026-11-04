@@ -12,6 +12,8 @@
  * an access control.
  */
 
+import { SALARY_ENABLED } from '@/lib/constants/features'
+
 export type Role =
   | 'ADMIN'
   | 'HR_MANAGER'
@@ -102,7 +104,7 @@ export const ROUTES: RouteMeta[] = [
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/salary', title: 'Salary Calculator', navLabel: 'Salary', section: 'HR',
+    path: '/hr/salary', title: SALARY_ENABLED ? 'Salary Calculator' : 'Temporary Faculty Salary', navLabel: SALARY_ENABLED ? 'Salary' : 'Temporary Salary', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
@@ -118,7 +120,7 @@ export const ROUTES: RouteMeta[] = [
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr/reports',
   },
   {
-    path: '/hr/reports/salary', title: 'Salary Reports', navLabel: 'Salary Reports', section: 'HR',
+    path: '/hr/reports/salary', title: SALARY_ENABLED ? 'Salary Reports' : 'Temporary Salary Reports', navLabel: SALARY_ENABLED ? 'Salary Reports' : 'Temporary Salary Reports', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr/reports',
   },
   {

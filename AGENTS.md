@@ -36,6 +36,9 @@ Shared logic that is duplicated and must stay identical:
 - **Salary is ON HOLD (Oct 2026):** only entries + reports are live. `SALARY_ENABLED`
   (`client/src/lib/constants/features.ts`, env `NEXT_PUBLIC_SALARY_ENABLED=true`) hides
   the salary UI and makes `/api/hr/salary/**` return 503. No salary code/data was removed.
+  Exception: TEMPORARY faculty (from/to date-range pay) stay live for Admin/HR via
+  `SALARY_TEMPORARY_ENABLED` / `salaryAllowed()` — range calculate, approve and the RANGE-only report;
+  month pay, payable days, carry-forward and the faculty's own salary view stay on hold.
 - Salary preview (`persist=false`) must be pure; only approval writes
   audit logs / carry-forward balances. Carry-forward stores the running
   combined total; surplus months reduce the accumulated deficit.

@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/Toast'
 import { MONTHS, printSalarySlip, SalaryControls, SalaryResultCard } from '@/components/hr/salary'
 import { toLocalISO } from '@/utils/date'
 import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
-import { SALARY_ENABLED } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
 
 /** "01 Oct 2026" from a YYYY-MM-DD string. */
 function fmtISO(iso: string): string {
@@ -51,8 +51,10 @@ function SalaryPageInner() {
 
   useEffect(() => {
     if (accessToken) getAll(accessToken, false).then((list) => {
-      setFaculty(list)
-      if (list.length > 0) setSelectedId(list[0]._id)
+      // With month-based salary on hold, only temporary faculty (paid by date range) are listed.
+      const shown = SALARY_ENABLED ? list : list.filter((f) => f.type === 'TEMPORARY')
+      setFaculty(shown)
+      if (shown.length > 0) setSelectedId(shown[0]._id)
     }).catch(console.error)
   }, [accessToken])
 
@@ -125,6 +127,12 @@ function SalaryPageInner() {
 
   return (
     <div>
+      {!SALARY_ENABLED && (
+        <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
+          <span className="alert-icon" aria-hidden="true">i</span>
+          Showing temporary faculty only — pay is calculated for the from/to dates you choose. Other salary is on hold.
+        </div>
+      )}
       <SalaryControls
         faculty={faculty}
         selectedId={selectedId}
@@ -179,5 +187,5 @@ function SalaryPageInner() {
 }
 
 export default function SalaryPage() {
-  return SALARY_ENABLED ? <SalaryPageInner /> : <SalaryOnHold />
+  return SALARY_ENABLED || SALARY_TEMPORARY_ENABLED ? <SalaryPageInner /> : <SalaryOnHold />
 }

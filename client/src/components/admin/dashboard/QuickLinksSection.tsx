@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { SALARY_ENABLED } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
 
 const LINKS = [
   { href: '/hr/faculty',               label: 'Faculty',       desc: 'Manage faculty profiles' },
-  ...(SALARY_ENABLED ? [{ href: '/hr/salary', label: 'Salary', desc: 'Calculate & approve pay' }] : []),
+  ...(SALARY_ENABLED ? [{ href: '/hr/salary', label: 'Salary', desc: 'Calculate & approve pay' }]
+    : SALARY_TEMPORARY_ENABLED ? [{ href: '/hr/salary', label: 'Temporary Salary', desc: 'Pay for temporary faculty' }] : []),
   { href: '/hr/reports',               label: 'Entries Report', desc: 'Campus, subject & faculty-wise' },
   { href: '/hr/reports/faculty-hours', label: 'Faculty Hours', desc: 'Hours taught, by subject' },
   { href: '/admin/audit-log',          label: 'Audit Log',     desc: 'All system events' },

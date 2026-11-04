@@ -9,7 +9,7 @@ import {
 } from '@/components/hr/reports'
 import { toLocalISO } from '@/utils/date'
 import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
-import { SALARY_ENABLED } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
 
 function ReportsPageInner() {
   const { accessToken } = useAppSelector((s) => s.auth)
@@ -40,7 +40,7 @@ function ReportsPageInner() {
     <div>
       <div className="page-header">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Salary Reports</h1>
+          <h1 style={{ marginBottom: '0.125rem' }}>{SALARY_ENABLED ? 'Salary Reports' : 'Temporary Faculty Salary Reports'}</h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
             {rows.length} approved {rows.length === 1 ? 'record' : 'records'} — {periodLabel}
           </p>
@@ -70,5 +70,5 @@ function ReportsPageInner() {
 }
 
 export default function ReportsPage() {
-  return SALARY_ENABLED ? <ReportsPageInner /> : <SalaryOnHold />
+  return SALARY_ENABLED || SALARY_TEMPORARY_ENABLED ? <ReportsPageInner /> : <SalaryOnHold />
 }

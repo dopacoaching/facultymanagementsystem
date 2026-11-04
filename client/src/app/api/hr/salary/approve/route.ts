@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE } from '@/lib/constants/features'
+import { SALARY_ON_HOLD_MESSAGE, salaryAllowed } from '@/lib/constants/features'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -28,7 +28,6 @@ const fmtDay = (d: Date) => d.toLocaleDateString('en-IN', { day: '2-digit', mont
 /** POST /api/hr/salary/approve — body: { facultyId, month, year }  OR  { facultyId, from, to } */
 export async function POST(req: NextRequest) {
   try {
-    if (!SALARY_ENABLED) return NextResponse.json({ error: SALARY_ON_HOLD_MESSAGE }, { status: 503 })
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
@@ -39,6 +38,9 @@ export async function POST(req: NextRequest) {
     const { facultyId, month, year, from, to } = await req.json()
     if (!facultyId) {
       return withToken(json({ error: 'facultyId required' }, 400), refreshedToken)
+    }
+    if (!salaryAllowed(from != null || to != null)) {
+      return withToken(json({ error: SALARY_ON_HOLD_MESSAGE }, 503), refreshedToken)
     }
 
     await connectDB()

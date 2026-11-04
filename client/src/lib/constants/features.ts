@@ -5,6 +5,16 @@
  */
 export const SALARY_ENABLED = process.env.NEXT_PUBLIC_SALARY_ENABLED === 'true'
 
+/**
+ * While the rest of salary is on hold, TEMPORARY faculty (paid for a from/to date range) stay live for
+ * Admin and HR Manager: the range salary check, approval and the saved-pay report. Month-based pay,
+ * payable days, carry-forward and the faculty's own salary view remain on hold.
+ */
+export const SALARY_TEMPORARY_ENABLED = true
+
+/** True when a salary request may run: salary is fully on, or it is a temporary-faculty date-range request. */
+export const salaryAllowed = (isRange: boolean): boolean => SALARY_ENABLED || (SALARY_TEMPORARY_ENABLED && isRange)
+
 export const SALARY_ON_HOLD_MESSAGE =
   'Salary calculation is on hold. Only session entries and reports are available right now.'
 

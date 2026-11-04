@@ -11,7 +11,7 @@ import { getRouteMeta, navLabelFor, type Role } from '@/lib/routeMeta'
 import PasswordInput from './PasswordInput'
 import { FormField } from './FormField'
 import { Modal } from './Modal'
-import { SALARY_ENABLED } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
 
 /** Mirror of the server validatePasswordComplexity rule. */
 function validatePasswordComplexity(pw: string): string | null {
@@ -96,7 +96,8 @@ const ROLE_NAV: Record<string, NavEntry[]> = {
   ],
 }
 
-const SALARY_PATHS = new Set(['/hr/salary', '/hr/reports/salary', '/faculty/salary'])
+// Temporary-faculty pay keeps the HR/Admin salary screens live; the faculty's own salary page stays hidden.
+const SALARY_PATHS = new Set(SALARY_TEMPORARY_ENABLED ? ['/faculty/salary'] : ['/hr/salary', '/hr/reports/salary', '/faculty/salary'])
 
 function navForRole(role: string | null, campusName: string | null): NavEntry[] {
   let entries = (role && ROLE_NAV[role]) || []
@@ -104,7 +105,7 @@ function navForRole(role: string | null, campusName: string | null): NavEntry[] 
   if (role === 'CLASS_TEACHER' && campusName && (JOINT_ENTRY_CAMPUS_LOGINS as readonly string[]).includes(campusName)) {
     entries = [...entries, { href: '/joint-entry' }, { href: '/joint-entry/history' }]
   }
-  // Salary calculation is on hold — hide its screens from the nav.
+  // Salary calculation is on hold — hide the held screens from the nav.
   return SALARY_ENABLED ? entries : entries.filter((e) => !('href' in e) || !SALARY_PATHS.has(e.href))
 }
 
