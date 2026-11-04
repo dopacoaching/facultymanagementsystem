@@ -65,6 +65,10 @@ const typeLabel = (t?: string) => (t ? t.charAt(0) + t.slice(1).toLowerCase() : 
 
 const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours, 0)
 
+/** Temporary faculty's pay for these rows (₹); rows with no rate set add nothing. */
+const sumPay = (rows: EntryRow[]) => rows.reduce((t, r) => t + (r.pay ?? 0), 0)
+const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`
+
 /** Running total of hours per faculty, in date order. Keyed by entry id. */
 const byEntryOrder = (a: EntryRow, b: EntryRow) =>
   a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime) || a.endTime.localeCompare(b.endTime) || a._id.localeCompare(b._id)
@@ -81,7 +85,7 @@ function cumulativeHours(rows: EntryRow[]): Map<string, number> {
   return out
 }
 
-function EntryTable({ rows, hideCols, showBatch, onDelete, onEdit, totals }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; onDelete?: (r: EntryRow) => void; onEdit?: (r: EntryRow) => void; totals: Map<string, number> }) {
+function EntryTable({ rows, hideCols, showBatch, showPay, onDelete, onEdit, totals }: { rows: EntryRow[]; hideCols?: ('campus' | 'faculty' | 'subject')[]; showBatch: boolean; showPay: boolean; onDelete?: (r: EntryRow) => void; onEdit?: (r: EntryRow) => void; totals: Map<string, number> }) {
   const showCampus = !hideCols?.includes('campus')
   const showFaculty = !hideCols?.includes('faculty')
   const showSubject = !hideCols?.includes('subject')
@@ -103,6 +107,7 @@ function EntryTable({ rows, hideCols, showBatch, onDelete, onEdit, totals }: { r
             <th>Comment</th>
             <th style={{ textAlign: 'right' }}>Time</th>
             <th style={{ textAlign: 'right' }} title="This faculty's hours added up in date order, counting only the dates and filters selected above, not their full-period total.">Total so far*</th>
+            {showPay && <th style={{ textAlign: 'right' }} title="Temporary faculty only: hours x the hourly rate in force on that day.">Pay</th>}
             {(onDelete || onEdit) && <th></th>}
           </tr>
         </thead>
@@ -122,6 +127,14 @@ function EntryTable({ rows, hideCols, showBatch, onDelete, onEdit, totals }: { r
               <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
               <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
               <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{formatHM(totals.get(r._id) ?? r.durationHours)}</td>
+              {showPay && (
+                <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+                  title={r.payRate != null ? `${formatHM(r.durationHours)} at ${rupees(r.payRate)}/hr` : undefined}>
+                  {r.facultyType !== 'TEMPORARY' ? <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}>—</span>
+                    : r.pay != null ? rupees(r.pay)
+                    : <span style={{ color: 'var(--color-warning-fg, var(--color-muted))', fontWeight: 400 }}>Rate not set</span>}
+                </td>
+              )}
               {(onDelete || onEdit) && (
                 <td style={{ whiteSpace: 'nowrap' }}>
                   {onEdit && (
@@ -138,7 +151,7 @@ function EntryTable({ rows, hideCols, showBatch, onDelete, onEdit, totals }: { r
   )
 }
 
-function GroupHeader({ title, count, hours, level = 1 }: { title: string; count: number; hours: number; level?: 1 | 2 }) {
+function GroupHeader({ title, count, hours, pay, level = 1 }: { title: string; count: number; hours: number; pay?: number; level?: 1 | 2 }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem',
@@ -148,15 +161,16 @@ function GroupHeader({ title, count, hours, level = 1 }: { title: string; count:
       <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
         {count} {count === 1 ? 'entry' : 'entries'} ·{' '}
         <strong style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{formatHM(hours)}</strong>
+        {pay != null && pay > 0 && <> · <strong style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{rupees(pay)}</strong></>}
       </span>
     </div>
   )
 }
 
 /** Tab-separated text for the current view, ready to paste into a sheet. */
-function toTSV(rows: EntryRow[], totals: Map<string, number>): string {
+function toTSV(rows: EntryRow[], totals: Map<string, number>, showPay: boolean): string {
   const hmOf = (h: number) => { const m = Math.round(h * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
-  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)']
+  const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Start', 'End', 'Break entered (min)', 'Entered by', 'Entry type', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)', ...(showPay ? ['Pay (INR)'] : [])]
   // Neutralise spreadsheet formulas (=, +, -, @) in coordinator-typed text.
   const clean = (v: string) => v.replace(/[\t\r\n]+/g, ' ').replace(/^[=+\-@]/, "'$&")
   const lines = rows.map((r) => {
@@ -165,6 +179,7 @@ function toTSV(rows: EntryRow[], totals: Map<string, number>): string {
       r.date, r.campusName, r.batchName, r.facultyName, r.facultyType, r.subject, r.chapter,
       r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName, r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : '',
       `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2), r.comment, hmOf(totals.get(r._id) ?? r.durationHours),
+      ...(showPay ? [r.pay ?? ''] : []),
     ].map((v) => clean(String(v))).join('\t')
   })
   return [head.join('\t'), ...lines].join('\n')
@@ -173,10 +188,10 @@ function toTSV(rows: EntryRow[], totals: Map<string, number>): string {
 /** One sheet laid out like the screen: a bold header row per group (with its entry
  *  count and total hours), that group's entries in date order, then a blank row.
  *  Loaded on demand so the xlsx writer stays out of the page's initial bundle. */
-async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string, totals: Map<string, number>) {
+async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string, totals: Map<string, number>, showPay: boolean) {
   const { default: writeXlsxFile } = await import('write-excel-file/browser')
   const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Entry type',
-    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)']
+    'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)', ...(showPay ? ['Pay (INR)'] : [])]
   const hm = (hours: number) => { const m = Math.round(hours * 60); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
   const text = (value: string | undefined) => ({ value: value || undefined, type: String })
   const blank = () => head.map(() => null)
@@ -195,6 +210,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
       { value: Math.round(r.durationHours * 100) / 100, type: Number, format: '0.00' },
       text(r.comment ? r.comment.replace(/^[=+\-@]/, "'$&") : ''),
       text(hm(totals.get(r._id) ?? r.durationHours)),
+      ...(showPay ? [{ value: r.pay ?? undefined, type: Number, format: '#,##0' }] : []),
     ]
   }
   /** Bold shaded row: title on the left, "N entries" under Entered by, totals under Time / Hours. */
@@ -207,6 +223,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
     r[12] = cell(`${list.length} ${list.length === 1 ? 'entry' : 'entries'}`)
     r[13] = cell(hm(total))
     r[14] = cell(Math.round(total * 100) / 100, { format: '0.00' })
+    if (showPay) { const pay = sumPay(list); if (pay > 0) r[17] = cell(pay, { format: '#,##0' }) }
     return r
   }
 
@@ -319,6 +336,9 @@ export default function EntriesReportPage() {
       .sort(byEntryOrder)
   }, [report, kind, campus, facultyId])
 
+  /** HR/Admin only (the server decides): a Pay column for temporary faculty, when the shown rows include any. */
+  const showPay = !!report?.showPay && rows.some((r) => r.facultyType === 'TEMPORARY')
+
   const noClassRows = useMemo(() => noClassRowsFor(report, campus), [report, campus])
   const wholeRows = useMemo(() => (report ? buildWholeDays(report, campus, from, to) : []), [report, campus, from, to])
 
@@ -368,7 +388,7 @@ export default function EntriesReportPage() {
     try {
       const sheet = view === 'noclass' ? noClassSheet : wholeSheet
       const text = view === 'classes'
-        ? toTSV(rows, totals)
+        ? toTSV(rows, totals, showPay)
         : [sheet.head.join('\t'), ...sheet.body.map((r) => r.map((v) => (typeof v === 'string' ? cleanCell(v) : String(v))).join('\t'))].join('\n')
       await navigator.clipboard.writeText(text)
       toast.success('Copied', `${sheetCount} ${sheetCount === 1 ? 'row' : 'rows'} copied — paste into a sheet.`)
@@ -384,7 +404,7 @@ export default function EntriesReportPage() {
       } else if (view === 'whole') {
         await downloadSimpleSheet(wholeSheet.head, wholeSheet.body, [12, 24, 14, 9, 12, 9, 50], `whole-days-report_${from}_to_${to}.xlsx`)
       } else {
-        await downloadExcel(rows, exportBy, from, to, totals)
+        await downloadExcel(rows, exportBy, from, to, totals, showPay)
       }
     } catch {
       toast.error('Download failed', 'The Excel file could not be created.')
@@ -393,7 +413,7 @@ export default function EntriesReportPage() {
 
   /** One place decides the table's shared props, so the faculty and campus layouts can't drift apart. */
   const table = (list: EntryRow[], hideCols: ('campus' | 'faculty' | 'subject')[]) => (
-    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} onDelete={canDelete ? deleteEntry : undefined} onEdit={canDelete ? setEditing : undefined} totals={totals} />
+    <EntryTable rows={list} hideCols={hideCols} showBatch={showBatch} showPay={showPay} onDelete={canDelete ? deleteEntry : undefined} onEdit={canDelete ? setEditing : undefined} totals={totals} />
   )
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()
@@ -548,6 +568,7 @@ export default function EntriesReportPage() {
         <>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
             {rows.length} {rows.length === 1 ? 'entry' : 'entries'} · <strong style={{ color: 'var(--color-text)' }}>{formatHM(sumHours(rows))}</strong> in total
+            {showPay && sumPay(rows) > 0 && <> · temporary faculty pay <strong style={{ color: 'var(--color-text)' }}>{rupees(sumPay(rows))}</strong></>}
           </p>
           {group === 'faculty' && byFaculty.map(([facultyId, list]) => (
             // Faculty-wise: one block per faculty with all their sessions, across every campus and batch.
@@ -556,6 +577,7 @@ export default function EntriesReportPage() {
                 title={`${list[0].facultyName} · ${typeLabel(list[0].facultyType)} · ${list[0].subject}`}
                 count={list.length}
                 hours={sumHours(list)}
+                pay={showPay ? sumPay(list) : undefined}
               />
               <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', margin: '0 0 0.75rem' }}>
                 {Array.from(groupBy(list, (r) => r.campusName).entries())

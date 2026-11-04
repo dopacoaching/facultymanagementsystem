@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
+import { SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
+import { rateOn, type HourlyRateEntry } from '@/lib/utils/hourlyRate'
 import { Session } from '@/lib/models/Session'
 import { NoClassDay } from '@/lib/models/NoClassDay'
 import { batchNameMap } from '@/lib/utils/batchNames'
@@ -68,7 +70,7 @@ export async function GET(req: NextRequest) {
         ],
       })
         .select('facultyId campusName batchId extraBatchIds jointIG jointCampuses subject chapter classMode sessionDate startTime endTime durationHours breakMinutes lunchBreakMinutes afternoonBreakMinutes updatedByName comment entryType')
-        .populate('facultyId', 'name type subject')
+        .populate('facultyId', 'name type subject hourlyRate hourlyRateHistory')
         .sort({ sessionDate: 1 })
         .limit(MAX_ROWS)
         .lean(),
@@ -83,10 +85,14 @@ export async function GET(req: NextRequest) {
     )).filter((id) => !batchNames.has(id))
     for (const [id, name] of await batchNameMap(otherBatchIds)) batchNames.set(id, name)
 
+    // What a temporary faculty is owed for each session (hours x the rate in force that day) — HR/Admin only.
+    const showPay = SALARY_TEMPORARY_ENABLED && (payload.role === 'HR_MANAGER' || payload.role === 'ADMIN')
+
     const rows = sessions
       .filter((s) => s.facultyId && typeof s.facultyId === 'object' && (s.campusName || igBatchCampus.has(String(s.batchId))))
       .map((s) => {
-        const f = s.facultyId as unknown as { _id: { toString(): string }; name: string; type: string }
+        const f = s.facultyId as unknown as { _id: { toString(): string }; name: string; type: string; hourlyRate?: number; hourlyRateHistory?: HourlyRateEntry[] }
+        const payRate = showPay && f.type === 'TEMPORARY' ? (rateOn(f.hourlyRateHistory, f.hourlyRate, new Date(s.sessionDate)) ?? null) : null
         const batchId = s.batchId ? String(s.batchId) : ''
         const allBatchIds = [batchId, ...(s.extraBatchIds ?? []).map(String)].filter(Boolean)
         // A joint IG class covers several schools: one entry, listed under each of them.
@@ -110,6 +116,8 @@ export async function GET(req: NextRequest) {
           startTime: s.startTime ?? '',
           endTime: s.endTime ?? '',
           durationHours: s.durationHours,
+          payRate,
+          pay: payRate == null ? null : Math.round(payRate * s.durationHours),
           entryType: s.entryType ?? null,
           updatedByName: s.updatedByName ?? '',
           comment: s.comment ?? '',
@@ -215,6 +223,7 @@ export async function GET(req: NextRequest) {
     return withToken(json({
       from, to,
       campuses: ownCampus ? [ownCampus] : campuses,
+      showPay,
       sessions: missingOnly ? [] : rows,
       noClass: isTeacher ? [] : noClassRows,
       missing: ownCampus ? missing.filter((m) => m.campusName === ownCampus) : missing,

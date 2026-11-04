@@ -19,6 +19,10 @@ export interface EntryRow {
   startTime: string
   endTime: string
   durationHours: number
+  /** Temporary faculty only, and only for HR/Admin: the hourly rate in force that day and hours x rate (₹).
+   *  Both null when not applicable, or when the faculty has no rate set yet. */
+  payRate: number | null
+  pay: number | null
   /** Studio only. SHOOT hours are already multiplied in durationHours. */
   entryType: 'LIVE' | 'SHOOT' | null
   updatedByName: string
@@ -47,6 +51,8 @@ export interface EntriesReport {
   from: string
   to: string
   campuses: string[]
+  /** True for HR/Admin: temporary faculty's pay is shown on each session. */
+  showPay: boolean
   sessions: EntryRow[]
   noClass: NoClassRow[]
   /** Past days with no entry and no No Class marker, per campus. */
