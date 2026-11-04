@@ -37,8 +37,10 @@ Shared logic that is duplicated and must stay identical:
   (`client/src/lib/constants/features.ts`, env `NEXT_PUBLIC_SALARY_ENABLED=true`) hides
   the salary UI and makes `/api/hr/salary/**` return 503. No salary code/data was removed.
   Exception: TEMPORARY faculty (from/to date-range pay) stay live for Admin/HR via
-  `SALARY_TEMPORARY_ENABLED` / `salaryAllowed()` — range calculate, approve and the RANGE-only report;
-  month pay, payable days, carry-forward and the faculty's own salary view stay on hold.
+  `SALARY_TEMPORARY_ENABLED` (on by default; `NEXT_PUBLIC_SALARY_TEMPORARY_ENABLED=false` turns it off) and
+  `salaryAllowed()` — range calculate, approve (route also checks the faculty is TEMPORARY) and the RANGE-only
+  report; month pay, payable days, carry-forward and the faculty's own salary view stay on hold. Labels for
+  those screens come from `SALARY_LABELS` in `features.ts`.
 - Salary preview (`persist=false`) must be pure; only approval writes
   audit logs / carry-forward balances. Carry-forward stores the running
   combined total; surplus months reduce the accumulated deficit.

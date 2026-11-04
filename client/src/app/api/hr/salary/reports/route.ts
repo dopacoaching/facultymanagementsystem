@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
     const records = await SalaryRecord.find({
       ...overlap,
       status: 'APPROVED',
-      // Month-based pay is on hold: only temporary faculty's date-range records are reported.
+      // Month-based pay is on hold: only temporary faculty's date-range records are reported. Every RANGE
+      // record is written with periodType set; older records were backfilled to MONTH by the migration.
       ...(SALARY_ENABLED ? {} : { periodType: 'RANGE' }),
     })
       .populate('facultyId', 'name subject type')

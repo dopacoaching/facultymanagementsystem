@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SALARY_ON_HOLD_MESSAGE, salaryAllowed } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE, isRangeRequest, salaryAllowed } from '@/lib/constants/features'
 import { Types } from 'mongoose'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -39,13 +39,24 @@ export async function POST(req: NextRequest) {
     if (!facultyId) {
       return withToken(json({ error: 'facultyId required' }, 400), refreshedToken)
     }
-    if (!salaryAllowed(from != null || to != null)) {
+    const isRange = isRangeRequest(from, to)
+    if (!salaryAllowed(isRange)) {
       return withToken(json({ error: SALARY_ON_HOLD_MESSAGE }, 503), refreshedToken)
+    }
+    if (!Types.ObjectId.isValid(facultyId)) {
+      return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
     }
 
     await connectDB()
     const fOid = new Types.ObjectId(facultyId)
-    const isRange = from != null || to != null
+
+    // While month pay is on hold only temporary faculty may be approved — enforced here, not just by the calculator.
+    if (!SALARY_ENABLED) {
+      const held = await Faculty.findById(fOid).select('type')
+      if (!held || held.type !== 'TEMPORARY') {
+        return withToken(json({ error: 'Only temporary faculty salary is available right now.' }, 403), refreshedToken)
+      }
+    }
 
     // ─── Shared record-write + audit tail ────────────────────────────────────
     const writeRecord = async (

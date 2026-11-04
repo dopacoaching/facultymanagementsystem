@@ -60,7 +60,8 @@ function SalaryPageInner() {
 
   const selectedFaculty = faculty.find((f) => f._id === selectedId)
   const isTemp = selectedFaculty?.type === 'TEMPORARY'
-  const mode: 'MONTH' | 'RANGE' = isTemp ? 'RANGE' : 'MONTH'
+  // While month pay is on hold every calculation is a date range (a non-temporary faculty gets a clear refusal).
+  const mode: 'MONTH' | 'RANGE' = isTemp || !SALARY_ENABLED ? 'RANGE' : 'MONTH'
   const periodLabel = mode === 'RANGE'
     ? `${fmtISO(from)} – ${fmtISO(to)}`
     : `${MONTHS[month - 1]} ${year}`
@@ -88,7 +89,7 @@ function SalaryPageInner() {
   }
 
   async function handleSavePayableDays(payableDays: number) {
-    if (!accessToken || !selectedId) return
+    if (!accessToken || !selectedId || !SALARY_ENABLED) return
     setSavingPayableDays(true); setError('')
     try {
       await setPayableDays(selectedId, month, year, payableDays, accessToken)

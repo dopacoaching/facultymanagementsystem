@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE, salaryAllowed } from '@/lib/constants/features'
+import { Types } from 'mongoose'
+import { SALARY_ENABLED, SALARY_ON_HOLD_MESSAGE, isRangeRequest, salaryAllowed } from '@/lib/constants/features'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
+import { Faculty } from '@/lib/models/Faculty'
 import { calculateMonthlySalary, calculateRangeSalary, redactForFacultyView } from '@/lib/services/salary/calculator'
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -9,9 +11,6 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 /** GET /api/hr/salary?facultyId=&month=&year=  — or  ?facultyId=&from=&to= (TEMPORARY faculty) */
 export async function GET(req: NextRequest) {
   try {
-    if (!salaryAllowed(!!(new URL(req.url).searchParams.get('from') || new URL(req.url).searchParams.get('to')))) {
-      return NextResponse.json({ error: SALARY_ON_HOLD_MESSAGE }, { status: 503 })
-    }
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
@@ -25,6 +24,12 @@ export async function GET(req: NextRequest) {
     const year  = searchParams.get('year')  ?? undefined
     const from  = searchParams.get('from')  ?? undefined
     const to    = searchParams.get('to')    ?? undefined
+    const isRange = isRangeRequest(from, to)
+
+    // Checked after authentication so an anonymous caller cannot probe what is on hold.
+    if (!salaryAllowed(isRange)) {
+      return withToken(json({ error: SALARY_ON_HOLD_MESSAGE }, 503), refreshedToken)
+    }
 
     // With month-based salary on hold, faculty do not see any salary (temporary-faculty ranges are HR/Admin only).
     if (!SALARY_ENABLED && payload.role === 'FACULTY') {
@@ -44,11 +49,23 @@ export async function GET(req: NextRequest) {
       return withToken(json({ error: 'facultyId required' }, 400), refreshedToken)
     }
 
+    if (!Types.ObjectId.isValid(facultyId)) {
+      return withToken(json({ error: 'Invalid facultyId' }, 400), refreshedToken)
+    }
+
     await connectDB()
+
+    // While month pay is on hold only temporary faculty may be paid — enforced here, not just by the calculator.
+    if (!SALARY_ENABLED) {
+      const faculty = await Faculty.findById(facultyId).select('type')
+      if (!faculty || faculty.type !== 'TEMPORARY') {
+        return withToken(json({ error: 'Only temporary faculty salary is available right now.' }, 403), refreshedToken)
+      }
+    }
 
     // Date-range mode (TEMPORARY faculty, paid by the week) — the calculator
     // itself rejects non-temporary faculty.
-    if (from || to) {
+    if (isRange) {
       if (!DATE_RE.test(from ?? '') || !DATE_RE.test(to ?? '')) {
         return withToken(json({ error: 'from and to must be YYYY-MM-DD dates' }, 400), refreshedToken)
       }
