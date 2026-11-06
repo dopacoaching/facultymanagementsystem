@@ -73,7 +73,7 @@ export function SalaryResultCard({
           <div style={{
             padding: '1.25rem 1.5rem',
             background: result.status === 'HR_REVIEW'
-              ? 'var(--color-warning-fg)'
+              ? 'var(--color-warning-solid)'
               : 'var(--color-brand-navy)',
             color: 'var(--color-on-navy)',
             borderRadius: 'var(--radius-lg)',

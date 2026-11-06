@@ -28,6 +28,7 @@
   --color-warning:        #a15c07;
   --color-warning-bg:     #fdf0d2;
   --color-warning-fg:     #7a4505;
+  --color-warning-solid:  #7a4505;                  /* a surface for white text; warning-fg is a text colour */
   --color-info:           #0b6bcb;
   --color-info-bg:        #e0f0fd;
   --color-info-fg:        #08427f;
@@ -120,6 +121,7 @@
   --color-warning:        #fbbf24;
   --color-warning-bg:     #2e2410;
   --color-warning-fg:     #fcd34d;
+  --color-warning-solid:  #96510a;
   --color-info:           #4db4f7;
   --color-info-bg:        #10283c;
   --color-info-fg:        #bae6fd;

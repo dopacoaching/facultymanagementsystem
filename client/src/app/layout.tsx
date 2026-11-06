@@ -33,7 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${figtree.variable}`}>
       <head>
-        {/* Apply saved theme before first paint — prevents flash */}
+        {/* Apply saved theme before first paint — prevents flash. It sets data-theme on <html>
+            ahead of hydration, which is why <html> carries suppressHydrationWarning. */}
         <script dangerouslySetInnerHTML={{ __html:
           `(function(){try{var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}})()`
         }} />

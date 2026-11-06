@@ -7,7 +7,7 @@ import { EditEntryDialog } from '@/components/hr/reports/EditEntryDialog'
 import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
-import { CLASS_MODE_FILTERS } from '@/lib/constants/classModes'
+import { CLASS_MODE_FILTERS, CLASS_MODE_LABELS as MODE_LABELS } from '@/lib/constants/classModes'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
 import { fmtDay, monthRange } from '@/components/hr/reports/reportShared'
@@ -49,10 +49,6 @@ function groupBy<T>(rows: T[], key: (r: T) => string): Map<string, T[]> {
   return map
 }
 
-const MODE_LABELS: Record<string, string> = {
-  ONLINE: 'Online', OFFLINE: 'Offline',
-  ONLINE_DOUBT_CLEARANCE: 'Online Doubt Clearance', OFFLINE_DOUBT_CLEARANCE: 'Offline Doubt Clearance',
-}
 
 /** Total break minutes across the morning/lunch/afternoon fields, or null if none was recorded. */
 function breakTotal(r: EntryRow): number | null {
@@ -330,15 +326,16 @@ export default function EntriesReportPage() {
     setFrom(r.from); setTo(r.to)
   }
 
-  const rows = useMemo(() => {
+  /** Every filter except class mode, so a faculty's running total counts all of their hours. */
+  const baseRows = useMemo(() => {
     const all = report?.sessions ?? []
     return all
       .filter((r) => kind === 'ALL' || (kind === 'PERMANENT') === (r.facultyType === 'PERMANENT'))
       .filter((r) => !campus || r.campusNames.includes(campus))
       .filter((r) => !facultyId || r.facultyId === facultyId)
-      .filter((r) => !classMode || r.classMode === classMode)
       .sort(byEntryOrder)
-  }, [report, kind, campus, facultyId, classMode])
+  }, [report, kind, campus, facultyId])
+  const rows = useMemo(() => (classMode ? baseRows.filter((r) => r.classMode === classMode) : baseRows), [baseRows, classMode])
 
   /** HR/Admin only (the server decides): a Pay column for temporary faculty, when the shown rows include any. */
   const showPay = !!report?.showPay && rows.some((r) => r.facultyType === 'TEMPORARY')
@@ -359,8 +356,8 @@ export default function EntriesReportPage() {
     [allFaculty, report, kind],
   )
 
-  /** Each faculty's hours added up in date order across the filtered rows (6h, then 12h, then 17h...). */
-  const totals = useMemo(() => cumulativeHours(rows), [rows])
+  /** Each faculty's hours added up in date order across the filtered rows (6h, then 12h, then 17h...), whatever the class mode. */
+  const totals = useMemo(() => cumulativeHours(baseRows), [baseRows])
 
   const byCampus = useMemo(() => {
     if (group === 'faculty') return []

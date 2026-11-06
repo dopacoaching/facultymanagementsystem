@@ -10,13 +10,8 @@ import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
 import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
 import type { Session } from '@/types'
 import type { JointHistoryRow } from '@/lib/utils/jointHistory'
+import { CLASS_MODE_LABELS as MODE_LABELS } from '@/lib/constants/classModes'
 
-const MODE_LABELS: Record<string, string> = {
-  ONLINE: 'Online',
-  OFFLINE: 'Offline',
-  ONLINE_DOUBT_CLEARANCE: 'Online Doubt Clearance',
-  OFFLINE_DOUBT_CLEARANCE: 'Offline Doubt Clearance',
-}
 
 function formatHM(durationHours: number): string {
   const totalMinutes = Math.round(durationHours * 60)
