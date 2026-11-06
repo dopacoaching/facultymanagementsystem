@@ -1,8 +1,10 @@
+import { Icon } from '@/components/ui/Icon'
 import { useEffect, useState } from 'react'
 import type { Faculty } from '@/types'
 import { getContract, updateContract } from '@/services/salary.service'
 import type { FacultyContract } from '@/services/salary.service'
 import { Skeleton, ErrorAlert } from '@/components/ui/Skeleton'
+import s from './Faculty.module.css'
 
 interface ConfigurePayModalProps {
   faculty: Faculty
@@ -69,14 +71,14 @@ export function ConfigurePayModal({ faculty, token, onClose, onSaved }: Configur
         <div className="modal-header">
           <div>
             <h2>Configure Pay — {faculty.name}</h2>
-            <div style={{ fontSize: '0.8rem', color: 'var(--color-muted)', marginTop: '0.2rem' }}>CONFIGURABLE contract type</div>
+            <div className={s.subtitle}>CONFIGURABLE contract type</div>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
         </div>
 
         <div className="modal-body">
           {loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div className="stack-sm">
               <Skeleton height="1.5rem" width="60%" />
               <Skeleton height="1rem" width="40%" />
               <Skeleton height="8rem" />
@@ -85,55 +87,52 @@ export function ConfigurePayModal({ faculty, token, onClose, onSaved }: Configur
           )}
 
           {error && (
-            <div style={{ marginBottom: '1rem' }}>
+            <div className="mb-4">
               <ErrorAlert message={error} />
             </div>
           )}
 
           {!loading && contract && (
             <>
-              {/* Status */}
-              <div style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>Contract status:</span>
-                <span className={`badge ${contract.isConfigured ? 'badge-green' : 'badge-red'}`}>
-                  {contract.isConfigured ? 'Configured' : 'Not Configured — payroll BLOCKED'}
-                </span>
-              </div>
-
-              {/* JSON editor */}
-              <div className="form-group">
-                <label className="label">Pay Configuration JSON</label>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>
-                  Enter the pay structure as a JSON object. Example: <code style={{ background: 'var(--color-surface-2)', padding: '0.1rem 0.3rem', borderRadius: 3 }}>{`{"baseSalary": 45000, "bonus": 5000}`}</code>
+              <section className={s.section} aria-labelledby="cp-status">
+                <h3 id="cp-status" className={s.sectionTitle}>Contract status</h3>
+                <div className={s.statusRow}>
+                  <span className={`badge badge-dot ${contract.isConfigured ? 'badge-green' : 'badge-red'}`}>
+                    {contract.isConfigured ? 'Configured' : 'Not Configured — payroll BLOCKED'}
+                  </span>
                 </div>
-                <textarea
-                  className="input"
-                  value={jsonText}
-                  onChange={(e) => { setJsonText(e.target.value); setJsonError('') }}
-                  onBlur={validateJson}
-                  style={{
-                    fontFamily: 'monospace', fontSize: '0.8125rem',
-                    minHeight: 180, resize: 'vertical',
-                    borderColor: jsonError ? 'var(--color-danger)' : undefined,
-                  }}
-                  spellCheck={false}
-                />
-                {jsonError && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.25rem' }}>⚠ {jsonError}</div>
-                )}
-              </div>
+              </section>
 
-              {/* Notes */}
-              <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                <label className="label">Notes (optional)</label>
-                <textarea
-                  className="input"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  style={{ minHeight: 64, resize: 'vertical' }}
-                  placeholder="e.g. Custom arrangement as per agreement letter dated…"
-                />
-              </div>
+              <section className={s.section} aria-labelledby="cp-json">
+                <h3 id="cp-json" className={s.sectionTitle}>Pay structure</h3>
+                <div className="form-group">
+                  <label className="label" htmlFor="cp-json-input">Pay Configuration JSON</label>
+                  <div className="help-text" style={{ marginTop: 0 }}>
+                    Enter the pay structure as a JSON object. Example: <code className={s.codeInline}>{`{"baseSalary": 45000, "bonus": 5000}`}</code>
+                  </div>
+                  <textarea
+                    id="cp-json-input"
+                    className={`input ${s.jsonArea}`}
+                    value={jsonText}
+                    onChange={(e) => { setJsonText(e.target.value); setJsonError('') }}
+                    onBlur={validateJson}
+                    aria-invalid={jsonError ? true : undefined}
+                    spellCheck={false}
+                  />
+                  {jsonError && <div className="error-text" role="alert">{jsonError}</div>}
+                </div>
+
+                <div className="form-group">
+                  <label className="label" htmlFor="cp-notes">Notes (optional)</label>
+                  <textarea
+                    id="cp-notes"
+                    className="input"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="e.g. Custom arrangement as per agreement letter dated…"
+                  />
+                </div>
+              </section>
             </>
           )}
         </div>

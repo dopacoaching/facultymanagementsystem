@@ -99,7 +99,7 @@ tr.ded td{color:#dc2626}
     <div class="sig">Authorised Signatory</div>
   </div>
 </div>
-<button class="print-btn" onclick="window.print()">🖨 Print</button>
+<button class="print-btn" onclick="window.print()">Print</button>
 <script>setTimeout(function(){window.print()},600)</script>
 </body></html>`)
   win.document.close()

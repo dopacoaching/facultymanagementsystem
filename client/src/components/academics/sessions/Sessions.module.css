@@ -1,0 +1,30 @@
+.toolbar { margin-bottom: 0; }
+.search { flex: 1 1 15rem; }
+.searchField { position: relative; }
+.searchIcon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--color-muted); pointer-events: none; }
+.searchInput { padding-left: 2.25rem; }
+
+.faculty { font-weight: 600; }
+.chapter { color: var(--color-text-secondary); font-size: var(--text-sm); min-width: 10rem; max-width: 22rem; }
+.subject { font-weight: 500; }
+.date { color: var(--color-text-secondary); font-size: var(--text-sm); white-space: nowrap; }
+
+.actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); flex-wrap: nowrap; }
+.cancelGroup { display: inline-flex; align-items: center; gap: 0.25rem; opacity: 0.55; transition: opacity var(--dur-micro); }
+tr:hover .cancelGroup, .cancelGroup:focus-within { opacity: 1; }
+.initiator { padding: 0.3rem 0.5rem; font-size: var(--text-xs); width: 6.75rem; }
+
+@media (max-width: 640px) {
+  .chapter { max-width: none; min-width: 0; text-align: right; }
+  .actions { flex-wrap: wrap; }
+  .cancelGroup { opacity: 1; }
+}
+
+/* Modal form extras */
+.durationRow { display: flex; gap: var(--space-2); }
+.durationHours { width: 5rem; flex: none; }
+.durationMins { width: 5.5rem; flex: none; }
+.loadingField { color: var(--color-muted); display: flex; align-items: center; gap: var(--space-2); }
+.modalAlert { margin-bottom: var(--space-4); }
+.spanTwo { grid-column: span 2; }
+@media (max-width: 640px) { .spanTwo { grid-column: auto; } }

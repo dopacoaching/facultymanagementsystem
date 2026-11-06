@@ -10,6 +10,8 @@ import { useCampusTeacherInfo } from '@/hooks/useCampusTeacherInfo'
 import { EditOwnEntry } from '@/components/coordinator/EditOwnEntry'
 import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
 import { update as updateEntry } from '@/services/ig-session.service'
+import { Icon } from '@/components/ui/Icon'
+import s from '@/components/coordinator/Entry.module.css'
 
 const SLOT_LABELS: Record<string, string> = {
   SESSION_1: 'Session 1',
@@ -48,29 +50,29 @@ export default function IGSessionHistoryPage() {
 
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const totalHours = sessions.reduce((sum, x) => sum + x.durationHours, 0)
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Session History</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Every IG session you&apos;ve logged.
-          </p>
+          <h1>Session History</h1>
+          <p className="page-subtitle">Every IG session you&apos;ve logged.</p>
         </div>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
           <ErrorAlert message={error} onRetry={load} />
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
+      <div className="toolbar">
         <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
       </div>
 
       {loading ? (
-        <div className="card"><SkeletonTable rows={8} cols={8} /></div>
+        <div className="card card-flush"><SkeletonTable rows={8} cols={8} /></div>
       ) : sessions.length === 0 ? (
         <div className="card">
           <EmptyState
@@ -79,65 +81,76 @@ export default function IGSessionHistoryPage() {
           />
         </div>
       ) : (
-        <div className="card">
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Faculty</th>
-                  <th>Subject</th>
-                  <th>Batch</th>
-                  <th>Chapter</th>
-                  <th>Session</th>
-                  <th>Start–End</th>
-                  <th style={{ textAlign: 'right' }}>Time Taken</th>
-                  <th>Updated By</th>
-                  <th>Comment</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((s) => {
-                  const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
-                  return (
-                    <tr key={s._id}>
-                      <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                        {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{facultyName}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.subject}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
-                      <td>
-                        <span className="badge badge-green">{s.timeSlot ? SLOT_LABELS[s.timeSlot] ?? s.timeSlot : '—'}</span>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                        {s.startTime ?? '—'}–{s.endTime ?? '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                        {formatHM(s.durationHours)}
-                      </td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {s.jointIG && <span className="badge badge-gray">Joint class</span>}
-                        {!s.jointIG && editWindowRemainingMs(s.createdAt) > 0 && s.status !== 'CANCELLED' && (
-                          <>
-                            <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(s)}>Edit</button>
-                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
-                              {formatTimeLeft(editWindowRemainingMs(s.createdAt))}
+        <>
+          <p className={s.historySummary} aria-live="polite">
+            <strong>{sessions.length}</strong> {sessions.length === 1 ? 'session' : 'sessions'} · <strong>{formatHM(totalHours)}</strong> in total
+          </p>
+          <div className="card card-flush">
+            <div className="table-wrapper table-stack">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Faculty</th>
+                    <th>Subject</th>
+                    <th>Batch</th>
+                    <th>Chapter</th>
+                    <th>Session</th>
+                    <th>Start–End</th>
+                    <th className="num" style={{ textAlign: 'right' }}>Time Taken</th>
+                    <th>Updated By</th>
+                    <th>Comment</th>
+                    <th><span className={s.srOnly}>Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((x) => {
+                    const facultyName = typeof x.facultyId === 'object' ? x.facultyId.name : x.facultyId
+                    const joint = !!x.jointIG
+                    const canEdit = !joint && editWindowRemainingMs(x.createdAt) > 0 && x.status !== 'CANCELLED'
+                    return (
+                      <tr key={x._id}>
+                        <td data-label="Date" className={`${s.secondary} ${s.nowrap}`}>
+                          {new Date(x.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td data-label="Faculty" className={s.strong}>{facultyName}</td>
+                        <td data-label="Subject" className={s.secondary}>{x.subject}</td>
+                        <td data-label="Batch" className={s.secondary}>{x.batchNames?.length ? x.batchNames.join(', ') : '—'}</td>
+                        <td data-label="Chapter" className={s.secondary}>{x.chapter}</td>
+                        <td data-label="Session">
+                          <span className="badge badge-green">{x.timeSlot ? SLOT_LABELS[x.timeSlot] ?? x.timeSlot : '—'}</span>
+                        </td>
+                        <td data-label="Start–End" className={`num ${s.nowrap}`}>
+                          {x.startTime ?? '—'}–{x.endTime ?? '—'}
+                        </td>
+                        <td data-label="Time Taken" className={`num ${s.strong}`} style={{ textAlign: 'right' }}>
+                          {formatHM(x.durationHours)}
+                        </td>
+                        <td data-label="Updated By" className={s.secondary}>{x.updatedByName ?? '—'}</td>
+                        <td data-label="Comment" className={s.comment}>{x.comment || '—'}</td>
+                        <td data-label="Actions" className={s.actionCell}>
+                          {(joint || canEdit) && (
+                            <span className={s.editCell}>
+                              {joint && <span className="badge badge-gray">Joint class</span>}
+                              {canEdit && (
+                                <>
+                                  <span className={s.timeLeft}>{formatTimeLeft(editWindowRemainingMs(x.createdAt))}</span>
+                                  <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(x)}>
+                                    <Icon name="edit" size={14} /> Edit
+                                  </button>
+                                </>
+                              )}
                             </span>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {editing && (
@@ -151,7 +164,7 @@ export default function IGSessionHistoryPage() {
         />
       )}
 
-      <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
+      <p className={s.footnoteHistory}>
         You can edit an entry for 24 hours after you push it. After that, contact HR to make corrections.
       </p>
     </div>

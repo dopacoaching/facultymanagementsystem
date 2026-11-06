@@ -36,7 +36,7 @@ export function HoursProgressCard({ hoursProgress }: HoursProgressCardProps) {
                     color: progressColor(item.status),
                   }}
                 >
-                  {item.status === 'MET' ? '✓ Met' : item.status.replace('_', ' ')}
+                  {item.status === 'MET' ? 'Met' : item.status.replace('_', ' ')}
                 </span>
               </div>
             </div>
@@ -55,12 +55,12 @@ export function HoursProgressCard({ hoursProgress }: HoursProgressCardProps) {
             </div>
             {item.deficit > 0 && (
               <div style={{ fontSize: '0.72rem', color: 'var(--color-danger)', marginTop: '0.25rem' }}>
-                ↓ {item.deficit.toFixed(1)} hrs short of quota
+                Short: {item.deficit.toFixed(1)} hrs short of quota
               </div>
             )}
             {item.surplus > 0 && item.contractType === 'BASE_OVERTIME' && (
               <div style={{ fontSize: '0.72rem', color: 'var(--color-success)', marginTop: '0.25rem' }}>
-                ↑ {item.surplus.toFixed(1)} hrs overtime
+                Over: {item.surplus.toFixed(1)} hrs overtime
               </div>
             )}
           </div>

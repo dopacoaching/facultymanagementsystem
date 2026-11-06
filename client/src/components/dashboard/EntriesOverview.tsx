@@ -6,9 +6,11 @@ import { getEntriesReport, type EntriesReport } from '@/services/entries.service
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert, EmptyState, SkeletonStats, SkeletonCard } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { Icon } from '@/components/ui/Icon'
 import { toLocalISO } from '@/utils/date'
 import { PushBoardDay } from './PushBoardDay'
 import { SubjectHours } from './SubjectHours'
+import css from './Dashboard.module.css'
 
 interface RangeData {
   from: string
@@ -35,8 +37,6 @@ function fmtDay(iso: string, withYear = true): string {
 }
 
 const isSunday = (iso: string) => parseISO(iso).getDay() === 0
-
-const linkStyle = { fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' } as const
 
 interface CampusRow {
   campusName: string
@@ -131,52 +131,60 @@ export function EntriesOverview({ leading }: Props) {
   const flagged = view?.campuses.filter((c) => c.missingDays.length > 0) ?? []
 
   const stats = [
-    { label: 'Entries',          value: report ? report.sessions.length : '—',               color: 'var(--color-text)' },
-    { label: 'Faculty Teaching', value: view ? view.faculty.length : '—',                    color: 'var(--color-success)' },
-    { label: 'No Class Days',    value: report ? report.noClass.length : '—',                color: 'var(--color-info)' },
-    { label: 'Unsubmitted Days', value: view ? view.missingTotal : '—',                      color: view && view.missingTotal > 0 ? 'var(--color-danger)' : 'var(--color-muted)' },
+    { label: 'Entries',          value: report ? report.sessions.length : '—',               tone: '' },
+    { label: 'Faculty Teaching', value: view ? view.faculty.length : '—',                    tone: css.kpiOk },
+    { label: 'No Class Days',    value: report ? report.noClass.length : '—',                tone: css.kpiInfo },
+    { label: 'Unsubmitted Days', value: view ? view.missingTotal : '—',                      tone: view && view.missingTotal > 0 ? css.kpiBad : css.kpiMuted },
   ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-      <PushBoardDay />
-
-      <DateRangeFilter
-        from={from}
-        to={to}
-        onFromChange={setFrom}
-        onToChange={setTo}
-        loading={loading}
-        onApply={res.refetch}
-        applyLabel="Refresh"
-      />
-
-      {res.status === 'error' && (
-        <ErrorAlert
-          message={res.error?.message ?? ''}
-          what={`Couldn't load the ${periodLabel} overview`}
-          onRetry={res.refetch}
-        />
-      )}
-
+    <div className={css.root}>
       {leading}
 
-      <section>
-        <h2 className="section-label" style={{ marginBottom: '0.75rem' }}>Entries · {periodLabel}</h2>
-        {!report && res.status !== 'error' ? (
-          <SkeletonStats count={4} />
-        ) : (
-          <div className="stat-strip">
-            {stats.map(({ label, value, color }) => (
-              <div key={label} className="stat-card">
-                <div className="stat-label">{label}</div>
-                <div className="stat-value" style={{ color }}>{value}</div>
-              </div>
-            ))}
+      <PushBoardDay />
+
+      <section className={css.section} aria-labelledby="overview-range">
+        <div className={css.sectionHead}>
+          <div>
+            <h2 id="overview-range">Range overview</h2>
+            <p className={css.sectionSub}>Entries · {periodLabel}</p>
           </div>
+        </div>
+
+        <DateRangeFilter
+          from={from}
+          to={to}
+          onFromChange={setFrom}
+          onToChange={setTo}
+          loading={loading}
+          onApply={res.refetch}
+          applyLabel="Refresh"
+        />
+
+        {res.status === 'error' && (
+          <ErrorAlert
+            message={res.error?.message ?? ''}
+            what={`Couldn't load the ${periodLabel} overview`}
+            onRetry={res.refetch}
+          />
         )}
+
+        <div aria-live="polite">
+          {!report && res.status !== 'error' ? (
+            <SkeletonStats count={4} />
+          ) : (
+            <div className="stats-grid">
+              {stats.map(({ label, value, tone }) => (
+                <div key={label} className="stat-card">
+                  <div className="stat-label">{label}</div>
+                  <div className={`stat-value ${tone}`}>{value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         {report?.truncated && (
-          <p style={{ fontSize: '0.8125rem', color: 'var(--color-warning-fg)', marginTop: '0.75rem' }}>
+          <p className={css.noteWarn}>
             This range has more entries than can be shown — narrow the dates for exact totals.
           </p>
         )}
@@ -185,23 +193,23 @@ export function EntriesOverview({ leading }: Props) {
       {/* ── Unsubmitted days (red flags) ────────────────────────────────────── */}
       {view && flagged.length > 0 && (
         <section>
-          <div className="card" style={{ borderColor: 'var(--color-danger)' }}>
+          <div className={`card ${css.alertCard}`}>
             <div className="card-header">
-              <h2 style={{ color: 'var(--color-danger)' }}>Unsubmitted days</h2>
-              <Link href="/hr/reports" style={linkStyle}>Open report →</Link>
+              <h2>Unsubmitted days</h2>
+              <Link href="/hr/reports" className={css.link}>Open report <Icon name="chevronRight" size={12} /></Link>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div className={css.flagList}>
               {flagged.map((c) => (
-                <div key={c.campusName} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem' }}>
-                  <strong style={{ fontSize: '0.875rem', minWidth: 120 }}>{c.campusName}</strong>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+                <div key={c.campusName} className={css.flagRow}>
+                  <strong>{c.campusName}</strong>
+                  <span className="text-muted text-xs">
                     {c.missingDays.length} {c.missingDays.length === 1 ? 'day' : 'days'}
                   </span>
                   {c.missingDays.slice(0, 8).map((d) => (
                     <span key={d} className="badge badge-red">{fmtDay(d, false)}</span>
                   ))}
                   {c.missingDays.length > 8 && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>+{c.missingDays.length - 8} more</span>
+                    <span className={css.more}>+{c.missingDays.length - 8} more</span>
                   )}
                 </div>
               ))}
@@ -214,10 +222,10 @@ export function EntriesOverview({ leading }: Props) {
 
       <div className="panel-grid-2">
         {/* ── Campus-wise ───────────────────────────────────────────────────── */}
-        <div className="card" style={{ minWidth: 0 }}>
+        <div className={`card ${css.minw}`}>
           <div className="card-header">
             <h2>Campus-wise</h2>
-            <Link href="/hr/reports" style={linkStyle}>Entries Report →</Link>
+            <Link href="/hr/reports" className={css.link}>Entries Report <Icon name="chevronRight" size={12} /></Link>
           </div>
           {!view ? (
             <SkeletonCard lines={4} showHeader={false} />
@@ -225,25 +233,25 @@ export function EntriesOverview({ leading }: Props) {
             <EmptyState title="No campuses" description="Campuses appear here once entries are logged." />
           ) : (
             <div className="table-wrapper">
-              <table style={{ minWidth: 360 }}>
+              <table className={css.tableMin}>
                 <thead>
                   <tr>
                     <th>Campus</th>
-                    <th style={{ textAlign: 'right' }}>Entries</th>
-                    <th style={{ textAlign: 'right' }}>Hours</th>
-                    <th style={{ textAlign: 'right' }}>Unsubmitted</th>
+                    <th className="num" style={{ textAlign: 'right' }}>Entries</th>
+                    <th className="num" style={{ textAlign: 'right' }}>Hours</th>
+                    <th className="num" style={{ textAlign: 'right' }}>Unsubmitted</th>
                   </tr>
                 </thead>
                 <tbody>
                   {view.campuses.map((c) => (
                     <tr key={c.campusName}>
-                      <td style={{ fontWeight: 600 }}>{c.campusName}</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.entries}</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--color-primary)' }}>{formatHM(c.hours)}</td>
+                      <td className={css.cellStrong}>{c.campusName}</td>
+                      <td className="num" style={{ textAlign: 'right' }}>{c.entries}</td>
+                      <td className={`num ${css.hoursStrong}`} style={{ textAlign: 'right' }}>{formatHM(c.hours)}</td>
                       <td style={{ textAlign: 'right' }}>
                         {c.missingDays.length > 0
                           ? <span className="badge badge-red">{c.missingDays.length}</span>
-                          : <span style={{ color: 'var(--color-muted)' }}>—</span>}
+                          : <span className="text-muted">—</span>}
                       </td>
                     </tr>
                   ))}
@@ -254,37 +262,32 @@ export function EntriesOverview({ leading }: Props) {
         </div>
 
         {/* ── Faculty hours ─────────────────────────────────────────────────── */}
-        <div className="card" style={{ minWidth: 0 }}>
+        <div className={`card ${css.minw}`}>
           <div className="card-header">
             <h2>Faculty Hours</h2>
-            <Link href="/hr/reports/faculty-hours" style={linkStyle}>By subject →</Link>
+            <Link href="/hr/reports/faculty-hours" className={css.link}>By subject <Icon name="chevronRight" size={12} /></Link>
           </div>
           {!view ? (
             <SkeletonCard lines={4} showHeader={false} />
           ) : view.faculty.length === 0 ? (
             <EmptyState title="No entries in this range" description="Hours taught will appear here once entries are submitted." />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div className={css.barList}>
               {view.faculty.slice(0, 10).map((f) => (
                 <div key={f.facultyId}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.3rem' }}>
-                    <span style={{ fontWeight: 600, fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  <div className={css.barTop}>
+                    <span className={css.barName}>{f.name}</span>
+                    <span className={`mono ${css.barFig}`}>
                       {formatHM(f.hours)} · {f.entries} {f.entries === 1 ? 'entry' : 'entries'}
                     </span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 3, background: 'var(--color-surface-2)', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${maxFacultyHours > 0 ? (f.hours / maxFacultyHours) * 100 : 0}%`,
-                      background: 'var(--color-primary)',
-                      borderRadius: 3,
-                    }} />
+                  <div className={css.barTrack}>
+                    <div className={css.barFill} style={{ width: `${maxFacultyHours > 0 ? (f.hours / maxFacultyHours) * 100 : 0}%` }} />
                   </div>
                 </div>
               ))}
               {view.faculty.length > 10 && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
+                <span className={css.more}>
                   Showing top 10 of {view.faculty.length} faculty
                 </span>
               )}

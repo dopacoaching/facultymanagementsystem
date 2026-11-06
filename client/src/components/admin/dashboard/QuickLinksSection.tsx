@@ -1,61 +1,39 @@
 import Link from 'next/link'
 import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED, SALARY_LABELS } from '@/lib/constants/features'
+import { Icon, type IconName } from '@/components/ui/Icon'
+import s from './Dashboard.module.css'
 
-const LINKS = [
-  { href: '/hr/faculty',               label: 'Faculty',       desc: 'Manage faculty profiles' },
-  ...(SALARY_ENABLED || SALARY_TEMPORARY_ENABLED ? [{ href: '/hr/salary', label: SALARY_LABELS.adminLink, desc: SALARY_LABELS.adminDesc }] : []),
-  { href: '/hr/reports',               label: 'Entries Report', desc: 'Campus, subject & faculty-wise' },
-  { href: '/hr/reports/faculty-hours', label: 'Faculty Hours', desc: 'Hours taught, by subject' },
-  { href: '/admin/audit-log',          label: 'Audit Log',     desc: 'All system events' },
-  { href: '/academics/sessions',       label: 'Sessions',      desc: 'Hours logged by class teachers' },
+interface QuickLinkItem { href: string; label: string; desc: string; icon: IconName }
+
+const LINKS: QuickLinkItem[] = [
+  { href: '/hr/faculty',               label: 'Faculty',       desc: 'Manage faculty profiles', icon: 'users' },
+  ...(SALARY_ENABLED || SALARY_TEMPORARY_ENABLED ? [{ href: '/hr/salary', label: SALARY_LABELS.adminLink, desc: SALARY_LABELS.adminDesc, icon: 'wallet' } as QuickLinkItem] : []),
+  { href: '/hr/reports',               label: 'Entries Report', desc: 'Campus, subject & faculty-wise', icon: 'report' },
+  { href: '/hr/reports/faculty-hours', label: 'Faculty Hours', desc: 'Hours taught, by subject', icon: 'clock' },
+  { href: '/admin/audit-log',          label: 'Audit Log',     desc: 'All system events', icon: 'shield' },
+  { href: '/academics/sessions',       label: 'Sessions',      desc: 'Hours logged by class teachers', icon: 'book' },
 ]
 
-function QuickLink({ href, label, desc }: { href: string; label: string; desc: string }) {
+function QuickLink({ href, label, desc, icon }: QuickLinkItem) {
   return (
-    <Link href={href} style={{ textDecoration: 'none' }}>
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '1.125rem 1.25rem',
-          height: '100%',
-          boxShadow: 'var(--shadow-sm)',
-          transition: 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease',
-          cursor: 'pointer',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'var(--color-primary)'
-          e.currentTarget.style.boxShadow = 'var(--shadow)'
-          e.currentTarget.style.transform = 'translateY(-1px)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = 'var(--color-border)'
-          e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
-          e.currentTarget.style.transform = 'none'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-          <div style={{ fontWeight: 650, fontSize: '0.9375rem', color: 'var(--color-text)' }}>{label}</div>
-          <span aria-hidden="true" style={{ color: 'var(--color-muted)', fontSize: '1rem' }}>&rarr;</span>
-        </div>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>{desc}</div>
-      </div>
+    <Link href={href} className={`card ${s.link}`}>
+      <span className={s.linkIcon}><Icon name={icon} size={20} /></span>
+      <span className={s.linkText}>
+        <span className={s.linkLabel}>{label}</span>
+        <span className={s.linkDesc}>{desc}</span>
+      </span>
+      <Icon name="chevronRight" size={16} className={s.linkArrow} />
     </Link>
   )
 }
 
 export function QuickLinksSection() {
   return (
-    <section>
-      <h2 className="section-label">Quick Links</h2>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-          gap: '1rem',
-        }}
-      >
+    <section aria-labelledby="admin-quick-links">
+      <div className={s.sectionHead}>
+        <h2 className="section-label" id="admin-quick-links">Quick Links</h2>
+      </div>
+      <div className={s.links}>
         {LINKS.map((l) => (
           <QuickLink key={l.href} {...l} />
         ))}

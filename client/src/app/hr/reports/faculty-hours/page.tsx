@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hooks'
 import { getFacultyHoursBySubject, type SubjectHoursRanking } from '@/services/salary.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import rs from '@/components/hr/reports/Reports.module.css'
 import { toLocalISO } from '@/utils/date'
 
 const TYPE_BADGE: Record<string, string> = {
@@ -18,65 +19,53 @@ function SubjectRankingCard({ ranking }: { ranking: SubjectHoursRanking }) {
   const maxHours = Math.max(...ranking.faculty.map((f) => f.totalHours), 1)
 
   return (
-    <div className="card" style={{ marginBottom: '1.5rem' }}>
+    <div className="card" style={{ marginBottom: 'var(--space-4)' }}>
       <div className="card-header">
-        <h2 style={{ textTransform: 'capitalize' }}>{ranking.subject.toLowerCase()}</h2>
-        <span style={{ fontSize: '0.8rem', color: 'var(--color-muted)' }}>
-          {ranking.faculty.length} {ranking.faculty.length === 1 ? 'faculty' : 'faculty'}
+        <h2 className={rs.subjectName}>{ranking.subject.toLowerCase()}</h2>
+        <span className="badge badge-gray">
+          <span className="mono">{ranking.faculty.length}</span> faculty
         </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+      <ol className={rs.rank}>
         {ranking.faculty.map((f, i) => (
-          <div key={f.facultyId}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', width: '1.25rem' }}>#{i + 1}</span>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{f.name}</span>
-                <span className={`badge badge-sentence ${TYPE_BADGE[f.type] ?? 'badge-blue'}`} style={{ fontSize: '0.65rem' }}>
-                  {f.type}
-                </span>
-              </div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                {f.totalHours.toFixed(1)} hrs · {f.sessionCount} {f.sessionCount === 1 ? 'session' : 'sessions'}
-              </span>
+          <li key={f.facultyId} className={rs.rankRow}>
+            <span className={rs.rankNo}>#{i + 1}</span>
+            <span className={rs.rankName}>
+              {f.name}
+              <span className={`badge badge-sentence ${TYPE_BADGE[f.type] ?? 'badge-blue'}`}>{f.type}</span>
+            </span>
+            <span className={`${rs.rankNum} num`}>
+              {f.totalHours.toFixed(1)} hrs · {f.sessionCount} {f.sessionCount === 1 ? 'session' : 'sessions'}
+            </span>
+            <div className={rs.track} aria-hidden="true">
+              <div className={rs.fill} style={{ width: `${Math.max(2, (f.totalHours / maxHours) * 100)}%` }} />
             </div>
-            <div style={{ height: 8, borderRadius: 4, background: 'var(--color-surface-2)', overflow: 'hidden' }}>
-              <div
-                style={{
-                  height: '100%',
-                  width: `${Math.max(2, (f.totalHours / maxHours) * 100)}%`,
-                  background: 'var(--color-primary)',
-                  borderRadius: 4,
-                  transition: 'width 0.4s ease',
-                }}
-              />
-            </div>
-          </div>
+          </li>
         ))}
-      </div>
+      </ol>
 
-      <details style={{ marginTop: '1rem' }}>
-        <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--color-muted)' }}>View as table</summary>
-        <div className="table-wrapper" style={{ marginTop: '0.75rem' }}>
+      <details className={rs.details}>
+        <summary>View as table</summary>
+        <div className="table-wrapper table-stack">
           <table>
             <thead>
               <tr>
                 <th>#</th>
                 <th>Faculty</th>
                 <th>Type</th>
-                <th style={{ textAlign: 'right' }}>Hours</th>
-                <th style={{ textAlign: 'right' }}>Sessions</th>
+                <th className="num" style={{ textAlign: 'right' }}>Hours</th>
+                <th className="num" style={{ textAlign: 'right' }}>Sessions</th>
               </tr>
             </thead>
             <tbody>
               {ranking.faculty.map((f, i) => (
                 <tr key={f.facultyId}>
-                  <td>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{f.name}</td>
-                  <td style={{ color: 'var(--color-text-secondary)' }}>{f.type}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.totalHours.toFixed(1)}</td>
-                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{f.sessionCount}</td>
+                  <td data-label="Rank" className="num">{i + 1}</td>
+                  <td data-label="Faculty" className={rs.strong}>{f.name}</td>
+                  <td data-label="Type" className={rs.muted}>{f.type}</td>
+                  <td data-label="Hours" className="num" style={{ textAlign: 'right' }}>{f.totalHours.toFixed(1)}</td>
+                  <td data-label="Sessions" className="num" style={{ textAlign: 'right' }}>{f.sessionCount}</td>
                 </tr>
               ))}
             </tbody>
@@ -109,29 +98,53 @@ export default function FacultyHoursBySubjectPage() {
 
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const totalFaculty = new Set(subjects.flatMap((x) => x.faculty.map((f) => f.facultyId))).size
+  const totalHours = subjects.reduce((t, x) => t + x.faculty.reduce((u, f) => u + f.totalHours, 0), 0)
+  const totalSessions = subjects.reduce((t, x) => t + x.faculty.reduce((u, f) => u + f.sessionCount, 0), 0)
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Faculty Hours by Subject</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Who taught the most (and least) per subject — permanent and temporary faculty together.
-          </p>
+          <h1>Faculty Hours by Subject</h1>
+          <p className="page-subtitle">Who taught the most (and least) per subject — permanent and temporary faculty together.</p>
         </div>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
           <ErrorAlert message={error} onRetry={load} />
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+      {!loading && subjects.length > 0 && (
+        <div className={`stats-grid ${rs.kpis}`} aria-live="polite">
+          <div className="stat-card">
+            <div className="stat-label">Subjects</div>
+            <div className="stat-value">{subjects.length}</div>
+            <div className="stat-sub">with sessions</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Hours</div>
+            <div className="stat-value">{totalHours.toFixed(1)}</div>
+            <div className="stat-sub">{totalSessions} sessions</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Faculty</div>
+            <div className="stat-value">{totalFaculty}</div>
+            <div className="stat-sub">distinct faculty</div>
+          </div>
+        </div>
+      )}
+
+      <div className={rs.filters}>
+        <div className={rs.filterRow}>
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+        </div>
       </div>
 
       {loading ? (
-        <div className="card"><SkeletonTable rows={5} cols={4} /></div>
+        <div className="card card-flush"><SkeletonTable rows={5} cols={4} /></div>
       ) : subjects.length === 0 ? (
         <div className="card">
           <EmptyState
@@ -140,7 +153,7 @@ export default function FacultyHoursBySubjectPage() {
           />
         </div>
       ) : (
-        subjects.map((s) => <SubjectRankingCard key={s.subject} ranking={s} />)
+        subjects.map((x) => <SubjectRankingCard key={x.subject} ranking={x} />)
       )}
     </div>
   )

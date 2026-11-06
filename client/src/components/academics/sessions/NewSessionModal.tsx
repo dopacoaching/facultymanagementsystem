@@ -1,6 +1,8 @@
 import { todayLocal } from '@/utils/date'
 import type { Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
+import { Icon } from '@/components/ui/Icon'
+import s from './Sessions.module.css'
 import { BatchChapter, MONTH_NAMES, NewSessionForm, SyllabusChapter } from './types'
 
 interface NewSessionModalProps {
@@ -35,24 +37,24 @@ export function NewSessionModal({
       <div className="modal-panel modal-lg">
         <div className="modal-header">
           <h2>Log New Session</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
         <div className="modal-body">
-          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+          {error && <div className={`alert alert-error ${s.modalAlert}`} role="alert"><Icon name="alert" size={16} className="alert-icon" />{error}</div>}
 
           <div className="input-group">
             <div className="form-group">
-              <label className="label">Faculty</label>
-              <select className="input" autoFocus value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
+              <label className="label" htmlFor="ns-faculty">Faculty</label>
+              <select id="ns-faculty" className="input" autoFocus value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
                 <option value="">— select —</option>
                 {facultyList.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
               </select>
             </div>
             {needsSessionCategory && (
               <div className="form-group">
-                <label className="label">Session Category</label>
-                <select className="input" value={form.sessionCategory}
+                <label className="label" htmlFor="ns-category">Session Category</label>
+                <select id="ns-category" className="input" value={form.sessionCategory}
                   onChange={(e) => setForm((f) => ({ ...f, sessionCategory: e.target.value as 'CLASS' | 'DOUBT_CLEARANCE' }))}>
                   <option value="CLASS">Class</option>
                   <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
@@ -60,15 +62,15 @@ export function NewSessionModal({
               </div>
             )}
             <div className="form-group">
-              <label className="label">Batch</label>
-              <select className="input" value={form.batchId} onChange={(e) => setForm((f) => ({ ...f, batchId: e.target.value, subject: '', chapter: '', syllabusChapterId: undefined }))}>
+              <label className="label" htmlFor="ns-batch">Batch</label>
+              <select id="ns-batch" className="input" value={form.batchId} onChange={(e) => setForm((f) => ({ ...f, batchId: e.target.value, subject: '', chapter: '', syllabusChapterId: undefined }))}>
                 <option value="">— select —</option>
                 {batches.map((b) => <option key={b._id} value={b._id}>{b.name} ({b.type})</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="label">Subject</label>
-              <select className="input" value={form.subject}
+              <label className="label" htmlFor="ns-subject">Subject</label>
+              <select id="ns-subject" className="input" value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value, chapter: '', syllabusChapterId: undefined }))}>
                 <option value="">— select subject —</option>
                 <option value="PHYSICS">Physics</option>
@@ -78,12 +80,12 @@ export function NewSessionModal({
               </select>
             </div>
             <div className="form-group">
-              <label className="label">Chapter</label>
+              <label className="label" htmlFor="ns-chapter">Chapter</label>
               {(loadingCh || loadingSyllabus) ? (
-                <div className="input" style={{ color: 'var(--color-muted)' }}>Loading chapters…</div>
+                <div className={`input ${s.loadingField}`} aria-live="polite"><span className="spinner" /> Loading chapters…</div>
               ) : syllabusChapters.length > 0 ? (
                 <>
-                  <select className="input" value={form.chapter}
+                  <select id="ns-chapter" className="input" value={form.chapter}
                     onChange={(e) => {
                       const ch = syllabusChapters.find((c) => c.chapterName === e.target.value)
                       setForm((f) => ({ ...f, chapter: e.target.value, syllabusChapterId: ch?._id ?? undefined }))
@@ -111,26 +113,26 @@ export function NewSessionModal({
                   </select>
                 </>
               ) : (
-                <input className="input" value={form.chapter}
+                <input id="ns-chapter" className="input" value={form.chapter}
                   onChange={(e) => setForm((f) => ({ ...f, chapter: e.target.value }))}
                   placeholder={form.subject ? 'Enter chapter or topic' : 'Select a subject first'} />
               )}
             </div>
             <div className="form-group">
-              <label className="label">Start Time</label>
-              <input type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+              <label className="label" htmlFor="ns-start">Start Time</label>
+              <input id="ns-start" type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="label">Duration</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <span className="label" id="ns-dur-label">Duration</span>
+              <div className={s.durationRow} role="group" aria-labelledby="ns-dur-label">
                 <input
-                  type="number" className="input" min={0} max={12} style={{ width: '5rem' }}
+                  type="number" className={`input ${s.durationHours}`} min={0} max={12}
                   value={form.durationHours}
                   onChange={(e) => setForm((f) => ({ ...f, durationHours: Math.max(0, +e.target.value) }))}
                   aria-label="Duration hours" placeholder="hrs"
                 />
                 <select
-                  className="input" style={{ width: '5rem' }}
+                  className={`input ${s.durationMins}`}
                   value={form.durationMinutes}
                   onChange={(e) => setForm((f) => ({ ...f, durationMinutes: +e.target.value }))}
                   aria-label="Duration minutes"
@@ -142,8 +144,8 @@ export function NewSessionModal({
               </div>
             </div>
             <div className="form-group">
-              <label className="label">Session Date</label>
-              <input type="date" className="input" value={form.sessionDate} max={todayLocal()} onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))} />
+              <label className="label" htmlFor="ns-date">Session Date</label>
+              <input id="ns-date" type="date" className="input" value={form.sessionDate} max={todayLocal()} onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))} />
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { EmptyState } from '@/components/ui/Skeleton'
 import { ISession, STATUS_BADGE } from './types'
+import s from './Dashboard.module.css'
 
 interface RecentIGSessionsCardProps {
   sessions: ISession[]
@@ -11,39 +12,32 @@ export function RecentIGSessionsCard({ sessions }: RecentIGSessionsCardProps) {
     <div className="card">
       <div className="card-header">
         <h2>Recent IG Sessions</h2>
-        <Link href="/hr/reports/ig-sessions" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>
-          View all →
-        </Link>
+        <Link href="/hr/reports/ig-sessions" className={s.viewAll}>View all &rarr;</Link>
       </div>
       {sessions.length === 0 ? (
         <EmptyState
+          iconName="school"
           title="No IG sessions yet"
           description="IG sessions will appear here once they are logged."
         />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-          {sessions.slice(0, 6).map((s) => (
-            <div key={s._id} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '0.575rem 0.5rem', borderRadius: '0.5rem', transition: 'background 0.1s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-2)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-            >
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{s.subject}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)' }}>
-                  {(typeof s.facultyId === 'object' ? s.facultyId?.name : s.facultyId) ?? '—'}
+        <ul className={s.list}>
+          {sessions.slice(0, 6).map((x) => (
+            <li key={x._id} className={s.row}>
+              <div className={s.rowText}>
+                <div className={s.rowTitle}>{x.subject}</div>
+                <div className={s.rowSub}>
+                  {(typeof x.facultyId === 'object' ? x.facultyId?.name : x.facultyId) ?? '—'}
                   {' · '}
-                  {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                  <span className="num">{new Date(x.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span>
                 </div>
               </div>
-              <span className={`badge ${STATUS_BADGE[s.status] ?? 'badge-gray'}`}>
-                {s.status.replace(/_/g, ' ')}
+              <span className={`badge ${STATUS_BADGE[x.status] ?? 'badge-gray'}`}>
+                {x.status.replace(/_/g, ' ')}
               </span>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   )

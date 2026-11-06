@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { Icon } from '@/components/ui/Icon'
 import type { Session } from '@/types'
 import { SUBJECT_OPTIONS } from '@/components/coordinator/log-session/types'
 import { ChapterChips } from '@/components/coordinator/log-session/ChapterChips'
@@ -58,6 +60,7 @@ interface EditIGSessionReportModalProps {
 export function EditIGSessionReportModal({
   form, setForm, error, saving, onClose, onSubmit, chapterOptions, faculty, batches, batchIds, onBatchIdsChange,
 }: EditIGSessionReportModalProps) {
+  const uid = useId()
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Edit IG Session"
@@ -67,24 +70,24 @@ export function EditIGSessionReportModal({
       <div className="modal-panel modal-md">
         <div className="modal-header">
           <h2>Edit IG Session</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
         <div className="modal-body">
-          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+          {error && <div className="alert alert-error" role="alert" style={{ marginBottom: 'var(--space-4)' }}><span className="alert-icon"><Icon name="alert" size={16} /></span>{error}</div>}
           <div className="input-group-3">
             {faculty && (
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="label">Faculty</label>
-                <select className="input" value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
+                <label className="label" htmlFor={`${uid}-faculty`}>Faculty</label>
+                <select id={`${uid}-faculty`} className="input" value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
                   {!faculty.some((x) => x._id === form.facultyId) && <option value={form.facultyId}>(current faculty)</option>}
                   {faculty.map((x) => <option key={x._id} value={x._id}>{x.name} — {x.subject}</option>)}
                 </select>
               </div>
             )}
             <div className="form-group">
-              <label className="label">Subject</label>
-              <select
+              <label className="label" htmlFor={`${uid}-subject`}>Subject</label>
+              <select id={`${uid}-subject`}
                 className="input"
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value, chapters: f.subject === e.target.value ? f.chapters : [] }))}
@@ -94,41 +97,41 @@ export function EditIGSessionReportModal({
               </select>
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="label">Chapters</label>
+              <span className="label">Chapters</span>
               <ChapterChips value={form.chapters} onChange={(v) => setForm((f) => ({ ...f, chapters: v }))} options={chapterOptions} restrict={!!chapterOptions} />
             </div>
             {batches && batches.length > 0 && batchIds && onBatchIdsChange && (
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />
             )}
             <div className="form-group">
-              <label className="label">Session Slot</label>
-              <select className="input" value={form.timeSlot}
+              <label className="label" htmlFor={`${uid}-session-slot`}>Session Slot</label>
+              <select id={`${uid}-session-slot`} className="input" value={form.timeSlot}
                 onChange={(e) => setForm((f) => ({ ...f, timeSlot: e.target.value as EditIGSessionForm['timeSlot'] }))}>
                 <option value="">— select —</option>
                 {SLOT_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="label">Session Date</label>
-              <input type="date" className="input" value={form.sessionDate}
+              <label className="label" htmlFor={`${uid}-session-date`}>Session Date</label>
+              <input id={`${uid}-session-date`} type="date" className="input" value={form.sessionDate}
                 onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="label">Updated By</label>
-              <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
+              <label className="label" htmlFor={`${uid}-updated-by`}>Updated By</label>
+              <input id={`${uid}-updated-by`} className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
             </div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="label">Comment</label>
-              <textarea className="input" rows={2} maxLength={500} value={form.comment} style={{ resize: 'vertical' }}
+              <label className="label" htmlFor={`${uid}-comment`}>Comment</label>
+              <textarea id={`${uid}-comment`} className="input" rows={2} maxLength={500} value={form.comment} style={{ resize: 'vertical' }}
                 onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="label">Start Time</label>
-              <input type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+              <label className="label" htmlFor={`${uid}-start-time`}>Start Time</label>
+              <input id={`${uid}-start-time`} type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="label">End Time</label>
-              <input type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
+              <label className="label" htmlFor={`${uid}-end-time`}>End Time</label>
+              <input id={`${uid}-end-time`} type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
             </div>
           </div>
           <BreakRows breaks={form.breaks} onBreaksChange={(b) => setForm((f) => ({ ...f, breaks: b }))} />

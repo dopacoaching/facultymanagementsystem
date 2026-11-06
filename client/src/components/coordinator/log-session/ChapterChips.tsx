@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import s from './Log.module.css'
 
 /** Edit-form chapter list: one class, one subject, any number of chapters. With `options`
  *  and `restrict` (teachers) only listed chapters can be added; otherwise (HR/Admin) any
@@ -22,23 +23,15 @@ export function ChapterChips({ value, onChange, options, restrict = false }: {
   return (
     <div>
       {value.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.5rem' }}>
+        <div className={s.chips}>
           {value.map((name) => (
-            <span
-              key={name}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                padding: '0.25rem 0.375rem 0.25rem 0.625rem', borderRadius: 999,
-                background: 'var(--color-primary-ghost)', border: '1px solid var(--color-primary)',
-                fontSize: '0.8125rem',
-              }}
-            >
+            <span key={name} className={s.chip}>
               {name}
               <button
                 type="button"
                 aria-label={`Remove ${name}`}
                 onClick={() => onChange(value.filter((v) => v !== name))}
-                style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, color: 'inherit', padding: '0 0.25rem' }}
+                className={s.chipRemove}
               >
                 ×
               </button>
@@ -61,7 +54,7 @@ export function ChapterChips({ value, onChange, options, restrict = false }: {
           {available.map((name) => <option key={name} value={name}>{name}</option>)}
         </select>
       ) : (
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className={s.addRow}>
           <input
             className="input"
             list={options ? id : undefined}

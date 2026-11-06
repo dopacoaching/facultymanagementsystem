@@ -18,7 +18,13 @@ export default function AdminDashboard() {
   const dash = faculty.status === 'success' ? undefined : '—'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="stack">
+      <div className="page-head" style={{ marginBottom: 0 }}>
+        <div>
+          <h1>Admin Dashboard</h1>
+          <p className="page-subtitle">Faculty headcount, today&apos;s entries and shortcuts across the system.</p>
+        </div>
+      </div>
       <QuickLinksSection />
       <EntriesOverview
         leading={

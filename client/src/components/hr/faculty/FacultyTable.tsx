@@ -1,5 +1,7 @@
 import type { Faculty } from '@/types'
 import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
+import { Icon } from '@/components/ui/Icon'
+import s from './Faculty.module.css'
 
 interface FacultyTableProps {
   loading: boolean
@@ -8,6 +10,13 @@ interface FacultyTableProps {
   onAdd: () => void
   onEdit: (f: Faculty) => void
   onConfigurePay: (f: Faculty) => void
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0)
+  return parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
 }
 
 export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfigurePay }: FacultyTableProps) {
@@ -24,54 +33,55 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
   }
 
   return (
-    <div className="table-wrapper">
+    <div className="table-wrapper table-stack">
       <table>
         <thead>
           <tr>
             <th>Name</th>
             <th>Subject</th>
-            <th>Type</th>
-            <th>Salary Model</th>
+            <th>Contract</th>
             <th>Status</th>
-            <th style={{ width: 140, textAlign: 'right' }}>Actions</th>
+            <th style={{ textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map((f) => (
-            <tr key={f._id}>
-              <td>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
-                    {f.name.charAt(0)}
-                  </div>
-                  <span style={{ fontWeight: 600 }}>{f.name}</span>
+            <tr key={f._id} className={`${s.row} ${f.isActive ? '' : s.rowInactive}`}>
+              <td data-label="Name">
+                <div className={s.nameCell}>
+                  <span className={`avatar ${s.avatar}`} aria-hidden="true">{initials(f.name)}</span>
+                  <span className={s.nameText}>{f.name}</span>
                 </div>
               </td>
-              <td style={{ color: 'var(--color-text-secondary)' }}>{f.subject}</td>
-              <td><span className="badge badge-gray badge-sentence">{f.type}</span></td>
-              <td>
-                <span className={`badge badge-sentence ${f.salaryModel === 'CONFIGURABLE' ? 'badge-yellow' : 'badge-indigo'}`}>
-                  {f.salaryModel.replace(/_/g, ' ')}
-                </span>
+              <td data-label="Subject" className={s.subjectCell}>{f.subject}</td>
+              <td data-label="Contract">
+                <div className={s.contract}>
+                  <span className="badge badge-gray badge-sentence">{f.type}</span>
+                  <span className={`badge badge-sentence ${f.salaryModel === 'CONFIGURABLE' ? 'badge-yellow' : 'badge-indigo'}`}>
+                    {f.salaryModel.replace(/_/g, ' ')}
+                  </span>
+                </div>
               </td>
-              <td>
-                <span className={`badge ${f.isActive ? 'badge-green' : 'badge-gray'}`}>
+              <td data-label="Status">
+                <span className={`badge badge-dot ${f.isActive ? 'badge-green' : 'badge-gray'}`}>
                   {f.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td style={{ textAlign: 'right' }}>
-                <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}>
+              <td data-label="Actions">
+                <div className={s.actions}>
                   {f.salaryModel === 'CONFIGURABLE' && (
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
+                      className={`btn btn-ghost btn-sm ${s.rowAction}`}
                       onClick={() => onConfigurePay(f)}
                       title="Configure pay JSON for CONFIGURABLE salary model"
                     >
                       Configure Pay
                     </button>
                   )}
-                  <button type="button" className="btn btn-outline btn-sm" onClick={() => onEdit(f)}>Edit</button>
+                  <button type="button" className={`btn btn-outline btn-sm ${s.rowAction}`} onClick={() => onEdit(f)} aria-label={`Edit ${f.name}`}>
+                    <Icon name="edit" size={14} /> Edit
+                  </button>
                 </div>
               </td>
             </tr>

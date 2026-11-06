@@ -9,5 +9,10 @@ import { useRouter } from 'next/navigation'
 export default function HRAuditLogRedirect() {
   const router = useRouter()
   useEffect(() => { router.replace('/hr') }, [router])
-  return null
+  return (
+    <div className="empty-state" role="status">
+      <span className="spinner" style={{ marginBottom: '0.75rem' }} />
+      <p>Redirecting to your dashboard…</p>
+    </div>
+  )
 }

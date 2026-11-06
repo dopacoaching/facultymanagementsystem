@@ -4,6 +4,8 @@ import { useAppSelector } from '@/store/hooks'
 import { listNoClass, removeNoClass, updateNoClass, type NoClassDoc } from '@/services/entries.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { Icon } from '@/components/ui/Icon'
+import rs from '@/components/hr/reports/Reports.module.css'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
 import { fmtDay } from '@/components/hr/reports/reportShared'
@@ -84,59 +86,79 @@ export default function NoClassReportPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>No Class Days</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Days campuses marked as having no class. Edit the reason or remove a marker.
-          </p>
+          <h1>No Class Days</h1>
+          <p className="page-subtitle">Days campuses marked as having no class. Edit the reason or remove a marker.</p>
         </div>
       </div>
 
-      {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} onRetry={load} /></div>}
+      {error && <div style={{ marginBottom: 'var(--space-4)' }}><ErrorAlert message={error} onRetry={load} /></div>}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
-        {campuses.length > 1 && (
-          <div style={{ maxWidth: 280, marginTop: '1rem' }}>
-            <select className="input" aria-label="Filter by campus" value={campus} onChange={(e) => setCampus(e.target.value)}>
-              <option value="">All campuses</option>
-              {campuses.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+      {!loading && rows.length > 0 && (
+        <div className={`stats-grid ${rs.kpis}`} aria-live="polite">
+          <div className="stat-card">
+            <div className="stat-label">No Class markers</div>
+            <div className="stat-value">{shown.length}</div>
+            <div className="stat-sub">{campus || 'all campuses'}</div>
           </div>
-        )}
+          <div className="stat-card">
+            <div className="stat-label">Campuses</div>
+            <div className="stat-value">{new Set(shown.map((r) => r.campusName)).size}</div>
+            <div className="stat-sub">with a marker in range</div>
+          </div>
+        </div>
+      )}
+
+      <div className={rs.filters}>
+        <div className={rs.filterRow}>
+          {campuses.length > 1 && (
+            <div className={`form-group ${rs.fieldWide}`}>
+              <label className="label" htmlFor="nc-campus">Campus</label>
+              <select id="nc-campus" className="input" value={campus} onChange={(e) => setCampus(e.target.value)}>
+                <option value="">All campuses</option>
+                {campuses.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+        </div>
       </div>
 
-      <div className="card">
-        {loading ? (
-          <SkeletonTable rows={5} cols={5} />
-        ) : shown.length === 0 ? (
-          <EmptyState title="No No Class days" description="No campus marked a day as No Class in this range." />
-        ) : (
-          <div className="table-wrapper">
-            <table style={{ minWidth: 640 }}>
-              <thead>
-                <tr><th>Date</th><th>Campus</th><th>Batches</th><th>Reason</th><th>Marked by</th><th style={{ width: 150, textAlign: 'right' }}></th></tr>
-              </thead>
-              <tbody>
-                {shown.map((r) => (
-                  <tr key={r._id}>
-                    <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(dayOf(r))}</td>
-                    <td style={{ fontWeight: 600 }}>{r.campusName}</td>
-                    <td style={{ color: 'var(--color-text-secondary)' }}>{r.batchNames?.length ? r.batchNames.join(', ') : 'Whole campus'}</td>
-                    <td>{r.reason || '—'}</td>
-                    <td style={{ color: 'var(--color-text-secondary)' }}>{r.markedByName || '—'}</td>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(r)}>Edit</button>{' '}
+      {loading ? (
+        <div className="card card-flush"><SkeletonTable rows={5} cols={5} /></div>
+      ) : shown.length === 0 ? (
+        <div className="card"><EmptyState title="No No Class days" description="No campus marked a day as No Class in this range." /></div>
+      ) : (
+        <div className="table-wrapper table-stack">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Campus</th><th>Batches</th><th>Reason</th><th>Marked by</th><th><span className={rs.srOnly}>Actions</span></th></tr>
+            </thead>
+            <tbody>
+              {shown.map((r) => (
+                <tr key={r._id}>
+                  <td data-label="Date" className={`num ${rs.nowrap} ${rs.muted}`}>{fmtDay(dayOf(r))}</td>
+                  <td data-label="Campus" className={rs.strong}>
+                    <span className="badge badge-gray"><Icon name="ban" size={12} /> No Class</span>{' '}{r.campusName}
+                  </td>
+                  <td data-label="Batches" className={rs.muted}>{r.batchNames?.length ? r.batchNames.join(', ') : 'Whole campus'}</td>
+                  <td data-label="Reason">{r.reason || '—'}</td>
+                  <td data-label="Marked by" className={rs.muted}>{r.markedByName || '—'}</td>
+                  <td>
+                    <div className={rs.rowActions}>
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(r)}>
+                        <Icon name="edit" size={14} /> Edit
+                      </button>
                       <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => remove(r)}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {editing && (
         <div
@@ -147,20 +169,23 @@ export default function NoClassReportPage() {
           <div className="modal-panel modal-md">
             <div className="modal-header">
               <h2>Edit reason</h2>
-              <button type="button" onClick={() => setEditing(null)} aria-label="Close" className="modal-close">×</button>
+              <button type="button" onClick={() => setEditing(null)} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); save() }}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="modal-body form-stack">
                 {editError && <ErrorAlert message={editError} />}
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--color-muted)' }}>
-                  {editing.campusName} · {fmtDay(dayOf(editing))}
+                <p className="help-text" style={{ margin: 0 }}>
+                  {editing.campusName} · <span className="mono">{fmtDay(dayOf(editing))}</span>
                 </p>
-                <input className="input" autoFocus aria-label="Reason" value={reason} maxLength={120} onChange={(e) => setReason(e.target.value)} />
+                <div className="form-group">
+                  <label className="label" htmlFor="nc-reason">Reason</label>
+                  <input id="nc-reason" className="input" autoFocus value={reason} maxLength={120} onChange={(e) => setReason(e.target.value)} />
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? <><span className="spinner" /> Saving…</> : 'Save Changes'}
+                  {saving ? <><span className="spinner spinner-on-solid" /> Saving…</> : 'Save Changes'}
                 </button>
               </div>
             </form>

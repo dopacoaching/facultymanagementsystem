@@ -38,7 +38,8 @@ export function AsyncSection<T>({ resource, loading, what, children }: AsyncSect
   return (
     <>
       {isRefetching && (
-        <p className="help-text" role="status" style={{ marginBottom: '0.5rem' }}>
+        <p className="help-text cluster" role="status" aria-live="polite" style={{ marginBottom: '0.5rem', gap: '0.5rem' }}>
+          <span className="spinner" style={{ width: '0.75rem', height: '0.75rem' }} />
           Updating {what}…
         </p>
       )}

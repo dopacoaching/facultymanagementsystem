@@ -1,4 +1,6 @@
+import { useId } from 'react'
 import type { BreaksInput, BreakField } from './types'
+import s from './Log.module.css'
 
 export function formatHM(totalMinutes: number): string {
   const h = Math.floor(totalMinutes / 60)
@@ -20,26 +22,27 @@ export function BreakRow({
   field: BreakField
   onChange: (patch: Partial<BreakField>) => void
 }) {
+  const id = useId()
   return (
     <div className="form-group">
-      <label className="label">{label} <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}>· {note}</span></label>
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <label className="label" htmlFor={id}>{label} <span className={s.note}>· {note}</span></label>
+      <div className={s.breakRow}>
         <input
+          id={id}
           type="number"
-          className="input"
+          className={`input ${s.breakInput}`}
           min={0}
+          inputMode="numeric"
           value={field.minutes}
           disabled={field.nil}
           onChange={(e) => onChange({ minutes: e.target.value })}
           placeholder="Minutes"
-          style={{ opacity: field.nil ? 0.5 : 1 }}
         />
         <button
           type="button"
           aria-pressed={field.nil}
-          className={`btn ${field.nil ? 'btn-primary' : 'btn-outline'}`}
+          className={`btn ${field.nil ? 'btn-primary' : 'btn-outline'} ${s.nilBtn}`}
           onClick={() => onChange(field.nil ? { nil: false } : { nil: true, minutes: '' })}
-          style={{ whiteSpace: 'nowrap' }}
         >
           Nil
         </button>
@@ -63,9 +66,9 @@ export function BreakRows({
   const allNil = BREAK_ROWS.every((r) => breaks[r.key].nil)
 
   return (
-    <div style={{ marginTop: '0.75rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-        <span className="label" style={{ marginBottom: 0 }}>Breaks</span>
+    <div className={s.breaksBlock}>
+      <div className={s.breaksHead}>
+        <span className="label">Breaks</span>
         <button
           type="button"
           className="btn btn-ghost btn-sm"

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
+import { Icon } from './Icon'
 
 /**
  * PWA bootstrap + mobile install button.
@@ -109,6 +110,7 @@ export default function PWAInstall() {
     <>
       <div className="pwa-install-bar" role="complementary" aria-label="Install app">
         <button type="button" className="pwa-install-btn" onClick={handleInstall}>
+          <Icon name="download" size={16} />
           Install app
         </button>
         <button
@@ -116,7 +118,8 @@ export default function PWAInstall() {
           className="pwa-install-dismiss"
           onClick={handleDismiss}
           aria-label="Dismiss install prompt"
-        >×</button>
+          style={{ display: 'grid', placeItems: 'center' }}
+        ><Icon name="x" size={16} /></button>
       </div>
 
       {showIosSheet && (
@@ -130,11 +133,11 @@ export default function PWAInstall() {
             <h3>Install DOPA FMS</h3>
             <p>Add this app to your home screen for quick, full-screen access:</p>
             <ol>
-              <li>Tap the <strong>Share</strong> button <span aria-hidden="true">(⎙ in Safari&apos;s toolbar)</span></li>
+              <li>Tap the <strong>Share</strong> button <span aria-hidden="true">(in Safari&apos;s toolbar)</span></li>
               <li>Scroll and tap <strong>Add to Home Screen</strong></li>
               <li>Tap <strong>Add</strong> in the top corner</li>
             </ol>
-            <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={() => setShowIosSheet(false)}>
+            <button type="button" className="btn btn-primary btn-block" onClick={() => setShowIosSheet(false)}>
               Got it
             </button>
           </div>

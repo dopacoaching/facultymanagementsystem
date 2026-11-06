@@ -1,4 +1,6 @@
+import { Icon } from '@/components/ui/Icon'
 import { CATEGORIES, ROLE_LABEL } from './types'
+import s from './AuditLog.module.css'
 
 interface AuditLogFilterBarProps {
   search: string
@@ -21,46 +23,54 @@ export function AuditLogFilterBar({
   const hasFilters = category !== 'ALL' || actorRole !== 'ALL' || search || dateFrom || dateTo
 
   return (
-    <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.25rem' }}>
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-
-        {/* Search */}
-        <div style={{ flex: '1 1 240px', position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)', pointerEvents: 'none', fontSize: '0.9rem' }}>🔍</span>
+    <div className="toolbar" role="search">
+      <div className={`form-group ${s.search}`}>
+        <label className="label" htmlFor="audit-search">Search</label>
+        <div style={{ position: 'relative' }}>
+          <Icon name="search" size={16} className={s.searchIcon} />
           <input
-            className="input"
-            style={{ paddingLeft: '2.25rem' }}
+            id="audit-search"
+            type="search"
+            className={`input ${s.searchInput}`}
             placeholder="Search description, target, actor…"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
+      </div>
 
-        {/* Category */}
-        <select className="input" style={{ minWidth: 160 }} value={category} onChange={(e) => onCategoryChange(e.target.value)}>
+      <div className={`form-group ${s.select}`}>
+        <label className="label" htmlFor="audit-category">Category</label>
+        <select id="audit-category" className="input" value={category} onChange={(e) => onCategoryChange(e.target.value)}>
           {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
+      </div>
 
-        {/* Actor role */}
-        <select className="input" style={{ minWidth: 160 }} value={actorRole} onChange={(e) => onActorRoleChange(e.target.value)}>
+      <div className={`form-group ${s.select}`}>
+        <label className="label" htmlFor="audit-actor-role">Actor role</label>
+        <select id="audit-actor-role" className="input" value={actorRole} onChange={(e) => onActorRoleChange(e.target.value)}>
           <option value="ALL">All Roles</option>
           {Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-
-        {/* Date range */}
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <input type="date" className="input" style={{ width: 150 }} value={dateFrom} onChange={(e) => onDateFromChange(e.target.value)} />
-          <span style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>to</span>
-          <input type="date" className="input" style={{ width: 150 }} value={dateTo} onChange={(e) => onDateToChange(e.target.value)} />
-        </div>
-
-        {/* Clear */}
-        {hasFilters && (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
-            Clear filters
-          </button>
-        )}
       </div>
+
+      <div className={s.dates}>
+        <div className="form-group">
+          <label className="label" htmlFor="audit-from">From</label>
+          <input id="audit-from" type="date" className="input" value={dateFrom} onChange={(e) => onDateFromChange(e.target.value)} />
+        </div>
+        <span className={s.dateSep} aria-hidden="true">to</span>
+        <div className="form-group">
+          <label className="label" htmlFor="audit-to">To</label>
+          <input id="audit-to" type="date" className="input" value={dateTo} onChange={(e) => onDateToChange(e.target.value)} />
+        </div>
+      </div>
+
+      {hasFilters && (
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
+          <Icon name="x" size={14} /> Clear filters
+        </button>
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@
  * an access control.
  */
 
+import type { IconName } from '@/components/ui/Icon'
 import { SALARY_LABELS } from '@/lib/constants/features'
 
 export type Role =
@@ -24,6 +25,8 @@ export type Role =
   | 'FACULTY'
 
 export interface RouteMeta {
+  /** Sidebar icon name (see components/ui/Icon.tsx). Falls back to a list glyph. */
+  icon?: IconName
   /** Exact pathname, no trailing slash. */
   path: string
   /** Topbar title + document-title fragment + breadcrumb leaf. */
@@ -56,121 +59,121 @@ export const ROUTES: RouteMeta[] = [
 
   // ── Class Teacher (campus session logging) ───────────────────────────────
   {
-    path: '/coordinator', title: 'Push Board', navLabel: 'Push Board',
+    path: '/coordinator', icon: 'send', title: 'Push Board', navLabel: 'Push Board',
     navRoles: ['CLASS_TEACHER', 'IG_CLASS_TEACHER'], roles: ['CLASS_TEACHER', 'IG_CLASS_TEACHER', 'ADMIN'],
   },
   {
-    path: '/coordinator/history', title: 'Session History', navLabel: 'History',
+    path: '/coordinator/history', icon: 'history', title: 'Session History', navLabel: 'History',
     navRoles: ['CLASS_TEACHER'], roles: ['CLASS_TEACHER', 'ADMIN'],
     parent: '/coordinator',
   },
 
   // ── IG Class Teacher (logs on Push Board; own history screen) ─────────────
   {
-    path: '/ig/sessions/history', title: 'IG Session History', navLabel: 'History',
+    path: '/ig/sessions/history', icon: 'history', title: 'IG Session History', navLabel: 'History',
     navRoles: ['IG_CLASS_TEACHER'], roles: ['IG_CLASS_TEACHER', 'ADMIN'],
     parent: '/coordinator',
   },
 
   // ── IG Joint Entry (one class taught to several IG schools at once) ──────
   {
-    path: '/ig-joint', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
+    path: '/ig-joint', icon: 'link', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
     navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
   },
   {
-    path: '/ig-joint/history', title: 'Joint Class History', navLabel: 'Joint History',
+    path: '/ig-joint/history', icon: 'history', title: 'Joint Class History', navLabel: 'Joint History',
     navRoles: ['IG_JOINT_TEACHER'], roles: ['IG_JOINT_TEACHER'],
     parent: '/ig-joint',
   },
 
   // ── Repeaters Joint Entry (one class taught to several campuses at once) ─
   {
-    path: '/joint-entry', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
+    path: '/joint-entry', icon: 'link', title: 'Joint Class Entry', navLabel: 'Joint Class Entry',
     navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
   },
   {
-    path: '/joint-entry/history', title: 'Joint Class History', navLabel: 'Joint History',
+    path: '/joint-entry/history', icon: 'history', title: 'Joint Class History', navLabel: 'Joint History',
     navRoles: ['REPEATERS_JOINT_TEACHER'], roles: ['REPEATERS_JOINT_TEACHER'],
     parent: '/joint-entry',
   },
 
   // ── HR ──────────────────────────────────────────────────────────────────
   {
-    path: '/hr', title: 'HR Dashboard', navLabel: 'Dashboard',
+    path: '/hr', icon: 'home', title: 'HR Dashboard', navLabel: 'Dashboard',
     navRoles: ['HR_MANAGER'], roles: ['HR_MANAGER', 'ADMIN'],
   },
   {
-    path: '/hr/faculty', title: 'Faculty', navLabel: 'Faculty', section: 'HR',
+    path: '/hr/faculty', icon: 'user', title: 'Faculty', navLabel: 'Faculty', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/salary', title: SALARY_LABELS.page, navLabel: SALARY_LABELS.nav, section: 'HR',
+    path: '/hr/salary', icon: 'wallet', title: SALARY_LABELS.page, navLabel: SALARY_LABELS.nav, section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/reports', title: 'Entries Report', navLabel: 'Entries Report', section: 'HR',
+    path: '/hr/reports', icon: 'report', title: 'Entries Report', navLabel: 'Entries Report', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/reports/not-submitted', title: 'Reports Not Submitted', navLabel: 'Not Submitted', section: 'HR',
+    path: '/hr/reports/not-submitted', icon: 'inbox', title: 'Reports Not Submitted', navLabel: 'Not Submitted', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr/reports',
   },
   {
-    path: '/hr/reports/no-class', title: 'No Class Days', navLabel: 'No Class Days', section: 'HR',
+    path: '/hr/reports/no-class', icon: 'ban', title: 'No Class Days', navLabel: 'No Class Days', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr/reports',
   },
   {
-    path: '/hr/reports/salary', title: SALARY_LABELS.reports, navLabel: SALARY_LABELS.reports, section: 'HR',
+    path: '/hr/reports/salary', icon: 'wallet', title: SALARY_LABELS.reports, navLabel: SALARY_LABELS.reports, section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr/reports',
   },
   {
-    path: '/hr/reports/faculty-hours', title: 'Faculty Hours by Subject',
+    path: '/hr/reports/faculty-hours', icon: 'clock', title: 'Faculty Hours by Subject',
     navLabel: 'Faculty Hours', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'],
     parent: '/hr/reports',
   },
   {
-    path: '/hr/reports/class-sessions', title: 'Class Sessions Report',
+    path: '/hr/reports/class-sessions', icon: 'school', title: 'Class Sessions Report',
     navLabel: 'Class Sessions', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'],
     parent: '/hr/reports',
   },
   {
-    path: '/hr/reports/ig-sessions', title: 'IG Class Sessions Report',
+    path: '/hr/reports/ig-sessions', icon: 'layers', title: 'IG Class Sessions Report',
     navLabel: 'IG Class Sessions', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'],
     parent: '/hr/reports',
   },
   {
-    path: '/hr/setup/campuses', title: 'Campuses', navLabel: 'Campuses', section: 'HR',
+    path: '/hr/setup/campuses', icon: 'building', title: 'Campuses', navLabel: 'Campuses', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/setup/batches', title: 'Batches', navLabel: 'Batches', section: 'HR',
+    path: '/hr/setup/batches', icon: 'grid', title: 'Batches', navLabel: 'Batches', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/setup/chapters', title: 'Chapters', navLabel: 'Chapters', section: 'HR',
+    path: '/hr/setup/chapters', icon: 'book', title: 'Chapters', navLabel: 'Chapters', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/setup/teachers', title: 'Teachers', navLabel: 'Teachers', section: 'HR',
+    path: '/hr/setup/teachers', icon: 'users', title: 'Teachers', navLabel: 'Teachers', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
   {
-    path: '/hr/audit-log', title: 'Audit Log', navLabel: 'Audit Log', section: 'HR',
+    path: '/hr/audit-log', icon: 'shield', title: 'Audit Log', navLabel: 'Audit Log', section: 'HR',
     roles: ['HR_MANAGER', 'ADMIN'], parent: '/hr',
   },
 
   // ── Academics (Repeaters / DOPA) — Admin ─────────────────────────────────
   {
-    path: '/academics/sessions', title: 'Sessions', navLabel: 'Sessions',
+    path: '/academics/sessions', icon: 'calendar', title: 'Sessions', navLabel: 'Sessions',
     navRoles: ['ADMIN'],
     section: 'Academics',
     roles: ['CLASS_TEACHER', 'ADMIN'],
   },
   {
-    path: '/academics/syllabus', title: 'Syllabus', navLabel: 'Syllabus',
+    path: '/academics/syllabus', icon: 'bookmark', title: 'Syllabus', navLabel: 'Syllabus',
     navRoles: ['ADMIN'],
     section: 'Academics',
     roles: ['ADMIN'],
@@ -182,29 +185,29 @@ export const ROUTES: RouteMeta[] = [
 
   // ── Admin ─────────────────────────────────────────────────────────────
   {
-    path: '/admin', title: 'Admin Dashboard', navLabel: 'Dashboard',
+    path: '/admin', icon: 'home', title: 'Admin Dashboard', navLabel: 'Dashboard',
     navRoles: ['ADMIN'], roles: ['ADMIN'],
   },
   {
-    path: '/admin/users', title: 'User Management', navLabel: 'Users', section: 'System',
+    path: '/admin/users', icon: 'users', title: 'User Management', navLabel: 'Users', section: 'System',
     navRoles: ['ADMIN'], roles: ['ADMIN'],
   },
   {
-    path: '/admin/audit-log', title: 'Audit Log', navLabel: 'Audit Log', section: 'System',
+    path: '/admin/audit-log', icon: 'shield', title: 'Audit Log', navLabel: 'Audit Log', section: 'System',
     navRoles: ['ADMIN'], roles: ['ADMIN'],
   },
 
   // ── Faculty self-service ──────────────────────────────────────────────
   {
-    path: '/faculty', title: 'Faculty Dashboard', navLabel: 'Dashboard',
+    path: '/faculty', icon: 'home', title: 'Faculty Dashboard', navLabel: 'Dashboard',
     navRoles: ['FACULTY'], roles: ['FACULTY'],
   },
   {
-    path: '/faculty/sessions', title: 'My Sessions', navLabel: 'My Sessions',
+    path: '/faculty/sessions', icon: 'list', title: 'My Sessions', navLabel: 'My Sessions',
     navRoles: ['FACULTY'], roles: ['FACULTY'],
   },
   {
-    path: '/faculty/salary', title: 'My Salary', navLabel: 'My Salary',
+    path: '/faculty/salary', icon: 'wallet', title: 'My Salary', navLabel: 'My Salary',
     navRoles: ['FACULTY'], roles: ['FACULTY'],
   },
 ]

@@ -6,6 +6,8 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { useToast } from '@/components/ui/Toast'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { FormField } from '@/components/ui/FormField'
+import { Icon } from '@/components/ui/Icon'
+import rs from '@/components/hr/reports/Reports.module.css'
 import { createCampus, getCampuses, updateCampus, type SetupCampus } from '@/services/setup.service'
 
 interface FormState {
@@ -94,63 +96,81 @@ export default function CampusesSetupPage() {
 
   const isNew = editing === 'new'
 
+  /** Campuses and IG schools are separate sections; empty ones are hidden. */
+  const sections = [
+    { key: 'CAMPUS', title: 'Campuses', items: campuses.filter((c) => c.kind !== 'IG') },
+    { key: 'IG', title: 'IG schools', items: campuses.filter((c) => c.kind === 'IG') },
+  ].filter((g) => g.items.length > 0)
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Campuses</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Campuses and IG schools that push entries. Each has a shared teacher login.
-          </p>
+          <h1>Campuses</h1>
+          <p className="page-subtitle">Campuses and IG schools that push entries. Each has a shared teacher login.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={openNew}>+ Add Campus</button>
+        <div className="page-head-actions">
+          <button type="button" className="btn btn-primary" onClick={openNew}>
+            <Icon name="plus" size={16} /> Add Campus
+          </button>
+        </div>
       </div>
 
       {res.status === 'error' && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
           <ErrorAlert message={res.error?.message ?? ''} what="Couldn't load campuses" onRetry={res.refetch} />
         </div>
       )}
 
-      <div className="card">
-        {res.status === 'loading' ? (
-          <SkeletonTable rows={6} cols={6} />
-        ) : campuses.length === 0 ? (
+      {res.status === 'loading' ? (
+        <div className="card card-flush"><SkeletonTable rows={6} cols={6} /></div>
+      ) : campuses.length === 0 ? (
+        <div className="card">
           <EmptyState title="No campuses yet" description="Add the first campus to start collecting entries." action={{ label: '+ Add Campus', onClick: openNew }} />
-        ) : (
-          <div className="table-wrapper">
-            <table style={{ minWidth: 720 }}>
-              <thead>
-                <tr>
-                  <th>Campus</th>
-                  <th>Type</th>
-                  <th>Login</th>
-                  <th style={{ textAlign: 'right' }}>Teachers</th>
-                  <th style={{ textAlign: 'right' }}>Batches</th>
-                  <th>Status</th>
-                  <th style={{ width: 150, textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campuses.map((c) => (
-                  <tr key={c._id} style={{ opacity: c.isActive ? 1 : 0.6 }}>
-                    <td style={{ fontWeight: 600 }}>{c.name}</td>
-                    <td>{c.kind === 'IG' ? 'IG school' : 'Campus'}</td>
-                    <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>{c.login?.username ?? '—'}</td>
-                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.teachers.filter((t) => t.isActive).length}</td>
-                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.hasBatches ? c.batchCount : '—'}</td>
-                    <td><span className={`badge ${c.isActive ? 'badge-green' : 'badge-gray'}`}>{c.isActive ? 'Active' : 'Inactive'}</span></td>
-                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>Edit</button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => toggle(c)}>{c.isActive ? 'Deactivate' : 'Activate'}</button>
-                    </td>
+        </div>
+      ) : (
+        sections.map((g) => (
+          <section key={g.key} className={`card card-flush ${rs.setupGroup}`} aria-label={g.title}>
+            <div className="card-header">
+              <h2 className={rs.setupTitle}><Icon name={g.key === 'IG' ? 'school' : 'building'} size={18} /> {g.title}</h2>
+              <span className="badge badge-gray"><span className="mono">{g.items.length}</span> total</span>
+            </div>
+            <div className="table-wrapper table-stack" style={{ border: 0, borderRadius: 0, boxShadow: 'none' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Campus</th>
+                    <th>Login</th>
+                    <th className="num" style={{ textAlign: 'right' }}>Teachers</th>
+                    <th className="num" style={{ textAlign: 'right' }}>Batches</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}><span className={rs.srOnly}>Actions</span></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {g.items.map((c) => (
+                    <tr key={c._id} className={c.isActive ? undefined : rs.dim}>
+                      <td data-label="Campus" className={rs.strong}>{c.name}</td>
+                      <td data-label="Login" className={`${rs.mono} ${rs.muted}`}>{c.login?.username ?? '—'}</td>
+                      <td data-label="Teachers" className="num" style={{ textAlign: 'right' }}>{c.teachers.filter((t) => t.isActive).length}</td>
+                      <td data-label="Batches" className="num" style={{ textAlign: 'right' }}>{c.hasBatches ? c.batchCount : '—'}</td>
+                      <td data-label="Status"><span className={`badge badge-dot ${c.isActive ? 'badge-green' : 'badge-gray'}`}>{c.isActive ? 'Active' : 'Inactive'}</span></td>
+                      <td>
+                        <div className={rs.rowActions}>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(c)}>
+                            <Icon name="edit" size={14} /> Edit
+                          </button>
+                          <button type="button" className={`btn btn-sm ${c.isActive ? 'btn-danger-ghost' : 'btn-outline'}`} onClick={() => toggle(c)}>{c.isActive ? 'Deactivate' : 'Activate'}</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))
+      )}
 
       {editing && (
         <div
@@ -161,10 +181,10 @@ export default function CampusesSetupPage() {
           <div className="modal-panel modal-md">
             <div className="modal-header">
               <h2>{isNew ? 'Add Campus' : 'Edit Campus'}</h2>
-              <button type="button" onClick={() => setEditing(null)} aria-label="Close" className="modal-close">×</button>
+              <button type="button" onClick={() => setEditing(null)} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); save() }}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="modal-body form-stack">
                 {error && <ErrorAlert message={error} />}
 
                 <FormField label="Campus name" htmlFor="cs-name" required hint={isNew ? undefined : 'Renaming updates past entries, No Class days and the login too.'}>
@@ -180,18 +200,22 @@ export default function CampusesSetupPage() {
                   </FormField>
                 )}
 
-                {(isNew ? form.kind === 'CAMPUS' : !editing.hasBatches) && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.875rem' }}>
-                    <input type="checkbox" checked={form.hasBatches} onChange={(e) => set('hasBatches', e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
-                    This campus runs batches (teachers pick the batch on the Push Board)
-                  </label>
-                )}
-
-                {(isNew ? form.kind === 'CAMPUS' : editing.kind === 'CAMPUS') && (
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.875rem' }}>
-                    <input type="checkbox" checked={form.hasEntryTypes} onChange={(e) => set('hasEntryTypes', e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
-                    Entries are Live or Shoot (Shoot hours count 1.75×)
-                  </label>
+                {((isNew ? form.kind === 'CAMPUS' : !editing.hasBatches) || (isNew ? form.kind === 'CAMPUS' : editing.kind === 'CAMPUS')) && (
+                  <fieldset className="form-stack" style={{ border: 0, padding: 0, margin: 0, gap: 'var(--space-3)' }}>
+                    <legend className="label">Options</legend>
+                    {(isNew ? form.kind === 'CAMPUS' : !editing.hasBatches) && (
+                      <label className={rs.formCheck}>
+                        <input type="checkbox" checked={form.hasBatches} onChange={(e) => set('hasBatches', e.target.checked)} />
+                        This campus runs batches (teachers pick the batch on the Push Board)
+                      </label>
+                    )}
+                    {(isNew ? form.kind === 'CAMPUS' : editing.kind === 'CAMPUS') && (
+                      <label className={rs.formCheck}>
+                        <input type="checkbox" checked={form.hasEntryTypes} onChange={(e) => set('hasEntryTypes', e.target.checked)} />
+                        Entries are Live or Shoot (Shoot hours count 1.75×)
+                      </label>
+                    )}
+                  </fieldset>
                 )}
 
                 {isNew && form.hasBatches || (isNew && form.kind === 'IG') ? (
@@ -206,22 +230,25 @@ export default function CampusesSetupPage() {
                   </FormField>
                 )}
 
-                <FormField label="Login username" htmlFor="cs-user" required hint="The shared account this campus signs in with (an email works)">
-                  <input id="cs-user" className="input" autoComplete="off" value={form.username} onChange={(e) => set('username', e.target.value)} />
-                </FormField>
-                <FormField
-                  label={isNew ? 'Login password' : 'Reset password'}
-                  htmlFor="cs-pass"
-                  required={isNew}
-                  hint={isNew ? '8+ characters with upper, lower, digit and special character' : 'Leave blank to keep the current password'}
-                >
-                  <PasswordInput id="cs-pass" showStrength={false} autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} />
-                </FormField>
+                <div className="card card-quiet form-stack" style={{ padding: 'var(--space-4)', gap: 'var(--space-4)' }}>
+                  <h3 style={{ fontSize: 'var(--text-md)', margin: 0 }}>Shared login</h3>
+                  <FormField label="Login username" htmlFor="cs-user" required hint="The shared account this campus signs in with (an email works)">
+                    <input id="cs-user" className="input" autoComplete="off" value={form.username} onChange={(e) => set('username', e.target.value)} />
+                  </FormField>
+                  <FormField
+                    label={isNew ? 'Login password' : 'Reset password'}
+                    htmlFor="cs-pass"
+                    required={isNew}
+                    hint={isNew ? '8+ characters with upper, lower, digit and special character' : 'Leave blank to keep the current password'}
+                  >
+                    <PasswordInput id="cs-pass" showStrength={false} autoComplete="new-password" value={form.password} onChange={(e) => set('password', e.target.value)} />
+                  </FormField>
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? <><span className="spinner" /> Saving…</> : (isNew ? 'Add Campus' : 'Save Changes')}
+                  {saving ? <><span className="spinner spinner-on-solid" /> Saving…</> : (isNew ? 'Add Campus' : 'Save Changes')}
                 </button>
               </div>
             </form>

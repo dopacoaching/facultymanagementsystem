@@ -9,10 +9,11 @@ export function alertClass(level: SalaryAlert['level']): string {
   return 'alert alert-info'
 }
 
+/** Plain-text marker (no emoji) shown in the alert's icon slot. */
 export function alertIcon(level: SalaryAlert['level']): string {
-  if (level === 'BLOCK')   return '🚫'
-  if (level === 'WARNING') return '⚠️'
-  return '💡'
+  if (level === 'BLOCK')   return '×'
+  if (level === 'WARNING') return '!'
+  return 'i'
 }
 
 export function statusBadge(status: SalaryResult['status']): string {

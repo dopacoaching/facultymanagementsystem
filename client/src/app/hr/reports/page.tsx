@@ -9,8 +9,10 @@ import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { CLASS_MODE_FILTERS, CLASS_MODE_LABELS as MODE_LABELS } from '@/lib/constants/classModes'
 import { useToast } from '@/components/ui/Toast'
+import { Icon } from '@/components/ui/Icon'
+import s from '@/components/hr/reports/Reports.module.css'
 import { toLocalISO } from '@/utils/date'
-import { fmtDay, monthRange } from '@/components/hr/reports/reportShared'
+import { FlagIcon, fmtDay, monthRange } from '@/components/hr/reports/reportShared'
 import { useActiveFaculty } from '@/hooks/useActiveFaculty'
 import {
   VIEW_TABS, buildWholeDays, wholeDaysEnd, noClassRowsFor, cleanCell, hmText, downloadSimpleSheet,
@@ -87,7 +89,7 @@ function EntryTable({ rows, hideCols, showBatch, showPay, onDelete, onEdit, tota
   const showFaculty = !hideCols?.includes('faculty')
   const showSubject = !hideCols?.includes('subject')
   return (
-    <div className="table-wrapper">
+    <div className="table-wrapper table-stack">
       <table>
         <thead>
           <tr>
@@ -99,45 +101,51 @@ function EntryTable({ rows, hideCols, showBatch, showPay, onDelete, onEdit, tota
             <th>Chapter</th>
             <th>Class mode</th>
             <th>Start–End</th>
-            <th style={{ textAlign: 'right' }} title="Total break minutes as entered on the form — not the amount deducted from the time taken.">Break</th>
+            <th className="num" style={{ textAlign: 'right' }} title="Total break minutes as entered on the form — not the amount deducted from the time taken.">Break</th>
             <th>Entered by</th>
             <th>Comment</th>
-            <th style={{ textAlign: 'right' }}>Time</th>
-            <th style={{ textAlign: 'right' }} title="This faculty's hours added up in date order, counting only the dates and filters selected above, not their full-period total.">Total so far*</th>
-            {showPay && <th style={{ textAlign: 'right' }} title="Temporary faculty only: hours x the hourly rate in force on that day.">Pay</th>}
-            {(onDelete || onEdit) && <th></th>}
+            <th className="num" style={{ textAlign: 'right' }}>Time</th>
+            <th className="num" style={{ textAlign: 'right' }} title="This faculty's hours added up in date order, counting only the dates and filters selected above, not their full-period total.">Total so far*</th>
+            {showPay && <th className="num" style={{ textAlign: 'right' }} title="Temporary faculty only: hours x the hourly rate in force on that day.">Pay</th>}
+            {(onDelete || onEdit) && <th><span className={s.srOnly}>Actions</span></th>}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r._id}>
-              <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(r.date)}</td>
-              {showCampus && <td style={{ color: 'var(--color-text-secondary)' }}>{r.campusName}</td>}
-              {showBatch && <td style={{ color: 'var(--color-text-secondary)' }}>{r.batchName || '—'}</td>}
-              {showFaculty && <td style={{ fontWeight: 600 }}>{r.facultyName}</td>}
-              {showSubject && <td style={{ color: 'var(--color-text-secondary)' }}>{r.subject}</td>}
-              <td style={{ color: 'var(--color-text-secondary)' }}>{r.chapter || '—'}</td>
-              <td style={{ whiteSpace: 'nowrap' }}>{r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '—'}</td>
-              <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
-              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{breakLabel(r)}</td>
-              <td style={{ color: 'var(--color-text-secondary)' }}>{r.updatedByName || '—'}</td>
-              <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
-              <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}</td>
-              <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{formatHM(totals.get(r._id) ?? r.durationHours)}</td>
+              <td data-label="Date" className={`num ${s.nowrap} ${s.muted}`}>{fmtDay(r.date)}</td>
+              {showCampus && <td data-label="Campus" className={s.muted}>{r.campusName}</td>}
+              {showBatch && <td data-label="Batch" className={s.muted}>{r.batchName || '—'}</td>}
+              {showFaculty && <td data-label="Faculty" className={s.strong}>{r.facultyName}</td>}
+              {showSubject && <td data-label="Subject" className={s.muted}>{r.subject}</td>}
+              <td data-label="Chapter" className={s.muted}>{r.chapter || '—'}</td>
+              <td data-label="Class mode" className={s.nowrap}>{r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '—'}</td>
+              <td data-label="Start–End" className={`num ${s.nowrap}`}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
+              <td data-label="Break" className={`num ${s.nowrap}`} style={{ textAlign: 'right' }}>{breakLabel(r)}</td>
+              <td data-label="Entered by" className={s.muted}>{r.updatedByName || '—'}</td>
+              <td data-label="Comment" className={s.comment}>{r.comment || '—'}</td>
+              <td data-label="Time" className={`num ${s.nowrap} ${s.strong}`} style={{ textAlign: 'right' }}>
+                {r.entryType && <span className={`badge ${r.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'} ${s.entryTag}`}>{r.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(r.durationHours)}
+              </td>
+              <td data-label="Total so far*" className={`num ${s.nowrap} ${s.muted}`} style={{ textAlign: 'right' }}>{formatHM(totals.get(r._id) ?? r.durationHours)}</td>
               {showPay && (
-                <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+                <td data-label="Pay" className={`num ${s.nowrap} ${s.strong}`} style={{ textAlign: 'right' }}
                   title={r.payRate != null ? `${formatHM(r.durationHours)} at ${rupees(r.payRate)}/hr` : undefined}>
-                  {r.facultyType !== 'TEMPORARY' ? <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}>—</span>
+                  {r.facultyType !== 'TEMPORARY' ? <span className={s.faint}>—</span>
                     : r.pay != null ? rupees(r.pay)
-                    : <span style={{ color: 'var(--color-warning-fg, var(--color-muted))', fontWeight: 400 }}>Rate not set</span>}
+                    : <span className="badge badge-yellow">Rate not set</span>}
                 </td>
               )}
               {(onDelete || onEdit) && (
-                <td style={{ whiteSpace: 'nowrap' }}>
-                  {onEdit && (
-                    <button type="button" className="btn btn-outline btn-sm" style={{ marginRight: '0.375rem' }} onClick={() => onEdit(r)}>Edit</button>
-                  )}
-                  {onDelete && <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onDelete(r)}>Delete</button>}
+                <td className={s.nowrap}>
+                  <div className={s.rowActions}>
+                    {onEdit && (
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => onEdit(r)}>
+                        <Icon name="edit" size={14} /> Edit
+                      </button>
+                    )}
+                    {onDelete && <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => onDelete(r)}>Delete</button>}
+                  </div>
                 </td>
               )}
             </tr>
@@ -150,15 +158,12 @@ function EntryTable({ rows, hideCols, showBatch, showPay, onDelete, onEdit, tota
 
 function GroupHeader({ title, count, hours, pay, level = 1 }: { title: string; count: number; hours: number; pay?: number; level?: 1 | 2 }) {
   return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '1rem',
-      padding: level === 1 ? '0 0 0.5rem' : '0.75rem 0 0.375rem',
-    }}>
-      {level === 1 ? <h3 style={{ margin: 0 }}>{title}</h3> : <h4 style={{ margin: 0 }}>{title}</h4>}
-      <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>
-        {count} {count === 1 ? 'entry' : 'entries'} ·{' '}
-        <strong style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{formatHM(hours)}</strong>
-        {pay != null && pay > 0 && <> · <strong style={{ color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{rupees(pay)}</strong></>}
+    <div className={`${s.groupHead} ${level === 2 ? s.groupHeadSub : ''}`}>
+      {level === 1 ? <h3 className={s.groupTitle}>{title}</h3> : <h4 className={s.groupTitleSub}>{title}</h4>}
+      <span className={s.groupMeta}>
+        <span><strong>{count}</strong> {count === 1 ? 'entry' : 'entries'}</span>
+        <span>Total <strong>{formatHM(hours)}</strong></span>
+        {pay != null && pay > 0 && <span>Pay <strong>{rupees(pay)}</strong></span>}
       </span>
     </div>
   )
@@ -418,122 +423,178 @@ export default function EntriesReportPage() {
   )
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()
+  const facultyCount = new Set(rows.map((r) => r.facultyId)).size
+  const campusCount = new Set(rows.map((r) => r.campusName)).size
+  const missingDayCount = (report?.missing ?? []).filter((m) => !campus || m.campusName === campus).reduce((n, m) => n + m.dates.length, 0)
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Entries Report</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Sessions pushed by each campus — {fmtDay(from)} to {fmtDay(to)}.
+          <h1>Entries Report</h1>
+          <p className="page-subtitle">
+            Sessions pushed by each campus — <span className="mono">{fmtDay(from)}</span> to <span className="mono">{fmtDay(to)}</span>.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <Link href="/hr/reports/not-submitted" className="btn btn-outline">Reports not submitted</Link>
+        <div className="page-head-actions">
+          <Link href="/hr/reports/not-submitted" className="btn btn-outline">
+            <Icon name="alert" size={16} /> Reports not submitted
+          </Link>
           {sheetCount > 0 && (
             <>
               {canCopy && (
                 <button type="button" className="btn btn-outline" onClick={copyData} title="Copy the entries below as tab-separated text">
-                  Copy data
+                  <Icon name="list" size={16} /> Copy data
                 </button>
               )}
-              {view === 'classes' && <select className="input" aria-label="Excel layout" value={exportBy} onChange={(e) => setExportChoice(e.target.value as GroupBy)} style={{ width: 'auto' }}>
-                {GROUP_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-              </select>}
+              {view === 'classes' && (
+                <select className={`input ${s.inlineSelect}`} aria-label="Excel layout" value={exportBy} onChange={(e) => setExportChoice(e.target.value as GroupBy)}>
+                  {GROUP_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                </select>
+              )}
               <button type="button" className="btn btn-primary" onClick={exportExcel} title="Download the entries below as an Excel file, laid out as chosen">
-                Download Excel
+                <Icon name="download" size={16} /> Download Excel
               </button>
             </>
           )}
         </div>
       </div>
 
-      {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} onRetry={load} /></div>}
+      {error && <div className="stack-sm" style={{ marginBottom: 'var(--space-4)' }}><ErrorAlert message={error} onRetry={load} /></div>}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '0.75rem' }}>
+      {/* Overview first: totals for the range and filters below. */}
+      {report && view === 'classes' && (
+        <div className={`stats-grid ${s.kpis}`} aria-live="polite">
+          <div className="stat-card">
+            <div className="stat-label">Entries</div>
+            <div className="stat-value">{rows.length}</div>
+            <div className="stat-sub">{kindLabel}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Total time</div>
+            <div className="stat-value">{formatHM(sumHours(rows))}</div>
+            <div className="stat-sub">{sumHours(rows).toFixed(2)} hours</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Faculty</div>
+            <div className="stat-value">{facultyCount}</div>
+            <div className="stat-sub">across {campusCount} {campusCount === 1 ? 'campus' : 'campuses'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Days not submitted</div>
+            <div className="stat-value">{missingDayCount}</div>
+            <div className="stat-sub">
+              {missingDayCount > 0
+                ? <Link href="/hr/reports/not-submitted">Flagged — view details</Link>
+                : 'None flagged'}
+            </div>
+          </div>
+          {showPay && sumPay(rows) > 0 && (
+            <div className="stat-card">
+              <div className="stat-label">Temporary pay</div>
+              <div className="stat-value">{rupees(sumPay(rows))}</div>
+              <div className="stat-sub">hours x rate in force</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className={s.filters}>
+        <div className={s.filterRow}>
           <div className="form-group" style={{ margin: 0 }}>
+            <span className="label" id="er-view-label">Report</span>
+            <div className="segmented" role="group" aria-labelledby="er-view-label">
+              {VIEW_TABS.map((t) => (
+                <button key={t.key} type="button" aria-pressed={view === t.key} onClick={() => setView(t.key)}>{t.label}</button>
+              ))}
+            </div>
+          </div>
+          <div className={`form-group ${s.field}`}>
             <label className="label" htmlFor="er-month">Month</label>
             <input id="er-month" type="month" className="input" max={toLocalISO(now).slice(0, 7)}
               value={from.slice(0, 7) === to.slice(0, 7) ? from.slice(0, 7) : ''}
-              onChange={(e) => pickMonth(e.target.value)} style={{ minWidth: 150 }} />
+              onChange={(e) => pickMonth(e.target.value)} />
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
-            <label className="label" htmlFor="er-view">Report</label>
-            <select id="er-view" className="input" value={view} onChange={(e) => setView(e.target.value as ReportView)} style={{ minWidth: 190 }}>
-              {VIEW_TABS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-            </select>
-          </div>
-          <div className="form-group" style={{ margin: 0 }}>
+          <div className={`form-group ${s.fieldWide}`}>
             <label className="label" htmlFor="er-campus">Campus</label>
-            <select id="er-campus" className="input" value={campus} onChange={(e) => setCampus(e.target.value)} style={{ minWidth: 190 }}>
+            <select id="er-campus" className="input" value={campus} onChange={(e) => setCampus(e.target.value)}>
               <option value="">All campuses</option>
               {(report?.campuses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           {view === 'classes' && (
-            <div className="form-group" style={{ margin: 0 }}>
+            <div className={`form-group ${s.fieldWide}`}>
               <label className="label" htmlFor="er-mode">Class mode</label>
-              <select id="er-mode" className="input" value={classMode} onChange={(e) => setClassMode(e.target.value)} style={{ minWidth: 210 }}>
+              <select id="er-mode" className="input" value={classMode} onChange={(e) => setClassMode(e.target.value)}>
                 <option value="">All modes</option>
                 {CLASS_MODE_FILTERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
           )}
-        </div>
-        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
-      </div>
-
-      {/* ── View switches ─────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {view === 'classes' && KIND_TABS.map((t) => (
-            <button key={t.key} type="button" className={`btn btn-sm ${kind === t.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setKind(t.key); setFacultyId('') }}>
-              {t.label}
-            </button>
-          ))}
           {view === 'classes' && (
-            <select className="input" aria-label="Faculty" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} style={{ width: 'auto', minWidth: 200 }}>
-              <option value="">{kind === 'PERMANENT' ? 'All permanent faculty' : kind === 'TEMPORARY' ? 'All temporary faculty' : 'All faculty'}</option>
-              {facultyChoices.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
-            </select>
+            <div className={`form-group ${s.fieldWide}`}>
+              <label className="label" htmlFor="er-faculty">Faculty</label>
+              <select id="er-faculty" className="input" value={facultyId} onChange={(e) => setFacultyId(e.target.value)}>
+                <option value="">{kind === 'PERMANENT' ? 'All permanent faculty' : kind === 'TEMPORARY' ? 'All temporary faculty' : 'All faculty'}</option>
+                {facultyChoices.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
+              </select>
+            </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-          {view === 'classes' && GROUP_TABS.map((t) => (
-            <button key={t.key} type="button" className={`btn btn-sm ${group === t.key ? 'btn-primary' : 'btn-outline'}`} onClick={() => setGroup(t.key)}>
-              {t.label}
-            </button>
-          ))}
+        <div className={s.filterRow}>
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
         </div>
       </div>
 
+      {/* View switches */}
+      {view === 'classes' && (
+        <div className={s.strip}>
+          <div className="segmented" role="group" aria-label="Faculty type">
+            {KIND_TABS.map((t) => (
+              <button key={t.key} type="button" aria-pressed={kind === t.key} onClick={() => { setKind(t.key); setFacultyId('') }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="segmented" role="group" aria-label="Group entries by">
+            {GROUP_TABS.map((t) => (
+              <button key={t.key} type="button" aria-pressed={group === t.key} onClick={() => setGroup(t.key)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {report?.truncated && (
-        <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
+        <div className="alert alert-warning" style={{ marginBottom: 'var(--space-4)' }}>
+          <span className="alert-icon"><Icon name="alert" size={16} /></span>
           This range has more entries than can be shown. Narrow the dates to see everything.
         </div>
       )}
 
       {loading && (!report || view !== 'classes') ? (
-        <div className="card"><SkeletonTable rows={8} cols={6} /></div>
+        <div className="card card-flush"><SkeletonTable rows={8} cols={6} /></div>
       ) : view === 'noclass' ? (
         noClassRows.length === 0 ? (
           <div className="card"><EmptyState title="No No-Class days" description={`No No Class markers for ${campus || 'any campus'} between ${fmtDay(from)} and ${fmtDay(to)}.`} /></div>
         ) : (
-          <div className="card">
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
-              {noClassRows.length} No Class {noClassRows.length === 1 ? 'day' : 'days'} marked
-            </p>
-            <div className="table-wrapper">
+          <div className="card card-flush">
+            <div className="card-header">
+              <h2>No Class days</h2>
+              <span className="badge badge-gray"><span className="mono">{noClassRows.length}</span> No Class {noClassRows.length === 1 ? 'day' : 'days'} marked</span>
+            </div>
+            <div className="table-wrapper table-stack" style={{ border: 0, borderRadius: 0, boxShadow: 'none' }}>
               <table>
                 <thead><tr><th>Date</th><th>Campus</th><th>Batches</th><th>Reason</th></tr></thead>
                 <tbody>
                   {noClassRows.map((n) => (
                     <tr key={n._id}>
-                      <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(n.date)}</td>
-                      <td style={{ fontWeight: 600 }}>{n.campusName}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{n.batchNames.length ? n.batchNames.join(', ') : 'Whole campus'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{n.reason || '—'}</td>
+                      <td data-label="Date" className={`num ${s.nowrap} ${s.muted}`}>{fmtDay(n.date)}</td>
+                      <td data-label="Campus" className={s.strong}>{n.campusName}</td>
+                      <td data-label="Batches" className={s.muted}>{n.batchNames.length ? n.batchNames.join(', ') : 'Whole campus'}</td>
+                      <td data-label="Reason" className={s.muted}>{n.reason || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -545,24 +606,29 @@ export default function EntriesReportPage() {
         wholeRows.length === 0 ? (
           <div className="card"><EmptyState title="No days" description="Nothing to show for this range." /></div>
         ) : (
-          <div className="card">
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
-              Every day from {fmtDay(from)} to {fmtDay(wholeDaysEnd(to))}, campus by campus — all faculty, all types.
-            </p>
-            <div className="table-wrapper">
+          <div className="card card-flush">
+            <div className="card-header">
+              <h2>Day by day</h2>
+              <span className={s.groupMeta}>
+                <span><span className="mono">{fmtDay(from)}</span> to <span className="mono">{fmtDay(wholeDaysEnd(to))}</span>, campus by campus — all faculty, all types</span>
+              </span>
+            </div>
+            <div className="table-wrapper table-stack" style={{ border: 0, borderRadius: 0, boxShadow: 'none' }}>
               <table>
-                <thead><tr><th>Date</th><th>Campus</th><th>Status</th><th style={{ textAlign: 'right' }}>Entries</th><th style={{ textAlign: 'right' }}>Time</th><th>Details</th></tr></thead>
+                <thead><tr><th>Date</th><th>Campus</th><th>Status</th><th className="num" style={{ textAlign: 'right' }}>Entries</th><th className="num" style={{ textAlign: 'right' }}>Time</th><th>Details</th></tr></thead>
                 <tbody>
                   {wholeRows.map((w) => (
                     <tr key={`${w.campusName}|${w.date}`}>
-                      <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(w.date)}</td>
-                      <td style={{ fontWeight: 600 }}>{w.campusName}</td>
-                      <td>
-                        <span className={`badge ${w.status === 'Classes' ? 'badge-green' : w.status === 'Not submitted' ? 'badge-red' : 'badge-gray'}`}>{w.status}</span>
+                      <td data-label="Date" className={`num ${s.nowrap} ${s.muted}`}>{fmtDay(w.date)}</td>
+                      <td data-label="Campus" className={s.strong}>{w.campusName}</td>
+                      <td data-label="Status">
+                        <span className={`badge ${w.status === 'Classes' ? 'badge-green' : w.status === 'Not submitted' ? 'badge-red' : 'badge-gray'}`}>
+                          {w.status === 'Not submitted' && <FlagIcon />}{w.status}
+                        </span>
                       </td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{w.entries || '—'}</td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{w.entries ? formatHM(w.hours) : '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{w.detail || '—'}</td>
+                      <td data-label="Entries" className="num" style={{ textAlign: 'right' }}>{w.entries || '—'}</td>
+                      <td data-label="Time" className={`num ${s.strong}`} style={{ textAlign: 'right' }}>{w.entries ? formatHM(w.hours) : '—'}</td>
+                      <td data-label="Details" className={s.muted}>{w.detail || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -576,48 +642,49 @@ export default function EntriesReportPage() {
         </div>
       ) : (
         <>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
-            {rows.length} {rows.length === 1 ? 'entry' : 'entries'} · <strong style={{ color: 'var(--color-text)' }}>{formatHM(sumHours(rows))}</strong> in total
-            {showPay && sumPay(rows) > 0 && <> · temporary faculty pay <strong style={{ color: 'var(--color-text)' }}>{rupees(sumPay(rows))}</strong></>}
-          </p>
           {group === 'faculty' && byFaculty.map(([facultyId, list]) => (
             // Faculty-wise: one block per faculty with all their sessions, across every campus and batch.
-            <div key={facultyId} className="card" style={{ marginBottom: '1rem' }}>
+            <div key={facultyId} className={`card card-flush ${s.group}`}>
               <GroupHeader
                 title={`${list[0].facultyName} · ${typeLabel(list[0].facultyType)} · ${list[0].subject}`}
                 count={list.length}
                 hours={sumHours(list)}
                 pay={showPay ? sumPay(list) : undefined}
               />
-              <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', margin: '0 0 0.75rem' }}>
+              <div className={s.groupChips}>
                 {Array.from(groupBy(list, (r) => r.campusName).entries())
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([campusName, campusList]) => (
                     <span key={campusName} className="badge badge-gray">
-                      {campusName}: {campusList.length} · {formatHM(sumHours(campusList))}
+                      {campusName}: <span className="mono">{campusList.length} · {formatHM(sumHours(campusList))}</span>
                     </span>
                   ))}
               </div>
-              {table(list, ['faculty'])}
+              <div className={s.groupBody} style={{ paddingTop: 'var(--space-3)' }}>{table(list, ['faculty'])}</div>
             </div>
           ))}
 
           {group !== 'faculty' && byCampus.map(([campusName, campusRows]) => (
-            <div key={campusName} className="card" style={{ marginBottom: '1rem' }}>
+            <div key={campusName} className={`card card-flush ${s.group}`}>
               <GroupHeader title={campusName} count={campusRows.length} hours={sumHours(campusRows)} />
 
-              {group === 'campus' && table(campusRows, ['campus'])}
+              {group === 'campus' && <div className={s.groupBody}>{table(campusRows, ['campus'])}</div>}
 
               {group === 'subject' && Array.from(groupBy(campusRows, (r) => r.subject).entries())
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([subject, list]) => (
                   <div key={subject}>
                     <GroupHeader title={subject} count={list.length} hours={sumHours(list)} level={2} />
-                    {table(list, ['campus', 'subject'])}
+                    <div className={s.groupBody}>{table(list, ['campus', 'subject'])}</div>
                   </div>
                 ))}
             </div>
           ))}
+
+          <p className={s.subline} style={{ marginTop: 'var(--space-3)' }}>
+            Grand total: <strong className="mono">{rows.length}</strong> {rows.length === 1 ? 'entry' : 'entries'} · <strong className="mono">{formatHM(sumHours(rows))}</strong>
+            {showPay && sumPay(rows) > 0 && <> · temporary faculty pay <strong className="mono">{rupees(sumPay(rows))}</strong></>}
+          </p>
         </>
       )}
 

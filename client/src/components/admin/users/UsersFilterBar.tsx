@@ -1,4 +1,6 @@
+import { Icon } from '@/components/ui/Icon'
 import { ALL_ROLES, getRoleLabel } from './types'
+import s from './Users.module.css'
 
 interface UsersFilterBarProps {
   search: string
@@ -12,36 +14,37 @@ export function UsersFilterBar({ search, onSearchChange, role, onRoleChange, onC
   const hasFilters = search !== '' || role !== 'ALL'
 
   return (
-    <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.25rem' }}>
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-
-        {/* Search */}
-        <div style={{ flex: '1 1 240px', position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)', pointerEvents: 'none', fontSize: '0.9rem' }}>🔍</span>
+    <div className="toolbar" role="search">
+      <div className={`form-group ${s.search}`}>
+        <label className="label" htmlFor="users-search">Search</label>
+        <div style={{ position: 'relative' }}>
+          <Icon name="search" size={16} className={s.searchIcon} />
           <input
-            className="input"
-            style={{ paddingLeft: '2.25rem' }}
+            id="users-search"
+            type="search"
+            className={`input ${s.searchInput}`}
             placeholder="Search username…"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
+      </div>
 
-        {/* Role */}
-        <select className="input" style={{ minWidth: 180 }} value={role} onChange={(e) => onRoleChange(e.target.value)}>
+      <div className={`form-group ${s.roleSelect}`}>
+        <label className="label" htmlFor="users-role">Role</label>
+        <select id="users-role" className="input" value={role} onChange={(e) => onRoleChange(e.target.value)}>
           <option value="ALL">All Roles</option>
           {ALL_ROLES.map((r) => (
             <option key={r} value={r}>{getRoleLabel(r)}</option>
           ))}
         </select>
-
-        {/* Clear */}
-        {hasFilters && (
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
-            Clear filters
-          </button>
-        )}
       </div>
+
+      {hasFilters && (
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onClear}>
+          <Icon name="x" size={14} /> Clear filters
+        </button>
+      )}
     </div>
   )
 }

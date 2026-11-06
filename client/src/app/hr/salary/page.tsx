@@ -9,7 +9,8 @@ import { useToast } from '@/components/ui/Toast'
 import { MONTHS, printSalarySlip, SalaryControls, SalaryResultCard } from '@/components/hr/salary'
 import { toLocalISO } from '@/utils/date'
 import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
-import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
+import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED, SALARY_LABELS } from '@/lib/constants/features'
+import { Icon } from '@/components/ui/Icon'
 
 /** "01 Oct 2026" from a YYYY-MM-DD string. */
 function fmtISO(iso: string): string {
@@ -123,13 +124,24 @@ function SalaryPageInner() {
   // The layout/shell should enforce this too, but guard here as a fallback.
   // (Placed after all hooks so the hook order stays stable across renders.)
   if (role && !['HR_MANAGER', 'ADMIN'].includes(role)) {
-    return <div className="alert alert-error" style={{ margin: '2rem' }}>Access denied — HR Manager or Admin only.</div>
+    return <div className="alert alert-error mt-6" role="alert">Access denied — HR Manager or Admin only.</div>
   }
 
   return (
     <div>
+      <div className="page-head">
+        <div>
+          <h1>{SALARY_LABELS.page}</h1>
+          <p className="page-subtitle">
+            {mode === 'RANGE'
+              ? 'Calculate pay for a from/to date range, review the breakdown, then approve.'
+              : 'Calculate monthly pay, review the breakdown, then approve.'}
+          </p>
+        </div>
+      </div>
+
       {!SALARY_ENABLED && (
-        <div className="alert alert-info" style={{ marginBottom: '1.25rem' }}>
+        <div className="alert alert-info mb-4">
           <span className="alert-icon" aria-hidden="true">i</span>
           Showing temporary faculty only — pay is calculated for the from/to dates you choose. Other salary is on hold.
         </div>
@@ -152,7 +164,7 @@ function SalaryPageInner() {
       />
 
       {error && (
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div className="mb-4">
           <ErrorAlert message={error} what="Salary calculation failed" onRetry={handleCalculate} />
         </div>
       )}
@@ -175,12 +187,10 @@ function SalaryPageInner() {
       )}
 
       {!result && !loading && !error && (
-        <div className="card">
-          <div className="empty-state">
-            <div className="empty-state-icon">₹</div>
-            <h3>Select faculty and click Calculate</h3>
-            <p>The salary calculator will apply contract rules and show the detailed breakdown</p>
-          </div>
+        <div className="empty-state">
+          <div className="empty-state-icon"><Icon name="wallet" size={22} /></div>
+          <h3>Select faculty and click Calculate</h3>
+          <p>The salary calculator will apply contract rules and show the detailed breakdown</p>
         </div>
       )}
     </div>

@@ -4,8 +4,9 @@ import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 import { SkeletonCard, ErrorAlert } from '@/components/ui/Skeleton'
 import {
-  SUBJECTS, AnnualSyllabus, Subject, SUBJECT_LABEL, SUBJECT_COLOR, MonthSection, SplitChaptersLegend,
+  SUBJECTS, AnnualSyllabus, Subject, SUBJECT_LABEL, MonthSection, SplitChaptersLegend,
 } from '@/components/academics/syllabus'
+import s from '@/components/academics/syllabus/Syllabus.module.css'
 
 export default function AnnualSyllabusPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
@@ -34,7 +35,7 @@ export default function AnnualSyllabusPage() {
   }
 
   if (loading) return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="stack" aria-busy="true">
       <SkeletonCard lines={3} />
       <SkeletonCard lines={5} />
       <SkeletonCard lines={5} />
@@ -45,29 +46,30 @@ export default function AnnualSyllabusPage() {
   )
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>Annual Syllabus Schedule</h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>
-          June–December 2025–26 · NEET DOPA Coaching
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        {SUBJECTS.map((subj) => (
-          <div
-            key={subj}
-            className={`border rounded-lg px-4 py-2 text-sm font-semibold ${SUBJECT_COLOR[subj]}`}
-          >
-            {SUBJECT_LABEL[subj]}: {totals[subj]} chapters
-          </div>
-        ))}
-        <div className="border border-gray-300 bg-gray-50 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700">
-          Total: {Object.values(totals).reduce((s, n) => s + n, 0)} chapters
+    <div className="stack">
+      <div className="page-head">
+        <div>
+          <h1>Annual Syllabus Schedule</h1>
+          <p className="page-subtitle">June–December 2025–26 · NEET DOPA Coaching</p>
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="stats-grid">
+        {SUBJECTS.map((subj) => (
+          <div key={subj} className="stat-card">
+            <div className="stat-label">{SUBJECT_LABEL[subj]}</div>
+            <div className="stat-value num">{totals[subj]}</div>
+            <div className="stat-sub">chapters</div>
+          </div>
+        ))}
+        <div className="stat-card">
+          <div className="stat-label">Total</div>
+          <div className="stat-value num">{Object.values(totals).reduce((sum, n) => sum + n, 0)}</div>
+          <div className="stat-sub">chapters</div>
+        </div>
+      </div>
+
+      <div className={s.months}>
         {months.map((month) => (
           <MonthSection key={month} monthData={syllabus[String(month)]} />
         ))}

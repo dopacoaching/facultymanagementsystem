@@ -1,0 +1,27 @@
+/* Break rows */
+.note { color: var(--color-muted); font-weight: 400; }
+.breakRow { display: flex; gap: var(--space-2); }
+.breakInput { flex: 1; min-width: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.breakInput:disabled { opacity: 0.5; }
+.nilBtn { white-space: nowrap; min-width: 4rem; }
+.breaksBlock { margin-top: var(--space-3); }
+.breaksHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
+.breaksHead :global(.label) { margin-bottom: 0; }
+
+/* Chapter chips */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+.chip {
+  display: inline-flex; align-items: center; gap: 0.25rem; min-height: 2rem;
+  padding: 0.125rem 0.25rem 0.125rem 0.75rem; border-radius: var(--radius-full);
+  background: var(--color-primary-ghost); border: 1px solid color-mix(in oklab, var(--color-primary) 40%, var(--color-border));
+  color: var(--color-primary-dark); font-size: var(--text-sm); font-weight: 500;
+}
+.chipRemove {
+  display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border: 0; border-radius: 50%;
+  background: transparent; color: inherit; cursor: pointer; font-size: 1.125rem; line-height: 1;
+  transition: background-color var(--dur-micro);
+}
+.chipRemove:hover { background: color-mix(in oklab, var(--color-primary) 15%, transparent); }
+.chipRemove:focus-visible { outline: none; box-shadow: var(--glow-focus); }
+.addRow { display: flex; gap: var(--space-2); }
+.addRow > .input { flex: 1; min-width: 0; }

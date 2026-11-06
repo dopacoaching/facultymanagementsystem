@@ -6,8 +6,8 @@ import { SALARY_ON_HOLD_MESSAGE } from '@/lib/constants/features'
 export function SalaryOnHold() {
   return (
     <div className="card">
-      <EmptyState title="Salary calculation is on hold" description={SALARY_ON_HOLD_MESSAGE}>
-        <Link href="/" className="btn btn-outline">Back to dashboard</Link>
+      <EmptyState iconName="wallet" title="Salary calculation is on hold" description={SALARY_ON_HOLD_MESSAGE}>
+        <Link href="/" className="btn btn-outline" style={{ marginTop: '1rem' }}>Back to dashboard</Link>
       </EmptyState>
     </div>
   )

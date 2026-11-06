@@ -1,3 +1,6 @@
+import { Icon } from '@/components/ui/Icon'
+import s from './AuditLog.module.css'
+
 interface AuditLogPaginationProps {
   page: number
   totalPages: number
@@ -8,14 +11,24 @@ export function AuditLogPagination({ page, totalPages, onPageChange }: AuditLogP
   if (totalPages <= 1) return null
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem', justifyContent: 'center', alignItems: 'center' }}>
-      <button type="button" aria-label="First page" className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => onPageChange(1)}>«</button>
-      <button type="button" className="btn btn-ghost btn-sm" disabled={page === 1} onClick={() => onPageChange(page - 1)}>← Prev</button>
-      <span style={{ fontSize: '0.875rem', color: 'var(--color-muted)', padding: '0 0.75rem' }}>
-        Page {page} of {totalPages}
+    <nav className={s.pager} aria-label="Audit log pages">
+      <span className={s.pagerInfo} aria-live="polite">
+        Page <span className="num">{page}</span> of <span className="num">{totalPages}</span>
       </span>
-      <button type="button" className="btn btn-ghost btn-sm" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>Next →</button>
-      <button type="button" aria-label="Last page" className="btn btn-ghost btn-sm" disabled={page === totalPages} onClick={() => onPageChange(totalPages)}>»</button>
-    </div>
+      <div className={s.pagerBtns}>
+        <button type="button" aria-label="First page" className="btn btn-outline btn-sm btn-icon" disabled={page === 1} onClick={() => onPageChange(1)}>
+          <Icon name="chevronLeft" size={14} /><Icon name="chevronLeft" size={14} style={{ marginLeft: -9 }} />
+        </button>
+        <button type="button" className="btn btn-outline btn-sm" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
+          <Icon name="chevronLeft" size={14} /> Prev
+        </button>
+        <button type="button" className="btn btn-outline btn-sm" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>
+          Next <Icon name="chevronRight" size={14} />
+        </button>
+        <button type="button" aria-label="Last page" className="btn btn-outline btn-sm btn-icon" disabled={page === totalPages} onClick={() => onPageChange(totalPages)}>
+          <Icon name="chevronRight" size={14} /><Icon name="chevronRight" size={14} style={{ marginLeft: -9 }} />
+        </button>
+      </div>
+    </nav>
   )
 }

@@ -3,8 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
 import { getEntriesReport, type EntriesReport } from '@/services/entries.service'
-import { ErrorAlert } from '@/components/ui/Skeleton'
+import { ErrorAlert, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { Icon } from '@/components/ui/Icon'
+import rs from '@/components/hr/reports/Reports.module.css'
 import { toLocalISO } from '@/utils/date'
 import { FlagIcon, fmtDay, isSunday, monthRange } from '@/components/hr/reports/reportShared'
 
@@ -63,76 +65,106 @@ export default function NotSubmittedPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Reports Not Submitted</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Past days where a campus pushed no entry and did not mark &ldquo;No Class&rdquo; — {fmtDay(from)} to {fmtDay(to)}.
+          <h1>Reports Not Submitted</h1>
+          <p className="page-subtitle">
+            Past days where a campus pushed no entry and did not mark &ldquo;No Class&rdquo; — <span className="mono">{fmtDay(from)}</span> to <span className="mono">{fmtDay(to)}</span>.
           </p>
         </div>
-        <Link href="/hr/reports" className="btn btn-outline">Entries Report</Link>
+        <div className="page-head-actions">
+          <Link href="/hr/reports" className="btn btn-outline"><Icon name="report" size={16} /> Entries Report</Link>
+        </div>
       </div>
 
-      {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} onRetry={load} /></div>}
+      {error && <div style={{ marginBottom: 'var(--space-4)' }}><ErrorAlert message={error} onRetry={load} /></div>}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '0.75rem' }}>
-          <div className="form-group" style={{ margin: 0 }}>
+      {report && (
+        <div className={`stats-grid ${rs.kpis}`} aria-live="polite">
+          <div className="stat-card">
+            <div className="stat-label">Campuses flagged</div>
+            <div className="stat-value">{missing.length}</div>
+            <div className="stat-sub">{missing.length > 0 ? 'flagged: reports missing' : 'nothing missing'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Days missing</div>
+            <div className="stat-value">{totalMissingDays}</div>
+            <div className="stat-sub">{skipSundays ? 'Sundays ignored' : 'including Sundays'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">No Class marked</div>
+            <div className="stat-value">{noClassCount}</div>
+            <div className="stat-sub">in this range</div>
+          </div>
+        </div>
+      )}
+
+      <div className={rs.filters}>
+        <div className={rs.filterRow}>
+          <div className={`form-group ${rs.field}`}>
             <label className="label" htmlFor="ns-month">Month</label>
             <input id="ns-month" type="month" className="input" max={toLocalISO(now).slice(0, 7)}
               value={from.slice(0, 7) === to.slice(0, 7) ? from.slice(0, 7) : ''}
-              onChange={(e) => pickMonth(e.target.value)} style={{ minWidth: 150 }} />
+              onChange={(e) => pickMonth(e.target.value)} />
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
+          <div className={`form-group ${rs.fieldWide}`}>
             <label className="label" htmlFor="ns-campus">Campus</label>
-            <select id="ns-campus" className="input" value={campus} onChange={(e) => setCampus(e.target.value)} style={{ minWidth: 190 }}>
+            <select id="ns-campus" className="input" value={campus} onChange={(e) => setCampus(e.target.value)}>
               <option value="">All campuses</option>
               {(report?.campuses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-muted)', paddingBottom: '0.625rem' }}>
+          <label className={rs.check}>
             <input type="checkbox" checked={skipSundays} onChange={(e) => setSkipSundays(e.target.checked)} />
             Ignore Sundays
           </label>
         </div>
-        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+        <div className={rs.filterRow}>
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+        </div>
       </div>
 
+      {loading && !report && <div className="card card-flush"><SkeletonTable rows={4} cols={3} /></div>}
+
       {report && (
-        <div className="card" style={{ borderColor: missing.length ? 'var(--color-danger)' : undefined }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: missing.length ? 'var(--color-danger)' : undefined }}>
+        <div className={`card ${missing.length ? rs.alertCard : ''}`}>
+          <div className={rs.flagHead}>
+            <h2 className={`${rs.flagTitle} ${missing.length ? rs.flagTitleBad : ''}`}>
               {missing.length > 0 && <FlagIcon />}
               {missing.length > 0
                 ? `${missing.length} ${missing.length === 1 ? 'campus' : 'campuses'} · ${totalMissingDays} ${totalMissingDays === 1 ? 'day' : 'days'} missing`
                 : 'Nothing missing'}
-            </h3>
+            </h2>
             {noClassCount > 0 && (
-              <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-                {noClassCount} No Class {noClassCount === 1 ? 'day' : 'days'} marked in this range
+              <span className="badge badge-gray">
+                <Icon name="ban" size={12} /> {noClassCount} No Class {noClassCount === 1 ? 'day' : 'days'} marked in this range
               </span>
             )}
           </div>
           {missing.length === 0 ? (
-            <div className="alert alert-success" style={{ margin: 0 }}>Every campus has submitted for all past days in this range.</div>
+            <div className="alert alert-success" style={{ margin: 0 }}>
+              <span className="alert-icon"><Icon name="check" size={16} /></span>
+              Every campus has submitted for all past days in this range.
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <ul className={rs.flagList}>
               {missing.map((m) => (
-                <div key={`${m.campusName}|${m.batchName ?? ''}`} style={{
-                  display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.5rem 0.75rem',
-                  background: 'var(--color-danger-bg)', color: 'var(--color-danger-fg)', borderRadius: 'var(--radius)',
-                }}>
+                <li key={`${m.campusName}|${m.batchName ?? ''}`} className={rs.flagItem}>
                   <span style={{ paddingTop: 2 }}><FlagIcon /></span>
-                  <div style={{ fontSize: '0.875rem' }}>
-                    <strong>{m.campusName}{m.batchName ? ` · ${m.batchName}` : ''}</strong>
-                    <span style={{ marginLeft: '0.5rem' }}>{m.dates.length} {m.dates.length === 1 ? 'day' : 'days'} missing</span>
-                    <div style={{ fontSize: '0.8125rem', marginTop: 2 }}>
-                      {m.dates.map((d) => fmtDay(d)).join(' · ')}
+                  <div className={rs.flagBody}>
+                    <div>
+                      <span className={rs.flagName}>{m.campusName}{m.batchName ? ` · ${m.batchName}` : ''}</span>
+                      <span className="badge badge-red" style={{ marginLeft: 'var(--space-2)' }}>
+                        Not submitted · {m.dates.length} {m.dates.length === 1 ? 'day' : 'days'}
+                      </span>
+                    </div>
+                    <div className={rs.flagDates}>
+                      {m.dates.map((d) => <span key={d} className={`badge ${rs.flagDate}`}>{fmtDay(d)}</span>)}
                     </div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}

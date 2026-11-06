@@ -8,6 +8,7 @@ import {
   ReportRow, exportToCSV, ReportsSummaryStats, ReportsTable,
 } from '@/components/hr/reports'
 import { toLocalISO } from '@/utils/date'
+import { Icon } from '@/components/ui/Icon'
 import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
 import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED, SALARY_LABELS } from '@/lib/constants/features'
 
@@ -38,33 +39,37 @@ function ReportsPageInner() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>{SALARY_LABELS.reports}</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
+          <h1>{SALARY_LABELS.reports}</h1>
+          <p className="page-subtitle">
             {rows.length} approved {rows.length === 1 ? 'record' : 'records'} — {periodLabel}
           </p>
         </div>
-        {rows.length > 0 && (
-          <button type="button" className="btn btn-outline" onClick={() => exportToCSV(rows, from, to)} title="Export as CSV">
-            Export CSV
-          </button>
-        )}
+        <div className="page-head-actions">
+          {rows.length > 0 && (
+            <button type="button" className="btn btn-outline" onClick={() => exportToCSV(rows, from, to)} title="Export as CSV">
+              <Icon name="download" size={16} /> Export CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="mb-4">
           <ErrorAlert message={error} onRetry={load} />
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
+      <div className="stack">
         <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+
+        <ReportsSummaryStats count={rows.length} total={total} periodLabel={periodLabel} />
+
+        <div aria-live="polite">
+          <ReportsTable loading={loading} rows={rows} total={total} periodLabel={periodLabel} />
+        </div>
       </div>
-
-      <ReportsSummaryStats count={rows.length} total={total} periodLabel={periodLabel} />
-
-      <ReportsTable loading={loading} rows={rows} total={total} periodLabel={periodLabel} />
     </div>
   )
 }

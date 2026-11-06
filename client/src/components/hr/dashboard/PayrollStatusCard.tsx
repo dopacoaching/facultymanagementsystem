@@ -1,3 +1,4 @@
+import { Icon } from "@/components/ui/Icon"
 import Link from 'next/link'
 import { Skeleton } from '@/components/ui/Skeleton'
 import type { DashboardData } from '@/services/salary.service'
@@ -65,7 +66,7 @@ export function PayrollStatusCard({ loading, hasData, payrollStatus }: PayrollSt
           ))}
           {payrollStatus.length === 0 && (
             <div className="empty-state" style={{ padding: '1.5rem' }}>
-              <div className="empty-state-icon" style={{ fontSize: '1.25rem' }}>📊</div>
+              <div className="empty-state-icon"><Icon name="chart" size={20} /></div>
               <p>No faculty data</p>
             </div>
           )}

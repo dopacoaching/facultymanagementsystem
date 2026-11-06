@@ -13,8 +13,8 @@ interface DashboardStatsProps {
 export function DashboardStats({ completedCount, totalHours, allTimeHours, lastEntry, salary }: DashboardStatsProps) {
   const stats = [
     { label: 'Sessions This Month',    value: completedCount,                                         color: 'var(--color-success)' },
-    { label: 'Hours This Month',       value: `${totalHours.toFixed(1)} hrs`,                         color: 'var(--color-primary)' },
-    { label: 'Total Hours (All Time)', value: allTimeHours != null ? `${allTimeHours.toFixed(1)} hrs` : '—', color: 'var(--color-primary)' },
+    { label: 'Hours This Month',       value: `${totalHours.toFixed(1)} hrs`,                         color: 'var(--color-text)' },
+    { label: 'Total Hours (All Time)', value: allTimeHours != null ? `${allTimeHours.toFixed(1)} hrs` : '—', color: 'var(--color-text)' },
     { label: 'Last Entry',
       value: lastEntry ? new Date(lastEntry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—',
       color: 'var(--color-text)' },
@@ -27,11 +27,11 @@ export function DashboardStats({ completedCount, totalHours, allTimeHours, lastE
   ]
 
   return (
-    <div className="stats-grid" style={{ marginBottom: '1.75rem' }}>
+    <div className="stats-grid">
       {stats.map(({ label, value, color }) => (
         <div key={label} className="stat-card">
           <div className="stat-label">{label}</div>
-          <div className="stat-value" style={{ color, fontSize: '1.5rem' }}>{value}</div>
+          <div className="stat-value" style={{ color }}>{value}</div>
         </div>
       ))}
     </div>

@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import s from './Salary.module.css'
 
 interface PayableDaysEntryProps {
   saving: boolean
@@ -10,21 +11,22 @@ interface PayableDaysEntryProps {
  *  Payable Days figure for the month; payroll is blocked until this is saved. */
 export function PayableDaysEntry({ saving, onSave }: PayableDaysEntryProps) {
   const [value, setValue] = useState('')
+  const id = useId()
   const num = Number(value)
   const valid = value !== '' && !isNaN(num) && num >= 0 && num <= 31
 
   return (
-    <div className="card" style={{ marginBottom: '1.25rem' }}>
-      <div className="form-group" style={{ marginBottom: 0 }}>
-        <label className="label">Payable Days for this month</label>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginBottom: '0.5rem' }}>
+    <div className={s.payable}>
+      <div className="form-group">
+        <label className="label" htmlFor={id}>Payable Days for this month</label>
+        <div className={s.payableHelp}>
           Total days present + paid leave, as computed by HR at month-end.
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className={s.payableRow}>
           <input
+            id={id}
             type="number"
-            className="input"
-            style={{ maxWidth: 120 }}
+            className={`input num ${s.payableInput}`}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             min={0}

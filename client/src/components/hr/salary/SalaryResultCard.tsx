@@ -5,6 +5,8 @@ import { CarryForwardGrid } from './CarryForwardGrid'
 import { PayBreakdownTable } from './PayBreakdownTable'
 import { SalarySummaryStats } from './SalarySummaryStats'
 import { PayableDaysEntry } from './PayableDaysEntry'
+import { Icon } from '@/components/ui/Icon'
+import s from './Salary.module.css'
 
 interface SalaryResultCardProps {
   result: SalaryResult
@@ -22,126 +24,122 @@ interface SalaryResultCardProps {
   onSavePayableDays?: (payableDays: number) => void
 }
 
+function initials(name?: string): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].charAt(0)
+  return parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+}
+
 export function SalaryResultCard({
   result, selectedFaculty, month, year, periodLabel, approved, approving, canApprove, onApprove, onPrint,
   savingPayableDays, onSavePayableDays,
 }: SalaryResultCardProps) {
   const period = periodLabel ?? `${MONTHS[month - 1]} ${year}`
+  const payable = result.status === 'OK' || result.status === 'HR_REVIEW'
   return (
-    <div className="card">
-      <div className="card-header">
-        <div>
-          <h2 style={{ margin: 0 }}>{selectedFaculty?.name}</h2>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: '0.2rem' }}>
-            {period} · {selectedFaculty?.subject}
+    <div className={`card ${s.result}`} aria-live="polite">
+      <div className={s.resultHead}>
+        <div className={s.who}>
+          <span className="avatar" aria-hidden="true">{initials(selectedFaculty?.name)}</span>
+          <div style={{ minWidth: 0 }}>
+            <h2>{selectedFaculty?.name}</h2>
+            <div className={s.whoSub}>{period} · {selectedFaculty?.subject}</div>
           </div>
         </div>
-        <span className={`badge ${statusBadge(result.status)}`} style={{ fontSize: '0.8rem' }}>
+        <span className={`badge badge-dot ${statusBadge(result.status)} ${s.statusBadge}`}>
           {result.status.replace(/_/g, ' ')}
         </span>
       </div>
 
-      {(result.status === 'BLOCKED' || result.status === 'PENDING_CONFIG') && result.reason && (
-        <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
-          <span className="alert-icon">🚫</span>
-          <div>
-            <strong>Payroll Blocked</strong>
-            <div style={{ marginTop: '0.2rem', fontWeight: 400 }}>{result.reason}</div>
+      <div className={s.resultBody}>
+        {(result.status === 'BLOCKED' || result.status === 'PENDING_CONFIG') && result.reason && (
+          <div className="alert alert-error" role="alert">
+            <span className="alert-icon" aria-hidden="true">×</span>
+            <div>
+              <strong>Payroll Blocked</strong>
+              <div className="mt-1">{result.reason}</div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {result.needsPayableDays && onSavePayableDays && (
-        <PayableDaysEntry saving={!!savingPayableDays} onSave={onSavePayableDays} />
-      )}
+        {result.needsPayableDays && onSavePayableDays && (
+          <PayableDaysEntry saving={!!savingPayableDays} onSave={onSavePayableDays} />
+        )}
 
-      {result.alerts && <PayrollAlerts alerts={result.alerts} />}
+        {result.alerts && <PayrollAlerts alerts={result.alerts} />}
 
-      {result.carryForward && <CarryForwardGrid carryForward={result.carryForward} />}
+        {result.carryForward && <CarryForwardGrid carryForward={result.carryForward} />}
 
-      {/* TDS/Net Payable are shown in the highlighted total box below, not duplicated here */}
-      {result.breakdown && (
-        <PayBreakdownTable
-          breakdown={result.breakdown.filter((row) => row.label !== 'TDS (10%)' && row.label !== 'Net Payable (after TDS)')}
-        />
-      )}
+        {/* TDS/Net Payable are shown in the totals ledger below, not duplicated here */}
+        {result.breakdown && (
+          <PayBreakdownTable
+            breakdown={result.breakdown.filter((row) => row.label !== 'TDS (10%)' && row.label !== 'Net Payable (after TDS)')}
+          />
+        )}
 
-      {(result.status === 'OK' || result.status === 'HR_REVIEW') && (
-        <>
-          <SalarySummaryStats result={result} />
+        {payable && (
+          <>
+            <SalarySummaryStats result={result} />
 
-          <div style={{
-            padding: '1.25rem 1.5rem',
-            background: result.status === 'HR_REVIEW'
-              ? 'var(--color-warning-solid)'
-              : 'var(--color-brand-navy)',
-            color: 'var(--color-on-navy)',
-            borderRadius: 'var(--radius-lg)',
-            marginBottom: '1.25rem',
-          }}>
-            {result.status === 'HR_REVIEW' && (
-              <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.75rem' }}>
-                Pending HR review — approve with caution
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9 }}>
-              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Total (Gross)</span>
-              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>₹{result.finalPayable?.toLocaleString('en-IN')}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9, marginTop: '0.4rem' }}>
-              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>− TDS (10%)</span>
-              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>−₹{result.tds?.toLocaleString('en-IN')}</span>
-            </div>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              flexWrap: 'wrap', gap: '0.75rem',
-              marginTop: '0.75rem', paddingTop: '0.75rem',
-              borderTop: '1px solid var(--color-navy-rule)',
-            }}>
-              <div style={{ fontWeight: 700, fontSize: '1rem' }}>Net Payable</div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 600, lineHeight: 1 }}>
-                  ₹{result.netPayable?.toLocaleString('en-IN')}
+            <div className={`${s.ledger} ${result.status === 'HR_REVIEW' ? s.ledgerReview : ''}`}>
+              {result.status === 'HR_REVIEW' && (
+                <div className={s.ledgerNote}>
+                  <Icon name="alert" size={15} /> Pending HR review — approve with caution
                 </div>
-                <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.2rem' }}>
-                  {period}
+              )}
+              <div className={s.ledgerRow}>
+                <span className={s.ledgerLabel}>Total (Gross)</span>
+                <span className={s.ledgerFig}>₹{result.finalPayable?.toLocaleString('en-IN')}</span>
+              </div>
+              <div className={s.ledgerRow}>
+                <span className={s.ledgerLabel}>− TDS (10%)</span>
+                <span className={`${s.ledgerFig} ${s.deduction}`}>−₹{result.tds?.toLocaleString('en-IN')}</span>
+              </div>
+              <div className={`${s.ledgerRow} ${s.ledgerNet}`}>
+                <span className={s.ledgerLabel}>Net Payable</span>
+                <div>
+                  <div className={s.netFig}>₹{result.netPayable?.toLocaleString('en-IN')}</div>
+                  <div className={s.netPeriod}>{period}</div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {approved ? (
-              <div className="alert alert-success" style={{ flex: 1, margin: 0 }}>
-                <span className="alert-icon">✅</span>
-                Salary approved and recorded for {period}.
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-success"
-                onClick={onApprove}
-                disabled={approving || !canApprove}
-                style={{ flex: 1 }}
-              >
-                {approving ? (
-                  <><span className="spinner" /> Approving…</>
-                ) : 'Approve & Record Salary'}
-              </button>
-            )}
-            {selectedFaculty && (
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={onPrint}
-                title="Open printable salary slip in new window"
-              >
-                Print Slip
-              </button>
-            )}
-          </div>
-        </>
-      )}
+            <div className={s.approveBar}>
+              {approved ? (
+                <div className={`alert alert-success ${s.approvedNote}`} role="status">
+                  <span className="alert-icon" aria-hidden="true"><Icon name="check" size={14} /></span>
+                  Salary approved and recorded for {period}.
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className={`btn btn-success btn-lg ${s.approveBtn}`}
+                  onClick={onApprove}
+                  disabled={approving || !canApprove}
+                >
+                  {approving ? (
+                    <><span className="spinner" /> Approving…</>
+                  ) : <><Icon name="shield" size={18} /> Approve &amp; Record Salary</>}
+                </button>
+              )}
+              {selectedFaculty && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-lg"
+                  onClick={onPrint}
+                  title="Open printable salary slip in new window"
+                >
+                  <Icon name="report" size={16} /> Print Slip
+                </button>
+              )}
+              {!approved && (
+                <p className={s.approveHint}>Approving records this payout for {period}.</p>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 import { Component, type ReactNode } from 'react'
+import { Icon } from './Icon'
 
 interface Props { children: ReactNode }
 interface State { hasError: boolean; message: string }
@@ -25,11 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="alert alert-error" style={{ margin: '2rem', padding: '1.5rem' }}>
-          <span className="alert-icon">⚠</span>
+        <div className="alert alert-error" role="alert" style={{ margin: '2rem auto', padding: '1.25rem 1.5rem', maxWidth: 560, gap: '0.875rem' }}>
+          <Icon name="alert" size={20} style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <strong>Something went wrong on this page.</strong>
-            <div style={{ marginTop: '0.25rem', fontSize: '0.8rem', opacity: 0.85 }}>
+            <div className="mono" style={{ marginTop: '0.25rem', fontSize: 'var(--text-sm)', opacity: 0.85, overflowWrap: 'anywhere' }}>
               {this.state.message}
             </div>
             <button

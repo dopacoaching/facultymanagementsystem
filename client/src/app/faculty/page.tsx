@@ -61,17 +61,15 @@ export default function FacultyDashboard() {
 
   if (loading) {
     return (
-      <div>
+      <div className="stack" aria-busy="true">
         <SkeletonStats count={4} />
-        <div style={{ marginTop: '1.5rem' }}>
-          <SkeletonCard lines={5} />
-        </div>
+        <SkeletonCard lines={5} />
       </div>
     )
   }
 
   return (
-    <div>
+    <div className="stack">
       <WelcomeBanner faculty={faculty} month={month} year={year} />
 
       <DashboardStats

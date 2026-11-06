@@ -1,4 +1,5 @@
 import type { Faculty } from '@/types'
+import s from './Faculty.module.css'
 
 interface SalaryFieldsProps {
   editing: Partial<Faculty>
@@ -23,37 +24,33 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
       <>
         {isEdit && originalRate != null && (
           <div className="form-group">
-            <label className="label">Current Hourly Rate</label>
-            <div className="input" style={{ background: 'var(--color-surface-2)', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-              ₹{originalRate}/hr
-            </div>
+            <span className="label">Current Hourly Rate</span>
+            <div className={`input ${s.readonlyRate}`}>₹{originalRate}/hr</div>
           </div>
         )}
 
         <div className="form-group">
-          <label className="label">{isEdit && originalRate != null ? 'New Hourly Rate (₹)' : 'Hourly Rate (₹)'}</label>
+          <label className="label" htmlFor="fac-rate">{isEdit && originalRate != null ? 'New Hourly Rate (₹)' : 'Hourly Rate (₹)'}</label>
           <input
-            type="number" min={1} step="any" className="input"
+            id="fac-rate" type="number" min={1} step="any" className="input"
             value={editing.hourlyRate ?? ''}
             onChange={(e) => set('hourlyRate', e.target.value === '' ? undefined : +e.target.value)}
             placeholder="e.g. 850"
           />
           {!isEdit && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
-              You can change this later and choose the date it takes effect.
-            </div>
+            <div className="help-text">You can change this later and choose the date it takes effect.</div>
           )}
         </div>
 
         {changed && (
           <div className="form-group">
-            <label className="label">New rate effective from</label>
+            <label className="label" htmlFor="fac-rate-from">New rate effective from</label>
             <input
-              type="date" className="input" required
+              id="fac-rate-from" type="date" className="input" required
               value={editing.hourlyRateEffectiveFrom ?? ''}
               onChange={(e) => set('hourlyRateEffectiveFrom', e.target.value)}
             />
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-muted)', marginTop: '0.25rem' }}>
+            <div className="help-text">
               {originalRate != null
                 ? <>Changing ₹{originalRate} → ₹{editing.hourlyRate}. Hours on or after this date use the new rate; earlier hours keep ₹{originalRate}.</>
                 : <>Setting ₹{editing.hourlyRate}/hr. Pick the date it starts applying.</>}
@@ -62,17 +59,15 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
         )}
 
         {isEdit && history.length > 0 && (
-          <div className="form-group" style={{ gridColumn: 'span 2' }}>
-            <label className="label">Rate history</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8125rem' }}>
+          <div className="form-group field-col-span">
+            <span className="label">Rate history</span>
+            <div className={s.history}>
               {history.map((h, i) => {
                 const initial = new Date(h.effectiveFrom).getTime() === 0
                 return (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.375rem 0.625rem', background: 'var(--color-surface-2)', borderRadius: 'var(--radius)' }}>
+                  <div key={i} className={s.historyRow}>
                     <strong>₹{h.rate}/hr</strong>
-                    <span style={{ color: 'var(--color-muted)' }}>
-                      {initial ? 'Initial rate' : `from ${fmtDate(h.effectiveFrom)}`}
-                    </span>
+                    <span>{initial ? 'Initial rate' : `from ${fmtDate(h.effectiveFrom)}`}</span>
                   </div>
                 )
               })}
@@ -87,16 +82,16 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
     return (
       <>
         <div className="form-group">
-          <label className="label">Fixed Monthly Salary (₹)</label>
-          <input type="number" className="input" value={editing.fixedMonthlySalary ?? ''} onChange={(e) => set('fixedMonthlySalary', +e.target.value)} placeholder="e.g. 40000" />
+          <label className="label" htmlFor="fac-fixed">Fixed Monthly Salary (₹)</label>
+          <input id="fac-fixed" type="number" className="input" value={editing.fixedMonthlySalary ?? ''} onChange={(e) => set('fixedMonthlySalary', +e.target.value)} placeholder="e.g. 40000" />
         </div>
         <div className="form-group">
-          <label className="label">Monthly Leave Allowance (days)</label>
-          <input type="number" className="input" value={editing.monthlyLeaveAllowance ?? ''} onChange={(e) => set('monthlyLeaveAllowance', +e.target.value)} placeholder="e.g. 8" />
+          <label className="label" htmlFor="fac-leave">Monthly Leave Allowance (days)</label>
+          <input id="fac-leave" type="number" className="input" value={editing.monthlyLeaveAllowance ?? ''} onChange={(e) => set('monthlyLeaveAllowance', +e.target.value)} placeholder="e.g. 8" />
         </div>
         <div className="form-group">
-          <label className="label">April Leave Allowance (days)</label>
-          <input type="number" className="input" value={editing.aprilLeaveAllowance ?? ''} onChange={(e) => set('aprilLeaveAllowance', +e.target.value)} placeholder="e.g. 4" />
+          <label className="label" htmlFor="fac-april">April Leave Allowance (days)</label>
+          <input id="fac-april" type="number" className="input" value={editing.aprilLeaveAllowance ?? ''} onChange={(e) => set('aprilLeaveAllowance', +e.target.value)} placeholder="e.g. 4" />
         </div>
       </>
     )
@@ -106,12 +101,12 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
     return (
       <>
         <div className="form-group">
-          <label className="label">Fixed Monthly Salary (₹)</label>
-          <input type="number" className="input" value={editing.fixedMonthlySalary ?? ''} onChange={(e) => set('fixedMonthlySalary', +e.target.value)} placeholder="e.g. 50000" />
+          <label className="label" htmlFor="fac-fixed-q">Fixed Monthly Salary (₹)</label>
+          <input id="fac-fixed-q" type="number" className="input" value={editing.fixedMonthlySalary ?? ''} onChange={(e) => set('fixedMonthlySalary', +e.target.value)} placeholder="e.g. 50000" />
         </div>
         <div className="form-group">
-          <label className="label">Monthly Hour Quota</label>
-          <input type="number" className="input" value={editing.monthlyHourQuota ?? ''} onChange={(e) => set('monthlyHourQuota', +e.target.value)} placeholder="e.g. 60" />
+          <label className="label" htmlFor="fac-quota">Monthly Hour Quota</label>
+          <input id="fac-quota" type="number" className="input" value={editing.monthlyHourQuota ?? ''} onChange={(e) => set('monthlyHourQuota', +e.target.value)} placeholder="e.g. 60" />
         </div>
       </>
     )
@@ -121,12 +116,12 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
     return (
       <>
         <div className="form-group">
-          <label className="label">Fixed Component (₹)</label>
-          <input type="number" className="input" value={editing.fixedComponent ?? ''} onChange={(e) => set('fixedComponent', +e.target.value)} placeholder="e.g. 50000" />
+          <label className="label" htmlFor="fac-fixed-c">Fixed Component (₹)</label>
+          <input id="fac-fixed-c" type="number" className="input" value={editing.fixedComponent ?? ''} onChange={(e) => set('fixedComponent', +e.target.value)} placeholder="e.g. 50000" />
         </div>
         <div className="form-group">
-          <label className="label">Variable Component (₹)</label>
-          <input type="number" className="input" value={editing.variableComponent ?? ''} onChange={(e) => set('variableComponent', +e.target.value)} placeholder="e.g. 150000" />
+          <label className="label" htmlFor="fac-var-c">Variable Component (₹)</label>
+          <input id="fac-var-c" type="number" className="input" value={editing.variableComponent ?? ''} onChange={(e) => set('variableComponent', +e.target.value)} placeholder="e.g. 150000" />
         </div>
       </>
     )
@@ -134,12 +129,12 @@ export function SalaryFields({ editing, setEditing, originalRate }: SalaryFields
 
   if (model === 'CONFIGURABLE') {
     return (
-      <div className="form-group" style={{ gridColumn: 'span 2' }}>
-        <div className="alert alert-warning" style={{ marginBottom: 0 }}>
-          <span className="alert-icon">⚙️</span>
+      <div className="field-col-span">
+        <div className="alert alert-warning">
+          <span className="alert-icon">!</span>
           <div>
             <strong>CONFIGURABLE Model</strong>
-            <div style={{ fontWeight: 400, marginTop: '0.2rem' }}>
+            <div className="mt-1">
               Use the <strong>Configure Pay</strong> button in the faculty list to set this faculty&#39;s pay configuration JSON.
               Salary calculation will be blocked until configured.
             </div>

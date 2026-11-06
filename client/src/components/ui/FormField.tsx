@@ -1,5 +1,6 @@
 'use client'
 import { cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from 'react'
+import { Icon } from './Icon'
 
 interface FormFieldProps {
   label: ReactNode
@@ -56,8 +57,8 @@ export function FormField({
       {control}
       {hint && <p className="help-text" id={hintId}>{hint}</p>}
       {error && (
-        <p className="error-text" id={errorId} role="alert">
-          <span aria-hidden="true">!</span> {error}
+        <p className="error-text" id={errorId} role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.3rem' }}>
+          <Icon name="alert" size={14} style={{ flexShrink: 0, marginTop: 3 }} /> <span>{error}</span>
         </p>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { MONTHS, MONTH_SHORT, STATUS_CONFIG, SUBJECT_LABEL } from './types'
 import type { ProgressResponse, Subject } from './types'
+import s from './Progress.module.css'
 
 interface SubjectProgressSectionProps {
   subject: Subject
@@ -13,54 +14,51 @@ export function SubjectProgressSection({ subject, progress }: SubjectProgressSec
 
   if (monthEntries.length === 0) return null
 
-  const totalPlanned   = monthEntries.reduce((s, e) => s + e.data.chaptersPlanned,   0)
-  const totalCompleted = monthEntries.reduce((s, e) => s + e.data.chaptersCompleted, 0)
+  const totalPlanned   = monthEntries.reduce((sum, e) => sum + e.data.chaptersPlanned,   0)
+  const totalCompleted = monthEntries.reduce((sum, e) => sum + e.data.chaptersCompleted, 0)
   const pct = totalPlanned > 0 ? Math.round((totalCompleted / totalPlanned) * 100) : 0
 
   return (
-    <section className="rounded-xl border border-gray-200 overflow-hidden bg-white">
-      <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 px-4 py-3">
-        <h2 className="font-bold text-gray-700">{SUBJECT_LABEL[subject]}</h2>
-        <div className="flex items-center gap-3 text-sm text-gray-500">
-          <span>{totalCompleted}/{totalPlanned} chapters</span>
-          <div className="w-24 bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-green-500 h-2 rounded-full transition-all"
-              style={{ width: `${pct}%` }}
-            />
+    <section className="card card-flush" aria-label={`${SUBJECT_LABEL[subject]} progress`}>
+      <div className={`card-header ${s.head}`}>
+        <h2>{SUBJECT_LABEL[subject]}</h2>
+        <div className={s.summary}>
+          <span className={`${s.done} num`}>{totalCompleted}/{totalPlanned} chapters</span>
+          <div
+            className={`progress ${s.bar}`}
+            role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}
+            aria-label={`${SUBJECT_LABEL[subject]} completion`}
+          >
+            <span style={{ width: `${pct}%` }} />
           </div>
-          <span className="font-semibold text-gray-700">{pct}%</span>
+          <span className={s.pct}>{pct}%</span>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className={`table-wrapper table-stack ${s.flush}`}>
+        <table>
           <thead>
-            <tr className="text-xs text-gray-400 uppercase bg-gray-50 border-b border-gray-100">
-              <th className="text-left px-4 py-2 w-24">Month</th>
-              <th className="text-center px-3 py-2">Planned</th>
-              <th className="text-center px-3 py-2">Done</th>
-              <th className="text-center px-3 py-2">On Time</th>
-              <th className="text-center px-3 py-2">Late</th>
-              <th className="text-left px-4 py-2">Status</th>
+            <tr>
+              <th>Month</th>
+              <th className="num">Planned</th>
+              <th className="num">Done</th>
+              <th className="num">On Time</th>
+              <th className="num">Late</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {monthEntries.map(({ month, data: md }) => {
               const cfg = STATUS_CONFIG[md.status]
               return (
-                <tr key={month} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-2.5 font-medium text-gray-700">
-                    {MONTH_SHORT[month]}
-                  </td>
-                  <td className="text-center px-3 py-2.5 text-gray-600">{md.chaptersPlanned}</td>
-                  <td className="text-center px-3 py-2.5 text-gray-600">{md.chaptersCompleted}</td>
-                  <td className="text-center px-3 py-2.5 text-green-600">{md.chaptersOnTime}</td>
-                  <td className="text-center px-3 py-2.5 text-orange-500">{md.chaptersLate}</td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center gap-1 text-xs font-medium border rounded-full px-2.5 py-0.5 ${cfg.cls}`}>
-                      {cfg.icon} {cfg.label}
-                    </span>
+                <tr key={month}>
+                  <td data-label="Month" className={s.month}>{MONTH_SHORT[month]}</td>
+                  <td data-label="Planned" className="num">{md.chaptersPlanned}</td>
+                  <td data-label="Done" className="num">{md.chaptersCompleted}</td>
+                  <td data-label="On Time" className={`num ${s.onTime}`}>{md.chaptersOnTime}</td>
+                  <td data-label="Late" className={`num ${s.late}`}>{md.chaptersLate}</td>
+                  <td data-label="Status">
+                    <span className={`badge badge-dot ${cfg.cls}`}>{cfg.label}</span>
                   </td>
                 </tr>
               )

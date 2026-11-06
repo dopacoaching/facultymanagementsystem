@@ -1,0 +1,33 @@
+.months { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.monthHead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.monthHead h2 { font-size: var(--text-lg); font-weight: 600; }
+.monthCount { color: var(--color-muted); font-size: var(--text-sm); }
+
+.subjects { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: var(--space-5); }
+.subject { min-width: 0; }
+.subjectHead {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding-bottom: var(--space-2); margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-xs); font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-secondary);
+}
+.subjectHead .count { margin-left: auto; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-muted); font-weight: 500; }
+
+.swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--color-muted); }
+.physics { background: var(--color-primary); }
+.chemistry { background: var(--color-brand-sky); }
+.biology { background: var(--color-success); }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.item { display: flex; align-items: baseline; gap: var(--space-2); padding: 0.375rem 0; font-size: var(--text-md); line-height: 1.4; }
+.item + .item { border-top: 1px dashed var(--color-border); }
+.order { flex: none; width: 1.5rem; text-align: right; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
+.split { font-style: italic; }
+.splitTag { margin-left: 0.375rem; }
+
+/* Legend */
+.legend { display: flex; flex-direction: column; gap: var(--space-3); }
+.legend h3 { font-size: var(--text-md); font-weight: 600; }
+.legendList { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--text-sm); color: var(--color-text-secondary); }
+.legendList strong { color: var(--color-text); font-weight: 600; }

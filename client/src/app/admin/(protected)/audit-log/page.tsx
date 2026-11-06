@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
+import { Icon } from '@/components/ui/Icon'
 import {
   AuditLogEntry, AuditLogFilterBar, AuditLogTable, AuditLogPagination,
 } from '@/components/admin/audit-log'
@@ -52,16 +53,18 @@ export default function AdminAuditLogPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Audit Log</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            {total.toLocaleString('en-IN')} event{total !== 1 ? 's' : ''} recorded
+          <h1>Audit Log</h1>
+          <p className="page-subtitle">
+            <span className="num">{total.toLocaleString('en-IN')}</span> event{total !== 1 ? 's' : ''} recorded · read-only record of system activity
           </p>
         </div>
-        <button type="button" className="btn btn-outline btn-sm" onClick={load} disabled={loading}>
-          {loading ? <><span className="spinner" style={{ width: 12, height: 12, marginRight: 4 }} />Loading…</> : 'Refresh'}
-        </button>
+        <div className="page-head-actions">
+          <button type="button" className="btn btn-outline" onClick={load} disabled={loading}>
+            {loading ? <><span className="spinner" /> Loading…</> : <><Icon name="history" size={16} /> Refresh</>}
+          </button>
+        </div>
       </div>
 
       <AuditLogFilterBar
@@ -78,16 +81,14 @@ export default function AdminAuditLogPage() {
         onClear={() => { setCategory('ALL'); setActorRole('ALL'); setSearch(''); setDateFrom(''); setDateTo('') }}
       />
 
-      <div className="card">
-        <AuditLogTable
-          loading={loading}
-          logs={logs}
-          expanded={expanded}
-          onToggleExpand={(id) => setExpanded((prev) => prev === id ? null : id)}
-        />
+      <AuditLogTable
+        loading={loading}
+        logs={logs}
+        expanded={expanded}
+        onToggleExpand={(id) => setExpanded((prev) => prev === id ? null : id)}
+      />
 
-        <AuditLogPagination page={page} totalPages={totalPages} onPageChange={setPage} />
-      </div>
+      <AuditLogPagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }

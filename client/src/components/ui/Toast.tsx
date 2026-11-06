@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useContext, useCallback, useState, type ReactNode } from 'react'
+import { Icon, type IconName } from './Icon'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -27,11 +28,11 @@ const DURATION: Record<ToastType, number> = {
   info:    4000,
 }
 
-const ICONS: Record<ToastType, string> = {
-  success: '✓',
-  error:   '✕',
-  warning: '⚠',
-  info:    'i',
+const ICONS: Record<ToastType, IconName> = {
+  success: 'check',
+  error:   'x',
+  warning: 'alert',
+  info:    'info',
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -58,13 +59,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toasts.length > 0 && (
         <div className="toast-stack" role="region" aria-label="Notifications">
           {toasts.map((t) => (
-            <div key={t.id} className={`toast toast-${t.type}`} role="alert">
-              <span className="toast-icon">{ICONS[t.type]}</span>
+            <div key={t.id} className={`toast toast-${t.type}`} role={t.type === 'error' || t.type === 'warning' ? 'alert' : 'status'}>
+              <span className="toast-icon"><Icon name={ICONS[t.type]} size={16} /></span>
               <div className="toast-body">
                 <div className="toast-title">{t.title}</div>
                 {t.message && <div className="toast-message">{t.message}</div>}
               </div>
-              <button type="button" className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss">×</button>
+              <button type="button" className="toast-close" onClick={() => dismiss(t.id)} aria-label="Dismiss"><Icon name="x" size={14} /></button>
             </div>
           ))}
         </div>

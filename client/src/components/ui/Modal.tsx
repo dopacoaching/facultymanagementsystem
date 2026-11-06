@@ -1,6 +1,7 @@
 'use client'
 import { useId, type ReactNode, type RefObject } from 'react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { Icon } from './Icon'
 
 interface ModalProps {
   open: boolean
@@ -56,7 +57,7 @@ export function Modal({
           {typeof title === 'string'
             ? <h2 id={labelledById ? undefined : headingId}>{title}</h2>
             : title}
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="modal-close">×</button>
+          <button type="button" onClick={onClose} aria-label="Close dialog" className="modal-close"><Icon name="x" size={18} /></button>
         </div>
 
         <div className="modal-body">{children}</div>

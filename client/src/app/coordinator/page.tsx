@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll as getFaculty, getBatches } from '@/services/faculty.service'
 import type { Batch } from '@/services/faculty.service'
@@ -14,6 +14,9 @@ import { useToast } from '@/components/ui/Toast'
 import { NoClassCard } from '@/components/coordinator/NoClassCard'
 import { NotSubmittedNotice } from '@/components/coordinator/NotSubmittedNotice'
 import { ConfirmEntryModal } from '@/components/coordinator/ConfirmEntryModal'
+import { Icon } from '@/components/ui/Icon'
+import { StepCard, CheckRow, HoursReadout, SavedPanel } from '@/components/coordinator/EntryParts'
+import s from '@/components/coordinator/Entry.module.css'
 import { fmtDay } from '@/components/hr/reports/reportShared'
 import { todayLocal, dateForMonth, isMonthValue } from '@/utils/date'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, SHOOT_MULTIPLIER, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
@@ -72,6 +75,10 @@ export default function PushBoardPage() {
   const [saving, setSaving] = useState(false)
   /** Field-level guidance — the user must fix something. Not retryable. */
   const [validationError, setValidationError] = useState('')
+  const validationRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (validationError) validationRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [validationError])
   /** The POST itself failed — retry re-runs the submit. */
   const [submitError, setSubmitError] = useState('')
   const [savedFor, setSavedFor] = useState<string | null>(null)
@@ -232,9 +239,14 @@ export default function PushBoardPage() {
       ? { message: batchesRes.error?.message ?? '', what: "Couldn't load the batch list", retry: batchesRes.refetch }
       : null
 
+  const totalValue = !activeDuration.error ? formatHM(countedHours * 60) : '—'
+  const totalNote = isShoot && !shootDuration.error
+    ? `${formatHM(shootDuration.hours * 60)} taken × ${SHOOT_MULTIPLIER} for a Shoot`
+    : duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of break deducted` : 'Calculated automatically'
+
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+    <div className={s.shell}>
+      <div className="page-head">
         <div>
           <h1>Push Board</h1>
           <p className="page-subtitle">Record a class that has already been taught at {campusLabel ?? 'your campus'}.</p>
@@ -243,49 +255,31 @@ export default function PushBoardPage() {
 
       {accessToken && <NotSubmittedNotice accessToken={accessToken} refreshKey={noticeKey} />}
 
-      <div className="card">
-        {savedFor ? (
-          <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-            <div className="alert alert-success" style={{ display: 'inline-flex', marginBottom: '1.25rem' }}>
-              <span className="alert-icon" aria-hidden="true">✓</span>
-              Session for {savedFor} has been recorded.
+      {savedFor ? (
+        <SavedPanel title="Session pushed" actionLabel="Push another session" onAction={startAnother}>
+          Session for {savedFor} has been recorded.
+        </SavedPanel>
+      ) : (
+        <>
+          {loadError && (
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <ErrorAlert message={loadError.message} what={loadError.what} onRetry={loadError.retry} />
             </div>
-            <div>
-              <button type="button" className="btn btn-primary" onClick={startAnother}>
-                Push another session
-              </button>
+          )}
+
+          {submitError && (
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <ErrorAlert
+                message={submitError}
+                what="Session could not be submitted"
+                onRetry={submitEntry}
+                onDismiss={() => setSubmitError('')}
+              />
             </div>
-          </div>
-        ) : (
-          <>
-            {loadError && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <ErrorAlert message={loadError.message} what={loadError.what} onRetry={loadError.retry} />
-              </div>
-            )}
+          )}
 
-            {validationError && (
-              <div className="alert alert-warning" role="alert" style={{ marginBottom: '1.25rem' }}>
-                <span className="alert-icon" aria-hidden="true">!</span>
-                {validationError}
-              </div>
-            )}
-
-            {submitError && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <ErrorAlert
-                  message={submitError}
-                  what="Session could not be submitted"
-                  onRetry={submitEntry}
-                  onDismiss={() => setSubmitError('')}
-                />
-              </div>
-            )}
-
-            <form
-              onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
-              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-            >
+          <form className={s.form} onSubmit={(e) => { e.preventDefault(); handleSubmit() }}>
+            <StepCard n={1} title="Class details">
               {hasEntryTypes && (
                 <FormField label="Entry type" htmlFor="pb-entry-type" required>
                   <select
@@ -296,38 +290,6 @@ export default function PushBoardPage() {
                   >
                     <option value="">— select —</option>
                     {ENTRY_TYPES.map((t) => <option key={t} value={t}>{ENTRY_TYPE_LABELS[t]}</option>)}
-                  </select>
-                </FormField>
-              )}
-
-              <FormField label="Faculty name" htmlFor="pb-faculty" required>
-                <select
-                  id="pb-faculty"
-                  className="input"
-                  value={form.facultyId}
-                  disabled={facultyRes.status === 'loading'}
-                  onChange={(e) => setField('facultyId', e.target.value)}
-                >
-                  <option value="">
-                    {facultyRes.status === 'loading' ? 'Loading faculty…' : '— select faculty —'}
-                  </option>
-                  {activeFaculty.map((f) => (
-                    <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>
-                  ))}
-                </select>
-              </FormField>
-
-              {needsSessionCategory && (
-                <FormField label="Session category" htmlFor="pb-session-category" required>
-                  <select
-                    id="pb-session-category"
-                    className="input"
-                    value={form.sessionCategory}
-                    onChange={(e) => setField('sessionCategory', e.target.value as FormState['sessionCategory'])}
-                  >
-                    <option value="">— select —</option>
-                    <option value="CLASS">Class</option>
-                    <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
                   </select>
                 </FormField>
               )}
@@ -357,40 +319,6 @@ export default function PushBoardPage() {
                 </FormField>
               </div>
 
-              <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
-
-              {isShoot ? (
-                <div className="input-group">
-                  <FormField label="Total hours" htmlFor="pb-shoot-h" required hint="Time taken for the shoot">
-                    <input id="pb-shoot-h" type="number" min={0} step={1} inputMode="numeric" className="input" value={form.shootHours} onChange={(e) => setField('shootHours', e.target.value)} />
-                  </FormField>
-                  <FormField label="Minutes" htmlFor="pb-shoot-m" hint="0–59">
-                    <input id="pb-shoot-m" type="number" min={0} max={59} step={1} inputMode="numeric" className="input" value={form.shootMinutes} onChange={(e) => setField('shootMinutes', e.target.value)} />
-                  </FormField>
-                </div>
-              ) : (
-                <div className="input-group">
-                  <FormField label="Time taken — started" htmlFor="pb-start" required hint="When the class actually began">
-                    <input
-                      id="pb-start"
-                      type="time"
-                      className="input"
-                      value={form.startTime}
-                      onChange={(e) => setField('startTime', e.target.value)}
-                    />
-                  </FormField>
-                  <FormField label="Time taken — ended" htmlFor="pb-end" required>
-                    <input
-                      id="pb-end"
-                      type="time"
-                      className="input"
-                      value={form.endTime}
-                      onChange={(e) => setField('endTime', e.target.value)}
-                    />
-                  </FormField>
-                </div>
-              )}
-
               <FormField label="Campus" htmlFor="pb-campus" required>
                 <select id="pb-campus" className="input" value={campusLabel ?? ''} disabled={!campusLabel} onChange={() => {}}>
                   {campusLabel
@@ -406,32 +334,21 @@ export default function PushBoardPage() {
                   required
                   hint="Tick every batch that attended this class together"
                 >
-                  <div id="pb-batches" role="group" aria-label="Batches" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                    {batchesRes.status === 'loading' && <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>Loading batches…</span>}
+                  <div id="pb-batches" role="group" aria-label="Batches" className={s.checkList}>
+                    {batchesRes.status === 'loading' && <span className={s.muted}>Loading batches…</span>}
                     {campusBatches.map((b) => {
                       const checked = form.batchIds.includes(b._id)
                       return (
-                        <label
+                        <CheckRow
                           key={b._id}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer',
-                            padding: '0.5rem 0.75rem', borderRadius: 'var(--radius)',
-                            border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                            background: checked ? 'var(--color-primary-ghost)' : 'var(--color-surface)',
-                            fontSize: '0.875rem',
-                          }}
+                          checked={checked}
+                          onChange={() => setField(
+                            'batchIds',
+                            checked ? form.batchIds.filter((id) => id !== b._id) : [...form.batchIds, b._id],
+                          )}
                         >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => setField(
-                              'batchIds',
-                              checked ? form.batchIds.filter((id) => id !== b._id) : [...form.batchIds, b._id],
-                            )}
-                            style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
-                          />
                           {b.name}
-                        </label>
+                        </CheckRow>
                       )
                     })}
                   </div>
@@ -468,6 +385,42 @@ export default function PushBoardPage() {
                   ))}
                 </select>
               </FormField>
+            </StepCard>
+
+            <StepCard n={2} title="Faculty & subject">
+              <FormField label="Faculty name" htmlFor="pb-faculty" required>
+                <select
+                  id="pb-faculty"
+                  className="input"
+                  value={form.facultyId}
+                  disabled={facultyRes.status === 'loading'}
+                  onChange={(e) => setField('facultyId', e.target.value)}
+                >
+                  <option value="">
+                    {facultyRes.status === 'loading' ? 'Loading faculty…' : '— select faculty —'}
+                  </option>
+                  {activeFaculty.map((f) => (
+                    <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>
+                  ))}
+                </select>
+              </FormField>
+
+              {needsSessionCategory && (
+                <FormField label="Session category" htmlFor="pb-session-category" required>
+                  <select
+                    id="pb-session-category"
+                    className="input"
+                    value={form.sessionCategory}
+                    onChange={(e) => setField('sessionCategory', e.target.value as FormState['sessionCategory'])}
+                  >
+                    <option value="">— select —</option>
+                    <option value="CLASS">Class</option>
+                    <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
+                  </select>
+                </FormField>
+              )}
+
+              <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
 
               <ChaptersField
                 subject={form.subject}
@@ -475,24 +428,40 @@ export default function PushBoardPage() {
                 value={form.chapters}
                 onChange={(v) => setField('chapters', v)}
               />
+            </StepCard>
 
-              <FormField
-                label="Total hours & minutes"
-                htmlFor="pb-total"
-                hint={
-                  isShoot && !shootDuration.error
-                    ? `${formatHM(shootDuration.hours * 60)} taken × ${SHOOT_MULTIPLIER} for a Shoot`
-                    : duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of break deducted` : 'Calculated automatically'
-                }
-              >
-                <input
-                  id="pb-total"
-                  className="input"
-                  readOnly
-                  disabled
-                  value={!activeDuration.error ? formatHM(countedHours * 60) : '—'}
-                />
-              </FormField>
+            <StepCard n={3} title="Time & breaks">
+              {isShoot ? (
+                <div className="input-group">
+                  <FormField label="Total hours" htmlFor="pb-shoot-h" required hint="Time taken for the shoot">
+                    <input id="pb-shoot-h" type="number" min={0} step={1} inputMode="numeric" className="input mono" value={form.shootHours} onChange={(e) => setField('shootHours', e.target.value)} />
+                  </FormField>
+                  <FormField label="Minutes" htmlFor="pb-shoot-m" hint="0–59">
+                    <input id="pb-shoot-m" type="number" min={0} max={59} step={1} inputMode="numeric" className="input mono" value={form.shootMinutes} onChange={(e) => setField('shootMinutes', e.target.value)} />
+                  </FormField>
+                </div>
+              ) : (
+                <div className="input-group">
+                  <FormField label="Time taken — started" htmlFor="pb-start" required hint="When the class actually began">
+                    <input
+                      id="pb-start"
+                      type="time"
+                      className="input mono"
+                      value={form.startTime}
+                      onChange={(e) => setField('startTime', e.target.value)}
+                    />
+                  </FormField>
+                  <FormField label="Time taken — ended" htmlFor="pb-end" required>
+                    <input
+                      id="pb-end"
+                      type="time"
+                      className="input mono"
+                      value={form.endTime}
+                      onChange={(e) => setField('endTime', e.target.value)}
+                    />
+                  </FormField>
+                </div>
+              )}
 
               {!isShoot && (
                 <BreakRow
@@ -503,6 +472,10 @@ export default function PushBoardPage() {
                 />
               )}
 
+              <HoursReadout label="Total hours & minutes" value={totalValue} note={totalNote} />
+            </StepCard>
+
+            <StepCard n={4} title="Review">
               <FormField label="Comment" htmlFor="pb-comment" hint="Optional — anything HR should know about this class">
                 <textarea
                   id="pb-comment"
@@ -511,7 +484,6 @@ export default function PushBoardPage() {
                   maxLength={500}
                   value={form.comment}
                   onChange={(e) => setField('comment', e.target.value)}
-                  style={{ resize: 'vertical' }}
                 />
               </FormField>
 
@@ -529,20 +501,27 @@ export default function PushBoardPage() {
                 </select>
               </FormField>
 
-              <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                <button type="button" className="btn btn-ghost" onClick={resetForm} disabled={saving}>
-                  Clear
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving
-                    ? <><span className="spinner spinner-on-solid" /> Saving…</>
-                    : 'Push session'}
-                </button>
-              </div>
-            </form>
-          </>
-        )}
-      </div>
+              {validationError && (
+                <div ref={validationRef} className="alert alert-warning" role="alert">
+                  <Icon name="alert" size={16} />
+                  <span>{validationError}</span>
+                </div>
+              )}
+            </StepCard>
+
+            <div className={s.actions}>
+              <button type="button" className="btn btn-ghost" onClick={resetForm} disabled={saving}>
+                Clear
+              </button>
+              <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
+                {saving
+                  ? <><span className="spinner spinner-on-solid" /> Saving…</>
+                  : <><Icon name="send" size={16} /> Push session</>}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
 
       {confirming && (
         <ConfirmEntryModal
@@ -567,7 +546,7 @@ export default function PushBoardPage() {
 
       {accessToken && campusLabel && <NoClassCard accessToken={accessToken} teachers={teacherNames} batches={campusBatches} />}
 
-      <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+      <p className={s.footnote}>
         Sessions pushed here are recorded immediately. Contact the admin to make corrections.
       </p>
     </div>

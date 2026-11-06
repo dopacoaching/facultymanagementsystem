@@ -11,6 +11,7 @@ import type { Batch } from '@/services/faculty.service'
 import type { Campus } from '@/services/campus.service'
 import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
+import { Icon } from '@/components/ui/Icon'
 import { useToast } from '@/components/ui/Toast'
 import { validatePasswordComplexity, CreateUserModal, EditUserModal, UsersTable, UsersFilterBar } from '@/components/admin/users'
 
@@ -144,18 +145,22 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>User Management</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            {activeCount} active · {inactiveCount} inactive
+          <h1>User Management</h1>
+          <p className="page-subtitle">
+            <span className="num">{activeCount}</span> active · <span className="num">{inactiveCount}</span> inactive
           </p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New User</button>
+        <div className="page-head-actions">
+          <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            <Icon name="plus" size={16} /> Add user
+          </button>
+        </div>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div className="mb-4">
           <ErrorAlert message={error} onRetry={() => setError('')} />
         </div>
       )}
@@ -202,18 +207,16 @@ export default function AdminUsersPage() {
         onClear={() => { setSearch(''); setRoleFilter('ALL') }}
       />
 
-      <div className="card">
-        <UsersTable
-          loading={loading}
-          users={filteredUsers}
-          selfId={selfId}
-          toggling={toggling}
-          onEdit={openEdit}
-          onToggleActive={handleToggleActive}
-          onNewUser={() => setShowCreate(true)}
-          hasHiddenUsers={users.length > 0}
-        />
-      </div>
+      <UsersTable
+        loading={loading}
+        users={filteredUsers}
+        selfId={selfId}
+        toggling={toggling}
+        onEdit={openEdit}
+        onToggleActive={handleToggleActive}
+        onNewUser={() => setShowCreate(true)}
+        hasHiddenUsers={users.length > 0}
+      />
     </div>
   )
 }

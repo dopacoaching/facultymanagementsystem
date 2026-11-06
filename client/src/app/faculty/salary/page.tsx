@@ -8,6 +8,7 @@ import { ErrorAlert } from '@/components/ui/Skeleton'
 import { SalaryCheckForm, SalaryResultCard, MonthlyHoursHistoryCard } from '@/components/faculty/salary'
 import { SalaryOnHold } from '@/components/ui/SalaryOnHold'
 import { SALARY_ENABLED } from '@/lib/constants/features'
+import { Icon } from '@/components/ui/Icon'
 
 function FacultySalaryPageInner() {
   const { accessToken, facultyId } = useAppSelector((s) => s.auth)
@@ -42,6 +43,13 @@ function FacultySalaryPageInner() {
 
   return (
     <div>
+      <div className="page-head">
+        <div>
+          <h1>My Salary</h1>
+          <p className="page-subtitle">Check your estimated pay for any month, based on logged sessions.</p>
+        </div>
+      </div>
+
       <SalaryCheckForm
         month={month}
         onMonthChange={setMonth}
@@ -52,26 +60,26 @@ function FacultySalaryPageInner() {
       />
 
       {error && (
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div className="mb-4">
           <ErrorAlert message={error} what="Salary calculation failed" onRetry={handleCalculate} />
         </div>
       )}
 
-      {result && (
-        <SalaryResultCard result={result} month={month} year={year} hoursSummary={hoursSummary} />
-      )}
+      <div className="stack">
+        {result && (
+          <SalaryResultCard result={result} month={month} year={year} hoursSummary={hoursSummary} />
+        )}
 
-      {!result && !loading && !error && (
-        <div className="card" style={{ marginBottom: '1.5rem' }}>
+        {!result && !loading && !error && (
           <div className="empty-state">
-            <div className="empty-state-icon">₹</div>
+            <div className="empty-state-icon"><Icon name="wallet" size={22} /></div>
             <h3>Select month and click Check Salary</h3>
             <p>Your salary estimate will appear here based on logged sessions</p>
           </div>
-        </div>
-      )}
+        )}
 
-      <MonthlyHoursHistoryCard loading={hoursLoading} hoursSummary={hoursSummary} />
+        <MonthlyHoursHistoryCard loading={hoursLoading} hoursSummary={hoursSummary} />
+      </div>
     </div>
   )
 }

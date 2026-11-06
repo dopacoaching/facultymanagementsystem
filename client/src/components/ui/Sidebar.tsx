@@ -11,6 +11,7 @@ import { getRouteMeta, navLabelFor, type Role } from '@/lib/routeMeta'
 import PasswordInput from './PasswordInput'
 import { FormField } from './FormField'
 import { Modal } from './Modal'
+import { Icon } from './Icon'
 import { SALARY_ENABLED, SALARY_TEMPORARY_ENABLED } from '@/lib/constants/features'
 
 /** Mirror of the server validatePasswordComplexity rule. */
@@ -123,11 +124,10 @@ function roleLabel(role: string | null): string {
   return map[role] ?? role.replace(/_/g, ' ')
 }
 
-/** Short 1–2 char monogram for the collapsed rail (icon-less rail by design). */
-function monogram(label: string): string {
+
+function initials(label: string): string {
   const words = label.trim().split(/\s+/)
-  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase()
-  return label.slice(0, 2).toUpperCase()
+  return (words.length >= 2 ? words[0][0] + words[1][0] : label.slice(0, 2)).toUpperCase()
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -212,18 +212,18 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
           aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
           title={collapsed ? 'Expand' : 'Collapse'}
         >
-          {collapsed ? '›' : '‹'}
+          <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={14} />
         </button>
 
         <div className="sidebar-brand">
           <div className="sidebar-brand-logo">
-            <Image src="/logo.png" alt="" width={28} height={28} style={{ objectFit: 'contain' }} />
+            <Image src="/logo.png" alt="" width={26} height={26} style={{ objectFit: 'contain' }} />
           </div>
           <div className="sidebar-brand-text">
             <span className="sidebar-brand-name">DOPA FMS</span>
             <span className="sidebar-brand-role">{roleLabel(role)}</span>
           </div>
-          <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">×</button>
+          <button className="sidebar-close-btn" onClick={onClose} aria-label="Close menu"><Icon name="x" size={18} /></button>
         </div>
 
         <nav className="sidebar-nav" aria-label="Primary">
@@ -248,7 +248,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
                 aria-current={isActive ? 'page' : undefined}
                 title={label}
               >
-                <span aria-hidden="true" className="rail-mono">{monogram(label)}</span>
+                <Icon name={meta?.icon ?? 'list'} className="rail-icon" />
                 <span className="rail-label">{label}</span>
               </Link>
             )
@@ -256,13 +256,20 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
         </nav>
 
         <div className="sidebar-footer">
+          <div className="user-card">
+            <span className="avatar" aria-hidden="true">{initials(campusName || roleLabel(role) || 'U')}</span>
+            <span className="user-card-text">
+              <span className="user-card-name">{campusName || roleLabel(role)}</span>
+              <span className="user-card-role">{campusName ? roleLabel(role) : 'Signed in'}</span>
+            </span>
+          </div>
           <button
             type="button"
             className="sidebar-action"
             onClick={() => setShowChangePwd(true)}
             title="Change password"
           >
-            <span aria-hidden="true" className="rail-mono">PW</span>
+            <Icon name="key" className="rail-icon" />
             <span className="rail-label">Change password</span>
           </button>
 
@@ -273,7 +280,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             disabled={loggingOut}
             title="Sign out"
           >
-            <span aria-hidden="true" className="rail-mono">SO</span>
+            <Icon name="logout" className="rail-icon" />
             <span className="rail-label">{loggingOut ? 'Signing out…' : 'Sign out'}</span>
           </button>
         </div>

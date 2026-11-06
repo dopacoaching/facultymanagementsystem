@@ -7,6 +7,8 @@ import { useActiveFaculty } from '@/hooks/useActiveFaculty'
 import { useChapterOptions } from '@/components/coordinator/log-session/ChaptersField'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { Icon } from '@/components/ui/Icon'
+import rs from '@/components/hr/reports/Reports.module.css'
 import { EditIGSessionReportModal, formFromIGSession, EditIGSessionForm } from '@/components/hr/reports/EditIGSessionReportModal'
 import { computeDuration } from '@/components/coordinator/log-session'
 import { useToast } from '@/components/ui/Toast'
@@ -151,29 +153,54 @@ export default function IGClassSessionsPage() {
 
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const liveSessions = sessions.filter((x) => x.status !== 'CANCELLED')
+  const cancelledCount = sessions.length - liveSessions.length
+  const totalHours = liveSessions.reduce((t, x) => t + x.durationHours, 0)
+  const distinctFaculty = new Set(sessions.map((x) => (typeof x.facultyId === 'object' ? x.facultyId._id : String(x.facultyId)))).size
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>IG Class Sessions</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Sessions logged by IG class teachers, batch by batch.
-          </p>
+          <h1>IG Class Sessions</h1>
+          <p className="page-subtitle">Sessions logged by IG class teachers, batch by batch.</p>
         </div>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
           <ErrorAlert message={error} onRetry={load} />
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+      {!loading && sessions.length > 0 && (
+        <div className={`stats-grid ${rs.kpis}`} aria-live="polite">
+          <div className="stat-card">
+            <div className="stat-label">Sessions</div>
+            <div className="stat-value">{sessions.length}</div>
+            <div className="stat-sub">{cancelledCount > 0 ? `${cancelledCount} cancelled` : 'none cancelled'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Total time</div>
+            <div className="stat-value">{formatHM(totalHours)}</div>
+            <div className="stat-sub">excluding cancelled</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Faculty</div>
+            <div className="stat-value">{distinctFaculty}</div>
+            <div className="stat-sub">distinct faculty</div>
+          </div>
+        </div>
+      )}
+
+      <div className={rs.filters}>
+        <div className={rs.filterRow}>
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+        </div>
       </div>
 
       {loading ? (
-        <div className="card"><SkeletonTable rows={8} cols={10} /></div>
+        <div className="card card-flush"><SkeletonTable rows={8} cols={10} /></div>
       ) : sessions.length === 0 ? (
         <div className="card">
           <EmptyState
@@ -182,66 +209,68 @@ export default function IGClassSessionsPage() {
           />
         </div>
       ) : (
-        <div className="card">
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Faculty</th>
-                  <th>Date</th>
-                  <th>Subject</th>
-                  <th>Batch</th>
-                  <th>Chapter</th>
-                  <th>Session</th>
-                  <th>Start–End</th>
-                  <th style={{ textAlign: 'right' }}>Time Taken</th>
-                  <th style={{ textAlign: 'right' }}>Break</th>
-                  <th>Updated By</th>
-                  <th>Comment</th>
-                  <th>Status</th>
-                  {canManage && <th></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.map((s) => {
-                  const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
-                  const isCancelled = s.status === 'CANCELLED'
-                  return (
-                    <tr key={s._id}>
-                      <td style={{ fontWeight: 600 }}>{facultyName}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                        {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.subject}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
+        <div className="table-wrapper table-stack is-sticky">
+          <table>
+            <thead>
+              <tr>
+                <th>Faculty</th>
+                <th>Date</th>
+                <th>Subject</th>
+                <th>Batch</th>
+                <th>Chapter</th>
+                <th>Session</th>
+                <th>Start–End</th>
+                <th className="num" style={{ textAlign: 'right' }}>Time Taken</th>
+                <th className="num" style={{ textAlign: 'right' }}>Break</th>
+                <th>Updated By</th>
+                <th>Comment</th>
+                <th>Status</th>
+                {canManage && <th><span className={rs.srOnly}>Actions</span></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {sessions.map((s) => {
+                const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
+                const isCancelled = s.status === 'CANCELLED'
+                return (
+                  <tr key={s._id} className={isCancelled ? rs.dim : undefined}>
+                    <td data-label="Faculty" className={rs.strong}>{facultyName}</td>
+                    <td data-label="Date" className={`num ${rs.nowrap} ${rs.muted}`}>
+                      {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td data-label="Subject" className={rs.muted}>{s.subject}</td>
+                    <td data-label="Batch" className={rs.muted}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
+                    <td data-label="Chapter" className={rs.muted}>{s.chapter}</td>
+                    <td data-label="Session">
+                      <span className="badge badge-green">{s.timeSlot ? SLOT_LABELS[s.timeSlot] ?? s.timeSlot : '—'}</span>
+                    </td>
+                    <td data-label="Start–End" className={`num ${rs.nowrap}`}>
+                      {s.startTime ?? '—'}–{s.endTime ?? '—'}
+                    </td>
+                    <td data-label="Time Taken" className={`num ${rs.nowrap} ${rs.strong}`} style={{ textAlign: 'right' }}>
+                      {formatHM(s.durationHours)}
+                    </td>
+                    <td data-label="Break" className={`num ${rs.nowrap}`} style={{ textAlign: 'right' }}>
+                      {breakSummary(s)}
+                    </td>
+                    <td data-label="Updated By" className={rs.muted}>{s.updatedByName ?? '—'}</td>
+                    <td data-label="Comment" className={rs.comment}>{s.comment || '—'}</td>
+                    <td data-label="Status">
+                      <span className={`badge badge-dot ${isCancelled ? 'badge-red' : 'badge-green'}`}>{s.status}</span>
+                    </td>
+                    {canManage && (
                       <td>
-                        <span className="badge badge-green">{s.timeSlot ? SLOT_LABELS[s.timeSlot] ?? s.timeSlot : '—'}</span>
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                        {s.startTime ?? '—'}–{s.endTime ?? '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                        {formatHM(s.durationHours)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                        {breakSummary(s)}
-                      </td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
-                      <td>
-                        <span className={`badge ${isCancelled ? 'badge-red' : 'badge-green'}`}>{s.status}</span>
-                      </td>
-                      {canManage && (
-                        <td>
+                        <div className={rs.rowActions}>
                           {!isCancelled && (
-                            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
-                              <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>Edit</button>
+                            <>
+                              <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>
+                                <Icon name="edit" size={14} /> Edit
+                              </button>
                               <select
-                                className="input input-sm"
+                                className={`input input-sm ${rs.cancelPick}`}
+                                aria-label={`Cancellation initiator for ${facultyName}`}
                                 value={cancelInitiator[s._id] ?? ''}
                                 onChange={(e) => setCancelInitiator((prev) => ({ ...prev, [s._id]: e.target.value }))}
-                                style={{ width: 120 }}
                               >
                                 <option value="">Initiator…</option>
                                 <option value="FACULTY">Faculty</option>
@@ -256,17 +285,17 @@ export default function IGClassSessionsPage() {
                               >
                                 {cancelling === s._id ? '…' : 'Cancel'}
                               </button>
-                            </div>
+                            </>
                           )}
-                          <button type="button" className="btn btn-danger-ghost btn-sm" style={{ marginTop: isCancelled ? 0 : '0.375rem' }} onClick={() => handleDelete(s._id)}>Delete</button>
-                        </td>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                          <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => handleDelete(s._id)}>Delete</button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

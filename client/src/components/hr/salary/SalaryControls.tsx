@@ -1,6 +1,8 @@
+import { useId } from 'react'
 import type { Faculty } from '@/types'
 import { MONTHS } from './types'
 import { toLocalISO } from '@/utils/date'
+import s from './Salary.module.css'
 
 type Mode = 'MONTH' | 'RANGE'
 
@@ -60,49 +62,50 @@ export function SalaryControls({
   from, to, onFromChange, onToChange,
   loading, onCalculate,
 }: SalaryControlsProps) {
+  const uid = useId()
   return (
-    <div className="card" style={{ marginBottom: '1.5rem' }}>
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="form-group" style={{ flex: '1 1 200px', minWidth: 200 }}>
-          <label className="label">Faculty</label>
-          <select className="input" value={selectedId} onChange={(e) => onSelectFaculty(e.target.value)}>
+    <div className={`toolbar ${s.controls}`} role="group" aria-label="Salary calculation controls">
+      <div className={s.controlsRow}>
+        <div className={`form-group ${s.facultyField}`}>
+          <label className="label" htmlFor={`${uid}-faculty`}>Faculty</label>
+          <select id={`${uid}-faculty`} className="input" value={selectedId} onChange={(e) => onSelectFaculty(e.target.value)}>
             {faculty.map((f) => <option key={f._id} value={f._id}>{f.name}</option>)}
           </select>
         </div>
 
         {mode === 'RANGE' ? (
           <>
-            <div className="form-group">
-              <label className="label">From</label>
-              <input type="date" className="input" value={from} max={to || undefined}
-                onChange={(e) => onFromChange(e.target.value)} style={{ minWidth: 150 }} />
+            <div className={`form-group ${s.dateField}`}>
+              <label className="label" htmlFor={`${uid}-from`}>From</label>
+              <input id={`${uid}-from`} type="date" className="input" value={from} max={to || undefined}
+                onChange={(e) => onFromChange(e.target.value)} />
             </div>
-            <div className="form-group">
-              <label className="label">To</label>
-              <input type="date" className="input" value={to} min={from || undefined}
-                onChange={(e) => onToChange(e.target.value)} style={{ minWidth: 150 }} />
+            <div className={`form-group ${s.dateField}`}>
+              <label className="label" htmlFor={`${uid}-to`}>To</label>
+              <input id={`${uid}-to`} type="date" className="input" value={to} min={from || undefined}
+                onChange={(e) => onToChange(e.target.value)} />
             </div>
           </>
         ) : (
           <>
-            <div className="form-group">
-              <label className="label">Month</label>
-              <select className="input" value={month} onChange={(e) => onMonthChange(+e.target.value)} style={{ minWidth: 100 }}>
+            <div className={`form-group ${s.monthField}`}>
+              <label className="label" htmlFor={`${uid}-month`}>Month</label>
+              <select id={`${uid}-month`} className="input" value={month} onChange={(e) => onMonthChange(+e.target.value)}>
                 {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
               </select>
             </div>
-            <div className="form-group">
-              <label className="label">Year</label>
-              <input type="number" className="input" value={year} onChange={(e) => onYearChange(+e.target.value)} style={{ width: 100 }} />
+            <div className={`form-group ${s.yearField}`}>
+              <label className="label" htmlFor={`${uid}-year`}>Year</label>
+              <input id={`${uid}-year`} type="number" className="input" value={year} onChange={(e) => onYearChange(+e.target.value)} />
             </div>
           </>
         )}
 
         <button
-          className="btn btn-primary"
+          type="button"
+          className={`btn btn-primary ${s.calc}`}
           onClick={onCalculate}
           disabled={loading || !selectedId || (mode === 'RANGE' && (!from || !to))}
-          style={{ alignSelf: 'flex-end' }}
         >
           {loading ? (
             <><span className="spinner spinner-on-solid" /> Calculating…</>
@@ -111,13 +114,13 @@ export function SalaryControls({
       </div>
 
       {mode === 'RANGE' && (
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.875rem' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', alignSelf: 'center' }}>Quick range:</span>
+        <div className={s.presets}>
+          <span className={s.presetLabel}>Quick range</span>
           {PRESETS.map((p) => (
             <button
               key={p.key}
               type="button"
-              className="btn btn-ghost btn-sm"
+              className={`chip ${s.chipBtn}`}
               onClick={() => { const r = presetRange(p.key); onFromChange(r.from); onToChange(r.to) }}
             >
               {p.label}

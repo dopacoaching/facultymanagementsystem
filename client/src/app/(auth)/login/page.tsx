@@ -62,181 +62,88 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      background: 'var(--color-bg)',
-    }}>
-      {/* Left panel — brand */}
-      <div style={{
-        display: 'none',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        flex: '0 0 42%',
-        background: 'var(--color-brand-navy)',
-        padding: '4rem 3.5rem',
-        borderRight: '4px solid var(--color-brand-sky)',
-      }}
-      className="login-brand-panel"
-      >
-        <div style={{ maxWidth: 380, width: '100%' }}>
-          <div style={{
-            width: 96, height: 96, borderRadius: 'var(--radius-xl)',
-            background: 'var(--color-surface)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: '2rem',
-          }}>
-            <Image
-              src="/logo.png"
-              alt="DOPA Coaching"
-              width={76}
-              height={76}
-              style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
-              priority
-            />
-          </div>
-          <h1 style={{ color: 'var(--color-on-navy)', fontSize: '2rem', fontWeight: 600, margin: '0 0 0.5rem' }}>
-            DOPA Coaching
-          </h1>
-          <p style={{ color: 'var(--color-on-navy-dim)', fontSize: '1rem', margin: 0 }}>
-            Faculty Management System
-          </p>
-
-          <div style={{ marginTop: '3rem', borderTop: '1px solid var(--color-navy-rule)' }}>
-            {[
-              { label: 'Entries & Reports', desc: 'Campus, subject and faculty-wise reports' },
-              { label: 'Session Tracking', desc: 'Real-time attendance & session logs' },
-              { label: 'Academics', desc: 'Chapters, exams, and exam topics' },
-            ].map((f) => (
-              <div key={f.label} style={{ padding: '1rem 0', borderBottom: '1px solid var(--color-navy-rule)' }}>
-                <div style={{ color: 'var(--color-on-navy)', fontWeight: 600, fontSize: '0.9375rem' }}>{f.label}</div>
-                <div style={{ color: 'var(--color-on-navy-dim)', fontSize: '0.8125rem', marginTop: '0.125rem' }}>{f.desc}</div>
-              </div>
-            ))}
-          </div>
+    <div className="auth-shell">
+      <aside className="auth-aside" aria-hidden="true">
+        <div className="flex items-center gap-3">
+          <span className="auth-logo"><Image src="/logo.png" alt="" width={30} height={30} style={{ objectFit: 'contain' }} priority /></span>
+          <span style={{ fontWeight: 650, letterSpacing: '-0.015em', fontSize: '1.0625rem' }}>DOPA Coaching</span>
         </div>
-      </div>
+        <div style={{ maxWidth: 440 }}>
+          <h2 style={{ fontSize: '2.5rem', lineHeight: 1.08, letterSpacing: '-0.035em', fontWeight: 650 }}>
+            Every class, every campus, one clear record.
+          </h2>
+          <p style={{ marginTop: '1rem', fontSize: '1.0625rem', color: 'var(--color-on-navy-dim)' }}>
+            Log sessions, follow faculty hours and keep academics on track, from the campus floor or the head office.
+          </p>
+        </div>
+        <ul style={{ listStyle: 'none', display: 'grid', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--color-on-navy-dim)' }}>
+          {['Entries and reports by campus, subject and faculty', 'Session tracking with a daily submission check', 'Syllabus and chapter progress'].map((t) => (
+            <li key={t} className="flex items-center gap-3">
+              <span style={{ width: 6, height: 6, borderRadius: 9, background: 'var(--color-brand-sky)', boxShadow: '0 0 10px var(--color-brand-sky)' }} />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
-      {/* Right panel — form */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem',
-      }}>
-        <div style={{
-          width: '100%',
-          maxWidth: 420,
-        }}>
-          {/* Mobile logo (hidden on wider screens via left panel) */}
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }} className="login-mobile-logo">
-            <div style={{
-              width: 72, height: 72, borderRadius: 'var(--radius-xl)',
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 1.25rem',
-            }}>
-              <Image
-                src="/logo.png"
-                alt="DOPA"
-                width={50}
-                height={50}
-                style={{ objectFit: 'contain' }}
-                priority
-              />
-            </div>
-            <h1 style={{ fontSize: '1.375rem', fontWeight: 600, color: 'var(--color-text)', margin: '0 0 0.25rem' }}>
-              Faculty Management
-            </h1>
-            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-              DOPA Coaching: sign in to continue
-            </p>
+      <main className="auth-main">
+        <div className="auth-card">
+          <div className="auth-mobile-logo flex items-center gap-3" style={{ marginBottom: '2rem' }}>
+            <span className="auth-logo"><Image src="/logo.png" alt="DOPA" width={30} height={30} style={{ objectFit: 'contain' }} priority /></span>
+            <span style={{ fontWeight: 650, letterSpacing: '-0.015em' }}>DOPA Faculty Management</span>
           </div>
 
-          {/* Session-expired banner */}
+          <h1>Welcome back</h1>
+          <p style={{ marginTop: '0.375rem', marginBottom: '1.75rem', color: 'var(--color-muted)' }}>Sign in to continue to the faculty management system.</p>
+
           {sessionExpired && (
-            <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
-              
+            <div className="alert alert-warning" role="status" style={{ marginBottom: '1.25rem' }}>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Session timed out</div>
-                <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
+                <div style={{ fontWeight: 600 }}>Session timed out</div>
+                <div style={{ fontSize: '0.8125rem', marginTop: '0.125rem' }}>
                   You were signed out after 30 minutes of inactivity. Please sign in again.
                 </div>
               </div>
             </div>
           )}
 
-          {/* Card */}
-          <div style={{
-            background: 'var(--color-surface)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow)',
-            border: '1px solid var(--color-border)',
-            padding: '2.25rem 2rem',
-          }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1.75rem', color: 'var(--color-text)' }}>
-              Sign in to your account
-            </h2>
+          <form onSubmit={handleSubmit(onSubmit)} className="form-stack" style={{ gap: '1.125rem' }} noValidate>
+            <div className="form-group">
+              <label className="label" htmlFor="login-username">Username</label>
+              <input
+                id="login-username"
+                {...register('username')}
+                className="input"
+                placeholder="Enter your username"
+                autoComplete="username"
+                autoFocus
+                aria-invalid={errors.username ? true : undefined}
+              />
+              {errors.username && <p className="error-text">{errors.username.message}</p>}
+            </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
-              <div>
-                <label className="label">Username</label>
-                <input
-                  {...register('username')}
-                  className="input"
-                  placeholder="Enter your username"
-                  autoComplete="username"
-                  autoFocus
-                  style={{ fontSize: '0.9375rem' }}
-                />
-                {errors.username && <p className="error-text">{errors.username.message}</p>}
-              </div>
+            <div className="form-group">
+              <label className="label" htmlFor="login-password">Password</label>
+              <PasswordInput
+                id="login-password"
+                {...register('password')}
+                showStrength={false}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+              />
+              {errors.password && <p className="error-text" role="alert">{errors.password.message}</p>}
+            </div>
 
-              <div>
-                <label className="label">Password</label>
-                <PasswordInput
-                  {...register('password')}
-                  showStrength={false}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  style={{ fontSize: '0.9375rem' }}
-                />
-                {errors.password && (
-                  <p className="error-text" style={{ fontSize: '0.8125rem', marginTop: '0.375rem' }}>
-                    {errors.password.message}
-                  </p>
-                )}
-              </div>
+            <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={isSubmitting} style={{ marginTop: '0.375rem' }}>
+              {isSubmitting ? (<><span className="spinner spinner-on-solid" /> Signing in…</>) : 'Sign in'}
+            </button>
+          </form>
 
-              <button
-                type="submit"
-                className="btn btn-primary btn-lg"
-                disabled={isSubmitting}
-                style={{ marginTop: '0.375rem', width: '100%', gap: '0.5rem' }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="spinner spinner-on-solid" style={{ width: '0.9rem', height: '0.9rem' }} />
-                    Signing in…
-                  </>
-                ) : 'Sign in'}
-              </button>
-            </form>
-          </div>
-
-          <p style={{
-            textAlign: 'center',
-            marginTop: '1.5rem',
-            fontSize: '0.8125rem',
-            color: 'var(--color-muted)',
-          }}>
-            Contact HR to reset your password
+          <p className="help-text" style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.8125rem' }}>
+            Forgot your password? Contact HR to reset it.
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

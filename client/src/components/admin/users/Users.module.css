@@ -1,0 +1,23 @@
+/* Admin users: list, filters, modals. Tokens only. */
+.search { position: relative; flex: 1 1 16rem; min-width: 0; }
+.searchIcon { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: var(--color-muted); pointer-events: none; }
+.searchInput { padding-left: 2.35rem; }
+.roleSelect { flex: 0 1 14rem; min-width: 10rem; }
+
+.userCell { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.userName { font-family: var(--font-mono); font-weight: 600; font-size: var(--text-md); color: var(--color-text); overflow-wrap: anywhere; }
+.youTag { margin-left: 0.5rem; }
+.linkCell { display: flex; flex-wrap: wrap; gap: 0.25rem 0.875rem; font-size: var(--text-sm); color: var(--color-text-secondary); }
+.linkItem { display: inline-flex; align-items: center; gap: 0.3rem; }
+.linkItem svg { color: var(--color-muted); }
+.dim { color: var(--color-muted); }
+.inactive td:not(:last-child) { opacity: 0.62; }
+.actions { display: flex; gap: 0.25rem; justify-content: flex-end; }
+:global(.table-stack) .actions { justify-content: flex-end; }
+
+.modalHint { margin-bottom: var(--space-4); }
+.span2 { grid-column: 1 / -1; }
+.formGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+@media (max-width: 640px) { .formGrid { grid-template-columns: 1fr; } }
+.modalTitle { min-width: 0; }
+.modalSub { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-muted); margin-top: 0.125rem; }

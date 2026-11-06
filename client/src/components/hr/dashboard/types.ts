@@ -8,10 +8,10 @@ export function progressColor(status: HoursProgressItem['status']): string {
 }
 
 export function progressBg(status: HoursProgressItem['status']): string {
-  if (status === 'MET')      return '#dcfce7'
-  if (status === 'ON_TRACK') return '#ede9fe'
-  if (status === 'AT_RISK')  return '#fef9c3'
-  return '#fee2e2'
+  if (status === 'MET')      return 'var(--color-success-bg)'
+  if (status === 'ON_TRACK') return 'var(--color-primary-ghost)'
+  if (status === 'AT_RISK')  return 'var(--color-warning-bg)'
+  return 'var(--color-danger-bg)'
 }
 
 export function payrollBadge(status: PayrollStatusItem['status']): string {

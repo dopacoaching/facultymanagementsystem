@@ -4,7 +4,9 @@ import { useAppSelector } from '@/store/hooks'
 import { getAll, create, update } from '@/services/faculty.service'
 import type { Faculty } from '@/types'
 import { useToast } from '@/components/ui/Toast'
+import { Icon } from '@/components/ui/Icon'
 import { EMPTY_FACULTY, FacultyTable, FacultyEditModal, ConfigurePayModal } from '@/components/hr/faculty'
+import s from '@/components/hr/faculty/Faculty.module.css'
 
 export default function FacultyPage() {
   const { accessToken } = useAppSelector((s) => s.auth)
@@ -52,23 +54,35 @@ export default function FacultyPage() {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Faculty</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
+          <h1>Faculty</h1>
+          <p className="page-subtitle">
             {list.length} faculty member{list.length !== 1 ? 's' : ''}
+            {search && filtered.length !== list.length ? ` · ${filtered.length} shown` : ''}
           </p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setEditing(EMPTY_FACULTY)}>
-          + Add Faculty
-        </button>
+        <div className="page-head-actions">
+          <button type="button" className="btn btn-primary" onClick={() => setEditing(EMPTY_FACULTY)}>
+            <Icon name="plus" size={16} /> Add Faculty
+          </button>
+        </div>
       </div>
 
-      <div className="card">
-        <div style={{ marginBottom: '1.25rem' }}>
-          <input className="input" placeholder="Search by name or subject…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ maxWidth: 360 }} />
+      <div className="toolbar" role="search">
+        <div className={`form-group ${s.searchGroup}`}>
+          <label className="label" htmlFor="faculty-search">Search</label>
+          <div className={s.searchBox}>
+            <span className={s.searchIcon}><Icon name="search" size={16} /></span>
+            <input
+              id="faculty-search" className={`input ${s.searchInput}`} placeholder="Search by name or subject…"
+              value={search} onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
+      </div>
 
+      <div aria-live="polite">
         <FacultyTable
           loading={loading}
           filtered={filtered}

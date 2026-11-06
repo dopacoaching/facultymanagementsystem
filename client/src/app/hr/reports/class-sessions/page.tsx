@@ -7,6 +7,8 @@ import { useActiveFaculty } from '@/hooks/useActiveFaculty'
 import { useChapterOptions } from '@/components/coordinator/log-session/ChaptersField'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { Icon } from '@/components/ui/Icon'
+import rs from '@/components/hr/reports/Reports.module.css'
 import { EditClassSessionModal, formFromSession, timingChanged, EditClassSessionForm } from '@/components/hr/reports/EditClassSessionModal'
 import { usesFullBreak } from '@/lib/constants/entryTypes'
 import { CLASS_MODE_FILTERS, CLASS_MODE_LABELS, CLASS_MODE_ORDER } from '@/lib/constants/classModes'
@@ -172,52 +174,75 @@ export default function ClassSessionsPage() {
     return sortBy === 'mode' ? [...list].sort((a, b) => modeRank(a) - modeRank(b) || dateMs(a) - dateMs(b)) : list
   }, [sessions, modeFilter, activeFaculty, sortBy])
 
+  const totalHours = classSessions.reduce((t, x) => t + x.durationHours, 0)
+  const distinctFaculty = new Set(classSessions.map(facultyIdOf)).size
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Class Sessions</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Sessions logged by class teachers, campus by campus.
-          </p>
+          <h1>Class Sessions</h1>
+          <p className="page-subtitle">Sessions logged by class teachers, campus by campus.</p>
         </div>
       </div>
 
       {error && (
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: 'var(--space-4)' }}>
           <ErrorAlert message={error} onRetry={load} />
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
-          <div className="form-group" style={{ margin: 0 }}>
+      {!loading && classSessions.length > 0 && (
+        <div className={`stats-grid ${rs.kpis}`} aria-live="polite">
+          <div className="stat-card">
+            <div className="stat-label">Sessions</div>
+            <div className="stat-value">{classSessions.length}</div>
+            <div className="stat-sub">{modeFilter || activeFaculty ? 'matching filters' : 'in range'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Total time</div>
+            <div className="stat-value">{formatHM(totalHours)}</div>
+            <div className="stat-sub">{totalHours.toFixed(2)} hours</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Faculty</div>
+            <div className="stat-value">{distinctFaculty}</div>
+            <div className="stat-sub">distinct faculty</div>
+          </div>
+        </div>
+      )}
+
+      <div className={rs.filters}>
+        <div className={rs.filterRow}>
+          <div className={`form-group ${rs.fieldWide}`}>
             <label className="label" htmlFor="cs-mode">Class mode</label>
-            <select id="cs-mode" className="input" value={modeFilter} onChange={(e) => setModeFilter(e.target.value)} style={{ minWidth: 210 }}>
+            <select id="cs-mode" className="input" value={modeFilter} onChange={(e) => setModeFilter(e.target.value)}>
               <option value="">All modes</option>
               {CLASS_MODE_FILTERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
           </div>
-          <div className="form-group" style={{ margin: 0 }}>
+          <div className={`form-group ${rs.fieldWide}`}>
             <label className="label" htmlFor="cs-faculty">Faculty</label>
-            <select id="cs-faculty" className="input" value={activeFaculty} onChange={(e) => setFacultyFilter(e.target.value)} style={{ minWidth: 210 }}>
+            <select id="cs-faculty" className="input" value={activeFaculty} onChange={(e) => setFacultyFilter(e.target.value)}>
               <option value="">All faculty</option>
               {facultyChoices.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>
-            <label className="label" htmlFor="cs-sort">Sort by</label>
-            <select id="cs-sort" className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'date' | 'mode')} style={{ minWidth: 150 }}>
-              <option value="date">Date</option>
-              <option value="mode">Class mode</option>
-            </select>
+            <span className="label" id="cs-sort-label">Sort by</span>
+            <div className="segmented" role="group" aria-labelledby="cs-sort-label">
+              <button type="button" aria-pressed={sortBy === 'date'} onClick={() => setSortBy('date')}>Date</button>
+              <button type="button" aria-pressed={sortBy === 'mode'} onClick={() => setSortBy('mode')}>Class mode</button>
+            </div>
           </div>
+        </div>
+        <div className={rs.filterRow}>
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
         </div>
       </div>
 
       {loading ? (
-        <div className="card"><SkeletonTable rows={8} cols={10} /></div>
+        <div className="card card-flush"><SkeletonTable rows={8} cols={10} /></div>
       ) : classSessions.length === 0 ? (
         <div className="card">
           <EmptyState
@@ -228,73 +253,73 @@ export default function ClassSessionsPage() {
           />
         </div>
       ) : (
-        <div className="card">
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Faculty</th>
-                  <th>Date</th>
-                  <th>Subject</th>
-                  <th>Batch</th>
-                  <th>Chapter</th>
-                  <th>Campus</th>
-                  <th>Mode</th>
-                  {canSeeScheduledTime && <th>Scheduled</th>}
-                  <th>Start–End</th>
-                  <th style={{ textAlign: 'right' }}>Time Taken</th>
-                  <th style={{ textAlign: 'right' }}>Break</th>
-                  <th>Updated By</th>
-                  <th>Comment</th>
-                  {canEdit && <th></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {classSessions.map((s) => {
-                  const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
-                  return (
-                    <tr key={s._id}>
-                      <td style={{ fontWeight: 600 }}>{facultyName}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
-                        {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.subject}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.chapter}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.campusName}</td>
+        <div className="table-wrapper table-stack is-sticky">
+          <table>
+            <thead>
+              <tr>
+                <th>Faculty</th>
+                <th>Date</th>
+                <th>Subject</th>
+                <th>Batch</th>
+                <th>Chapter</th>
+                <th>Campus</th>
+                <th>Mode</th>
+                {canSeeScheduledTime && <th>Scheduled</th>}
+                <th>Start–End</th>
+                <th className="num" style={{ textAlign: 'right' }}>Time Taken</th>
+                <th className="num" style={{ textAlign: 'right' }}>Break</th>
+                <th>Updated By</th>
+                <th>Comment</th>
+                {canEdit && <th><span className={rs.srOnly}>Actions</span></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {classSessions.map((s) => {
+                const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
+                return (
+                  <tr key={s._id}>
+                    <td data-label="Faculty" className={rs.strong}>{facultyName}</td>
+                    <td data-label="Date" className={`num ${rs.nowrap} ${rs.muted}`}>
+                      {new Date(s.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td data-label="Subject" className={rs.muted}>{s.subject}</td>
+                    <td data-label="Batch" className={rs.muted}>{s.batchNames?.length ? s.batchNames.join(', ') : '—'}</td>
+                    <td data-label="Chapter" className={rs.muted}>{s.chapter}</td>
+                    <td data-label="Campus" className={rs.muted}>{s.campusName}</td>
+                    <td data-label="Mode">
+                      <span className={`badge ${s.classMode?.startsWith('ONLINE') ? 'badge-blue' : 'badge-green'}`}>
+                        {s.classMode ? CLASS_MODE_LABELS[s.classMode] ?? s.classMode : '—'}
+                      </span>
+                    </td>
+                    {canSeeScheduledTime && (
+                      <td data-label="Scheduled" className={`num ${rs.nowrap}`}>{s.scheduledTime ? (s.scheduledEndTime ? `${s.scheduledTime} – ${s.scheduledEndTime}` : s.scheduledTime) : '—'}</td>
+                    )}
+                    <td data-label="Start–End" className={`num ${rs.nowrap}`}>
+                      {s.startTime ? `${s.startTime}–${s.endTime ?? '—'}` : '—'}
+                    </td>
+                    <td data-label="Time Taken" className={`num ${rs.nowrap} ${rs.strong}`} style={{ textAlign: 'right' }}>
+                      {s.entryType && <span className={`badge ${s.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'} ${rs.entryTag}`}>{s.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(s.durationHours)}
+                    </td>
+                    <td data-label="Break" className={`num ${rs.nowrap}`} style={{ textAlign: 'right' }}>
+                      {breakSummary(s)}
+                    </td>
+                    <td data-label="Updated By" className={rs.muted}>{s.updatedByName ?? '—'}</td>
+                    <td data-label="Comment" className={rs.comment}>{s.comment || '—'}</td>
+                    {canEdit && (
                       <td>
-                        <span className={`badge ${s.classMode?.startsWith('ONLINE') ? 'badge-blue' : 'badge-green'}`}>
-                          {s.classMode ? CLASS_MODE_LABELS[s.classMode] ?? s.classMode : '—'}
-                        </span>
+                        <div className={rs.rowActions}>
+                          <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>
+                            <Icon name="edit" size={14} /> Edit
+                          </button>
+                          <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => handleDelete(s)}>Delete</button>
+                        </div>
                       </td>
-                      {canSeeScheduledTime && (
-                        <td style={{ whiteSpace: 'nowrap' }}>{s.scheduledTime ? (s.scheduledEndTime ? `${s.scheduledTime} – ${s.scheduledEndTime}` : s.scheduledTime) : '—'}</td>
-                      )}
-                      <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                        {s.startTime ? `${s.startTime}–${s.endTime ?? '—'}` : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-                        {s.entryType && <span className={`badge ${s.entryType === 'SHOOT' ? 'badge-blue' : 'badge-gray'}`} style={{ marginLeft: '0.5rem' }}>{s.entryType === 'SHOOT' ? 'Shoot' : 'Live'}</span>}{formatHM(s.durationHours)}
-                      </td>
-                      <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                        {breakSummary(s)}
-                      </td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{s.updatedByName ?? '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{s.comment || '—'}</td>
-                      {canEdit && (
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.375rem' }}>
-                            <button type="button" className="btn btn-outline btn-sm" onClick={() => openEdit(s)}>Edit</button>
-                            <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => handleDelete(s)}>Delete</button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

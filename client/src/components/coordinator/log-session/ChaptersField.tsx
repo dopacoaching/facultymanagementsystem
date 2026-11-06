@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { apiFetch } from '@/services/api'
 import { chapterSubjectOf } from '@/lib/constants/labSubjects'
+import s from './Log.module.css'
 
 /** Subjects the syllabus endpoint knows; others (Psychology, Computer Science...) only have HR-added chapters. */
 const SYLLABUS_SUBJECTS = ['PHYSICS', 'CHEMISTRY', 'BIOLOGY', 'BOTANY', 'ZOOLOGY', 'MATHS', 'ENGLISH', 'MALAYALAM', 'ARABIC']
@@ -60,23 +61,15 @@ export function ChaptersField({ subject, accessToken, value, onChange }: Chapter
     <div className="form-group">
       <label className="label" htmlFor={id}>Chapters</label>
       {value.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.5rem' }}>
+        <div className={s.chips}>
           {value.map((name) => (
-            <span
-              key={name}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                padding: '0.25rem 0.375rem 0.25rem 0.625rem', borderRadius: 999,
-                background: 'var(--color-primary-ghost)', border: '1px solid var(--color-primary)',
-                fontSize: '0.8125rem',
-              }}
-            >
+            <span key={name} className={s.chip}>
               {name}
               <button
                 type="button"
                 aria-label={`Remove ${name}`}
                 onClick={() => onChange(value.filter((v) => v !== name))}
-                style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, color: 'inherit', padding: '0 0.25rem' }}
+                className={s.chipRemove}
               >
                 ×
               </button>

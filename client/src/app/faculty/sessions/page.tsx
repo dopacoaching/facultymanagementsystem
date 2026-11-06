@@ -38,17 +38,15 @@ export default function FacultySessionsPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>My Sessions</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Your session log
-          </p>
+          <h1>My Sessions</h1>
+          <p className="page-subtitle">Your session log</p>
         </div>
       </div>
 
       {loadError && (
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div className="mb-4">
           <ErrorAlert message={loadError} what="Could not load your data" onRetry={load} />
         </div>
       )}

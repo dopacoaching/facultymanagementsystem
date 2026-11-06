@@ -1,11 +1,14 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { apiFetch } from '@/services/api'
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { FormField } from '@/components/ui/FormField'
 import { useToast } from '@/components/ui/Toast'
+import { Icon } from '@/components/ui/Icon'
+import { StepCard, CheckRow, HoursReadout, SavedPanel } from '@/components/coordinator/EntryParts'
+import s from '@/components/coordinator/Entry.module.css'
 import { todayLocal, dateForMonth, isMonthValue } from '@/utils/date'
 import {
   EMPTY_FORM, FormState, computeDuration, monthBounds, teaBreakAsBreaks, formatHM,
@@ -37,6 +40,10 @@ export default function IGJointEntryPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM())
   const [saving, setSaving] = useState(false)
   const [validationError, setValidationError] = useState('')
+  const validationRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (validationError) validationRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [validationError])
   const [submitError, setSubmitError] = useState('')
   const [saved, setSaved] = useState(false)
 
@@ -111,58 +118,37 @@ export default function IGJointEntryPage() {
     setValidationError(''); setSubmitError(''); setSaved(false)
   }
 
+  const totalValue = !duration.error ? formatHM(duration.hours * 60) : '—'
+  const totalNote = duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of break deducted` : 'Calculated automatically'
+
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+    <div className={s.shell}>
+      <div className="page-head">
         <div>
           <h1>Joint Class Entry</h1>
           <p className="page-subtitle">One class taught to two or more IG schools at the same time. Hours count once.</p>
         </div>
       </div>
 
-      <div className="card">
-        {saved ? (
-          <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-            <div className="alert alert-success" style={{ display: 'inline-flex', marginBottom: '1.25rem' }}>
-              <span className="alert-icon" aria-hidden="true">✓</span>
-              The joint class has been recorded for {schoolsPicked} schools.
+      {saved ? (
+        <SavedPanel title="Joint class recorded" actionLabel="Enter another joint class" onAction={startAnother}>
+          The joint class has been recorded for {schoolsPicked} schools.
+        </SavedPanel>
+      ) : (
+        <>
+          {options.status === 'error' && (
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <ErrorAlert message={options.error?.message ?? ''} what="Couldn't load schools and faculty" onRetry={options.refetch} />
             </div>
-            <div>
-              <button type="button" className="btn btn-primary" onClick={startAnother}>Enter another joint class</button>
+          )}
+          {submitError && (
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <ErrorAlert message={submitError} what="Class could not be submitted" onRetry={submit} onDismiss={() => setSubmitError('')} />
             </div>
-          </div>
-        ) : (
-          <>
-            {options.status === 'error' && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <ErrorAlert message={options.error?.message ?? ''} what="Couldn't load schools and faculty" onRetry={options.refetch} />
-              </div>
-            )}
-            {validationError && (
-              <div className="alert alert-warning" role="alert" style={{ marginBottom: '1.25rem' }}>
-                <span className="alert-icon" aria-hidden="true">!</span>
-                {validationError}
-              </div>
-            )}
-            {submitError && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <ErrorAlert message={submitError} what="Class could not be submitted" onRetry={submit} onDismiss={() => setSubmitError('')} />
-              </div>
-            )}
+          )}
 
-            <form onSubmit={(e) => { e.preventDefault(); submit() }} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <FormField label="Faculty name" htmlFor="jc-faculty" required>
-                <select id="jc-faculty" className="input" value={form.facultyId} disabled={options.status === 'loading'}
-                  onChange={(e) => {
-                    const f = faculty.find((x) => x._id === e.target.value)
-                    setField('facultyId', e.target.value)
-                    if (f?.subject) setField('subject', f.subject.toUpperCase())
-                  }}>
-                  <option value="">{options.status === 'loading' ? 'Loading faculty…' : '— select faculty —'}</option>
-                  {faculty.map((f) => <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>)}
-                </select>
-              </FormField>
-
+          <form className={s.form} onSubmit={(e) => { e.preventDefault(); submit() }}>
+            <StepCard n={1} title="Class details">
               <div className="input-group">
                 <FormField label="Month & year" htmlFor="jc-month" required hint="Entering a day from last month? Change this first">
                   <input id="jc-month" type="month" className="input" value={form.month} max={todayLocal().slice(0, 7)}
@@ -174,38 +160,23 @@ export default function IGJointEntryPage() {
                 </FormField>
               </div>
 
-              <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
-
-              <div className="input-group">
-                <FormField label="Time taken — started" htmlFor="jc-start" required>
-                  <input id="jc-start" type="time" className="input" value={form.startTime} onChange={(e) => setField('startTime', e.target.value)} />
-                </FormField>
-                <FormField label="Time taken — ended" htmlFor="jc-end" required>
-                  <input id="jc-end" type="time" className="input" value={form.endTime} onChange={(e) => setField('endTime', e.target.value)} />
-                </FormField>
-              </div>
-
               <FormField label="Schools & batches" htmlFor="jc-batches" required hint="Tick every batch that attended — from at least two schools">
-                <div id="jc-batches" role="group" aria-label="Schools and batches" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {options.status === 'loading' && <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>Loading schools…</span>}
-                  {schools.map((s) => (
-                    <div key={s.campusName}>
-                      <div style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem' }}>{s.campusName}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                        {s.batches.map((b) => {
+                <div id="jc-batches" role="group" aria-label="Schools and batches" className={s.checkList} style={{ gap: 'var(--space-4)' }}>
+                  {options.status === 'loading' && <span className={s.muted}>Loading schools…</span>}
+                  {schools.map((sc) => (
+                    <div key={sc.campusName}>
+                      <p className={s.checkGroupTitle}>{sc.campusName}</p>
+                      <div className={s.checkList}>
+                        {sc.batches.map((b) => {
                           const checked = form.batchIds.includes(b._id)
                           return (
-                            <label key={b._id} style={{
-                              display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer',
-                              padding: '0.5rem 0.75rem', borderRadius: 'var(--radius)',
-                              border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                              background: checked ? 'var(--color-primary-ghost)' : 'var(--color-surface)', fontSize: '0.875rem',
-                            }}>
-                              <input type="checkbox" checked={checked}
-                                onChange={() => setField('batchIds', checked ? form.batchIds.filter((id) => id !== b._id) : [...form.batchIds, b._id])}
-                                style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
+                            <CheckRow
+                              key={b._id}
+                              checked={checked}
+                              onChange={() => setField('batchIds', checked ? form.batchIds.filter((id) => id !== b._id) : [...form.batchIds, b._id])}
+                            >
                               {b.name}
-                            </label>
+                            </CheckRow>
                           )
                         })}
                       </div>
@@ -220,33 +191,68 @@ export default function IGJointEntryPage() {
                   {CLASS_MODE_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
               </FormField>
+            </StepCard>
+
+            <StepCard n={2} title="Faculty & subject">
+              <FormField label="Faculty name" htmlFor="jc-faculty" required>
+                <select id="jc-faculty" className="input" value={form.facultyId} disabled={options.status === 'loading'}
+                  onChange={(e) => {
+                    const f = faculty.find((x) => x._id === e.target.value)
+                    setField('facultyId', e.target.value)
+                    if (f?.subject) setField('subject', f.subject.toUpperCase())
+                  }}>
+                  <option value="">{options.status === 'loading' ? 'Loading faculty…' : '— select faculty —'}</option>
+                  {faculty.map((f) => <option key={f._id} value={f._id}>{f.name} — {f.subject}</option>)}
+                </select>
+              </FormField>
+
+              <SubjectField value={form.subject} onChange={(v) => setField('subject', v)} />
 
               <ChaptersField subject={form.subject} accessToken={accessToken} value={form.chapters} onChange={(v) => setField('chapters', v)} />
+            </StepCard>
 
-              <FormField label="Total hours & minutes" htmlFor="jc-total"
-                hint={duration.deductedMinutes > 0 ? `${duration.deductedMinutes}m of break deducted` : 'Calculated automatically'}>
-                <input id="jc-total" className="input" readOnly disabled value={!duration.error ? formatHM(duration.hours * 60) : '—'} />
-              </FormField>
+            <StepCard n={3} title="Time & breaks">
+              <div className="input-group">
+                <FormField label="Time taken — started" htmlFor="jc-start" required>
+                  <input id="jc-start" type="time" className="input mono" value={form.startTime} onChange={(e) => setField('startTime', e.target.value)} />
+                </FormField>
+                <FormField label="Time taken — ended" htmlFor="jc-end" required>
+                  <input id="jc-end" type="time" className="input mono" value={form.endTime} onChange={(e) => setField('endTime', e.target.value)} />
+                </FormField>
+              </div>
 
               <BreakRow label="Break (Tea)" note="first 15m free" field={form.teaBreak}
                 onChange={(patch) => setField('teaBreak', { ...form.teaBreak, ...patch })} />
 
+              <HoursReadout label="Total hours & minutes" value={totalValue} note={totalNote} />
+            </StepCard>
+
+            <StepCard n={4} title="Review">
               <FormField label="Entered by" htmlFor="jc-by">
                 <input id="jc-by" className="input" readOnly disabled value={options.data?.enteredBy ?? ''} />
               </FormField>
 
               <FormField label="Comment" htmlFor="jc-comment" hint="Optional — anything HR should know about this class">
                 <textarea id="jc-comment" className="input" rows={3} maxLength={500} value={form.comment}
-                  onChange={(e) => setField('comment', e.target.value)} style={{ resize: 'vertical' }} />
+                  onChange={(e) => setField('comment', e.target.value)} />
               </FormField>
 
-              <button type="submit" className="btn btn-primary" disabled={saving}>
-                {saving ? 'Submitting…' : 'Submit joint class'}
+              {validationError && (
+                <div ref={validationRef} className="alert alert-warning" role="alert">
+                  <Icon name="alert" size={16} />
+                  <span>{validationError}</span>
+                </div>
+              )}
+            </StepCard>
+
+            <div className={s.actions}>
+              <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
+                {saving ? <><span className="spinner spinner-on-solid" /> Submitting…</> : <><Icon name="send" size={16} /> Submit joint class</>}
               </button>
-            </form>
-          </>
-        )}
-      </div>
+            </div>
+          </form>
+        </>
+      )}
     </div>
   )
 }

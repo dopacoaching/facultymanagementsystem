@@ -6,6 +6,7 @@ import { getBatches } from '@/services/faculty.service'
 import type { Batch } from '@/services/faculty.service'
 import { SkeletonCard, ErrorAlert } from '@/components/ui/Skeleton'
 import { SUBJECTS, ProgressResponse, SubjectProgressSection } from '@/components/academics/syllabus-progress'
+import s from '@/components/academics/syllabus-progress/Progress.module.css'
 
 export default function SyllabusProgressPage() {
   const { accessToken, role, batchId: coordinatorBatchId } = useAppSelector((s) => s.auth)
@@ -45,27 +46,34 @@ export default function SyllabusProgressPage() {
   }, [accessToken, batchId])
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+    <div className="stack">
+      <div className="page-head">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>Syllabus Progress</h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--color-muted)' }}>Track each batch against the annual plan</p>
+          <h1>Syllabus Progress</h1>
+          <p className="page-subtitle">Track each batch against the annual plan</p>
         </div>
-        {batches.length > 1 && (
-          <select
-            className="sm:ml-auto border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={batchId}
-            onChange={(e) => setBatchId(e.target.value)}
-          >
-            {batches.map((b) => (
-              <option key={b._id} value={b._id}>{b.name}</option>
-            ))}
-          </select>
-        )}
       </div>
 
+      {batches.length > 1 && (
+        <div className="toolbar">
+          <div className="form-group">
+            <label className="label" htmlFor="progress-batch">Batch</label>
+            <select
+              id="progress-batch"
+              className={`input ${s.batchSelect}`}
+              value={batchId}
+              onChange={(e) => setBatchId(e.target.value)}
+            >
+              {batches.map((b) => (
+                <option key={b._id} value={b._id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="stack-sm" aria-busy="true">
           <SkeletonCard lines={4} />
           <SkeletonCard lines={4} />
           <SkeletonCard lines={4} />
@@ -76,7 +84,7 @@ export default function SyllabusProgressPage() {
       )}
 
       {!loading && data && (
-        <div className="space-y-8">
+        <div className={s.sections} aria-live="polite">
           {SUBJECTS.map((subj) => {
             const subjectProgress = data.progress[subj]
             if (!subjectProgress) return null
@@ -88,7 +96,12 @@ export default function SyllabusProgressPage() {
       )}
 
       {!loading && !data && !error && (
-        <div className="text-center text-gray-400 py-12">Select a batch to view progress.</div>
+        <div className="card">
+          <div className="empty-state">
+            <h3>No batch selected</h3>
+            <p>Select a batch to view progress.</p>
+          </div>
+        </div>
       )}
     </div>
   )

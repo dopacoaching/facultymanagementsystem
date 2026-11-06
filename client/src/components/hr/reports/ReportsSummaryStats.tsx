@@ -8,17 +8,15 @@ export function ReportsSummaryStats({ count, total, periodLabel }: ReportsSummar
   if (count === 0) return null
 
   return (
-    <div className="stats-grid" style={{ marginBottom: '1.5rem' }}>
+    <div className="stats-grid" style={{ marginBottom: 'var(--space-5)' }}>
       <div className="stat-card">
         <div className="stat-label">Approved Salaries</div>
-        <div className="stat-value" style={{ color: 'var(--color-primary)' }}>{count}</div>
+        <div className="stat-value">{count}</div>
         <div className="stat-sub">{periodLabel}</div>
       </div>
       <div className="stat-card">
         <div className="stat-label">Total Payable</div>
-        <div className="stat-value" style={{ color: 'var(--color-success)', fontSize: '1.5rem' }}>
-          ₹{total.toLocaleString('en-IN')}
-        </div>
+        <div className="stat-value">₹{total.toLocaleString('en-IN')}</div>
         <div className="stat-sub">{periodLabel}</div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 'use client'
 import { useEffect } from 'react'
+import Image from 'next/image'
+import { Icon } from '@/components/ui/Icon'
 import PasswordInput from '@/components/ui/PasswordInput'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -66,95 +68,85 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--color-bg)',
-      padding: '2rem',
-    }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
-
-        {/* Minimal header — no branding that reveals this is admin */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{
-            fontSize: '1.25rem', fontWeight: 600,
-            color: 'var(--color-text)', margin: '0 0 0.25rem',
-          }}>
-            Management Portal
-          </h1>
-          <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', margin: 0 }}>
-            Restricted access: authorised personnel only
+    <div className="auth-shell">
+      <aside className="auth-aside" aria-hidden="true">
+        <div className="flex items-center gap-3">
+          <span className="auth-logo"><Image src="/logo.png" alt="" width={30} height={30} style={{ objectFit: 'contain' }} priority /></span>
+          <span style={{ fontWeight: 650, letterSpacing: '-0.015em', fontSize: '1.0625rem' }}>DOPA Coaching</span>
+        </div>
+        <div style={{ maxWidth: 440 }}>
+          <h2 style={{ fontSize: '2.5rem', lineHeight: 1.08, letterSpacing: '-0.035em', fontWeight: 650 }}>
+            Oversight for every campus, in one place.
+          </h2>
+          <p style={{ marginTop: '1rem', fontSize: '1.0625rem', color: 'var(--color-on-navy-dim)' }}>
+            Manage accounts, review the audit trail and keep faculty records accurate.
           </p>
         </div>
+        <ul style={{ listStyle: 'none', display: 'grid', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--color-on-navy-dim)' }}>
+          {['User accounts and roles', 'Append-only audit log of every action', 'Faculty, entries and reports'].map((t) => (
+            <li key={t} className="flex items-center gap-3">
+              <span style={{ width: 6, height: 6, borderRadius: 9, background: 'var(--color-brand-sky)', boxShadow: '0 0 10px var(--color-brand-sky)' }} />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </aside>
 
-        {/* Session-expired banner */}
-        {sessionExpired && (
-          <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
-            
-            <div>
-              <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Session timed out</div>
-              <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
-                Signed out after 30 minutes of inactivity. Please sign in again.
+      <main className="auth-main">
+        <div className="auth-card">
+          <div className="auth-mobile-logo flex items-center gap-3" style={{ marginBottom: '2rem' }}>
+            <span className="auth-logo"><Image src="/logo.png" alt="DOPA" width={30} height={30} style={{ objectFit: 'contain' }} priority /></span>
+            <span style={{ fontWeight: 650, letterSpacing: '-0.015em' }}>DOPA Faculty Management</span>
+          </div>
+
+          <h1>Management Portal</h1>
+          <p style={{ marginTop: '0.375rem', marginBottom: '1.75rem', color: 'var(--color-muted)' }}>Restricted access: authorised personnel only</p>
+
+          {sessionExpired && (
+            <div className="alert alert-warning" role="status" style={{ marginBottom: '1.25rem' }}>
+              <Icon name="clock" size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontWeight: 600 }}>Session timed out</div>
+                <div style={{ fontSize: '0.8125rem', marginTop: '0.125rem' }}>
+                  Signed out after 30 minutes of inactivity. Please sign in again.
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Login card */}
-        <div style={{
-          background: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow)',
-          padding: '2rem',
-        }}>
-          <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
-            <div>
-              <label className="label">Username</label>
+          <form onSubmit={handleSubmit(onSubmit)} className="form-stack" style={{ gap: '1.125rem' }} noValidate>
+            <div className="form-group">
+              <label className="label" htmlFor="admin-username">Username</label>
               <input
+                id="admin-username"
                 {...register('username')}
                 className="input"
                 placeholder="Enter username"
                 autoComplete="username"
                 autoFocus
+                aria-invalid={errors.username ? true : undefined}
               />
               {errors.username && <p className="error-text">{errors.username.message}</p>}
             </div>
 
-            <div>
-              <label className="label">Password</label>
+            <div className="form-group">
+              <label className="label" htmlFor="admin-password">Password</label>
               <PasswordInput
+                id="admin-password"
                 {...register('password')}
                 showStrength={false}
                 placeholder="Enter password"
                 autoComplete="current-password"
               />
-              {errors.password && (
-                <p className="error-text" style={{ marginTop: '0.375rem', fontSize: '0.8125rem' }}>
-                  {errors.password.message}
-                </p>
-              )}
+              {errors.password && <p className="error-text" role="alert">{errors.password.message}</p>}
             </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg"
-              disabled={isSubmitting}
-              style={{ marginTop: '0.25rem', width: '100%' }}
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="spinner spinner-on-solid" style={{ width: '0.9rem', height: '0.9rem' }} />
-                  Verifying…
-                </>
-              ) : 'Sign in'}
+            <button type="submit" className="btn btn-primary btn-lg btn-block" disabled={isSubmitting} style={{ marginTop: '0.375rem' }}>
+              {isSubmitting ? (<><span className="spinner spinner-on-solid" /> Verifying…</>) : 'Sign in'}
             </button>
           </form>
         </div>
-
-      </div>
+      </main>
     </div>
   )
 }

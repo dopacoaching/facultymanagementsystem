@@ -8,6 +8,7 @@ import { apiFetch } from '@/services/api'
 import type { Session, Faculty } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import { ErrorAlert } from '@/components/ui/Skeleton'
+import { Icon } from '@/components/ui/Icon'
 import { useToast } from '@/components/ui/Toast'
 import {
   BatchChapter, EditSessionForm, NewSessionForm, NEET_SUBJECTS, SyllabusChapter,
@@ -219,22 +220,24 @@ export default function SessionsPage() {
   }
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="stack">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Sessions</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            {filtered.length} of {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+          <h1>Sessions</h1>
+          <p className="page-subtitle" aria-live="polite">
+            <span className="num">{filtered.length}</span> of <span className="num">{sessions.length}</span> session{sessions.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>+ New Session</button>
+        <div className="page-head-actions">
+          <button type="button" className="btn btn-primary" onClick={() => { setShowForm(true); setError('') }}>
+            <Icon name="plus" size={16} /> New Session
+          </button>
+        </div>
       </div>
 
       {/* Page-level error (table actions: mark complete, cancel) */}
       {error && !showForm && !editing && (
-        <div style={{ marginBottom: '1rem' }}>
-          <ErrorAlert message={error} what="Action failed" onRetry={() => setError('')} />
-        </div>
+        <ErrorAlert message={error} what="Action failed" onRetry={() => setError('')} />
       )}
 
       <SessionFilterBar

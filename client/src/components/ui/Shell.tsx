@@ -8,6 +8,7 @@ import { getPageTitle, getBreadcrumbs } from '@/lib/routeMeta'
 import { restoreSession } from '@/lib/sessionRestore'
 import Sidebar from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
+import { Icon } from './Icon'
 
 interface ShellProps {
   children: React.ReactNode
@@ -73,19 +74,15 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
             >
               <span /><span /><span />
             </button>
-            <div className="shell-title-block">
-              {crumbs.length > 1 && (
-                <nav className="shell-breadcrumbs" aria-label="Breadcrumb">
-                  {crumbs.slice(0, -1).map((c) => (
-                    <span key={c.path}>
-                      <Link href={c.path}>{c.title}</Link>
-                      <span aria-hidden="true" className="shell-breadcrumb-sep">/</span>
-                    </span>
-                  ))}
-                </nav>
-              )}
-              <h1>{pageTitle}</h1>
-            </div>
+            <nav className="shell-crumbs" aria-label="Breadcrumb">
+              {crumbs.slice(0, -1).map((c) => (
+                <span key={c.path} className="flex items-center gap-2">
+                  <Link href={c.path}>{c.title}</Link>
+                  <Icon name="chevronRight" size={12} className="shell-crumb-sep" />
+                </span>
+              ))}
+              <span className="is-current" aria-current="page">{pageTitle}</span>
+            </nav>
           </div>
           <div className="shell-topbar-actions">
             <span className="role-chip">{role?.replace(/_/g, ' ') ?? 'User'}</span>
@@ -95,16 +92,7 @@ export default function Shell({ children, loginPath = '/login' }: ShellProps) {
               aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               className="theme-toggle"
             >
-              {theme === 'dark' ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-                </svg>
-              )}
+              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
             </button>
           </div>
         </header>

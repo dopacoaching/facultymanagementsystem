@@ -1,9 +1,14 @@
+import { useRef } from 'react'
 import type { AppUser } from '@/services/user.service'
 import type { UserRole } from '@/types'
 import type { Batch } from '@/services/faculty.service'
 import type { Campus } from '@/services/campus.service'
 import PasswordInput from '@/components/ui/PasswordInput'
+import { Modal } from '@/components/ui/Modal'
+import { FormField } from '@/components/ui/FormField'
+import { Icon } from '@/components/ui/Icon'
 import { ALL_ROLES, getRoleLabel } from './types'
+import s from './Users.module.css'
 
 interface EditUserModalProps {
   editTarget: AppUser
@@ -23,73 +28,86 @@ interface EditUserModalProps {
   onSubmit: () => void
 }
 
+const FORM_ID = 'edit-user-form'
+const TITLE_ID = 'edit-user-title'
+
 export function EditUserModal({
   editTarget, editRole, onRoleChange, editBatchId, onBatchIdChange,
   editCampusId, onCampusIdChange, editPw, onPwChange, batches, campuses, error, saving, onClose, onSubmit,
 }: EditUserModalProps) {
+  const roleRef = useRef<HTMLSelectElement>(null)
+
   return (
-    <div
-      role="dialog" aria-modal="true" aria-label="Edit User"
-      className="modal-backdrop"
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose() }}
-    >
-      <div className="modal-panel">
-        <div className="modal-header">
-          <div>
-            <h2>Edit User</h2>
-            <p style={{ margin: '0.125rem 0 0', fontSize: '0.875rem', color: 'var(--color-muted)' }}>@{editTarget.username}</p>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
+    <Modal
+      open
+      onClose={onClose}
+      size="md"
+      labelledById={TITLE_ID}
+      initialFocus={roleRef}
+      title={
+        <div className={s.modalTitle}>
+          <h2 id={TITLE_ID}>Edit User</h2>
+          <p className={s.modalSub}>@{editTarget.username}</p>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
-        <div className="modal-body">
-          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
-          <div className="input-group">
-            <div className="form-group">
-              <label className="label">Role</label>
-              <select className="input" value={editRole}
-                onChange={(e) => { onRoleChange(e.target.value as UserRole); onCampusIdChange('') }}>
-                {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
-              </select>
-            </div>
-            {editRole === 'IG_CLASS_TEACHER' && (
-              <div className="form-group">
-                <label className="label">Campus</label>
-                <select className="input" value={editCampusId}
-                  onChange={(e) => onCampusIdChange(e.target.value)}>
-                  <option value="">— none —</option>
-                  {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="form-group">
-              <label className="label">Batch (optional)</label>
-              <select className="input" value={editBatchId}
-                onChange={(e) => onBatchIdChange(e.target.value)}>
-                <option value="">— none —</option>
-                {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
-              </select>
-            </div>
-            <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="label">Reset Password <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank to keep current)</span></label>
-              <PasswordInput
-                value={editPw}
-                onChange={(e) => onPwChange(e.target.value)}
-                autoComplete="new-password"
-                placeholder="Min 8 chars · upper · lower · digit · symbol"
-                showStrength={editPw.length > 0}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="modal-footer">
+      }
+      footer={
+        <>
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          <button type="submit" form={FORM_ID} className="btn btn-primary" disabled={saving}>
             {saving ? <><span className="spinner" /> Saving…</> : 'Save Changes'}
           </button>
+        </>
+      }
+    >
+      <form id={FORM_ID} onSubmit={(e) => { e.preventDefault(); onSubmit() }} className="form-stack" style={{ gap: 'var(--space-4)' }}>
+        {error && (
+          <div className="alert alert-error" role="alert">
+            <Icon name="alert" size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className={s.formGrid}>
+          <FormField label="Role">
+            <select ref={roleRef} className="input" value={editRole}
+              onChange={(e) => { onRoleChange(e.target.value as UserRole); onCampusIdChange('') }}>
+              {ALL_ROLES.map((r) => <option key={r} value={r}>{getRoleLabel(r)}</option>)}
+            </select>
+          </FormField>
+
+          {editRole === 'IG_CLASS_TEACHER' && (
+            <FormField label="Campus">
+              <select className="input" value={editCampusId}
+                onChange={(e) => onCampusIdChange(e.target.value)}>
+                <option value="">— none —</option>
+                {campuses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </select>
+            </FormField>
+          )}
+
+          <FormField label="Batch (optional)">
+            <select className="input" value={editBatchId}
+              onChange={(e) => onBatchIdChange(e.target.value)}>
+              <option value="">— none —</option>
+              {batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
+            </select>
+          </FormField>
+
+          <div className={`form-group ${s.span2}`}>
+            <label className="label" htmlFor="edit-user-password">
+              Reset Password <span style={{ fontWeight: 400, color: 'var(--color-muted)' }}>(leave blank to keep current)</span>
+            </label>
+            <PasswordInput
+              id="edit-user-password"
+              value={editPw}
+              onChange={(e) => onPwChange(e.target.value)}
+              autoComplete="new-password"
+              placeholder="Min 8 chars · upper · lower · digit · symbol"
+              showStrength={editPw.length > 0}
+            />
+          </div>
         </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }

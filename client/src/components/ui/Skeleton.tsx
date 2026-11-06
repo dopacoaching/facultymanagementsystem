@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { Icon, type IconName } from './Icon'
 
 // ── Base skeleton block ───────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ export function SkeletonCard({ lines = 4, showHeader = true }: { lines?: number;
   return (
     <div className="card">
       {showHeader && (
-        <div style={{ marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between' }}>
+        <div className="card-header">
           <Skeleton height="1rem" width="40%" />
           <Skeleton height="1rem" width="15%" />
         </div>
@@ -116,7 +117,7 @@ export function PageLoading({ type = 'table' }: { type?: 'table' | 'cards' | 'da
   }
   return (
     <div className="card">
-      <div style={{ marginBottom: '1.25rem' }}>
+      <div className="mb-4">
         <Skeleton height="2.25rem" width={220} radius="var(--radius)" />
       </div>
       <SkeletonTable rows={6} cols={5} />
@@ -155,16 +156,16 @@ export function ErrorAlert({ message, what, onRetry, onDismiss }: ErrorAlertProp
 
   return (
     <div className="alert alert-error" role="alert" style={{ flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-start' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span className="alert-icon" aria-hidden="true">!</span>
+      <div className="cluster" style={{ gap: '0.5rem' }}>
+        <Icon name="alert" size={18} />
         <strong>{heading}</strong>
       </div>
-      <div style={{ paddingLeft: '1.625rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.8125rem' }}>
+      <div style={{ paddingLeft: '1.625rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: 'var(--text-sm)' }}>
         <div><strong>Why:</strong> {why}</div>
         <div><strong>What to do:</strong> {fix}</div>
       </div>
       {(onRetry || onDismiss) && (
-        <div style={{ paddingLeft: '1.625rem', display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+        <div className="cluster" style={{ paddingLeft: '1.625rem', marginTop: '0.25rem' }}>
           {onRetry && (
             <button type="button" className="btn btn-outline btn-sm" onClick={onRetry}>Retry</button>
           )}
@@ -183,6 +184,8 @@ interface EmptyStateProps {
   /** @deprecated No longer rendered — EmptyState now shows a fixed neutral glyph.
    *  Accepted (and ignored) for backwards compatibility with older call sites. */
   icon?: string
+  /** Optional glyph from the shared icon set (default: inbox). */
+  iconName?: IconName
   title: string
   description?: string
   action?: {
@@ -192,15 +195,11 @@ interface EmptyStateProps {
   children?: ReactNode
 }
 
-export function EmptyState({ title, description, action, children }: EmptyStateProps) {
+export function EmptyState({ title, description, action, children, iconName = 'inbox' }: EmptyStateProps) {
   return (
     <div className="empty-state">
       <div className="empty-state-icon" aria-hidden="true">
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 7l1.5 12.5A2 2 0 0 0 6.5 21h11a2 2 0 0 0 2-1.5L21 7" />
-          <path d="M3 7l3-4h12l3 4" />
-          <path d="M9 12h6" strokeDasharray="0.1 3.6" />
-        </svg>
+        <Icon name={iconName} size={24} />
       </div>
       <h3>{title}</h3>
       {description && <p>{description}</p>}

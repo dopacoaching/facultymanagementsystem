@@ -5,7 +5,10 @@ import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { FormField } from '@/components/ui/FormField'
 import { ErrorAlert } from '@/components/ui/Skeleton'
 import { useToast } from '@/components/ui/Toast'
+import { Icon } from '@/components/ui/Icon'
 import { addDays, toLocalISO, todayLocal } from '@/utils/date'
+import { CheckRow } from './EntryParts'
+import s from './Entry.module.css'
 
 function fmtDay(iso: string): string {
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
@@ -65,20 +68,23 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
   }
 
   return (
-    <div className="card" style={{ marginTop: '1.5rem' }}>
-      <h3 style={{ marginTop: 0 }}>No Class</h3>
-      <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', marginTop: 0 }}>
-        If no class was held at your campus on a day, mark it here. Otherwise the day shows as
-        &ldquo;report not submitted&rdquo; for HR. Marked by mistake? Ask HR to change or remove it.
-      </p>
+    <details className={`card card-quiet ${s.noClass}`}>
+      <summary>
+        <span>No Class</span>
+        <span className={s.noClassChevron}><Icon name="chevronDown" size={18} /></span>
+      </summary>
+      <div className={s.noClassBody}>
+        <p className={`${s.muted} ${s.lead}`}>
+          If no class was held at your campus on a day, mark it here. Otherwise the day shows as
+          &ldquo;report not submitted&rdquo; for HR. Marked by mistake? Ask HR to change or remove it.
+        </p>
 
-      {error && (
-        <div className="alert alert-warning" role="alert" style={{ marginBottom: '1rem' }}>
-          <span className="alert-icon" aria-hidden="true">!</span>{error}
-        </div>
-      )}
+        {error && (
+          <div className="alert alert-warning" role="alert">
+            <span className="alert-icon" aria-hidden="true">!</span>{error}
+          </div>
+        )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div className="input-group">
           <FormField label="Date" htmlFor="nc-date" required>
             <input id="nc-date" type="date" className="input" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
@@ -92,28 +98,17 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
         </div>
         {batches.length > 1 && (
           <FormField label="Batches" htmlFor="nc-batches" hint="Tick only the batches that had no class. Leave all unticked if the whole campus had none.">
-            <div id="nc-batches" role="group" aria-label="Batches" style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <div id="nc-batches" role="group" aria-label="Batches" className={s.checkList}>
               {batches.map((b) => {
                 const checked = batchIds.includes(b._id)
                 return (
-                  <label
+                  <CheckRow
                     key={b._id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.625rem', cursor: 'pointer',
-                      padding: '0.5rem 0.75rem', borderRadius: 'var(--radius)',
-                      border: `1px solid ${checked ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                      background: checked ? 'var(--color-primary-ghost)' : 'var(--color-surface)',
-                      fontSize: '0.875rem',
-                    }}
+                    checked={checked}
+                    onChange={() => setBatchIds(checked ? batchIds.filter((id) => id !== b._id) : [...batchIds, b._id])}
                   >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => setBatchIds(checked ? batchIds.filter((id) => id !== b._id) : [...batchIds, b._id])}
-                      style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
-                    />
                     {b.name}
-                  </label>
+                  </CheckRow>
                 )
               })}
             </div>
@@ -131,33 +126,29 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
             <input id="nc-other" className="input" value={otherReason} maxLength={120} autoFocus onChange={(e) => setOtherReason(e.target.value)} />
           </FormField>
         )}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button type="button" className="btn btn-primary" onClick={mark} disabled={saving}>
-            {saving ? <><span className="spinner spinner-on-solid" /> Saving…</> : 'Mark as No Class'}
+        <div className={s.inlineActions}>
+          <button type="button" className="btn btn-outline" onClick={mark} disabled={saving}>
+            {saving ? <><span className="spinner" /> Saving…</> : 'Mark as No Class'}
           </button>
         </div>
-      </div>
 
-      {recent.status === 'error' && (
-        <div style={{ marginTop: '1rem' }}>
+        {recent.status === 'error' && (
           <ErrorAlert message={recent.error?.message ?? ''} what="Couldn't load your No Class days" onRetry={recent.refetch} />
-        </div>
-      )}
-      {(recent.data?.length ?? 0) > 0 && (
-        <ul style={{ listStyle: 'none', padding: 0, margin: '1.25rem 0 0', display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-          {recent.data!.map((n) => (
-            <li key={n._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem' }}>
-              <span>
-                <strong>{fmtDay(n.day ?? toLocalISO(new Date(n.date)))}</strong>
+        )}
+        {(recent.data?.length ?? 0) > 0 && (
+          <ul className={s.noClassList} aria-label="Recent No Class days">
+            {recent.data!.map((n) => (
+              <li key={n._id} className={s.noClassItem}>
+                <span className={s.noClassDay}>{fmtDay(n.day ?? toLocalISO(new Date(n.date)))}</span>
                 {n.batchIds?.length ? (
-                  <span> · {n.batchIds.map((id) => batches.find((b) => b._id === id)?.name ?? 'Batch').join(', ')}</span>
+                  <span className="badge badge-gray">{n.batchIds.map((id) => batches.find((b) => b._id === id)?.name ?? 'Batch').join(', ')}</span>
                 ) : null}
-                {n.reason && <span style={{ color: 'var(--color-muted)' }}> — {n.reason}</span>}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+                {n.reason && <span className={s.muted}>{n.reason}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </details>
   )
 }

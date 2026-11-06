@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { Icon } from '@/components/ui/Icon'
 import type { Session } from '@/types'
 import { SUBJECT_OPTIONS } from '@/components/coordinator/log-session/types'
 import { ENTRY_TYPES, ENTRY_TYPE_LABELS, usesFullBreak, type EntryType } from '@/lib/constants/entryTypes'
@@ -87,6 +89,7 @@ interface EditClassSessionModalProps {
 export function EditClassSessionModal({
   form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate, chapterOptions, faculty, batches, batchIds, onBatchIdsChange,
 }: EditClassSessionModalProps) {
+  const uid = useId()
   return (
     <div
       role="dialog" aria-modal="true" aria-label="Edit Class Session"
@@ -96,16 +99,16 @@ export function EditClassSessionModal({
       <div className="modal-panel modal-md">
         <div className="modal-header">
           <h2>Edit Class Session</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="modal-close">×</button>
+          <button type="button" onClick={onClose} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); onSubmit() }}>
         <div className="modal-body">
-          {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}><span className="alert-icon">⚠</span>{error}</div>}
+          {error && <div className="alert alert-error" role="alert" style={{ marginBottom: 'var(--space-4)' }}><span className="alert-icon"><Icon name="alert" size={16} /></span>{error}</div>}
           <div className="input-group-3">
             {faculty && (
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="label">Faculty</label>
-                <select className="input" value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
+                <label className="label" htmlFor={`${uid}-faculty`}>Faculty</label>
+                <select id={`${uid}-faculty`} className="input" value={form.facultyId} onChange={(e) => setForm((f) => ({ ...f, facultyId: e.target.value }))}>
                   {!faculty.some((x) => x._id === form.facultyId) && <option value={form.facultyId}>(current faculty)</option>}
                   {faculty.map((x) => <option key={x._id} value={x._id}>{x.name} — {x.subject}</option>)}
                 </select>
@@ -113,16 +116,16 @@ export function EditClassSessionModal({
             )}
             {form.entryType !== '' && (
               <div className="form-group">
-                <label className="label">Entry type</label>
-                <select className="input" value={form.entryType}
+                <label className="label" htmlFor={`${uid}-entry-type`}>Entry type</label>
+                <select id={`${uid}-entry-type`} className="input" value={form.entryType}
                   onChange={(e) => setForm((f) => ({ ...f, entryType: e.target.value as EntryType }))}>
                   {ENTRY_TYPES.map((t) => <option key={t} value={t}>{ENTRY_TYPE_LABELS[t]}</option>)}
                 </select>
               </div>
             )}
             <div className="form-group">
-              <label className="label">Subject</label>
-              <select
+              <label className="label" htmlFor={`${uid}-subject`}>Subject</label>
+              <select id={`${uid}-subject`}
                 className="input"
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value, chapters: f.subject === e.target.value ? f.chapters : [] }))}
@@ -132,7 +135,7 @@ export function EditClassSessionModal({
               </select>
             </div>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="label">Chapters</label>
+              <span className="label">Chapters</span>
               <ChapterChips
                 value={form.chapters}
                 onChange={(v) => setForm((f) => ({ ...f, chapters: v }))}
@@ -149,56 +152,56 @@ export function EditClassSessionModal({
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />
             )}
             <div className="form-group">
-              <label className="label">Class Mode</label>
-              <select className="input" value={form.classMode}
+              <label className="label" htmlFor={`${uid}-class-mode`}>Class Mode</label>
+              <select id={`${uid}-class-mode`} className="input" value={form.classMode}
                 onChange={(e) => setForm((f) => ({ ...f, classMode: e.target.value as EditClassSessionForm['classMode'] }))}>
                 <option value="">— select —</option>
                 {CLASS_MODE_OPTIONS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
             <div className="form-group">
-              <label className="label">Session Date</label>
-              <input type="date" className="input" value={form.sessionDate} max={maxDate}
+              <label className="label" htmlFor={`${uid}-session-date`}>Session Date</label>
+              <input id={`${uid}-session-date`} type="date" className="input" value={form.sessionDate} max={maxDate}
                 onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))} />
             </div>
             <div className="form-group">
-              <label className="label">Updated By</label>
+              <label className="label" htmlFor={`${uid}-updated-by`}>Updated By</label>
               {teacherNames ? (
-                <select className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))}>
+                <select id={`${uid}-updated-by`} className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))}>
                   {form.updatedByName && !teacherNames.includes(form.updatedByName) && (
                     <option value={form.updatedByName}>{form.updatedByName}</option>
                   )}
                   {teacherNames.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               ) : (
-                <input className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
+                <input id={`${uid}-updated-by`} className="input" value={form.updatedByName} onChange={(e) => setForm((f) => ({ ...f, updatedByName: e.target.value }))} />
               )}
             </div>
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="label">Comment</label>
-              <textarea className="input" rows={2} maxLength={500} value={form.comment} style={{ resize: 'vertical' }}
+              <label className="label" htmlFor={`${uid}-comment`}>Comment</label>
+              <textarea id={`${uid}-comment`} className="input" rows={2} maxLength={500} value={form.comment} style={{ resize: 'vertical' }}
                 onChange={(e) => setForm((f) => ({ ...f, comment: e.target.value }))} />
             </div>
             {form.entryType === 'SHOOT' ? (
               <>
                 <div className="form-group">
-                  <label className="label">Total Hours</label>
-                  <input type="number" min={0} step={1} className="input" value={form.shootHours} onChange={(e) => setForm((f) => ({ ...f, shootHours: e.target.value }))} />
+                  <label className="label" htmlFor={`${uid}-total-hours`}>Total Hours</label>
+                  <input id={`${uid}-total-hours`} type="number" min={0} step={1} className="input" value={form.shootHours} onChange={(e) => setForm((f) => ({ ...f, shootHours: e.target.value }))} />
                 </div>
                 <div className="form-group">
-                  <label className="label">Minutes</label>
-                  <input type="number" min={0} max={59} step={1} className="input" value={form.shootMinutes} onChange={(e) => setForm((f) => ({ ...f, shootMinutes: e.target.value }))} />
+                  <label className="label" htmlFor={`${uid}-minutes`}>Minutes</label>
+                  <input id={`${uid}-minutes`} type="number" min={0} max={59} step={1} className="input" value={form.shootMinutes} onChange={(e) => setForm((f) => ({ ...f, shootMinutes: e.target.value }))} />
                 </div>
               </>
             ) : (
               <>
                 <div className="form-group">
-                  <label className="label">Start Time</label>
-                  <input type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
+                  <label className="label" htmlFor={`${uid}-start-time`}>Start Time</label>
+                  <input id={`${uid}-start-time`} type="time" className="input" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
                 </div>
                 <div className="form-group">
-                  <label className="label">End Time</label>
-                  <input type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
+                  <label className="label" htmlFor={`${uid}-end-time`}>End Time</label>
+                  <input id={`${uid}-end-time`} type="time" className="input" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} />
                 </div>
               </>
             )}

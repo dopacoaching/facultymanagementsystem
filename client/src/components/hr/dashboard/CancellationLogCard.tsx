@@ -1,3 +1,4 @@
+import { Icon } from "@/components/ui/Icon"
 import type { DashboardData } from '@/services/salary.service'
 
 interface CancellationLogCardProps {
@@ -14,7 +15,7 @@ export function CancellationLogCard({ cancellationLog, periodLabel }: Cancellati
       </div>
       {cancellationLog.length === 0 ? (
         <div className="empty-state" style={{ padding: '1.5rem' }}>
-          <div className="empty-state-icon" style={{ fontSize: '1.25rem' }}>✅</div>
+          <div className="empty-state-icon"><Icon name="check" size={20} /></div>
           <p>No cancellations in this range</p>
         </div>
       ) : (

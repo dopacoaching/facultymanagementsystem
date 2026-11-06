@@ -1,3 +1,9 @@
+import { Icon } from '@/components/ui/Icon'
+import s from './Entry.module.css'
+
+/** Rows whose values are times, dates or durations — shown in the mono face. */
+const MONO_LABELS = new Set(['Time', 'Total hours', 'Date'])
+
 /** "Verify your entry" — shown before a new entry is saved so the teacher can check it. */
 export function ConfirmEntryModal({ rows, saving, onConfirm, onBack }: {
   rows: { label: string; value: string }[]
@@ -14,17 +20,19 @@ export function ConfirmEntryModal({ rows, saving, onConfirm, onBack }: {
       <div className="modal-panel modal-md">
         <div className="modal-header">
           <h2>Verify your entry</h2>
-          <button type="button" onClick={onBack} aria-label="Close" className="modal-close" disabled={saving}>×</button>
+          <button type="button" onClick={onBack} aria-label="Close" className="modal-close" disabled={saving}>
+            <Icon name="x" size={18} />
+          </button>
         </div>
         <div className="modal-body">
-          <p style={{ marginTop: 0, fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+          <p className={s.modalLead}>
             Check every detail below. You can edit an entry for 24 hours after pushing it, but HR sees it straight away.
           </p>
-          <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '0.5rem 1rem', margin: 0, fontSize: '0.875rem' }}>
+          <dl className={s.summary}>
             {rows.map((r) => (
-              <div key={r.label} style={{ display: 'contents' }}>
-                <dt style={{ color: 'var(--color-muted)' }}>{r.label}</dt>
-                <dd style={{ margin: 0, fontWeight: 600, overflowWrap: 'anywhere' }}>{r.value || '—'}</dd>
+              <div key={r.label} className={s.summaryRow}>
+                <dt>{r.label}</dt>
+                <dd className={MONO_LABELS.has(r.label) ? s.mono : undefined}>{r.value || '—'}</dd>
               </div>
             ))}
           </dl>

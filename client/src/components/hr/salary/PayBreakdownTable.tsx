@@ -1,4 +1,5 @@
 import type { SalaryBreakdown } from '@/types'
+import s from './Salary.module.css'
 
 interface PayBreakdownTableProps {
   breakdown: SalaryBreakdown[]
@@ -8,17 +9,17 @@ export function PayBreakdownTable({ breakdown }: PayBreakdownTableProps) {
   if (breakdown.length === 0) return null
 
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
+    <div className={s.block}>
       <p className="section-label">Pay Breakdown</p>
       <div className="table-wrapper">
-        <table>
+        <table className={s.lines}>
           <tbody>
             {breakdown.map((row, i) => (
               <tr key={i}>
-                <td style={{ color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                <td className={row.isDeduction ? s.deduction : undefined}>
                   {row.isDeduction ? '− ' : ''}{row.label}
                 </td>
-                <td style={{ textAlign: 'right', fontWeight: 600, color: row.isDeduction ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                <td className={`amt ${row.isDeduction ? s.deduction : ''}`}>
                   {/* "Rate"/"Pay"/"Salary" labels are always a ₹ amount even when they
                       mention "hour" (e.g. "Rate per Hour") — check those before the
                       generic hours/quota match, which is for label text stating a

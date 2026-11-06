@@ -5,6 +5,8 @@ import { getEntriesReport, type EntriesReport } from '@/services/entries.service
 import { useAsyncResource } from '@/hooks/useAsyncResource'
 import { ErrorAlert, EmptyState, SkeletonCard } from '@/components/ui/Skeleton'
 import { toLocalISO } from '@/utils/date'
+import { Icon } from '@/components/ui/Icon'
+import css from './Dashboard.module.css'
 
 interface MonthData {
   month: string
@@ -73,26 +75,29 @@ export function SubjectHours() {
   const max = view?.subjects[0]?.hours ?? 0
 
   return (
-    <div className="card" style={{ minWidth: 0 }}>
-      <div className="card-header" style={{ flexWrap: 'wrap' }}>
+    <div className={`card ${css.minw}`}>
+      <div className={`card-header ${css.monthHead}`}>
         <div>
           <h2>Hours by Subject</h2>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted)' }}>
-            {monthLabel(month)}{view ? ` · ${formatHM(view.total)} total` : ''}
+          <span className={css.sectionSub}>
+            {monthLabel(month)}{view ? <> · <span className="mono">{formatHM(view.total)}</span> total</> : ''}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-ghost" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">‹ Prev</button>
+        <div className={css.stepper}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Previous month">
+            <Icon name="chevronLeft" size={14} /> Prev
+          </button>
           <input
             type="month"
-            className="input"
-            style={{ width: 'auto' }}
+            className={`input ${css.dateInput}`}
             aria-label="Month"
             value={month}
             max={thisMonth}
             onChange={(e) => e.target.value && setMonth(e.target.value)}
           />
-          <button type="button" className="btn btn-ghost" onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= thisMonth} aria-label="Next month">Next ›</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMonth(shiftMonth(month, 1))} disabled={month >= thisMonth} aria-label="Next month">
+            Next <Icon name="chevronRight" size={14} />
+          </button>
         </div>
       </div>
 
@@ -100,32 +105,29 @@ export function SubjectHours() {
         <ErrorAlert message={res.error?.message ?? ''} what={`Couldn't load ${monthLabel(month)}`} onRetry={res.refetch} />
       )}
 
-      {!view && res.status !== 'error' ? (
-        <SkeletonCard lines={4} showHeader={false} />
-      ) : view && view.subjects.length === 0 ? (
-        <EmptyState title="No entries this month" description="Hours by subject will appear here once entries are submitted." />
-      ) : view && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.875rem 2rem', opacity: res.isRefetching ? 0.6 : 1 }}>
-          {view.subjects.map((sub) => (
-            <div key={sub.subject}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.3rem' }}>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.subject}</span>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
-                  {formatHM(sub.hours)} · {sub.entries} {sub.entries === 1 ? 'entry' : 'entries'}
-                </span>
+      <div aria-live="polite">
+        {!view && res.status !== 'error' ? (
+          <SkeletonCard lines={4} showHeader={false} />
+        ) : view && view.subjects.length === 0 ? (
+          <EmptyState title="No entries this month" description="Hours by subject will appear here once entries are submitted." />
+        ) : view && (
+          <div className={`${css.barGrid} ${res.isRefetching ? css.dim : ''}`}>
+            {view.subjects.map((sub) => (
+              <div key={sub.subject}>
+                <div className={css.barTop}>
+                  <span className={css.barName}>{sub.subject}</span>
+                  <span className={`mono ${css.barFig}`}>
+                    {formatHM(sub.hours)} · {sub.entries} {sub.entries === 1 ? 'entry' : 'entries'}
+                  </span>
+                </div>
+                <div className={css.barTrack}>
+                  <div className={css.barFill} style={{ width: `${max > 0 ? (sub.hours / max) * 100 : 0}%` }} />
+                </div>
               </div>
-              <div style={{ height: 6, borderRadius: 3, background: 'var(--color-surface-2)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${max > 0 ? (sub.hours / max) * 100 : 0}%`,
-                  background: 'var(--color-primary)',
-                  borderRadius: 3,
-                }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

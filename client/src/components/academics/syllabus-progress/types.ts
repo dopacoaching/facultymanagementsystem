@@ -19,12 +19,12 @@ export interface ProgressResponse {
   progress: Record<Subject, Record<string, MonthProgress>>
 }
 
-export const STATUS_CONFIG: Record<MonthStatus, { label: string; icon: string; cls: string }> = {
-  ON_TRACK:        { label: 'On Track',       icon: '✅', cls: 'bg-green-100 text-green-800 border-green-300' },
-  SLIGHTLY_BEHIND: { label: '1 Behind',       icon: '⚠️', cls: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-  BEHIND:          { label: 'Behind',         icon: '🔴', cls: 'bg-red-100 text-red-800 border-red-300' },
-  NOT_STARTED:     { label: 'Not Started',    icon: '⬜', cls: 'bg-gray-100 text-gray-500 border-gray-200' },
-  COMPLETED:       { label: 'Completed',      icon: '🏆', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+export const STATUS_CONFIG: Record<MonthStatus, { label: string; cls: string }> = {
+  ON_TRACK:        { label: 'On Track',    cls: 'badge-green' },
+  SLIGHTLY_BEHIND: { label: '1 Behind',    cls: 'badge-yellow' },
+  BEHIND:          { label: 'Behind',      cls: 'badge-red' },
+  NOT_STARTED:     { label: 'Not Started', cls: 'badge-gray' },
+  COMPLETED:       { label: 'Completed',   cls: 'badge-blue' },
 }
 
 export const SUBJECT_LABEL: Record<Subject, string> = {

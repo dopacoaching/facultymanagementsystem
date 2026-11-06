@@ -11,6 +11,8 @@ import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
 import type { Session } from '@/types'
 import type { JointHistoryRow } from '@/lib/utils/jointHistory'
 import { CLASS_MODE_LABELS as MODE_LABELS } from '@/lib/constants/classModes'
+import { Icon } from '@/components/ui/Icon'
+import s from '@/components/coordinator/Entry.module.css'
 
 
 function formatHM(durationHours: number): string {
@@ -55,65 +57,71 @@ export function JointHistory({ endpoint, subject, save }: {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-head">
         <div>
-          <h1 style={{ marginBottom: '0.125rem' }}>Joint Class History</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-            Every joint class entered for {subject}.
-          </p>
+          <h1>Joint Class History</h1>
+          <p className="page-subtitle">Every joint class entered for {subject}.</p>
         </div>
       </div>
 
-      {error && <div style={{ marginBottom: '1rem' }}><ErrorAlert message={error} onRetry={load} /></div>}
+      {error && <div style={{ marginBottom: 'var(--space-4)' }}><ErrorAlert message={error} onRetry={load} /></div>}
 
-      <div className="card" style={{ marginBottom: '1rem' }}>
+      <div className="toolbar">
         <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
       </div>
 
       {loading && rows.length === 0 ? (
-        <div className="card"><SkeletonTable rows={6} cols={7} /></div>
+        <div className="card card-flush"><SkeletonTable rows={6} cols={7} /></div>
       ) : rows.length === 0 ? (
         <div className="card"><EmptyState title="No joint classes" description={`No joint classes between ${fmtDay(from)} and ${fmtDay(to)}.`} /></div>
       ) : (
         <>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: '0 0 0.75rem' }}>
-            {rows.length} {rows.length === 1 ? 'class' : 'classes'} · <strong style={{ color: 'var(--color-text)' }}>{formatHM(totalHours)}</strong> in total
+          <p className={s.historySummary} aria-live="polite">
+            <strong>{rows.length}</strong> {rows.length === 1 ? 'class' : 'classes'} · <strong>{formatHM(totalHours)}</strong> in total
           </p>
-          <div className="card">
-            <div className="table-wrapper">
+          <div className="card card-flush">
+            <div className="table-wrapper table-stack">
               <table>
                 <thead>
                   <tr>
                     <th>Date</th><th>Faculty</th><th>Subject</th><th>Chapter</th><th>Campuses</th><th>Batches</th>
-                    <th>Class mode</th><th>Start–End</th><th style={{ textAlign: 'right' }}>Time</th><th>Entered by</th><th>Comment</th><th></th>
+                    <th>Class mode</th><th>Start–End</th><th className="num" style={{ textAlign: 'right' }}>Time</th><th>Entered by</th><th>Comment</th>
+                    <th><span className={s.srOnly}>Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
-                    <tr key={r._id}>
-                      <td style={{ whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>{fmtDay(r.date)}</td>
-                      <td style={{ fontWeight: 600 }}>{r.facultyName}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{r.subject}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{r.chapter || '—'}</td>
-                      <td>{r.campuses.join(' + ') || '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{r.batchNames.join(', ') || '—'}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>{r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '—'}</td>
-                      <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{formatHM(r.durationHours)}</td>
-                      <td style={{ color: 'var(--color-text-secondary)' }}>{r.enteredBy || '—'}</td>
-                      <td style={{ color: 'var(--color-text-secondary)', minWidth: 160, whiteSpace: 'pre-wrap' }}>{r.comment || '—'}</td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {editWindowRemainingMs(r.createdAt) > 0 && (
-                          <>
-                            <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(r.session)}>Edit</button>
-                            <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--color-muted)' }}>
-                              {formatTimeLeft(editWindowRemainingMs(r.createdAt))}
+                  {rows.map((r) => {
+                    const canEdit = editWindowRemainingMs(r.createdAt) > 0
+                    return (
+                      <tr key={r._id}>
+                        <td data-label="Date" className={`${s.secondary} ${s.nowrap}`}>{fmtDay(r.date)}</td>
+                        <td data-label="Faculty" className={s.strong}>{r.facultyName}</td>
+                        <td data-label="Subject" className={s.secondary}>{r.subject}</td>
+                        <td data-label="Chapter" className={s.secondary}>{r.chapter || '—'}</td>
+                        <td data-label="Campuses">{r.campuses.join(' + ') || '—'}</td>
+                        <td data-label="Batches" className={s.secondary}>{r.batchNames.join(', ') || '—'}</td>
+                        <td data-label="Class mode">
+                          {r.classMode
+                            ? <span className={`badge ${r.classMode.startsWith('ONLINE') ? 'badge-blue' : 'badge-green'}`}>{MODE_LABELS[r.classMode] ?? r.classMode}</span>
+                            : '—'}
+                        </td>
+                        <td data-label="Start–End" className={`num ${s.nowrap}`}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
+                        <td data-label="Time" className={`num ${s.strong} ${s.nowrap}`} style={{ textAlign: 'right' }}>{formatHM(r.durationHours)}</td>
+                        <td data-label="Entered by" className={s.secondary}>{r.enteredBy || '—'}</td>
+                        <td data-label="Comment" className={s.comment}>{r.comment || '—'}</td>
+                        <td data-label="Actions" className={s.actionCell}>
+                          {canEdit && (
+                            <span className={s.editCell}>
+                              <span className={s.timeLeft}>{formatTimeLeft(editWindowRemainingMs(r.createdAt))}</span>
+                              <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditing(r.session)}>
+                                <Icon name="edit" size={14} /> Edit
+                              </button>
                             </span>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

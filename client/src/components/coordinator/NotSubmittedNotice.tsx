@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { getEntriesReport, type EntriesReport } from '@/services/entries.service'
 import { FlagIcon, fmtDay } from '@/components/hr/reports/reportShared'
 import { toLocalISO } from '@/utils/date'
+import s from './Entry.module.css'
 
 const LOOKBACK_DAYS = 30
 
@@ -29,22 +30,22 @@ export function NotSubmittedNotice({ accessToken, refreshKey }: { accessToken: s
   if (missing.length === 0) return null
 
   return (
-    <div className="alert alert-error" role="alert" style={{ display: 'block', marginBottom: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+    <div className={`alert alert-error ${s.notice}`} role="alert">
+      <div className={s.noticeHead}>
         <FlagIcon />
         {total} {total === 1 ? 'day' : 'days'} not submitted
       </div>
-      <p style={{ margin: '0 0 0.5rem', fontSize: '0.8125rem' }}>
+      <p className={s.noticeText}>
         Push these classes, or mark No Class for the day, using the form below (pick the date).
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+      <ul className={s.noticeList}>
         {missing.map((m) => (
-          <div key={`${m.campusName}|${m.batchName ?? ''}`} style={{ fontSize: '0.8125rem' }}>
+          <li key={`${m.campusName}|${m.batchName ?? ''}`}>
             {m.batchName && <strong>{m.batchName}: </strong>}
-            {m.dates.map(fmtDay).join(', ')}
-          </div>
+            <span className={s.noticeDates}>{m.dates.map(fmtDay).join(', ')}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

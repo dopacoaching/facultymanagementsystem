@@ -1,40 +1,45 @@
-import { SUBJECTS, SUBJECT_LABEL, SUBJECT_COLOR } from './types'
-import type { MonthData } from './types'
+import { SUBJECTS, SUBJECT_LABEL } from './types'
+import type { MonthData, Subject } from './types'
+import s from './Syllabus.module.css'
 
 interface MonthSectionProps {
   monthData: MonthData
 }
 
-export function MonthSection({ monthData: md }: MonthSectionProps) {
-  return (
-    <section>
-      <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-        <span className="inline-block w-2 h-2 rounded-full bg-gray-400" />
-        {md.monthName}
-      </h2>
+const SWATCH: Record<Subject, string> = {
+  PHYSICS: s.physics,
+  CHEMISTRY: s.chemistry,
+  BIOLOGY: s.biology,
+}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+export function MonthSection({ monthData: md }: MonthSectionProps) {
+  const total = SUBJECTS.reduce((n, subj) => n + (md.subjects[subj]?.length ?? 0), 0)
+
+  return (
+    <section className="card" aria-label={md.monthName}>
+      <div className={`card-header ${s.monthHead}`}>
+        <h2>{md.monthName}</h2>
+        <span className={`${s.monthCount} num`}>{total} chapters</span>
+      </div>
+
+      <div className={s.subjects}>
         {SUBJECTS.map((subj) => {
           const chapters = md.subjects[subj]
           if (!chapters || chapters.length === 0) return null
           return (
-            <div
-              key={subj}
-              className={`rounded-xl border-2 p-3 ${SUBJECT_COLOR[subj]}`}
-            >
-              <div className="text-xs font-bold uppercase tracking-wide mb-2">
+            <div key={subj} className={s.subject}>
+              <div className={s.subjectHead}>
+                <span className={`${s.swatch} ${SWATCH[subj]}`} aria-hidden="true" />
                 {SUBJECT_LABEL[subj]}
-                <span className="ml-2 font-normal opacity-70">({chapters.length})</span>
+                <span className={s.count}>{chapters.length}</span>
               </div>
-              <ol className="space-y-1">
+              <ol className={s.list}>
                 {chapters.map((ch) => (
-                  <li key={ch._id} className="flex items-start gap-1 text-sm">
-                    <span className="opacity-50 shrink-0 w-4 text-right">{ch.chapterOrder}.</span>
-                    <span className={ch.isSplitPart ? 'italic' : ''}>
+                  <li key={ch._id} className={s.item}>
+                    <span className={s.order}>{ch.chapterOrder}.</span>
+                    <span className={ch.isSplitPart ? s.split : undefined}>
                       {ch.chapterName}
-                      {ch.isSplitPart && (
-                        <span className="ml-1 text-xs opacity-60">(split)</span>
-                      )}
+                      {ch.isSplitPart && <span className={`badge badge-gray ${s.splitTag}`}>split</span>}
                     </span>
                   </li>
                 ))}

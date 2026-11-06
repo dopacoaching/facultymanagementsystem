@@ -1,6 +1,8 @@
 import type { AppUser } from '@/services/user.service'
 import { SkeletonTable, EmptyState } from '@/components/ui/Skeleton'
+import { Icon } from '@/components/ui/Icon'
 import { ROLE_BADGE, getRoleLabel } from './types'
+import s from './Users.module.css'
 
 interface UsersTableProps {
   loading: boolean
@@ -19,11 +21,13 @@ export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleA
   if (users.length === 0) {
     return hasHiddenUsers ? (
       <EmptyState
+        iconName="search"
         title="No matching users"
         description="No users match the current search or role filter."
       />
     ) : (
       <EmptyState
+        iconName="users"
         title="No users yet"
         description="Create the first user account to give staff access to the system."
         action={{ label: '+ New User', onClick: onNewUser }}
@@ -32,7 +36,7 @@ export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleA
   }
 
   return (
-    <div className="table-wrapper">
+    <div className="table-wrapper table-stack" aria-live="polite">
       <table>
         <thead>
           <tr>
@@ -40,46 +44,54 @@ export function UsersTable({ loading, users, selfId, toggling, onEdit, onToggleA
             <th>Role</th>
             <th>Faculty / Batch</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th style={{ textAlign: 'right' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {users.map((u) => (
-            <tr key={u._id} style={{ opacity: u.isActive ? 1 : 0.5 }}>
-              <td style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                @{u.username}
-                {u._id === selfId && (
-                  <span className="badge badge-blue" style={{ marginLeft: '0.5rem', fontSize: '0.65rem' }}>you</span>
-                )}
+            <tr key={u._id} className={u.isActive ? undefined : s.inactive}>
+              <td data-label="Username">
+                <div className={s.userCell}>
+                  <span className="avatar" aria-hidden="true">{u.username.charAt(0)}</span>
+                  <span className={s.userName}>
+                    @{u.username}
+                    {u._id === selfId && <span className={`badge badge-blue ${s.youTag}`}>you</span>}
+                  </span>
+                </div>
               </td>
-              <td>
+              <td data-label="Role">
                 <span className={`badge ${ROLE_BADGE[u.role] ?? 'badge-gray'}`}>
                   {getRoleLabel(u.role)}
                 </span>
               </td>
-              <td style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                {u.facultyId && typeof u.facultyId === 'object'
-                  ? <span title="Linked faculty">👤 {u.facultyId.name}</span>
-                  : null}
-                {u.batchId && typeof u.batchId === 'object'
-                  ? <span title="Assigned batch" style={{ marginLeft: u.facultyId ? '0.5rem' : 0 }}>🗂 {u.batchId.name}</span>
-                  : null}
-                {!u.facultyId && !u.batchId ? '—' : null}
+              <td data-label="Faculty / Batch">
+                <div className={s.linkCell}>
+                  {u.facultyId && typeof u.facultyId === 'object'
+                    ? <span className={s.linkItem} title="Linked faculty"><Icon name="user" size={14} />{u.facultyId.name}</span>
+                    : null}
+                  {u.batchId && typeof u.batchId === 'object'
+                    ? <span className={s.linkItem} title="Assigned batch"><Icon name="layers" size={14} />{u.batchId.name}</span>
+                    : null}
+                  {!u.facultyId && !u.batchId ? <span className={s.dim}>—</span> : null}
+                </div>
               </td>
-              <td>
-                <span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>
+              <td data-label="Status">
+                <span className={`badge badge-dot ${u.isActive ? 'badge-green' : 'badge-gray'}`}>
                   {u.isActive ? 'Active' : 'Inactive'}
                 </span>
               </td>
-              <td>
-                <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'nowrap' }}>
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(u)}>Edit</button>
+              <td data-label="Actions">
+                <div className={s.actions}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => onEdit(u)} aria-label={`Edit @${u.username}`}>
+                    <Icon name="edit" size={14} /> Edit
+                  </button>
                   {u._id !== selfId && (
                     <button
                       type="button"
                       className={`btn btn-sm ${u.isActive ? 'btn-danger-ghost' : 'btn-success'}`}
                       onClick={() => onToggleActive(u)}
                       disabled={toggling === u._id}
+                      aria-label={`${u.isActive ? 'Deactivate' : 'Reactivate'} @${u.username}`}
                     >
                       {toggling === u._id ? '…' : u.isActive ? 'Deactivate' : 'Reactivate'}
                     </button>

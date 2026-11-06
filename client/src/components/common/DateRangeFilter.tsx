@@ -1,4 +1,6 @@
+import { useId } from 'react'
 import { toLocalISO } from '@/utils/date'
+import s from './DateRangeFilter.module.css'
 
 type PresetKey = 'thisWeek' | 'last7' | 'thisMonth' | 'lastMonth' | 'thisYear'
 
@@ -55,26 +57,26 @@ const PRESETS: { key: PresetKey; label: string }[] = [
 export function DateRangeFilter({
   from, to, onFromChange, onToChange, loading, onApply, applyLabel = 'Apply',
 }: DateRangeFilterProps) {
+  const uid = useId()
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="label">From</label>
-          <input type="date" className="input" value={from} max={to || undefined}
-            onChange={(e) => onFromChange(e.target.value)} style={{ minWidth: 150 }} />
+    <div className={s.root}>
+      <div className={s.fields}>
+        <div className={`form-group ${s.field}`}>
+          <label className="label" htmlFor={`${uid}-from`}>From</label>
+          <input id={`${uid}-from`} type="date" className="input" value={from} max={to || undefined}
+            onChange={(e) => onFromChange(e.target.value)} />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="label">To</label>
-          <input type="date" className="input" value={to} min={from || undefined}
-            onChange={(e) => onToChange(e.target.value)} style={{ minWidth: 150 }} />
+        <div className={`form-group ${s.field}`}>
+          <label className="label" htmlFor={`${uid}-to`}>To</label>
+          <input id={`${uid}-to`} type="date" className="input" value={to} min={from || undefined}
+            onChange={(e) => onToChange(e.target.value)} />
         </div>
         {onApply && (
           <button
             type="button"
-            className="btn btn-primary"
+            className={`btn btn-primary ${s.apply}`}
             onClick={onApply}
             disabled={loading || !from || !to}
-            style={{ alignSelf: 'flex-end' }}
           >
             {loading ? (
               <><span className="spinner spinner-on-solid" /> Loading…</>
@@ -83,13 +85,13 @@ export function DateRangeFilter({
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', alignSelf: 'center' }}>Quick range:</span>
+      <div className={s.presets} role="group" aria-label="Quick range">
+        <span className={s.presetsLabel}>Quick range</span>
         {PRESETS.map((p) => (
           <button
             key={p.key}
             type="button"
-            className="btn btn-ghost btn-sm"
+            className={`btn btn-ghost btn-sm ${s.preset}`}
             onClick={() => { const r = presetRange(p.key); onFromChange(r.from); onToChange(r.to) }}
           >
             {p.label}
