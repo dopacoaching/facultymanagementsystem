@@ -87,9 +87,8 @@ export function SalaryResultCard({ result, month, year, hoursSummary }: SalaryRe
 
           <div style={{
             padding: '1.25rem 1.5rem',
-            background: 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
-            color: '#fff', borderRadius: 'var(--radius-lg)',
-            boxShadow: '0 4px 16px rgba(13,148,136,.3)',
+            background: 'var(--color-brand-navy)',
+            color: 'var(--color-on-navy)', borderRadius: 'var(--radius-lg)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9 }}>
               <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Total (Gross)</span>
@@ -103,13 +102,13 @@ export function SalaryResultCard({ result, month, year, hoursSummary }: SalaryRe
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               flexWrap: 'wrap', gap: '0.75rem',
               marginTop: '0.75rem', paddingTop: '0.75rem',
-              borderTop: '1px solid rgba(255,255,255,0.3)',
+              borderTop: '1px solid var(--color-navy-rule)',
             }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '1rem' }}>Estimated Net Payable</div>
                 <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.15rem' }}>Subject to HR approval</div>
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
+              <div style={{ fontSize: '2rem', fontWeight: 600, lineHeight: 1 }}>
                 ₹{result.netPayable?.toLocaleString('en-IN')}
               </div>
             </div>

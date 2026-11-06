@@ -71,14 +71,14 @@ export function SalarySnapshotCard({ salary, month, year }: SalarySnapshotCardPr
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: '0.75rem',
         padding: '1rem 1.5rem',
-        background: 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
-        borderRadius: 'var(--radius-lg)', color: '#fff',
+        background: 'var(--color-brand-navy)',
+        borderRadius: 'var(--radius-lg)', color: 'var(--color-on-navy)',
       }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: '0.875rem', opacity: 0.85 }}>Estimated Payable</div>
           <div style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '0.1rem' }}>Subject to HR approval</div>
         </div>
-        <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>₹{salary.finalPayable?.toLocaleString('en-IN')}</div>
+        <div style={{ fontSize: '1.75rem', fontWeight: 600 }}>₹{salary.finalPayable?.toLocaleString('en-IN')}</div>
       </div>
       <div style={{ textAlign: 'right', marginTop: '0.875rem' }}>
         <Link href="/faculty/salary" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600, textDecoration: 'none' }}>

@@ -33,7 +33,7 @@ function SubjectRankingCard({ ranking }: { ranking: SubjectHoursRanking }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-muted)', width: '1.25rem' }}>#{i + 1}</span>
                 <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{f.name}</span>
-                <span className={`badge ${TYPE_BADGE[f.type] ?? 'badge-blue'}`} style={{ fontSize: '0.65rem' }}>
+                <span className={`badge badge-sentence ${TYPE_BADGE[f.type] ?? 'badge-blue'}`} style={{ fontSize: '0.65rem' }}>
                   {f.type}
                 </span>
               </div>

@@ -1,0 +1,149 @@
+/* DOPA FMS tokens. Brand colours are read from public/logo.png:
+   sky #1aa3f5 (the wordmark), navy #0b1f4b (the lettering and gear).
+   Every colour and every font used in globals.css or a component comes from here.
+   Names kept from the previous system (--color-primary, --color-text, ...) so no component changes. */
+
+:root {
+  /* Brand */
+  --color-brand-sky:      #1aa3f5;                  /* logo sky: marks, active bar, focus ring */
+  --color-brand-navy:     #0b1f4b;                  /* logo navy: ink, headings */
+  --color-primary:        #0b6bcb;                  /* sky deepened to clear 5:1 under white text */
+  --color-primary-dark:   #08529e;
+  --color-primary-light:  #b9defc;
+  --color-primary-ghost:  rgb(26 163 245 / 0.10);
+  --color-primary-ring:   rgb(26 163 245 / 0.28);
+  --color-on-primary:     #ffffff;
+  --color-accent:         var(--color-brand-sky);
+  --color-accent-light:   #8fd0fa;
+  --color-focus:          #0b6bcb;
+
+  /* Semantic */
+  --color-success:        #12703a;
+  --color-success-bg:     #def5e7;
+  --color-success-fg:     #0d4a28;
+  --color-danger:         #c62828;
+  --color-danger-hover:   #9f1f1f;
+  --color-danger-bg:      #fde8e8;
+  --color-danger-fg:      #8c1d1d;
+  --color-warning:        #a15c07;
+  --color-warning-bg:     #fdf0d2;
+  --color-warning-fg:     #7a4505;
+  --color-info:           #0b6bcb;
+  --color-info-bg:        #e0f0fd;
+  --color-info-fg:        #08427f;
+
+  /* Surfaces: cool paper, white working surfaces, hairline rules */
+  --color-bg:             #f3f6fb;
+  --color-surface:        #ffffff;
+  --color-surface-2:      #f7f9fd;
+  --color-surface-3:      #e9eff8;
+  --color-border:         #dde4ef;
+  --color-border-strong:  #bcc8da;
+  --color-scrim:          rgb(11 31 75 / 0.52);
+  --color-on-navy:        #ffffff;                  /* text on the brand-navy panel */
+  --color-on-navy-dim:    #b6c4e0;
+  --color-navy-rule:      rgb(255 255 255 / 0.16);
+
+  /* Text: navy ink */
+  --color-text:           #0b1f4b;
+  --color-text-secondary: #3d4f73;
+  --color-muted:          #5a6a88;
+
+  /* Side rail */
+  --rail-bg:              #ffffff;
+  --rail-fg:              #3d4f73;
+  --rail-fg-strong:       #0b1f4b;
+  --rail-fg-dim:          #6b7a96;
+  --rail-active-bg:       var(--color-primary-ghost);
+  --rail-active-fg:       var(--color-primary-dark);
+  --rail-hover-bg:        var(--color-surface-3);
+  --rail-border:          var(--color-border);
+
+  /* Type */
+  --font-display: var(--font-outfit), "Outfit", system-ui, sans-serif;
+  --font-body:    var(--font-figtree), "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-xs: 0.75rem; --text-sm: 0.8125rem; --text-md: 0.9375rem; --text-lg: 1.0625rem;
+  --text-xl: 1.25rem; --text-2xl: 1.5rem;
+
+  /* Layout */
+  --rail-width:           248px;
+  --rail-width-collapsed: 68px;
+  --sidebar-width:        var(--rail-width);
+  --topbar-height:        60px;
+  --content-max:          1360px;
+  --control-h:            2.25rem;
+
+  /* Radius: ruled panels, small corners */
+  --radius-sm:   0.25rem;
+  --radius:      0.375rem;
+  --radius-md:   0.4375rem;
+  --radius-lg:   0.5rem;
+  --radius-xl:   0.625rem;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.5rem;  --space-6: 2rem;   --space-7: 2.75rem;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-micro: 120ms;
+  --dur-short: 200ms;
+
+  /* Depth: borders carry the structure; shadow only for what floats */
+  --shadow-sm:  none;
+  --shadow:     0 1px 2px rgb(11 31 75 / 0.06);
+  --shadow-md:  0 4px 14px rgb(11 31 75 / 0.10);
+  --shadow-lg:  0 14px 36px rgb(11 31 75 / 0.18);
+
+  --color-primary-dim: var(--color-primary-ghost);
+}
+
+[data-theme="dark"] {
+  --color-primary:        #4db4f7;
+  --color-primary-dark:   #8fd0fa;
+  --color-primary-light:  #b9defc;
+  --color-primary-ghost:  rgb(77 180 247 / 0.14);
+  --color-primary-ring:   rgb(77 180 247 / 0.30);
+  --color-on-primary:     #04121f;
+  --color-accent:         #4db4f7;
+  --color-accent-light:   #8fd0fa;
+  --color-focus:          #8fd0fa;
+
+  --color-success:        #4ade80;
+  --color-success-bg:     #0f2418;
+  --color-success-fg:     #86efac;
+  --color-danger:         #f87171;
+  --color-danger-hover:   #fca5a5;
+  --color-danger-bg:      #2f171a;
+  --color-danger-fg:      #fca5a5;
+  --color-warning:        #fbbf24;
+  --color-warning-bg:     #2e2410;
+  --color-warning-fg:     #fcd34d;
+  --color-info:           #4db4f7;
+  --color-info-bg:        #10283c;
+  --color-info-fg:        #bae6fd;
+
+  --color-bg:             #0d1015;
+  --color-surface:        #151920;
+  --color-surface-2:      #11141a;
+  --color-surface-3:      #1e232c;
+  --color-border:         #272d37;
+  --color-border-strong:  #3a4250;
+  --color-scrim:          rgb(0 0 0 / 0.62);
+
+  --color-text:           #e9edf3;
+  --color-text-secondary: #bac3d0;
+  --color-muted:          #8f99a8;
+
+  --rail-bg:              #0a0c10;
+  --rail-fg:              #bac3d0;
+  --rail-fg-strong:       #e9edf3;
+  --rail-fg-dim:          #778193;
+  --rail-active-fg:       var(--color-primary);
+  --rail-hover-bg:        rgb(255 255 255 / 0.05);
+
+  --shadow:     0 2px 8px rgb(0 0 0 / 0.55);
+  --shadow-md:  0 8px 24px rgb(0 0 0 / 0.6);
+  --shadow-lg:  0 24px 48px rgb(0 0 0 / 0.7);
+}

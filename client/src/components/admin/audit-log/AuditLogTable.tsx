@@ -98,30 +98,30 @@ export function AuditLogTable({ loading, logs, expanded, onToggleExpand }: Audit
                     <td colSpan={7} style={{ padding: '0 1rem 0.875rem 2.5rem', background: 'var(--color-surface-2)' }}>
                       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', padding: '0.75rem 0' }}>
                         <div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Event</div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Event</div>
                           <code style={{ fontSize: '0.75rem', background: 'var(--color-surface)', padding: '0.2rem 0.5rem', borderRadius: 4, border: '1px solid var(--color-border)' }}>
                             {log.eventType}
                           </code>
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Actor ID</div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Actor ID</div>
                           <code style={{ fontSize: '0.75rem' }}>{log.actorUserId ?? '—'}</code>
                         </div>
                         {log.targetId && (
                           <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Target ID</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Target ID</div>
                             <code style={{ fontSize: '0.75rem' }}>{log.targetId}</code>
                           </div>
                         )}
                         {log.cancellationInitiator && (
                           <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Cancelled By</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Cancelled By</div>
                             <span className="badge badge-yellow">{log.cancellationInitiator}</span>
                           </div>
                         )}
                         {log.metadata && Object.keys(log.metadata).length > 0 && (
                           <div>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Metadata</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '0.25rem' }}>Metadata</div>
                             <pre style={{ fontSize: '0.72rem', background: 'var(--color-surface)', padding: '0.5rem 0.75rem', borderRadius: 6, border: '1px solid var(--color-border)', margin: 0, maxWidth: 480, overflowX: 'auto' }}>
                               {JSON.stringify(log.metadata, null, 2)}
                             </pre>

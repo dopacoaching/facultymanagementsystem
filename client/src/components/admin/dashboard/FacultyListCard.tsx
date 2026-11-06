@@ -37,7 +37,7 @@ export function FacultyListCard({ faculty, onAdd }: FacultyListCardProps) {
                   width: 30, height: 30, borderRadius: '50%',
                   background: 'var(--color-primary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#fff', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0,
+                  color: 'var(--color-on-primary)', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0,
                 }}>
                   {f.name.charAt(0)}
                 </div>

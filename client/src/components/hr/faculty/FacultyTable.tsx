@@ -48,9 +48,9 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
                 </div>
               </td>
               <td style={{ color: 'var(--color-text-secondary)' }}>{f.subject}</td>
-              <td><span className="badge badge-gray">{f.type}</span></td>
+              <td><span className="badge badge-gray badge-sentence">{f.type}</span></td>
               <td>
-                <span className={`badge ${f.salaryModel === 'CONFIGURABLE' ? 'badge-yellow' : 'badge-indigo'}`}>
+                <span className={`badge badge-sentence ${f.salaryModel === 'CONFIGURABLE' ? 'badge-yellow' : 'badge-indigo'}`}>
                   {f.salaryModel.replace(/_/g, ' ')}
                 </span>
               </td>

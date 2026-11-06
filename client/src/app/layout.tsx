@@ -1,9 +1,13 @@
 import type { Metadata, Viewport } from 'next'
+import { Outfit, Figtree } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/ui/Providers'
 
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit', display: 'swap' })
+const figtree = Figtree({ subsets: ['latin'], variable: '--font-figtree', display: 'swap' })
+
 export const viewport: Viewport = {
-  themeColor: '#2563eb',
+  themeColor: '#0b6bcb',
   width: 'device-width',
   initialScale: 1,
   // No maximumScale — blocking pinch-zoom fails WCAG 1.4.4 (resize text).
@@ -27,7 +31,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${figtree.variable}`}>
       <head>
         {/* Apply saved theme before first paint — prevents flash */}
         <script dangerouslySetInnerHTML={{ __html:

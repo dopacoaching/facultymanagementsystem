@@ -105,7 +105,7 @@ export function SalaryControls({
           style={{ alignSelf: 'flex-end' }}
         >
           {loading ? (
-            <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Calculating…</>
+            <><span className="spinner spinner-on-solid" /> Calculating…</>
           ) : 'Calculate'}
         </button>
       </div>

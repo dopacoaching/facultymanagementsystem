@@ -51,11 +51,11 @@ export function ReportsTable({ loading, rows, total, periodLabel }: ReportsTable
                 </tr>
               ))}
               {rows.length > 0 && (
-                <tr style={{ background: 'rgba(13,148,136,.04)' }}>
+                <tr style={{ background: 'var(--color-primary-ghost)' }}>
                   <td colSpan={3} style={{ fontWeight: 700, color: 'var(--color-text-secondary)' }}>
                     Total Payroll — {periodLabel}
                   </td>
-                  <td style={{ fontWeight: 800, textAlign: 'right', fontSize: '1rem', color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                  <td style={{ fontWeight: 600, textAlign: 'right', fontSize: '1rem', color: 'var(--color-primary)', fontVariantNumeric: 'tabular-nums' }}>
                     ₹{total.toLocaleString('en-IN')}
                   </td>
                   <td colSpan={2} />

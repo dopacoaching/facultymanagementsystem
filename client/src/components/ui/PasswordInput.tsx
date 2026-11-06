@@ -26,11 +26,11 @@ function scorePassword(pw: string): StrengthResult {
   }
   const passing = Object.values(checks).filter(Boolean).length
 
-  if (!pw)        return { score: 0, label: '',        color: '#e5e7eb', checks }
-  if (passing <= 1) return { score: 1, label: 'Weak',    color: '#ef4444', checks }
-  if (passing === 2) return { score: 2, label: 'Fair',    color: '#f59e0b', checks }
-  if (passing === 3) return { score: 3, label: 'Good',    color: '#3b82f6', checks }
-  return               { score: 4, label: 'Strong',  color: '#22c55e', checks }
+  if (!pw)        return { score: 0, label: '',        color: 'var(--color-border-strong)', checks }
+  if (passing <= 1) return { score: 1, label: 'Weak',    color: 'var(--color-danger)', checks }
+  if (passing === 2) return { score: 2, label: 'Fair',    color: 'var(--color-warning)', checks }
+  if (passing === 3) return { score: 3, label: 'Good',    color: 'var(--color-info)', checks }
+  return               { score: 4, label: 'Strong',  color: 'var(--color-success)', checks }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -88,8 +88,8 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             style={{
               position: 'absolute', right: '0.625rem', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem',
-              lineHeight: 1,
+              color: 'var(--color-text-secondary)', fontSize: '0.8125rem', fontWeight: 600, padding: '0 0.5rem',
+              minHeight: '2rem', lineHeight: 1,
             }}
             aria-label={show ? 'Hide password' : 'Show password'}
           >
@@ -107,7 +107,7 @@ const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
                   key={seg}
                   style={{
                     flex: 1, height: 4, borderRadius: 2,
-                    background: strength.score >= seg ? strength.color : '#e5e7eb',
+                    background: strength.score >= seg ? strength.color : 'var(--color-border-strong)',
                     transition: 'background 0.2s',
                   }}
                 />

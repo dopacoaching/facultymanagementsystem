@@ -72,72 +72,46 @@ export default function LoginPage() {
         display: 'none',
         flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
-        flex: '0 0 45%',
-        background: 'linear-gradient(150deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
-        padding: '3rem',
-        position: 'relative',
-        overflow: 'hidden',
+        alignItems: 'flex-start',
+        flex: '0 0 42%',
+        background: 'var(--color-brand-navy)',
+        padding: '4rem 3.5rem',
+        borderRight: '4px solid var(--color-brand-sky)',
       }}
       className="login-brand-panel"
       >
-        {/* Decorative blobs */}
-        <div style={{
-          position: 'absolute', width: 400, height: 400,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,.06)',
-          top: -100, right: -100,
-        }} />
-        <div style={{
-          position: 'absolute', width: 300, height: 300,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,.04)',
-          bottom: -80, left: -80,
-        }} />
-
-        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        <div style={{ maxWidth: 380, width: '100%' }}>
           <div style={{
-            width: 96, height: 96, borderRadius: 24,
-            background: 'rgba(255,255,255,.15)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,.25)',
+            width: 96, height: 96, borderRadius: 'var(--radius-xl)',
+            background: 'var(--color-surface)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.75rem',
+            marginBottom: '2rem',
           }}>
             <Image
               src="/logo.png"
               alt="DOPA Coaching"
-              width={70}
-              height={70}
+              width={76}
+              height={76}
               style={{ objectFit: 'contain', width: 'auto', height: 'auto' }}
               priority
             />
           </div>
-          <h1 style={{ color: '#fff', fontSize: '2rem', fontWeight: 800, margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>
+          <h1 style={{ color: 'var(--color-on-navy)', fontSize: '2rem', fontWeight: 600, margin: '0 0 0.5rem' }}>
             DOPA Coaching
           </h1>
-          <p style={{ color: 'rgba(255,255,255,.7)', fontSize: '1rem', margin: 0 }}>
+          <p style={{ color: 'var(--color-on-navy-dim)', fontSize: '1rem', margin: 0 }}>
             Faculty Management System
           </p>
 
-          <div style={{ marginTop: '3rem', display: 'flex', flexDirection: 'column', gap: '1rem', textAlign: 'left' }}>
+          <div style={{ marginTop: '3rem', borderTop: '1px solid var(--color-navy-rule)' }}>
             {[
-              { icon: '📊', label: 'Entries & Reports', desc: 'Campus, subject and faculty-wise reports' },
-              { icon: '📅', label: 'Session Tracking', desc: 'Real-time attendance & session logs' },
-              { icon: '🎓', label: 'Academics', desc: 'Chapters, exams, and exam topics' },
+              { label: 'Entries & Reports', desc: 'Campus, subject and faculty-wise reports' },
+              { label: 'Session Tracking', desc: 'Real-time attendance & session logs' },
+              { label: 'Academics', desc: 'Chapters, exams, and exam topics' },
             ].map((f) => (
-              <div key={f.label} style={{ display: 'flex', gap: '0.875rem', alignItems: 'flex-start' }}>
-                <span style={{
-                  fontSize: '1.25rem',
-                  width: 40, height: 40, borderRadius: 10,
-                  background: 'rgba(255,255,255,.12)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>{f.icon}</span>
-                <div>
-                  <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.9375rem' }}>{f.label}</div>
-                  <div style={{ color: 'rgba(255,255,255,.6)', fontSize: '0.8125rem', marginTop: '0.1rem' }}>{f.desc}</div>
-                </div>
+              <div key={f.label} style={{ padding: '1rem 0', borderBottom: '1px solid var(--color-navy-rule)' }}>
+                <div style={{ color: 'var(--color-on-navy)', fontWeight: 600, fontSize: '0.9375rem' }}>{f.label}</div>
+                <div style={{ color: 'var(--color-on-navy-dim)', fontSize: '0.8125rem', marginTop: '0.125rem' }}>{f.desc}</div>
               </div>
             ))}
           </div>
@@ -159,11 +133,11 @@ export default function LoginPage() {
           {/* Mobile logo (hidden on wider screens via left panel) */}
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }} className="login-mobile-logo">
             <div style={{
-              width: 72, height: 72, borderRadius: 18,
-              background: 'var(--color-primary)',
+              width: 72, height: 72, borderRadius: 'var(--radius-xl)',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1.25rem',
-              boxShadow: 'var(--shadow-lg)',
             }}>
               <Image
                 src="/logo.png"
@@ -174,18 +148,18 @@ export default function LoginPage() {
                 priority
               />
             </div>
-            <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--color-text)', margin: '0 0 0.25rem' }}>
+            <h1 style={{ fontSize: '1.375rem', fontWeight: 600, color: 'var(--color-text)', margin: '0 0 0.25rem' }}>
               Faculty Management
             </h1>
             <p style={{ fontSize: '0.875rem', color: 'var(--color-muted)', margin: 0 }}>
-              DOPA Coaching — Sign in to continue
+              DOPA Coaching: sign in to continue
             </p>
           </div>
 
           {/* Session-expired banner */}
           {sessionExpired && (
             <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
-              <span className="alert-icon">⏱</span>
+              
               <div>
                 <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Session timed out</div>
                 <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
@@ -199,7 +173,7 @@ export default function LoginPage() {
           <div style={{
             background: 'var(--color-surface)',
             borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)',
+            boxShadow: 'var(--shadow)',
             border: '1px solid var(--color-border)',
             padding: '2.25rem 2rem',
           }}>
@@ -218,7 +192,7 @@ export default function LoginPage() {
                   autoFocus
                   style={{ fontSize: '0.9375rem' }}
                 />
-                {errors.username && <p className="error-text">⚠ {errors.username.message}</p>}
+                {errors.username && <p className="error-text">{errors.username.message}</p>}
               </div>
 
               <div>
@@ -232,7 +206,7 @@ export default function LoginPage() {
                 />
                 {errors.password && (
                   <p className="error-text" style={{ fontSize: '0.8125rem', marginTop: '0.375rem' }}>
-                    ⚠ {errors.password.message}
+                    {errors.password.message}
                   </p>
                 )}
               </div>
@@ -245,10 +219,10 @@ export default function LoginPage() {
               >
                 {isSubmitting ? (
                   <>
-                    <span className="spinner" style={{ width: '0.9rem', height: '0.9rem', borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} />
+                    <span className="spinner spinner-on-solid" style={{ width: '0.9rem', height: '0.9rem' }} />
                     Signing in…
                   </>
-                ) : 'Sign In →'}
+                ) : 'Sign in'}
               </button>
             </form>
           </div>

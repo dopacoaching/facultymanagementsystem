@@ -60,7 +60,7 @@ export function SessionsTable({
                       {(typeof s.facultyId === 'object' ? s.facultyId?.name : s.facultyId) ?? '—'}
                     </td>
                     <td>
-                      {bType && <span className={`badge ${BATCH_TYPE_BADGE[bType] ?? 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>{bType}</span>}
+                      {bType && <span className={`badge badge-sentence ${BATCH_TYPE_BADGE[bType] ?? 'badge-gray'}`} style={{ fontSize: '0.7rem' }}>{bType}</span>}
                     </td>
                     <td>{s.subject}</td>
                     <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.8125rem' }}>{s.chapter}</td>

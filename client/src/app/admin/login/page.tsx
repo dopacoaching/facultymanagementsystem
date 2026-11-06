@@ -78,31 +78,21 @@ export default function AdminLoginPage() {
 
         {/* Minimal header — no branding that reveals this is admin */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: 52, height: 52,
-            background: 'var(--color-primary-dark)',
-            borderRadius: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.25rem',
-            boxShadow: 'var(--shadow)',
-          }}>
-            <span style={{ fontSize: '1.5rem' }}>🔐</span>
-          </div>
           <h1 style={{
-            fontSize: '1.25rem', fontWeight: 800,
+            fontSize: '1.25rem', fontWeight: 600,
             color: 'var(--color-text)', margin: '0 0 0.25rem',
           }}>
             Management Portal
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted)', margin: 0 }}>
-            Restricted access — authorised personnel only
+            Restricted access: authorised personnel only
           </p>
         </div>
 
         {/* Session-expired banner */}
         {sessionExpired && (
           <div className="alert alert-warning" style={{ marginBottom: '1rem' }}>
-            <span className="alert-icon">⏱</span>
+            
             <div>
               <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>Session timed out</div>
               <div style={{ fontSize: '0.8rem', marginTop: '0.1rem' }}>
@@ -117,7 +107,7 @@ export default function AdminLoginPage() {
           background: 'var(--color-surface)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-lg)',
+          boxShadow: 'var(--shadow)',
           padding: '2rem',
         }}>
           <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
@@ -130,7 +120,7 @@ export default function AdminLoginPage() {
                 autoComplete="username"
                 autoFocus
               />
-              {errors.username && <p className="error-text">⚠ {errors.username.message}</p>}
+              {errors.username && <p className="error-text">{errors.username.message}</p>}
             </div>
 
             <div>
@@ -143,7 +133,7 @@ export default function AdminLoginPage() {
               />
               {errors.password && (
                 <p className="error-text" style={{ marginTop: '0.375rem', fontSize: '0.8125rem' }}>
-                  ⚠ {errors.password.message}
+                  {errors.password.message}
                 </p>
               )}
             </div>
@@ -156,10 +146,10 @@ export default function AdminLoginPage() {
             >
               {isSubmitting ? (
                 <>
-                  <span className="spinner" style={{ width: '0.9rem', height: '0.9rem', borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} />
+                  <span className="spinner spinner-on-solid" style={{ width: '0.9rem', height: '0.9rem' }} />
                   Verifying…
                 </>
-              ) : 'Sign In →'}
+              ) : 'Sign in'}
             </button>
           </form>
         </div>

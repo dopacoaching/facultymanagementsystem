@@ -73,18 +73,15 @@ export function SalaryResultCard({
           <div style={{
             padding: '1.25rem 1.5rem',
             background: result.status === 'HR_REVIEW'
-              ? 'linear-gradient(135deg, #92400e, #b45309)'
-              : 'linear-gradient(135deg, var(--color-primary-dark), var(--color-primary))',
-            color: '#fff',
+              ? 'var(--color-warning-fg)'
+              : 'var(--color-brand-navy)',
+            color: 'var(--color-on-navy)',
             borderRadius: 'var(--radius-lg)',
             marginBottom: '1.25rem',
-            boxShadow: result.status === 'HR_REVIEW'
-              ? '0 4px 16px rgba(180,83,9,.3)'
-              : '0 4px 16px rgba(13,148,136,.3)',
           }}>
             {result.status === 'HR_REVIEW' && (
               <div style={{ fontSize: '0.75rem', opacity: 0.8, marginBottom: '0.75rem' }}>
-                ⚠️ Pending HR review — approve with caution
+                Pending HR review — approve with caution
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', opacity: 0.9 }}>
@@ -99,11 +96,11 @@ export function SalaryResultCard({
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               flexWrap: 'wrap', gap: '0.75rem',
               marginTop: '0.75rem', paddingTop: '0.75rem',
-              borderTop: '1px solid rgba(255,255,255,0.3)',
+              borderTop: '1px solid var(--color-navy-rule)',
             }}>
               <div style={{ fontWeight: 700, fontSize: '1rem' }}>Net Payable</div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 600, lineHeight: 1 }}>
                   ₹{result.netPayable?.toLocaleString('en-IN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.2rem' }}>
