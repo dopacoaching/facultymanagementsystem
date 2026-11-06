@@ -1,11 +1,7 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: brand (DOPA logo: sky + navy) · redesign: full
- * paper: oklch(96.5% 0.012 255) · accent: oklch(52% 0.17 250) · display: Outfit · body: Figtree
- * nav: kept (light side rail, 248px, collapsible) · signature: the entry ledger (ruled tables, hairline panels) · states: loading, empty, error, full
- * axes: light/geometric-sans/chromatic-blue · posture: app · contrast: pass · v2.0.0 */
-/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 · weakest: S, panels are ruled not carded so dense screens read as ledgers, but legacy .card padding stays generous on forms */
+/* DOPA FMS styles. Colours, fonts, radii and spacing come from tokens.css (brand: logo sky and navy).
+   Class names here are a stable contract used across the app. */
 @import "tailwindcss";
 @import "./tokens.css";
-/* Hallmark · answered F4 · .btn-danger and .btn-success are state variants of one recipe; each screen renders one filled primary */
 
 
 /* ── Reset / base ──────────────────────────────────────────────────────────── */
