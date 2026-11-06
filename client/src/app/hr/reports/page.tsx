@@ -7,6 +7,7 @@ import { EditEntryDialog } from '@/components/hr/reports/EditEntryDialog'
 import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
+import { CLASS_MODE_FILTERS } from '@/lib/constants/classModes'
 import { useToast } from '@/components/ui/Toast'
 import { toLocalISO } from '@/utils/date'
 import { fmtDay, monthRange } from '@/components/hr/reports/reportShared'
@@ -275,6 +276,8 @@ export default function EntriesReportPage() {
   const [exportChoice, setExportChoice] = useState<GroupBy | null>(null)
   const exportBy = exportChoice ?? group
   const [campus, setCampus]   = useState('')
+  /** '' = every class mode; otherwise one of Online, Offline or the two doubt-clearance modes. */
+  const [classMode, setClassMode] = useState('')
   /** Class days (entries) / No class markers / Whole days (every campus-day's status). */
   const [view, setView]       = useState<ReportView>('classes')
   /** One faculty of the chosen type; '' = all of that type. */
@@ -333,8 +336,9 @@ export default function EntriesReportPage() {
       .filter((r) => kind === 'ALL' || (kind === 'PERMANENT') === (r.facultyType === 'PERMANENT'))
       .filter((r) => !campus || r.campusNames.includes(campus))
       .filter((r) => !facultyId || r.facultyId === facultyId)
+      .filter((r) => !classMode || r.classMode === classMode)
       .sort(byEntryOrder)
-  }, [report, kind, campus, facultyId])
+  }, [report, kind, campus, facultyId, classMode])
 
   /** HR/Admin only (the server decides): a Pay column for temporary faculty, when the shown rows include any. */
   const showPay = !!report?.showPay && rows.some((r) => r.facultyType === 'TEMPORARY')
@@ -470,6 +474,15 @@ export default function EntriesReportPage() {
               {(report?.campuses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
+          {view === 'classes' && (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="label" htmlFor="er-mode">Class mode</label>
+              <select id="er-mode" className="input" value={classMode} onChange={(e) => setClassMode(e.target.value)} style={{ minWidth: 210 }}>
+                <option value="">All modes</option>
+                {CLASS_MODE_FILTERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
       </div>

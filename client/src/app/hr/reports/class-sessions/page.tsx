@@ -29,6 +29,8 @@ function breakSummary(s: Session): string {
   return parts.map((p) => (p ? String(p) : '·')).join(' / ') + 'm'
 }
 
+import { CLASS_MODE_FILTERS } from '@/lib/constants/classModes'
+
 const CLASS_MODE_LABELS: Record<string, string> = {
   ONLINE:                  'Online',
   OFFLINE:                 'Offline',
@@ -45,6 +47,10 @@ export default function ClassSessionsPage() {
   const [to, setTo] = useState(toLocalISO(now))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [modeFilter, setModeFilter] = useState('')
+  const [facultyFilter, setFacultyFilter] = useState('')
+  /** Sort the table by date, or group it by mode so each mode's sessions sit together. */
+  const [sortBy, setSortBy] = useState<'date' | 'mode'>('date')
 
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   const [editForm, setEditForm] = useState<EditClassSessionForm | null>(null)
@@ -153,7 +159,23 @@ export default function ClassSessionsPage() {
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Only rows logged via the campus-login class-teacher flow
-  const classSessions = useMemo(() => sessions.filter((s) => s.campusName), [sessions])
+  const facultyNameOf = (s: Session) => (typeof s.facultyId === 'object' ? s.facultyId.name : String(s.facultyId))
+  const facultyChoices = useMemo(
+    () => Array.from(new Set(sessions.filter((s) => s.campusName).map(facultyNameOf))).sort((a, b) => a.localeCompare(b)),
+    [sessions], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  const MODE_ORDER = CLASS_MODE_FILTERS.map((m) => m.value as string)
+  const classSessions = useMemo(() => {
+    const list = sessions
+      .filter((s) => s.campusName)
+      .filter((s) => !modeFilter || s.classMode === modeFilter)
+      .filter((s) => !facultyFilter || facultyNameOf(s) === facultyFilter)
+    if (sortBy === 'mode') {
+      const rank = (s: Session) => { const i = MODE_ORDER.indexOf(s.classMode ?? ''); return i < 0 ? MODE_ORDER.length : i }
+      return [...list].sort((a, b) => rank(a) - rank(b) || String(a.sessionDate).localeCompare(String(b.sessionDate)))
+    }
+    return list
+  }, [sessions, modeFilter, facultyFilter, sortBy]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
@@ -174,6 +196,29 @@ export default function ClassSessionsPage() {
 
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="label" htmlFor="cs-mode">Class mode</label>
+            <select id="cs-mode" className="input" value={modeFilter} onChange={(e) => setModeFilter(e.target.value)} style={{ minWidth: 210 }}>
+              <option value="">All modes</option>
+              {CLASS_MODE_FILTERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="label" htmlFor="cs-faculty">Faculty</label>
+            <select id="cs-faculty" className="input" value={facultyFilter} onChange={(e) => setFacultyFilter(e.target.value)} style={{ minWidth: 210 }}>
+              <option value="">All faculty</option>
+              {facultyChoices.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label className="label" htmlFor="cs-sort">Sort by</label>
+            <select id="cs-sort" className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'date' | 'mode')} style={{ minWidth: 150 }}>
+              <option value="date">Date</option>
+              <option value="mode">Class mode</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -182,7 +227,9 @@ export default function ClassSessionsPage() {
         <div className="card">
           <EmptyState
             title="No class sessions logged"
-            description={`No class-teacher sessions were found for ${from} to ${to}.`}
+            description={modeFilter || facultyFilter
+              ? `No class-teacher sessions match these filters for ${from} to ${to}. Clear the class mode or faculty filter to see more.`
+              : `No class-teacher sessions were found for ${from} to ${to}.`}
           />
         </div>
       ) : (
