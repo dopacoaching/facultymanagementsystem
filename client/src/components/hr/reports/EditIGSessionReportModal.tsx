@@ -21,7 +21,7 @@ export interface EditIGSessionForm {
 
 export function formFromIGSession(s: Session): EditIGSessionForm {
   return {
-    facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId,
+    facultyId:     s.facultyId && typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId,
     subject:       s.subject,
     chapters:      s.chapters?.length ? s.chapters : s.chapter ? [s.chapter] : [],
     timeSlot:      (s.timeSlot as EditIGSessionForm['timeSlot']) ?? '',

@@ -105,7 +105,7 @@ export default function IGSessionHistoryPage() {
                 </thead>
                 <tbody>
                   {sessions.map((x) => {
-                    const facultyName = typeof x.facultyId === 'object' ? x.facultyId.name : x.facultyId
+                    const facultyName = x.facultyId && typeof x.facultyId === 'object' ? x.facultyId.name : x.facultyId
                     const joint = !!x.jointIG
                     const canEdit = !joint && editWindowRemainingMs(x.createdAt) > 0 && x.status !== 'CANCELLED'
                     return (

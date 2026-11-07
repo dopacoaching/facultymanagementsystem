@@ -156,7 +156,7 @@ export default function IGClassSessionsPage() {
   const liveSessions = sessions.filter((x) => x.status !== 'CANCELLED')
   const cancelledCount = sessions.length - liveSessions.length
   const totalHours = liveSessions.reduce((t, x) => t + x.durationHours, 0)
-  const distinctFaculty = new Set(sessions.map((x) => (typeof x.facultyId === 'object' ? x.facultyId._id : String(x.facultyId)))).size
+  const distinctFaculty = new Set(sessions.map((x) => (x.facultyId && typeof x.facultyId === 'object' ? x.facultyId._id : String(x.facultyId)))).size
 
   return (
     <div>
@@ -230,7 +230,7 @@ export default function IGClassSessionsPage() {
             </thead>
             <tbody>
               {sessions.map((s) => {
-                const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
+                const facultyName = s.facultyId && typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
                 const isCancelled = s.status === 'CANCELLED'
                 return (
                   <tr key={s._id} className={isCancelled ? rs.dim : undefined}>

@@ -14,7 +14,7 @@ import { EditIGSessionReportModal, formFromIGSession, type EditIGSessionForm } f
 import type { Session } from '@/types'
 
 const batchIdsOf = (s: Session) => [s.batchId, ...(s.extraBatchIds ?? [])].filter((id): id is string => !!id)
-const campusIdOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+const campusIdOf = (b: Batch) => (b.campusId && typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
 
 interface EditorProps {
   session: Session

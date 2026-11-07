@@ -30,7 +30,7 @@ export function formFromSession(s: Session): EditClassSessionForm {
   // A Shoot is edited by the time actually taken, not the multiplied hours.
   const rawMins = s.entryType === 'SHOOT' ? Math.round((s.rawDurationHours ?? s.durationHours) * 60) : 0
   return {
-    facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId,
+    facultyId:     s.facultyId && typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId,
     entryType:     s.entryType ?? '',
     shootHours:    s.entryType === 'SHOOT' ? String(Math.floor(rawMins / 60)) : '',
     shootMinutes:  s.entryType === 'SHOOT' ? String(rawMins % 60) : '',

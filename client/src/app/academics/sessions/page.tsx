@@ -193,7 +193,7 @@ export default function SessionsPage() {
   function openEdit(s: Session) {
     setEditing(s)
     setEditForm({
-      facultyId:     typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId ?? '',
+      facultyId:     s.facultyId && typeof s.facultyId === 'object' ? s.facultyId._id : s.facultyId ?? '',
       batchId:       s.batchId ?? '',
       subject:       s.subject,
       chapter:       s.chapter,

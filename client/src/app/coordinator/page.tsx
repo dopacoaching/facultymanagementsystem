@@ -25,7 +25,7 @@ import {
   SUBJECT_OPTIONS, CLASS_MODE_OPTIONS, SubjectField, ChaptersField, BreakRow,
 } from '@/components/coordinator/log-session'
 
-const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+const batchCampusOf = (b: Batch) => (b.campusId && typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
 
 /**
  * Push Board — the one session-entry form for class teachers (campus logins)

@@ -33,8 +33,8 @@ function breakSummary(s: Session): string {
 }
 
 /** The faculty a session belongs to, by id (two faculty can share a name) and by display name. */
-const facultyIdOf = (s: Session) => (typeof s.facultyId === 'object' ? s.facultyId._id : String(s.facultyId))
-const facultyNameOf = (s: Session) => (typeof s.facultyId === 'object' ? s.facultyId.name : String(s.facultyId))
+const facultyIdOf = (s: Session) => (s.facultyId && typeof s.facultyId === 'object' ? s.facultyId._id : String(s.facultyId ?? ''))
+const facultyNameOf = (s: Session) => (s.facultyId && typeof s.facultyId === 'object' ? s.facultyId.name : String(s.facultyId ?? ''))
 const dateMs = (s: Session) => new Date(s.sessionDate).getTime()
 const modeRank = (s: Session) => { const i = CLASS_MODE_ORDER.indexOf(s.classMode ?? ''); return i < 0 ? CLASS_MODE_ORDER.length : i }
 
@@ -63,7 +63,7 @@ export default function ClassSessionsPage() {
     if (!accessToken) return
     getBatches(accessToken).then(setBatchOptions).catch(() => setBatchOptions([]))
   }, [accessToken])
-  const batchCampusOf = (b: Batch) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
+  const batchCampusOf = (b: Batch) => (b.campusId && typeof b.campusId === 'object' ? b.campusId._id : b.campusId)
   const batchIdsOf = (s: Session) => [s.batchId, ...(s.extraBatchIds ?? [])].filter((id): id is string => !!id)
   const [saving, setSaving] = useState(false)
 
@@ -275,7 +275,7 @@ export default function ClassSessionsPage() {
             </thead>
             <tbody>
               {classSessions.map((s) => {
-                const facultyName = typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
+                const facultyName = s.facultyId && typeof s.facultyId === 'object' ? s.facultyId.name : s.facultyId
                 return (
                   <tr key={s._id}>
                     <td data-label="Faculty" className={rs.strong}>{facultyName}</td>

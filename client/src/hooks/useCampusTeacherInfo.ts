@@ -15,7 +15,7 @@ export function useCampusTeacherInfo(accessToken: string | null | undefined) {
       if (!c.batchCampusId) return
       getBatches(accessToken)
         .then((all) => setBatches(all.filter(
-          (b) => (typeof b.campusId === 'object' ? b.campusId._id : b.campusId) === c.batchCampusId,
+          (b) => (b.campusId && typeof b.campusId === 'object' ? b.campusId._id : b.campusId) === c.batchCampusId,
         )))
         .catch(() => setBatches([]))
     }).catch(() => setTeacherNames([]))
