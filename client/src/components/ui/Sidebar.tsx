@@ -244,6 +244,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
               <Link
                 key={entry.href}
                 href={entry.href}
+                prefetch={false}
                 className={`nav-link${isActive ? ' is-active' : ''}`}
                 aria-current={isActive ? 'page' : undefined}
                 title={label}

@@ -543,7 +543,7 @@ export default function EntriesReportPage() {
           )}
         </div>
         <div className={s.filterRow}>
-          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" maxDays={93} />
         </div>
       </div>
 

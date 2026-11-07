@@ -159,6 +159,7 @@ export function EntriesOverview({ leading }: Props) {
           loading={loading}
           onApply={res.refetch}
           applyLabel="Refresh"
+          maxDays={93}
         />
 
         {res.status === 'error' && (

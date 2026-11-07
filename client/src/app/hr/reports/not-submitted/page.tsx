@@ -120,7 +120,7 @@ export default function NotSubmittedPage() {
           </label>
         </div>
         <div className={rs.filterRow}>
-          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" />
+          <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" maxDays={93} />
         </div>
       </div>
 

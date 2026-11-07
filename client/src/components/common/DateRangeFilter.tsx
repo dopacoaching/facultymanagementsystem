@@ -12,6 +12,8 @@ interface DateRangeFilterProps {
   loading?: boolean
   onApply?: () => void
   applyLabel?: string
+  /** Longest range the page's API accepts; quick ranges longer than this are not offered. */
+  maxDays?: number
 }
 
 function presetRange(key: PresetKey): { from: string; to: string } {
@@ -55,7 +57,7 @@ const PRESETS: { key: PresetKey; label: string }[] = [
 /** Reusable From/To date-range filter with quick-range presets. Replaces the
  *  month+year dropdown pattern across admin/HR reports and dashboards. */
 export function DateRangeFilter({
-  from, to, onFromChange, onToChange, loading, onApply, applyLabel = 'Apply',
+  from, to, onFromChange, onToChange, loading, onApply, applyLabel = 'Apply', maxDays,
 }: DateRangeFilterProps) {
   const uid = useId()
   return (
@@ -87,7 +89,11 @@ export function DateRangeFilter({
 
       <div className={s.presets} role="group" aria-label="Quick range">
         <span className={s.presetsLabel}>Quick range</span>
-        {PRESETS.map((p) => (
+        {PRESETS.filter((p) => {
+          if (!maxDays) return true
+          const r = presetRange(p.key)
+          return (new Date(r.to).getTime() - new Date(r.from).getTime()) / 86_400_000 <= maxDays
+        }).map((p) => (
           <button
             key={p.key}
             type="button"
