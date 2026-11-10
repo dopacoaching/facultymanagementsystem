@@ -8,6 +8,7 @@ import { BatchChapter } from '@/lib/models/BatchChapter'
 import { Faculty } from '@/lib/models/Faculty'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType, shootHours, usesFullBreak } from '@/lib/constants/entryTypes'
+import { CLASS_MODE_ORDER } from '@/lib/constants/classModes'
 import { fullBreakHours } from '@/lib/utils/sessionHours'
 import { chapterNamesOf, normalizeChapters, joinChapters } from '@/lib/utils/chapters'
 import { unlistedChapters, unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
@@ -102,6 +103,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const viaJoint = isTeacher && isJointEntry && !!(await jointAccessFor(payload))
     if (isJointTeacher && !isJointEntry) {
       return withToken(json({ error: 'You can only edit joint classes.' }, 403), refreshedToken)
+    }
+    if (update.classMode !== undefined && !CLASS_MODE_ORDER.includes(String(update.classMode))) {
+      return withToken(json({ error: `classMode must be one of: ${CLASS_MODE_ORDER.join(', ')}` }, 400), refreshedToken)
     }
     if (viaJoint && body.batchIds !== undefined) {
       return withToken(json({ error: 'The campuses and batches of a joint class cannot be changed — contact HR.' }, 403), refreshedToken)

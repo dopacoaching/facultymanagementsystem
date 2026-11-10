@@ -3,6 +3,7 @@ import { Icon } from '@/components/ui/Icon'
 import type { Session } from '@/types'
 import { SUBJECT_OPTIONS } from '@/components/coordinator/log-session/types'
 import { ChapterChips } from '@/components/coordinator/log-session/ChapterChips'
+import { CLASS_MODE_FILTERS } from '@/lib/constants/classModes'
 import { BatchPicker, type BatchChoice } from './BatchPicker'
 import { BreakRows, breaksFromMinutes, type BreaksInput } from '@/components/coordinator/log-session'
 
@@ -11,6 +12,7 @@ export interface EditIGSessionForm {
   subject: string
   chapters: string[]
   timeSlot: 'SESSION_1' | 'SESSION_2' | 'SESSION_3' | ''
+  classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE' | ''
   updatedByName: string
   comment: string
   startTime: string
@@ -25,6 +27,7 @@ export function formFromIGSession(s: Session): EditIGSessionForm {
     subject:       s.subject,
     chapters:      s.chapters?.length ? s.chapters : s.chapter ? [s.chapter] : [],
     timeSlot:      (s.timeSlot as EditIGSessionForm['timeSlot']) ?? '',
+    classMode:     s.classMode ?? '',
     updatedByName: s.updatedByName ?? '',
     comment:       s.comment ?? '',
     startTime:     s.startTime ?? '',
@@ -103,6 +106,14 @@ export function EditIGSessionReportModal({
             {batches && batches.length > 0 && batchIds && onBatchIdsChange && (
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />
             )}
+            <div className="form-group">
+              <label className="label" htmlFor={`${uid}-class-mode`}>Class Mode</label>
+              <select id={`${uid}-class-mode`} className="input" value={form.classMode}
+                onChange={(e) => setForm((f) => ({ ...f, classMode: e.target.value as EditIGSessionForm['classMode'] }))}>
+                <option value="">— select —</option>
+                {CLASS_MODE_FILTERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </div>
             <div className="form-group">
               <label className="label" htmlFor={`${uid}-session-slot`}>Session Slot</label>
               <select id={`${uid}-session-slot`} className="input" value={form.timeSlot}

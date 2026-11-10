@@ -8,6 +8,7 @@ import { Faculty } from '@/lib/models/Faculty'
 import { Batch } from '@/lib/models/Batch'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { isEntryType } from '@/lib/constants/entryTypes'
+import { CLASS_MODE_ORDER } from '@/lib/constants/classModes'
 import { chapterNamesOf, normalizeChapters, joinChapters } from '@/lib/utils/chapters'
 import { unlistedChapters, unlistedInChapterText, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { resolveHrBatchSet, resolveTeacherBatchEdit, syncChapterLinks } from '@/lib/utils/extraBatches'
@@ -36,7 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const body = await req.json() as Record<string, unknown>
     const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
-      'facultyId', 'batchId', 'subject', 'chapter', 'timeSlot',
+      'facultyId', 'batchId', 'classMode', 'subject', 'chapter', 'timeSlot',
       'scheduledTime', 'scheduledEndTime', 'startTime', 'endTime', 'updatedByName', 'comment',
       'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
       'durationHours', 'sessionDate',
@@ -66,6 +67,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
+    if (update.classMode !== undefined && !CLASS_MODE_ORDER.includes(String(update.classMode))) {
+      return withToken(json({ error: `classMode must be one of: ${CLASS_MODE_ORDER.join(', ')}` }, 400), refreshedToken)
+    }
     if (body.batchIds !== undefined && (!Array.isArray(body.batchIds) || body.batchIds.length === 0)) {
       return withToken(json({ error: 'Select at least one batch' }, 400), refreshedToken)
     }

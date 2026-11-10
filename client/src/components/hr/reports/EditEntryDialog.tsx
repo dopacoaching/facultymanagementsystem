@@ -126,6 +126,7 @@ function IGEditor({ session, accessToken, onClose, onSaved }: EditorProps) {
         subject:       form.subject.trim(),
         chapters:      form.chapters,
         timeSlot:      form.timeSlot,
+        classMode:     form.classMode || undefined,
         updatedByName: form.updatedByName.trim() || undefined,
         ...(form.comment.trim() !== (session.comment ?? '').trim() ? { comment: form.comment.trim() } : {}),
         startTime:     form.startTime,

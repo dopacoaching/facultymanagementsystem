@@ -478,6 +478,11 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
     }
   }
 
+  const MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
+  if (update.classMode !== undefined && !MODES.includes(String(update.classMode))) {
+    res.status(400).json({ error: `classMode must be one of: ${MODES.join(', ')}` }); return
+  }
+
   if (update.facultyId) {
     const fac = await Faculty.findById(update.facultyId).select('isActive')
     if (!fac) { res.status(404).json({ error: 'Faculty not found' }); return }
