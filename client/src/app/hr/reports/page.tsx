@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useAppSelector } from '@/store/hooks'
 import { remove as removeSession } from '@/services/session.service'
 import { EditEntryDialog } from '@/components/hr/reports/EditEntryDialog'
-import { getEntriesReport, type EntriesReport, type EntryRow } from '@/services/entries.service'
+import { getEntriesReport, removeNoClass, type EntriesReport, type EntryRow, type NoClassRow } from '@/services/entries.service'
+import { EditNoClassDialog } from '@/components/hr/reports/EditNoClassDialog'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { CLASS_MODE_FILTERS, CLASS_MODE_LABELS as MODE_LABELS } from '@/lib/constants/classModes'
@@ -289,6 +290,7 @@ export default function EntriesReportPage() {
   const canDelete = role === 'ADMIN' || role === 'HR_MANAGER'
 
   const [editing, setEditing] = useState<EntryRow | null>(null)
+  const [editingNoClass, setEditingNoClass] = useState<NoClassRow | null>(null)
 
   async function deleteEntry(r: EntryRow) {
     if (!accessToken || !window.confirm(`Delete ${r.facultyName}'s entry on ${fmtDay(r.date)} permanently? This cannot be undone.`)) return
@@ -299,6 +301,17 @@ export default function EntriesReportPage() {
     } catch (e: unknown) {
       toast.error('Delete failed', e instanceof Error ? e.message : 'Could not delete the entry')
     }
+  }
+
+  async function deleteNoClass(n: NoClassRow) {
+    if (!accessToken || !window.confirm(`Remove the No Class marker for ${n.campusName} on ${fmtDay(n.date)}? The day will show as "report not submitted" again.`)) return
+    try {
+      await removeNoClass(n._id, accessToken)
+      toast.success('No Class removed', n.campusName)
+    } catch (e: unknown) {
+      toast.error('Could not remove', e instanceof Error ? e.message : undefined)
+    }
+    await load()   // also when it was already gone: show the current list
   }
 
   /** Latest request wins — a slow earlier response must not overwrite newer data. */
@@ -587,7 +600,7 @@ export default function EntriesReportPage() {
             </div>
             <div className="table-wrapper table-stack" style={{ border: 0, borderRadius: 0, boxShadow: 'none' }}>
               <table>
-                <thead><tr><th>Date</th><th>Campus</th><th>Batches</th><th>Reason</th></tr></thead>
+                <thead><tr><th>Date</th><th>Campus</th><th>Batches</th><th>Reason</th><th><span className="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                   {noClassRows.map((n) => (
                     <tr key={n._id}>
@@ -595,6 +608,16 @@ export default function EntriesReportPage() {
                       <td data-label="Campus" className={s.strong}>{n.campusName}</td>
                       <td data-label="Batches" className={s.muted}>{n.batchNames.length ? n.batchNames.join(', ') : 'Whole campus'}</td>
                       <td data-label="Reason" className={s.muted}>{n.reason || '—'}</td>
+                      <td>
+                        <div className={s.rowActions}>
+                          <button type="button" className="btn btn-outline btn-sm" onClick={() => setEditingNoClass(n)}>
+                            <Icon name="edit" size={14} /> Edit
+                          </button>
+                          {canDelete && (
+                            <button type="button" className="btn btn-danger-ghost btn-sm" onClick={() => deleteNoClass(n)}>Delete</button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -694,6 +717,15 @@ export default function EntriesReportPage() {
           accessToken={accessToken}
           onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); load() }}
+        />
+      )}
+
+      {editingNoClass && accessToken && (
+        <EditNoClassDialog
+          row={editingNoClass}
+          accessToken={accessToken}
+          onClose={() => setEditingNoClass(null)}
+          onSaved={() => { setEditingNoClass(null); load() }}
         />
       )}
     </div>
