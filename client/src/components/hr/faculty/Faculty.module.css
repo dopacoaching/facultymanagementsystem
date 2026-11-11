@@ -42,3 +42,7 @@
 .searchBox { position: relative; }
 .searchIcon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--color-muted); display: inline-flex; pointer-events: none; }
 .searchInput { padding-left: 2.25rem; }
+
+.nameStack { display: flex; flex-direction: column; min-width: 0; }
+.phoneLink { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-muted); text-decoration: none; width: fit-content; }
+.phoneLink:hover { color: var(--color-primary); text-decoration: underline; }

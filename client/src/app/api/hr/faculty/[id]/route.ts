@@ -5,9 +5,10 @@ import { authenticate, authorize, json, withToken } from '@/lib/auth'
 import { Faculty } from '@/lib/models/Faculty'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { parseRateDate, planRateChange, validRate } from '@/lib/utils/hourlyRate'
+import { normalizePhone } from '@/lib/utils/phone'
 
 const FACULTY_WRITABLE = [
-  'name', 'subject', 'type', 'salaryModel', 'isActive',
+  'name', 'subject', 'type', 'salaryModel', 'isActive', 'phone',
   'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'monthlyDayQuota',
   'overtimeThreshold', 'overtimeRate', 'fixedComponent', 'variableComponent',
   'totalContractDays', 'monthlyLeaveAllowance', 'aprilLeaveAllowance',
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const safe = faculty.toObject() as unknown as Record<string, unknown>
       const salaryFields = ['hourlyRate','fixedMonthlySalary','monthlyHourQuota','monthlyDayQuota',
         'overtimeThreshold','overtimeRate','fixedComponent','variableComponent',
-        'totalContractDays','configurablePayJson','salaryModel']
+        'totalContractDays','configurablePayJson','salaryModel','phone']
       salaryFields.forEach(f => delete safe[f])
       return withToken(json(safe), refreshedToken)
     }
@@ -95,6 +96,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return withToken(json({ error: 'No valid fields provided for update' }, 400), refreshedToken)
     }
 
+    // Phone: validated and tidied; an empty value clears it.
+    let unsetPhone = false
+    if ('phone' in safeData) {
+      const phone = normalizePhone(safeData.phone)
+      if (!phone.ok) return withToken(json({ error: phone.error }, 400), refreshedToken)
+      if (phone.value) safeData.phone = phone.value
+      else { delete safeData.phone; unsetPhone = true }
+    }
+    const changedFields = () => [...Object.keys(safeData), ...(unsetPhone ? ['phone'] : [])]
+
     await connectDB()
 
     // Hourly rate changes are dated: an unchanged rate is ignored, a changed one
@@ -116,12 +127,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         Object.assign(safeData, planRateChange(existing, newRate, effectiveFrom, payload.username))
         rateChange = { from: existing.hourlyRate, to: newRate, effectiveFrom: body.hourlyRateEffectiveFrom as string }
       }
-      if (Object.keys(safeData).length === 0) {
+      if (Object.keys(safeData).length === 0 && !unsetPhone) {
         return withToken(json(existing), refreshedToken)
       }
     }
 
-    const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { returnDocument: 'after', runValidators: true })
+    const faculty = await Faculty.findByIdAndUpdate(oid, unsetPhone ? { ...safeData, $unset: { phone: 1 } } : safeData, { returnDocument: 'after', runValidators: true })
     if (!faculty) return withToken(json({ error: 'Faculty not found' }, 404), refreshedToken)
 
     if (rateChange) {
@@ -148,8 +159,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
         targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
         facultyId: faculty._id.toString(), facultyName: faculty.name, amount: 0,
-        description: `Faculty profile updated for ${faculty.name}: ${Object.keys(safeData).join(', ')}`,
-        metadata: { fields: Object.keys(safeData) },
+        description: `Faculty profile updated for ${faculty.name}: ${changedFields().join(', ')}`,
+        metadata: { fields: changedFields() },
       })
     }
 

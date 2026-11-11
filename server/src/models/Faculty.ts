@@ -7,6 +7,8 @@ export interface IFaculty extends Document {
   type: FacultyType
   salaryModel: SalaryModel
   isActive: boolean
+  /** Contact number, entered by HR/Admin. Never sent to non-HR roles. */
+  phone?: string
   hourlyRate?: number
   /** Dated rate timeline; hourlyRate mirrors the entry in force today. */
   hourlyRateHistory?: { rate: number; effectiveFrom: Date; changedAt?: Date; changedBy?: string }[]
@@ -39,6 +41,7 @@ const FacultySchema = new Schema<IFaculty>(
       required: true,
     },
     isActive: { type: Boolean, default: true },
+    phone: { type: String, trim: true },
     hourlyRate: Number,
     hourlyRateHistory: {
       type: [new Schema({

@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAppSelector } from '@/store/hooks'
 import { getAll, create, update } from '@/services/faculty.service'
+import { normalizePhone } from '@/lib/utils/phone'
 import type { Faculty } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 import { Icon } from '@/components/ui/Icon'
@@ -30,20 +31,26 @@ export default function FacultyPage() {
 
   useEffect(load, [load])
 
+  const searchDigits = search.replace(/\D/g, '')
   const filtered = list.filter((f) =>
     f.name.toLowerCase().includes(search.toLowerCase()) ||
-    f.subject.toLowerCase().includes(search.toLowerCase())
+    f.subject.toLowerCase().includes(search.toLowerCase()) ||
+    (searchDigits.length > 0 && (f.phone ?? '').replace(/\D/g, '').includes(searchDigits))
   )
 
   async function handleSave() {
     if (!accessToken || !editing) return
+    const phone = normalizePhone((editing as Faculty).phone)
+    if (!phone.ok) { setError(phone.error); return }
+    // Send the tidied number; an emptied field clears it on an existing record.
+    const payload = { ...editing, phone: phone.value }
     setSaving(true); setError('')
     try {
       if ('_id' in editing) {
-        await update(editing._id, editing as Partial<Faculty>, accessToken)
+        await update(editing._id, payload as Partial<Faculty>, accessToken)
         toast.success('Faculty updated', 'Changes have been saved.')
       } else {
-        await create(editing as Omit<Faculty, '_id'>, accessToken)
+        await create(payload as Omit<Faculty, '_id'>, accessToken)
         toast.success('Faculty added', 'New faculty member has been created.')
       }
       setEditing(null); load()
@@ -75,7 +82,7 @@ export default function FacultyPage() {
           <div className={s.searchBox}>
             <span className={s.searchIcon}><Icon name="search" size={16} /></span>
             <input
-              id="faculty-search" className={`input ${s.searchInput}`} placeholder="Search by name or subject…"
+              id="faculty-search" className={`input ${s.searchInput}`} placeholder="Search by name, subject or phone…"
               value={search} onChange={(e) => setSearch(e.target.value)}
             />
           </div>

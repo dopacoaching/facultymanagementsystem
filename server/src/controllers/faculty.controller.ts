@@ -7,11 +7,12 @@ import { asyncHandler } from '../utils/asyncHandler'
 import { validateObjectId } from '../utils/objectId'
 import type { FacultyType, SalaryModel } from '../types'
 import { initialRateHistory, parseRateDate, planRateChange, validRate } from '../utils/hourlyRate'
+import { normalizePhone } from '../utils/phone'
 
 // Fields that HR/Admin may set when creating or updating a Faculty document.
 // Explicitly whitelisted to prevent mass assignment.
 const FACULTY_WRITABLE = [
-  'name', 'subject', 'type', 'salaryModel', 'isActive',
+  'name', 'subject', 'type', 'salaryModel', 'isActive', 'phone',
   'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'monthlyDayQuota',
   'overtimeThreshold', 'overtimeRate', 'fixedComponent', 'variableComponent',
   'totalContractDays', 'monthlyLeaveAllowance', 'aprilLeaveAllowance',
@@ -54,7 +55,7 @@ export const getAllFaculty = asyncHandler(async (req: AuthRequest, res: Response
 const SALARY_RESPONSE_FIELDS = [
   'hourlyRate', 'fixedMonthlySalary', 'monthlyHourQuota', 'monthlyDayQuota',
   'overtimeThreshold', 'overtimeRate', 'fixedComponent', 'variableComponent',
-  'totalContractDays', 'configurablePayJson', 'salaryModel',
+  'totalContractDays', 'configurablePayJson', 'salaryModel', 'phone',
 ]
 
 export const getFacultyById = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -91,6 +92,12 @@ export const createFaculty = asyncHandler(async (req: AuthRequest, res: Response
   if (!salaryModel)     { res.status(400).json({ error: 'salaryModel is required' }); return }
 
   const safeData = pickFacultyFields(req.body as Record<string, unknown>)
+  if ('phone' in safeData) {
+    const phone = normalizePhone(safeData.phone)
+    if (!phone.ok) { res.status(400).json({ error: phone.error }); return }
+    if (phone.value) safeData.phone = phone.value
+    else delete safeData.phone
+  }
   if (safeData.hourlyRate !== undefined && safeData.hourlyRate !== null) {
     if (!validRate(safeData.hourlyRate)) {
       res.status(400).json({ error: 'Hourly rate must be a positive number' }); return
@@ -121,6 +128,16 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
     res.status(400).json({ error: 'No valid fields provided for update' }); return
   }
 
+  // Phone: validated and tidied; an empty value clears it.
+  let unsetPhone = false
+  if ('phone' in safeData) {
+    const phone = normalizePhone(safeData.phone)
+    if (!phone.ok) { res.status(400).json({ error: phone.error }); return }
+    if (phone.value) safeData.phone = phone.value
+    else { delete safeData.phone; unsetPhone = true }
+  }
+  const changedFields = () => [...Object.keys(safeData), ...(unsetPhone ? ['phone'] : [])]
+
   // Hourly rate changes are dated: an unchanged rate is ignored, a changed one
   // needs an effective date and is appended to the rate history.
   let rateChange: { from: number | undefined; to: number; effectiveFrom: string } | null = null
@@ -141,10 +158,10 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
       Object.assign(safeData, planRateChange(existing, newRate, effectiveFrom, req.user!.username))
       rateChange = { from: existing.hourlyRate, to: newRate, effectiveFrom: body.hourlyRateEffectiveFrom as string }
     }
-    if (Object.keys(safeData).length === 0) { res.json(existing); return }
+    if (Object.keys(safeData).length === 0 && !unsetPhone) { res.json(existing); return }
   }
 
-  const faculty = await Faculty.findByIdAndUpdate(oid, safeData, { returnDocument: 'after', runValidators: true })
+  const faculty = await Faculty.findByIdAndUpdate(oid, unsetPhone ? { ...safeData, $unset: { phone: 1 } } : safeData, { returnDocument: 'after', runValidators: true })
   if (!faculty) { res.status(404).json({ error: 'Faculty not found' }); return }
 
   const SALARY_FIELDS: FacultyWritable[] = [
@@ -173,7 +190,7 @@ export const updateFaculty = asyncHandler(async (req: AuthRequest, res: Response
       actorUserId: req.user!.userId, actorRole: req.user!.role, actorUsername: req.user!.username,
       targetType: 'Faculty', targetId: faculty._id.toString(), targetName: faculty.name,
       facultyId: faculty._id.toString(), facultyName: faculty.name,
-      description: `Profile updated (${Object.keys(safeData).join(', ')})`,
+      description: `Profile updated (${changedFields().join(', ')})`,
     })
   }
   res.json(faculty)

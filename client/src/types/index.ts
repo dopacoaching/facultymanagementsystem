@@ -14,6 +14,8 @@ export interface Faculty {
   type: string
   salaryModel: string
   isActive: boolean
+  /** HR/Admin only. */
+  phone?: string
   hourlyRate?: number
   /** Dated rate timeline, oldest first. The initial rate starts at the epoch. */
   hourlyRateHistory?: { rate: number; effectiveFrom: string; changedAt?: string; changedBy?: string }[]

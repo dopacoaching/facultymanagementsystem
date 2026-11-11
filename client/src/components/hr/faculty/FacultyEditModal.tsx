@@ -1,7 +1,8 @@
 import { Icon } from '@/components/ui/Icon'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Faculty } from '@/types'
 import { ErrorAlert } from '@/components/ui/Skeleton'
+import { normalizePhone } from '@/lib/utils/phone'
 import { SalaryFields } from './SalaryFields'
 import { EMPTY_FACULTY, SALARY_MODELS, TYPES } from './types'
 import s from './Faculty.module.css'
@@ -19,6 +20,11 @@ export function FacultyEditModal({ editing, setEditing, error, saving, onClose, 
   const isEdit = '_id' in editing
   // The rate as loaded, so SalaryFields can tell when it has been changed.
   const [originalRate] = useState(() => ('_id' in editing ? editing.hourlyRate : undefined))
+  // Phone is checked in the dialog so the message sits under the field, not in a generic alert.
+  const phoneRef = useRef<HTMLInputElement>(null)
+  const [phoneTouched, setPhoneTouched] = useState(false)
+  const phoneCheck = normalizePhone((editing as Faculty).phone)
+  const phoneError = phoneTouched && !phoneCheck.ok ? phoneCheck.error : ''
 
   return (
     <div
@@ -32,7 +38,11 @@ export function FacultyEditModal({ editing, setEditing, error, saving, onClose, 
           <button type="button" onClick={onClose} aria-label="Close" className="modal-close"><Icon name="x" size={16} /></button>
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); onSave() }} style={{ display: 'contents' }}>
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          if (!phoneCheck.ok) { setPhoneTouched(true); phoneRef.current?.focus(); return }
+          onSave()
+        }} style={{ display: 'contents' }}>
         <div className="modal-body">
           {error && (
             <div className="mb-4">
@@ -51,6 +61,24 @@ export function FacultyEditModal({ editing, setEditing, error, saving, onClose, 
                 <label className="label" htmlFor="fac-subject">Subject</label>
                 <input id="fac-subject" className="input" value={(editing as Faculty).subject ?? ''} onChange={(e) => setEditing({ ...editing, subject: e.target.value })} placeholder="e.g. Physics" />
               </div>
+            </div>
+            <div className="form-group">
+              <label className="label" htmlFor="fac-phone">Phone number <span className="text-muted font-semibold">(optional)</span></label>
+              <input
+                id="fac-phone" ref={phoneRef} className="input" type="tel" inputMode="tel" autoComplete="off" maxLength={20}
+                aria-invalid={phoneError ? true : undefined}
+                onBlur={() => setPhoneTouched(true)}
+                value={(editing as Faculty).phone ?? ''}
+                onChange={(e) => setEditing({ ...editing, phone: e.target.value })}
+                placeholder="e.g. +91 98765 43210"
+                aria-describedby={phoneError ? 'fac-phone-error' : 'fac-phone-hint'}
+              />
+              {phoneError && <p id="fac-phone-error" className="error-text" role="alert">{phoneError}</p>}
+              <span id="fac-phone-hint" className="help-text">
+                {editing.type === 'TEMPORARY'
+                  ? 'Recommended for temporary faculty so HR can reach them. Visible to HR and Admin only.'
+                  : 'Visible to HR and Admin only. Leave empty if not needed.'}
+              </span>
             </div>
             <label className={s.switchRow}>
               <input type="checkbox" checked={editing.isActive} onChange={(e) => setEditing({ ...editing, isActive: e.target.checked })} />

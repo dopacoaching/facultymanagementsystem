@@ -50,7 +50,10 @@ export function FacultyTable({ loading, filtered, search, onAdd, onEdit, onConfi
               <td data-label="Name">
                 <div className={s.nameCell}>
                   <span className={`avatar ${s.avatar}`} aria-hidden="true">{initials(f.name)}</span>
-                  <span className={s.nameText}>{f.name}</span>
+                  <span className={s.nameStack}>
+                    <span className={s.nameText}>{f.name}</span>
+                    {f.phone && <a className={s.phoneLink} href={`tel:${f.phone.replace(/[^\d+]/g, '')}`}>{f.phone}</a>}
+                  </span>
                 </div>
               </td>
               <td data-label="Subject" className={s.subjectCell}>{f.subject}</td>
