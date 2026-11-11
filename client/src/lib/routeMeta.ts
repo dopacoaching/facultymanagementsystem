@@ -133,6 +133,12 @@ export const ROUTES: RouteMeta[] = [
     parent: '/hr/reports',
   },
   {
+    path: '/hr/reports/temporary-weekly', icon: 'send', title: 'Temporary Faculty Reports',
+    navLabel: 'Send Reports', section: 'HR',
+    navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'],
+    parent: '/hr/reports',
+  },
+  {
     path: '/hr/reports/class-sessions', icon: 'school', title: 'Class Sessions Report',
     navLabel: 'Class Sessions', section: 'HR',
     navRoles: ['HR_MANAGER', 'ADMIN'], roles: ['HR_MANAGER', 'ADMIN'],

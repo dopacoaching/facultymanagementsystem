@@ -99,6 +99,24 @@ git ls-files | grep ".env"     # should show ONLY *.env.example / .env.local.exa
 
 ---
 
+## Optional — WhatsApp weekly reports (temporary faculty)
+
+HR/Admin send temporary faculty their classes and hours from **Reports → Send Reports**.
+Needs a WhatsApp Business account (Meta Cloud API). In WhatsApp Manager create a **Utility**
+template whose body is exactly `REPORT_TEMPLATE_BODY` in
+`client/src/lib/constants/weeklyReportTemplate.ts`, wait for approval, then set in Vercel:
+
+- `WHATSAPP_TOKEN` — permanent system-user access token
+- `WHATSAPP_PHONE_NUMBER_ID` — the sending number's ID
+- `WHATSAPP_TEMPLATE_NAME` — the approved template's name
+- `WHATSAPP_TEMPLATE_LANG` — optional, default `en`
+- `WHATSAPP_DEFAULT_COUNTRY_CODE` — optional, default `91` (for numbers saved without +)
+
+Without these the page still previews reports but sending is switched off. Each send is
+written to the audit log (`WEEKLY_REPORT_SENT`). Prod-only: the Express `server/` has no sender.
+
+---
+
 ## Cookie notes
 
 Since the client and API are same-origin on Vercel, the refresh-token cookie

@@ -51,6 +51,7 @@ export type AuditEventType =
   | 'PENALTY_APPLIED'
   | 'OVERTIME_ADDED'
   | 'BALANCE_CARRY_FORWARD'
+  | 'WEEKLY_REPORT_SENT'
   // ── Academics (Repeaters) ─────────────────────────────────────────────────
   | 'SESSION_LOGGED'
   | 'SESSION_UPDATED'
