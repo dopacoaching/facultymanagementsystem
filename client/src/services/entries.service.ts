@@ -77,6 +77,17 @@ export interface NoClassDoc {
   /** YYYY-MM-DD as written by the server (timezone-proof). */
   day?: string
   markedByName?: string
+  /** When it was marked — a class teacher may edit it for 24 hours after. */
+  createdAt?: string
+}
+
+/** A class teacher's own edit of a No Class entry within the 24-hour window. */
+export function updateNoClassEntry(
+  id: string,
+  data: { date: string; reason: string; markedByName?: string; batchIds: string[] },
+  token: string,
+): Promise<NoClassDoc> {
+  return apiFetch<NoClassDoc>(`/academics/no-class?id=${id}`, { method: 'PATCH', body: data, token })
 }
 
 export function markNoClass(

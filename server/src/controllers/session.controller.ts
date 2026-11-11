@@ -449,7 +449,7 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
   }
 
   const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
-    'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
+    'facultyId', 'batchId', 'campusName', 'classMode', 'sessionCategory', 'subject', 'chapter',
     'scheduledTime', 'scheduledEndTime', 'updatedByName', 'comment', 'startTime', 'endTime',
     'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
     'durationHours', 'sessionDate', 'timeSlot',
@@ -481,6 +481,9 @@ export const updateSession = asyncHandler(async (req: AuthRequest, res: Response
   const MODES = ['ONLINE', 'OFFLINE', 'ONLINE_DOUBT_CLEARANCE', 'OFFLINE_DOUBT_CLEARANCE']
   if (update.classMode !== undefined && !MODES.includes(String(update.classMode))) {
     res.status(400).json({ error: `classMode must be one of: ${MODES.join(', ')}` }); return
+  }
+  if (update.sessionCategory !== undefined && !['CLASS', 'DOUBT_CLEARANCE'].includes(String(update.sessionCategory))) {
+    res.status(400).json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }); return
   }
 
   if (update.facultyId) {

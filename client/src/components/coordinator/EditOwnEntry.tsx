@@ -36,6 +36,9 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
   const [saving, setSaving] = useState(false)
   const { options: chapterOptions } = useChapterOptions(form.subject, accessToken)
   const faculty = useActiveFaculty(accessToken)
+  // The Class / Doubt Clearance picker, for faculty who must log it (or an entry already marked Doubt Clearance).
+  const showCategory = !!faculty.find((f) => f._id === form.facultyId)?.requiresSessionCategory
+    || session.sessionCategory === 'DOUBT_CLEARANCE'
 
   async function submit() {
     const isShoot = form.entryType === 'SHOOT'
@@ -59,6 +62,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
         subject:       form.subject.trim(),
         chapters:      form.chapters,
         classMode:     form.classMode || undefined,
+        ...(showCategory && form.sessionCategory && form.sessionCategory !== formFromSession(session).sessionCategory ? { sessionCategory: form.sessionCategory } : {}),
         updatedByName: form.updatedByName.trim() || undefined,
         ...(form.comment.trim() !== (session.comment ?? '').trim() ? { comment: form.comment.trim() } : {}),
         sessionDate:   form.sessionDate,
@@ -106,6 +110,7 @@ export function EditOwnEntry({ session, teacherNames, batches, save, onClose, on
       onBatchIdsChange={setBatchIds}
       chapterOptions={chapterOptions}
       faculty={faculty}
+      showCategory={showCategory}
     />
   )
 }

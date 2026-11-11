@@ -18,6 +18,8 @@ export interface EditClassSessionForm {
   /** One class, one subject, one or more chapters. */
   chapters: string[]
   classMode: 'ONLINE' | 'OFFLINE' | 'ONLINE_DOUBT_CLEARANCE' | 'OFFLINE_DOUBT_CLEARANCE' | ''
+  /** Only for faculty who log Class / Doubt Clearance separately (see showCategory). */
+  sessionCategory: 'CLASS' | 'DOUBT_CLEARANCE' | ''
   updatedByName: string
   comment: string
   startTime: string
@@ -37,6 +39,7 @@ export function formFromSession(s: Session): EditClassSessionForm {
     subject:       s.subject,
     chapters:      s.chapters?.length ? s.chapters : s.chapter ? [s.chapter] : [],
     classMode:     s.classMode ?? '',
+    sessionCategory: s.sessionCategory ?? '',
     updatedByName: s.updatedByName ?? '',
     comment:       s.comment ?? '',
     startTime:     s.startTime ?? '',
@@ -81,13 +84,15 @@ interface EditClassSessionModalProps {
   /** Teacher edits at a campus with several batches: which batches sat this class. */
   /** Active faculty to choose from; omit to hide the selector. */
   faculty?: { _id: string; name: string; subject: string }[]
+  /** Show the Class / Doubt Clearance picker (faculty who must log it). */
+  showCategory?: boolean
   batches?: { _id: string; name: string }[]
   batchIds?: string[]
   onBatchIdsChange?: (ids: string[]) => void
 }
 
 export function EditClassSessionModal({
-  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate, chapterOptions, faculty, batches, batchIds, onBatchIdsChange,
+  form, setForm, error, saving, onClose, onSubmit, teacherNames, maxDate, chapterOptions, faculty, showCategory, batches, batchIds, onBatchIdsChange,
 }: EditClassSessionModalProps) {
   const uid = useId()
   return (
@@ -150,6 +155,16 @@ export function EditClassSessionModal({
             </div>
             {batches && batches.length > 1 && batchIds && onBatchIdsChange && (
               <BatchPicker batches={batches} value={batchIds} onChange={onBatchIdsChange} />
+            )}
+            {showCategory && (
+              <div className="form-group">
+                <label className="label" htmlFor={`${uid}-category`}>Session type</label>
+                <select id={`${uid}-category`} className="input" value={form.sessionCategory}
+                  onChange={(e) => setForm((f) => ({ ...f, sessionCategory: e.target.value as EditClassSessionForm['sessionCategory'] }))}>
+                  <option value="CLASS">Class</option>
+                  <option value="DOUBT_CLEARANCE">Doubt Clearance</option>
+                </select>
+              </div>
             )}
             <div className="form-group">
               <label className="label" htmlFor={`${uid}-class-mode`}>Class Mode</label>

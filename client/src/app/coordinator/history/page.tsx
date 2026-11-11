@@ -12,6 +12,8 @@ import { editWindowRemainingMs, formatTimeLeft } from '@/lib/utils/teacherEdit'
 import { update as updateEntry } from '@/services/session.service'
 import { CLASS_MODE_LABELS } from '@/lib/constants/classModes'
 import { Icon } from '@/components/ui/Icon'
+import { NoClassHistory } from '@/components/coordinator/NoClassHistory'
+import { breakLabel, enteredAtLabel, ENTRY_TYPE_SHORT } from '@/lib/utils/historyFormat'
 import s from '@/components/coordinator/Entry.module.css'
 
 
@@ -32,6 +34,7 @@ export default function CampusHistoryPage() {
   const [error, setError] = useState('')
   const { teacherNames, batches: campusBatches } = useCampusTeacherInfo(accessToken)
   const [editing, setEditing] = useState<Session | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   async function load() {
     if (!accessToken) return
@@ -39,6 +42,7 @@ export default function CampusHistoryPage() {
     try {
       const data = await getAll({ from, to }, accessToken)
       setSessions(data)
+      setReloadKey((k) => k + 1)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load session history')
     } finally { setLoading(false) }
@@ -47,6 +51,7 @@ export default function CampusHistoryPage() {
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalHours = sessions.reduce((sum, x) => sum + x.durationHours, 0)
+  const hasEntryTypes = sessions.some((x) => !!x.entryType)
 
   return (
     <div>
@@ -93,9 +98,12 @@ export default function CampusHistoryPage() {
                     <th>Chapter</th>
                     <th>Mode</th>
                     <th>Start–End</th>
+                    <th>Break</th>
+                    {hasEntryTypes && <th>Type</th>}
                     <th className="num" style={{ textAlign: 'right' }}>Time Taken</th>
                     <th>Updated By</th>
                     <th>Comment</th>
+                    <th>Entered</th>
                     <th><span className={s.srOnly}>Actions</span></th>
                   </tr>
                 </thead>
@@ -110,7 +118,10 @@ export default function CampusHistoryPage() {
                           {new Date(x.sessionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td data-label="Faculty" className={s.strong}>{facultyName}</td>
-                        <td data-label="Subject" className={s.secondary}>{x.subject}</td>
+                        <td data-label="Subject" className={s.secondary}>
+                          {x.subject}
+                          {x.sessionCategory === 'DOUBT_CLEARANCE' && <span className="badge badge-gray" style={{ marginLeft: 6 }}>Doubt Clearance</span>}
+                        </td>
                         <td data-label="Batch" className={s.secondary}>{x.batchNames?.length ? x.batchNames.join(', ') : '—'}</td>
                         <td data-label="Chapter" className={s.secondary}>{x.chapter}</td>
                         <td data-label="Mode">
@@ -121,11 +132,14 @@ export default function CampusHistoryPage() {
                         <td data-label="Start–End" className={`num ${s.nowrap}`}>
                           {x.startTime ?? '—'}–{x.endTime ?? '—'}
                         </td>
+                        <td data-label="Break" className={`num ${s.nowrap}`}>{breakLabel(x)}</td>
+                        {hasEntryTypes && <td data-label="Type" className={s.secondary}>{x.entryType ? ENTRY_TYPE_SHORT[x.entryType] ?? x.entryType : '—'}</td>}
                         <td data-label="Time Taken" className={`num ${s.strong}`} style={{ textAlign: 'right' }}>
                           {formatHM(x.durationHours)}
                         </td>
                         <td data-label="Updated By" className={s.secondary}>{x.updatedByName ?? '—'}</td>
                         <td data-label="Comment" className={s.comment}>{x.comment || '—'}</td>
+                        <td data-label="Entered" className={`${s.secondary} ${s.nowrap}`}>{enteredAtLabel(x.createdAt)}</td>
                         <td data-label="Actions" className={s.actionCell}>
                           {(joint || canEdit) && (
                             <span className={s.editCell}>
@@ -149,6 +163,10 @@ export default function CampusHistoryPage() {
             </div>
           </div>
         </>
+      )}
+
+      {accessToken && (
+        <NoClassHistory accessToken={accessToken} from={from} to={to} teachers={teacherNames} batches={campusBatches} reloadKey={reloadKey} />
       )}
 
       {editing && (

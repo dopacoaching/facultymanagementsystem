@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const body = await req.json() as Record<string, unknown>
     const allowed: readonly string[] = isTeacher ? TEACHER_EDITABLE_FIELDS : [
-      'facultyId', 'batchId', 'campusName', 'classMode', 'subject', 'chapter',
+      'facultyId', 'batchId', 'campusName', 'classMode', 'sessionCategory', 'subject', 'chapter',
       'scheduledTime', 'scheduledEndTime', 'updatedByName', 'comment', 'startTime', 'endTime',
       'breakMinutes', 'lunchBreakMinutes', 'afternoonBreakMinutes',
       'durationHours', 'sessionDate', 'timeSlot',
@@ -69,6 +69,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     }
 
+    if (update.sessionCategory !== undefined && !['CLASS', 'DOUBT_CLEARANCE'].includes(String(update.sessionCategory))) {
+      return withToken(json({ error: 'sessionCategory must be CLASS or DOUBT_CLEARANCE' }, 400), refreshedToken)
+    }
     if (body.entryType !== undefined && !isEntryType(body.entryType)) {
       return withToken(json({ error: 'entryType must be LIVE or SHOOT' }, 400), refreshedToken)
     }

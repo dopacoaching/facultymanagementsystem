@@ -10,6 +10,7 @@ import { Session } from '@/lib/models/Session'
 import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { countCampusSessionsOnDay, getTrackedCampusNames, resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { dayRangeFilter, parseLocalDate, toLocalISODate } from '@/lib/utils/dateRange'
+import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE } from '@/lib/utils/teacherEdit'
 
 function isCoordinator(role: string): boolean {
   return role === 'CLASS_TEACHER' || role === 'IG_CLASS_TEACHER'
@@ -56,6 +57,69 @@ export async function GET(req: NextRequest) {
   }
 }
 
+type MarkerCheck =
+  | { ok: true; date: Date; reason: string; batchOids: Types.ObjectId[] }
+  | { ok: false; error: string; status: number; code?: string }
+
+/** The rules for a No Class marker, shared by marking and by a teacher's later edit:
+ *  a real past date, a reason, batches of this campus, and no clash with another marker or with sessions.
+ *  `excludeId` is the marker being edited, so it never clashes with itself. */
+async function checkMarker(
+  campusName: string, dateStr: unknown, reasonRaw: unknown, rawBatchIds: unknown, excludeId?: string,
+): Promise<MarkerCheck> {
+  if (typeof reasonRaw !== 'string' || !reasonRaw.trim()) return { ok: false, error: 'A reason is required', status: 400 }
+  const date = typeof dateStr === 'string' ? parseLocalDate(dateStr) : null
+  if (!date || typeof dateStr !== 'string') return { ok: false, error: 'date must be a YYYY-MM-DD date', status: 400 }
+  if (dateStr > toLocalISODate(new Date())) return { ok: false, error: 'You cannot mark a future date as No Class', status: 400 }
+
+  const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999)
+
+  // Campuses that run batches may mark only some of them. None ticked = the whole campus.
+  let batchOids: Types.ObjectId[] = []
+  if (Array.isArray(rawBatchIds) && rawBatchIds.length > 0) {
+    const pushCampus = await findPushCampusByName(campusName)
+    if (!pushCampus?.batchCampusId) return { ok: false, error: 'This campus has no batches to choose from.', status: 400 }
+    if (!rawBatchIds.every((id) => typeof id === 'string' && Types.ObjectId.isValid(id))) {
+      return { ok: false, error: 'Invalid batchIds', status: 400 }
+    }
+    const ids = Array.from(new Set(rawBatchIds as string[])).map((id) => new Types.ObjectId(id))
+    const valid = await Batch.countDocuments({ _id: { $in: ids }, campusId: pushCampus.batchCampusId, isActive: true })
+    if (valid !== ids.length) return { ok: false, error: 'One or more batches do not belong to this campus.', status: 400 }
+    batchOids = ids
+  }
+
+  // Overlap with what is already recorded that day.
+  const sameDay = await NoClassDay.find({ campusName, date, ...(excludeId ? { _id: { $ne: excludeId } } : {}) }).select('batchIds').lean()
+  const conflict = batchOids.length === 0
+    ? sameDay.length > 0
+    : sameDay.some((m) => !m.batchIds?.length || m.batchIds.some((b) => batchOids.some((o) => o.equals(b))))
+  if (conflict) {
+    return {
+      ok: false, status: 409, code: 'ALREADY_MARKED',
+      error: batchOids.length === 0
+        ? 'This day already has a No Class marker for this campus. Ask HR to remove it first to mark the whole campus.'
+        : 'One or more of these batches is already marked No Class for that date.',
+    }
+  }
+
+  const existing = batchOids.length === 0
+    ? await countCampusSessionsOnDay(campusName, date, dayEnd)
+    : await Session.countDocuments({
+        sessionDate: { $gte: date, $lte: dayEnd },
+        status: { $ne: 'CANCELLED' },
+        $or: [{ batchId: { $in: batchOids } }, { extraBatchIds: { $in: batchOids } }],
+      })
+  if (existing > 0) {
+    return {
+      ok: false, status: 409, code: 'SESSIONS_EXIST',
+      error: batchOids.length === 0
+        ? 'Sessions are already recorded for this campus on that date, so it cannot be marked No Class.'
+        : 'Sessions are already recorded for these batches on that date, so they cannot be marked No Class.',
+    }
+  }
+  return { ok: true, date, reason: reasonRaw.trim().slice(0, 120), batchOids }
+}
+
 /** POST /api/academics/no-class — mark a campus day as "No Class" */
 export async function POST(req: NextRequest) {
   try {
@@ -77,73 +141,15 @@ export async function POST(req: NextRequest) {
     if (!campusName || !(await getTrackedCampusNames()).includes(campusName)) {
       return withToken(json({ error: 'A valid campusName is required' }, 400), refreshedToken)
     }
-    if (typeof reason !== 'string' || !reason.trim()) {
-      return withToken(json({ error: 'A reason is required' }, 400), refreshedToken)
-    }
-    const date = typeof dateStr === 'string' ? parseLocalDate(dateStr) : null
-    if (!date) {
-      return withToken(json({ error: 'date must be a YYYY-MM-DD date' }, 400), refreshedToken)
-    }
-    if (dateStr > toLocalISODate(new Date())) {
-      return withToken(json({ error: 'You cannot mark a future date as No Class' }, 400), refreshedToken)
-    }
-
-    const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999)
-
-    // Campuses that run batches may mark only some of them. None ticked = the whole campus.
-    let batchOids: Types.ObjectId[] = []
-    if (Array.isArray(rawBatchIds) && rawBatchIds.length > 0) {
-      const pushCampus = await findPushCampusByName(campusName)
-      if (!pushCampus?.batchCampusId) {
-        return withToken(json({ error: 'This campus has no batches to choose from.' }, 400), refreshedToken)
-      }
-      if (!rawBatchIds.every((id) => typeof id === 'string' && Types.ObjectId.isValid(id))) {
-        return withToken(json({ error: 'Invalid batchIds' }, 400), refreshedToken)
-      }
-      const ids = Array.from(new Set(rawBatchIds as string[])).map((id) => new Types.ObjectId(id))
-      const valid = await Batch.countDocuments({ _id: { $in: ids }, campusId: pushCampus.batchCampusId, isActive: true })
-      if (valid !== ids.length) {
-        return withToken(json({ error: 'One or more batches do not belong to this campus.' }, 400), refreshedToken)
-      }
-      batchOids = ids
-    }
-
-    // Overlap with what is already recorded that day.
-    const sameDay = await NoClassDay.find({ campusName, date }).select('batchIds').lean()
-    const conflict = batchOids.length === 0
-      ? sameDay.length > 0
-      : sameDay.some((m) => !m.batchIds?.length || m.batchIds.some((b) => batchOids.some((o) => o.equals(b))))
-    if (conflict) {
-      return withToken(json({
-        error: batchOids.length === 0
-          ? 'This day already has a No Class marker for this campus. Ask HR to remove it first to mark the whole campus.'
-          : 'One or more of these batches is already marked No Class for that date.',
-        code: 'ALREADY_MARKED',
-      }, 409), refreshedToken)
-    }
-
-    const existing = batchOids.length === 0
-      ? await countCampusSessionsOnDay(campusName, date, dayEnd)
-      : await Session.countDocuments({
-          sessionDate: { $gte: date, $lte: dayEnd },
-          status: { $ne: 'CANCELLED' },
-          $or: [{ batchId: { $in: batchOids } }, { extraBatchIds: { $in: batchOids } }],
-        })
-    if (existing > 0) {
-      return withToken(json({
-        error: batchOids.length === 0
-          ? 'Sessions are already recorded for this campus on that date, so it cannot be marked No Class.'
-          : 'Sessions are already recorded for these batches on that date, so they cannot be marked No Class.',
-        code: 'SESSIONS_EXIST',
-      }, 409), refreshedToken)
-    }
+    const check = await checkMarker(campusName, dateStr, reason, rawBatchIds)
+    if (!check.ok) return withToken(json({ error: check.error, ...(check.code ? { code: check.code } : {}) }, check.status), refreshedToken)
 
     try {
       const doc = await NoClassDay.create({
         campusName,
-        date,
-        reason: reason.trim().slice(0, 120),
-        batchIds: batchOids.length ? batchOids : undefined,
+        date: check.date,
+        reason: check.reason,
+        batchIds: check.batchOids.length ? check.batchOids : undefined,
         markedByUserId: new Types.ObjectId(payload.userId),
         markedByName: typeof markedByName === 'string' && markedByName ? markedByName : undefined,
       })
@@ -160,27 +166,69 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** PATCH /api/academics/no-class?id= — HR/Admin edit the reason of a No Class marker */
+/** PATCH /api/academics/no-class?id= — HR/Admin change the reason of a marker. A campus class teacher
+ *  (campus or IG login) may change the date, batches, reason and marked-by of their own campus's marker
+ *  for 24 hours after it was marked. */
 export async function PATCH(req: NextRequest) {
   try {
     const auth = authenticate(req)
     if (auth instanceof NextResponse) return auth
     const { payload, refreshedToken } = auth
 
-    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN')
+    const forbidden = authorize(payload, 'HR_MANAGER', 'ADMIN', 'CLASS_TEACHER', 'IG_CLASS_TEACHER')
     if (forbidden) return withToken(forbidden, refreshedToken)
 
     const id = new URL(req.url).searchParams.get('id')
     if (!id || !Types.ObjectId.isValid(id)) {
       return withToken(json({ error: 'Invalid id' }, 400), refreshedToken)
     }
-    const body = await req.json().catch(() => null) as { reason?: unknown } | null
+    const body = await req.json().catch(() => null) as
+      { reason?: unknown; date?: unknown; batchIds?: unknown; markedByName?: unknown } | null
+
+    await connectDB()
+    const before = await NoClassDay.findById(id)
+    if (!before) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
+
+    if (isCoordinator(payload.role)) {
+      const own = await resolveCoordinatorCampusName(payload)
+      if (!own || before.campusName !== own) {
+        return withToken(json({ error: 'You can only edit No Class days for your own campus.' }, 403), refreshedToken)
+      }
+      if (!canTeacherEdit((before as unknown as { createdAt?: Date }).createdAt)) {
+        return withToken(json({ error: EDIT_WINDOW_CLOSED_MESSAGE }, 403), refreshedToken)
+      }
+      const check = await checkMarker(
+        before.campusName,
+        body?.date ?? toLocalISODate(before.date),
+        body?.reason ?? before.reason,
+        body?.batchIds ?? (before.batchIds ?? []).map(String),
+        id,
+      )
+      if (!check.ok) return withToken(json({ error: check.error, ...(check.code ? { code: check.code } : {}) }, check.status), refreshedToken)
+
+      const set: Record<string, unknown> = { date: check.date, reason: check.reason }
+      const unset: Record<string, 1> = {}
+      if (check.batchOids.length) set.batchIds = check.batchOids; else unset.batchIds = 1
+      if (typeof body?.markedByName === 'string' && body.markedByName.trim()) set.markedByName = body.markedByName.trim()
+      const updated = await NoClassDay.findByIdAndUpdate(id, { $set: set, ...(Object.keys(unset).length ? { $unset: unset } : {}) }, { returnDocument: 'after' })
+      if (!updated) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
+      writeAuditLog({
+        category: 'ACADEMICS', eventType: 'NO_CLASS_UPDATED',
+        actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
+        targetType: 'NoClassDay', targetId: id, targetName: updated.campusName,
+        description: `No Class entry edited by the campus for ${updated.campusName} on ${toLocalISODate(updated.date)}`,
+        metadata: {
+          from: { date: toLocalISODate(before.date), reason: before.reason, batchIds: (before.batchIds ?? []).map(String), markedByName: before.markedByName },
+          to: { date: toLocalISODate(updated.date), reason: updated.reason, batchIds: (updated.batchIds ?? []).map(String), markedByName: updated.markedByName },
+        },
+      }).catch(() => null)
+      return withToken(json(updated), refreshedToken)
+    }
+
     const reason = typeof body?.reason === 'string' ? body.reason.trim() : ''
     if (!reason) return withToken(json({ error: 'A reason is required' }, 400), refreshedToken)
     if (reason.length > 120) return withToken(json({ error: 'The reason can be at most 120 characters' }, 400), refreshedToken)
 
-    await connectDB()
-    const before = await NoClassDay.findById(id).select('reason')
     const doc = await NoClassDay.findByIdAndUpdate(id, { $set: { reason } }, { returnDocument: 'after' })
     if (!doc) return withToken(json({ error: 'Not found' }, 404), refreshedToken)
 
@@ -189,7 +237,7 @@ export async function PATCH(req: NextRequest) {
       actorUserId: payload.userId, actorRole: payload.role, actorUsername: payload.username,
       targetType: 'NoClassDay', targetId: id, targetName: doc.campusName,
       description: `No Class reason changed for ${doc.campusName} on ${toLocalISODate(doc.date)}`,
-      metadata: { from: before?.reason, to: reason },
+      metadata: { from: before.reason, to: reason },
     }).catch(() => null)
     return withToken(json(doc), refreshedToken)
   } catch (err) {

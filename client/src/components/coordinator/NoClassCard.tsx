@@ -16,8 +16,8 @@ function fmtDay(iso: string): string {
 }
 
 /** Fixed reasons offered in the dropdown; anything else goes under Other (typed). */
-const FIXED_REASONS = ['Faculty cancellation', 'No schedule']
-const OTHER = 'OTHER'
+export const FIXED_REASONS = ['Faculty cancellation', 'No schedule']
+export const OTHER = 'OTHER'
 
 /**
  * "No Class" marker for the coordinator's campus. A day with no entries and no
@@ -76,7 +76,7 @@ export function NoClassCard({ accessToken, teachers, batches = [] }: {
       <div className={s.noClassBody}>
         <p className={`${s.muted} ${s.lead}`}>
           If no class was held at your campus on a day, mark it here. Otherwise the day shows as
-          &ldquo;report not submitted&rdquo; for HR. Marked by mistake? Ask HR to change or remove it.
+          &ldquo;report not submitted&rdquo; for HR. Marked by mistake? You can edit it from History for 24 hours; after that ask HR.
         </p>
 
         {error && (
