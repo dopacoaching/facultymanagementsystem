@@ -353,6 +353,16 @@ export default function EntriesReportPage() {
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Month picker drives the same from/to range as the date pickers. */
+  /** One click: last calendar month, every joint class (IG and repeaters), campus-wise, all faculty and campuses. */
+  function showJointLastMonth() {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const r = monthRange(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`, now)
+    setFrom(r.from); setTo(r.to)
+    setView('classes'); setGroup('campus'); setKind('ALL')
+    setJointFilter('JOINT')
+    setCampus(''); setFacultyId(''); setClassMode('')
+  }
+
   function pickMonth(ym: string) {
     if (!ym) return
     const r = monthRange(ym, now)
@@ -592,6 +602,11 @@ export default function EntriesReportPage() {
               </select>
             </div>
           )}
+        </div>
+        <div className={s.filterRow}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={showJointLastMonth}>
+            Joint entries, last month
+          </button>
         </div>
         <div className={s.filterRow}>
           <DateRangeFilter from={from} to={to} onFromChange={setFrom} onToChange={setTo} loading={loading} onApply={load} applyLabel="Refresh" maxDays={93} />
