@@ -280,6 +280,8 @@ export default function EntriesReportPage() {
   const [campus, setCampus]   = useState('')
   /** '' = every class mode; otherwise one of Online, Offline or the two doubt-clearance modes. */
   const [classMode, setClassMode] = useState('')
+  /** '' = all entries; the joint options pick all, IG-school or repeaters-campus joint classes; 'SINGLE' leaves joint classes out. */
+  const [jointFilter, setJointFilter] = useState<'' | 'JOINT' | 'JOINT_IG' | 'JOINT_REP' | 'SINGLE'>('')
   /** Class days (entries) / No class markers / Whole days (every campus-day's status). */
   const [view, setView]       = useState<ReportView>('classes')
   /** One faculty of the chosen type; '' = all of that type. */
@@ -353,7 +355,18 @@ export default function EntriesReportPage() {
       .filter((r) => !facultyId || r.facultyId === facultyId)
       .sort(byEntryOrder)
   }, [report, kind, campus, facultyId])
-  const rows = useMemo(() => (classMode ? baseRows.filter((r) => r.classMode === classMode) : baseRows), [baseRows, classMode])
+  const rows = useMemo(() => baseRows
+    .filter((r) => !classMode || r.classMode === classMode)
+    .filter((r) => {
+      switch (jointFilter) {
+        case 'JOINT':     return r.isJoint
+        case 'JOINT_IG':  return r.isJoint && r.isIG
+        case 'JOINT_REP': return r.isJoint && !r.isIG
+        case 'SINGLE':    return !r.isJoint
+        default:          return true
+      }
+    }),
+  [baseRows, classMode, jointFilter])
 
   /** HR/Admin only (the server decides): a Pay column for temporary faculty, when the shown rows include any. */
   const showPay = !!report?.showPay && rows.some((r) => r.facultyType === 'TEMPORARY')
@@ -542,6 +555,18 @@ export default function EntriesReportPage() {
               <select id="er-mode" className="input" value={classMode} onChange={(e) => setClassMode(e.target.value)}>
                 <option value="">All modes</option>
                 {CLASS_MODE_FILTERS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
+            </div>
+          )}
+          {view === 'classes' && (
+            <div className={`form-group ${s.fieldWide}`}>
+              <label className="label" htmlFor="er-joint">Joint classes</label>
+              <select id="er-joint" className="input" value={jointFilter} onChange={(e) => setJointFilter(e.target.value as typeof jointFilter)}>
+                <option value="">All entries</option>
+                <option value="JOINT">All joint classes</option>
+                <option value="JOINT_IG">IG joint classes</option>
+                <option value="JOINT_REP">Repeaters joint classes</option>
+                <option value="SINGLE">Without joint classes</option>
               </select>
             </div>
           )}
