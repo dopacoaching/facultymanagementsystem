@@ -11,7 +11,7 @@ const LINKS: QuickLinkItem[] = [
     ? [{ href: '/hr/salary', label: SALARY_LABELS.hrLink, desc: SALARY_LABELS.adminDesc, icon: 'wallet' } as QuickLinkItem]
     : []),
   { href: '/hr/reports', label: 'Entries Report', desc: 'Campus, subject and faculty-wise', icon: 'report' },
-  { href: '/hr/reports?joint=last-month', label: 'Joint Entries', desc: 'IG and repeaters joint classes, last month', icon: 'layers' },
+  { href: '/hr/reports?joint=last-month', label: 'Joint Entries', desc: 'IG and repeaters joint classes, last 30 days', icon: 'layers' },
 ]
 
 export function QuickLinks() {
