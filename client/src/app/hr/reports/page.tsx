@@ -67,6 +67,13 @@ const sumHours = (rows: EntryRow[]) => rows.reduce((t, r) => t + r.durationHours
 
 /** Temporary faculty's pay for these rows (₹); rows with no rate set add nothing. */
 const sumPay = (rows: EntryRow[]) => rows.reduce((t, r) => t + (r.pay ?? 0), 0)
+/** Joint classes (several campuses or schools at once) are reported apart from single-campus entries. */
+const JOINT_SECTIONS = [
+  { key: 'ig',  title: 'IG joint classes',        pick: (r: EntryRow) => r.isJoint && r.isIG },
+  { key: 'rep', title: 'Repeaters joint classes', pick: (r: EntryRow) => r.isJoint && !r.isIG },
+] as const
+const notJoint = (rows: EntryRow[]) => rows.filter((r) => !r.isJoint)
+
 const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`
 
 /** Running total of hours per faculty, in date order. Keyed by entry id. */
@@ -244,7 +251,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
       body.push(blank())
     }
   } else {
-    for (const [campusName, campusRows] of Array.from(groupByCampus(rows, campus).entries()).sort(byName)) {
+    for (const [campusName, campusRows] of Array.from(groupByCampus(notJoint(rows), campus).entries()).sort(byName)) {
       if (group === 'campus') {
         addGroup(campusName, campusRows)
       } else {
@@ -253,6 +260,12 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
           addGroup(subject, list, true)
         }
       }
+      body.push(blank())
+    }
+    for (const sec of JOINT_SECTIONS) {
+      const list = rows.filter(sec.pick)
+      if (list.length === 0) continue
+      addGroup(sec.title, list)
       body.push(blank())
     }
   }
@@ -392,7 +405,7 @@ export default function EntriesReportPage() {
 
   const byCampus = useMemo(() => {
     if (group === 'faculty') return []
-    const map = groupByCampus(rows, campus)
+    const map = groupByCampus(notJoint(rows), campus)
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
   }, [rows, group, campus])
 
@@ -728,6 +741,17 @@ export default function EntriesReportPage() {
                 ))}
             </div>
           ))}
+
+          {group !== 'faculty' && JOINT_SECTIONS.map((sec) => {
+            const list = rows.filter(sec.pick)
+            if (list.length === 0) return null
+            return (
+              <div key={sec.key} className={`card card-flush ${s.group}`}>
+                <GroupHeader title={sec.title} count={list.length} hours={sumHours(list)} pay={showPay ? sumPay(list) : undefined} />
+                <div className={s.groupBody}>{table(list, [])}</div>
+              </div>
+            )
+          })}
 
           <p className={s.subline} style={{ marginTop: 'var(--space-3)' }}>
             Grand total: <strong className="mono">{rows.length}</strong> {rows.length === 1 ? 'entry' : 'entries'} · <strong className="mono">{formatHM(sumHours(rows))}</strong>
