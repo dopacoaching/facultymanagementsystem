@@ -101,9 +101,12 @@ export function EntriesOverview({ leading }: Props) {
     const byFaculty = new Map<string, FacultyRow>()
     let totalHours = 0
     for (const s of report.sessions) {
-      const c = ensure(s.campusName)
-      c.entries += 1
-      c.hours += s.durationHours
+      // A joint class counts under every campus it covered; the grand total counts it once.
+      for (const name of s.campusNames?.length ? s.campusNames : [s.campusName]) {
+        const c = ensure(name)
+        c.entries += 1
+        c.hours += s.durationHours
+      }
       totalHours += s.durationHours
 
       const f = byFaculty.get(s.facultyId) ?? { facultyId: s.facultyId, name: s.facultyName, entries: 0, hours: 0 }

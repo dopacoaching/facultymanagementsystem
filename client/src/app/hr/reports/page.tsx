@@ -16,7 +16,7 @@ import { toLocalISO } from '@/utils/date'
 import { FlagIcon, fmtDay, monthRange } from '@/components/hr/reports/reportShared'
 import { useActiveFaculty } from '@/hooks/useActiveFaculty'
 import {
-  VIEW_TABS, buildWholeDays, wholeDaysEnd, noClassRowsFor, cleanCell, hmText, downloadSimpleSheet,
+  VIEW_TABS, buildWholeDays, groupByCampus, wholeDaysEnd, noClassRowsFor, cleanCell, hmText, downloadSimpleSheet,
   type ReportView, type WholeDayRow,
 } from '@/components/hr/reports/entriesViews'
 
@@ -191,7 +191,7 @@ function toTSV(rows: EntryRow[], totals: Map<string, number>, showPay: boolean):
 /** One sheet laid out like the screen: a bold header row per group (with its entry
  *  count and total hours), that group's entries in date order, then a blank row.
  *  Loaded on demand so the xlsx writer stays out of the page's initial bundle. */
-async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string, totals: Map<string, number>, showPay: boolean) {
+async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to: string, totals: Map<string, number>, showPay: boolean, campus = '') {
   const { default: writeXlsxFile } = await import('write-excel-file/browser')
   const head = ['Date', 'Campus', 'Batch', 'Faculty', 'Faculty type', 'Subject', 'Chapter', 'Class mode', 'Entry type',
     'Start', 'End', 'Break entered (min)', 'Entered by', 'Time (h:mm)', 'Hours', 'Comment', 'Total so far (h:mm)', ...(showPay ? ['Pay (INR)'] : [])]
@@ -244,7 +244,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
       body.push(blank())
     }
   } else {
-    for (const [campusName, campusRows] of Array.from(groupBy(rows, (r) => r.campusName).entries()).sort(byName)) {
+    for (const [campusName, campusRows] of Array.from(groupByCampus(rows, campus).entries()).sort(byName)) {
       if (group === 'campus') {
         addGroup(campusName, campusRows)
       } else {
@@ -379,9 +379,9 @@ export default function EntriesReportPage() {
 
   const byCampus = useMemo(() => {
     if (group === 'faculty') return []
-    const map = groupBy(rows, (r) => r.campusName)
+    const map = groupByCampus(rows, campus)
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b))
-  }, [rows, group])
+  }, [rows, group, campus])
 
   // Decided once from the whole filtered set so every table shares the same columns.
   const showBatch = useMemo(() => rows.some((r) => r.batchName), [rows])
@@ -423,7 +423,7 @@ export default function EntriesReportPage() {
       } else if (view === 'whole') {
         await downloadSimpleSheet(wholeSheet.head, wholeSheet.body, [12, 24, 14, 9, 12, 9, 50], `whole-days-report_${from}_to_${to}.xlsx`)
       } else {
-        await downloadExcel(rows, exportBy, from, to, totals, showPay)
+        await downloadExcel(rows, exportBy, from, to, totals, showPay, campus)
       }
     } catch {
       toast.error('Download failed', 'The Excel file could not be created.')
@@ -437,7 +437,7 @@ export default function EntriesReportPage() {
 
   const kindLabel = KIND_TABS.find((t) => t.key === kind)!.label.toLowerCase()
   const facultyCount = new Set(rows.map((r) => r.facultyId)).size
-  const campusCount = new Set(rows.map((r) => r.campusName)).size
+  const campusCount = groupByCampus(rows, campus).size
   const missingDayCount = (report?.missing ?? []).filter((m) => !campus || m.campusName === campus).reduce((n, m) => n + m.dates.length, 0)
 
   return (
@@ -675,7 +675,7 @@ export default function EntriesReportPage() {
                 pay={showPay ? sumPay(list) : undefined}
               />
               <div className={s.groupChips}>
-                {Array.from(groupBy(list, (r) => r.campusName).entries())
+                {Array.from(groupByCampus(list, campus).entries())
                   .sort(([a], [b]) => a.localeCompare(b))
                   .map(([campusName, campusList]) => (
                     <span key={campusName} className="badge badge-gray">

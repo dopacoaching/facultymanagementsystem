@@ -25,6 +25,22 @@ const dayKey = (campus: string, date: string) => `${campus}|${date}`
 /** Last day the Whole days view covers: the range end, capped at today. */
 export const wholeDaysEnd = (to: string) => { const today = toLocalISO(new Date()); return to < today ? to : today }
 
+/** Rows grouped by campus. A joint class (several campuses or schools) is listed under EACH campus it
+ *  covered, so every campus sees it; with `only` set, just that campus's group is built. Grand totals
+ *  must be taken from the plain rows, so a joint class is still counted once overall. */
+export function groupByCampus<T extends { campusName: string; campusNames: string[] }>(rows: T[], only?: string): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const r of rows) {
+    const names = r.campusNames?.length ? r.campusNames : [r.campusName]
+    for (const name of names) {
+      if (only && name !== only) continue
+      const list = map.get(name)
+      if (list) list.push(r); else map.set(name, [r])
+    }
+  }
+  return map
+}
+
 /** One row per campus per day (today and earlier) saying what happened: classes taken, a
  *  No Class marker, or nothing submitted. Newest day first. The server's `missing` list is the
  *  source of truth for "Not submitted"; a day it says nothing about is never shown as missing. */
