@@ -351,6 +351,10 @@ export default function EntriesReportPage() {
     }
   }
   useEffect(() => { load() }, [accessToken, from, to]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Arriving from a dashboard "Joint Entries" link: open straight on last month's joint classes.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('joint') === 'last-month') showJointLastMonth()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Month picker drives the same from/to range as the date pickers. */
   /** One click: last calendar month, every joint class (IG and repeaters), campus-wise, all faculty and campuses. */

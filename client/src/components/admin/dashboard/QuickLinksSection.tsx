@@ -9,6 +9,7 @@ const LINKS: QuickLinkItem[] = [
   { href: '/hr/faculty',               label: 'Faculty',       desc: 'Manage faculty profiles', icon: 'users' },
   ...(SALARY_ENABLED || SALARY_TEMPORARY_ENABLED ? [{ href: '/hr/salary', label: SALARY_LABELS.adminLink, desc: SALARY_LABELS.adminDesc, icon: 'wallet' } as QuickLinkItem] : []),
   { href: '/hr/reports',               label: 'Entries Report', desc: 'Campus, subject & faculty-wise', icon: 'report' },
+  { href: '/hr/reports?joint=last-month', label: 'Joint Entries', desc: 'IG and repeaters joint classes, last month', icon: 'layers' },
   { href: '/hr/reports/faculty-hours', label: 'Faculty Hours', desc: 'Hours taught, by subject', icon: 'clock' },
   { href: '/admin/audit-log',          label: 'Audit Log',     desc: 'All system events', icon: 'shield' },
   { href: '/academics/sessions',       label: 'Sessions',      desc: 'Hours logged by class teachers', icon: 'book' },
