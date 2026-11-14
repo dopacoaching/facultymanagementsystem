@@ -9,6 +9,7 @@ import { EditNoClassDialog } from '@/components/hr/reports/EditNoClassDialog'
 import { ErrorAlert, EmptyState, SkeletonTable } from '@/components/ui/Skeleton'
 import { DateRangeFilter } from '@/components/common/DateRangeFilter'
 import { CLASS_MODE_FILTERS, CLASS_MODE_LABELS as MODE_LABELS } from '@/lib/constants/classModes'
+import { time12 } from '@/lib/utils/time12'
 import { useToast } from '@/components/ui/Toast'
 import { Icon } from '@/components/ui/Icon'
 import s from '@/components/hr/reports/Reports.module.css'
@@ -128,7 +129,7 @@ function EntryTable({ rows, hideCols, showBatch, showPay, onDelete, onEdit, tota
               {showSubject && <td data-label="Subject" className={s.muted}>{r.subject}</td>}
               <td data-label="Chapter" className={s.muted}>{r.chapter || '—'}</td>
               <td data-label="Class mode" className={s.nowrap}>{r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '—'}</td>
-              <td data-label="Start–End" className={`num ${s.nowrap}`}>{r.startTime ? `${r.startTime}–${r.endTime || '—'}` : '—'}</td>
+              <td data-label="Start–End" className={`num ${s.nowrap}`}>{r.startTime ? `${time12(r.startTime)}–${r.endTime ? time12(r.endTime) : '—'}` : '—'}</td>
               <td data-label="Break" className={`num ${s.nowrap}`} style={{ textAlign: 'right' }}>{breakLabel(r)}</td>
               <td data-label="Entered by" className={s.muted}>{r.updatedByName || '—'}</td>
               <td data-label="Comment" className={s.comment}>{r.comment || '—'}</td>
@@ -187,7 +188,7 @@ function toTSV(rows: EntryRow[], totals: Map<string, number>, showPay: boolean):
     const mins = Math.round(r.durationHours * 60)
     return [
       r.date, r.campusName, r.batchName, r.facultyName, r.facultyType, r.subject, r.chapter,
-      r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', r.startTime, r.endTime, breakTotal(r) ?? '', r.updatedByName, r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : '',
+      r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : '', time12(r.startTime), time12(r.endTime), breakTotal(r) ?? '', r.updatedByName, r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : '',
       `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`, r.durationHours.toFixed(2), r.comment, hmOf(totals.get(r._id) ?? r.durationHours),
       ...(showPay ? [r.pay ?? ''] : []),
     ].map((v) => clean(String(v))).join('\t')
@@ -213,7 +214,7 @@ async function downloadExcel(rows: EntryRow[], group: GroupBy, from: string, to:
       text(r.date), text(r.campusName), text(r.batchName), text(r.facultyName), text(r.facultyType),
       text(r.subject), text(r.chapter), text(r.classMode ? MODE_LABELS[r.classMode] ?? r.classMode : ''),
       text(r.entryType ? (r.entryType === 'SHOOT' ? 'Shoot' : 'Live') : ''),
-      text(r.startTime), text(r.endTime),
+      text(time12(r.startTime)), text(time12(r.endTime)),
       { value: brk ?? undefined, type: Number },
       text(r.updatedByName),
       text(hm(r.durationHours)),
