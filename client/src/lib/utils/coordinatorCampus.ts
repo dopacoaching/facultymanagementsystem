@@ -2,6 +2,7 @@ import { Types } from 'mongoose'
 import { Batch } from '@/lib/models/Batch'
 import { User } from '@/lib/models/User'
 import { Session } from '@/lib/models/Session'
+import { NOT_JOINT } from '@/lib/utils/jointSession'
 import { findIgPushCampus, listActivePushCampuses } from '@/lib/services/pushCampuses'
 
 /** Campus._id → display name for every active IG school. */
@@ -34,11 +35,12 @@ export async function resolveCoordinatorCampusName(
   return payload.campusName
 }
 
-/** Non-cancelled sessions already logged for a campus on a day — campus-flow
- *  rows carry campusName; IG rows are matched through their batch's school. */
+/** Non-cancelled Push Board sessions already logged for a campus on a day — campus-flow
+ *  rows carry campusName; IG rows are matched through their batch's school. Joint classes
+ *  are ignored: they must not block a No Class marker. */
 export async function countCampusSessionsOnDay(campusName: string, dayStart: Date, dayEnd: Date): Promise<number> {
-  const base = { sessionDate: { $gte: dayStart, $lte: dayEnd }, status: { $ne: 'CANCELLED' as const } }
-  const direct = await Session.countDocuments({ ...base, $or: [{ campusName }, { jointCampuses: campusName }] })
+  const base = { sessionDate: { $gte: dayStart, $lte: dayEnd }, status: { $ne: 'CANCELLED' as const }, ...NOT_JOINT }
+  const direct = await Session.countDocuments({ ...base, campusName })
 
   const igId = Array.from((await getIgCampusNames()).entries()).find(([, n]) => n === campusName)?.[0]
   if (!igId) return direct

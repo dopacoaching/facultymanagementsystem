@@ -1,3 +1,4 @@
+import { jointFilter } from '@/lib/utils/jointSession'
 import { Session } from '@/lib/models/Session'
 import { Batch } from '@/lib/models/Batch'
 import { batchNameMap } from '@/lib/utils/batchNames'
@@ -29,9 +30,7 @@ export interface JointHistoryRow {
 /** Joint classes in a date range, newest day first. IG joint classes carry the jointIG flag;
  *  repeaters joint classes list their campuses in jointCampuses. */
 export async function listJointHistory(kind: 'IG' | 'REPEATERS', from: string | null, to: string | null, limit = 500): Promise<JointHistoryRow[] | null> {
-  const filter: Record<string, unknown> = kind === 'IG'
-    ? { jointIG: true }
-    : { 'jointCampuses.1': { $exists: true } }
+  const filter: Record<string, unknown> = jointFilter(kind)
   if (from && to) {
     const range = dayRangeFilter(from, to)
     if (!range) return null

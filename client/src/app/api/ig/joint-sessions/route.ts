@@ -6,7 +6,6 @@ import { Session } from '@/lib/models/Session'
 import { Batch } from '@/lib/models/Batch'
 import { Faculty } from '@/lib/models/Faculty'
 import { BatchChapter } from '@/lib/models/BatchChapter'
-import { supersedeNoClass } from '@/lib/services/noClass'
 import { unlistedChapters, unlistedChapterMessage } from '@/lib/services/chapterRules'
 import { writeAuditLog } from '@/lib/services/salary/audit'
 import { getIgCampusNames } from '@/lib/utils/coordinatorCampus'
@@ -170,11 +169,7 @@ export async function POST(req: NextRequest) {
       loggedByUserId: new Types.ObjectId(payload.userId),
     })
 
-    // A real entry supersedes a "No Class" marker for each school it covers.
-    for (const campusId of new Set(batches.map((b) => String(b.campusId)))) {
-      const own = batches.filter((b) => String(b.campusId) === campusId).map((b) => b._id as Types.ObjectId)
-      await supersedeNoClass(schoolNames.get(campusId) as string, dayStart, own, new Types.ObjectId(campusId)).catch(() => null)
-    }
+    // A joint class is separate from the Push Board: it leaves No Class markers untouched.
 
     // Mark the chapters taught for every batch that sat the class.
     for (const bOid of batchOids) {

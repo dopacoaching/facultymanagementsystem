@@ -1,3 +1,4 @@
+import { isJointSession } from '@/lib/utils/jointSession'
 import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db'
 import { authenticate, authorize, json, withToken } from '@/lib/auth'
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
           date: toLocalISODate(new Date(s.sessionDate)),
           campusName: campusNames.join(' + '),
           campusNames,
-          isJoint: !!s.jointIG || !!s.jointCampuses?.length,
+          isJoint: isJointSession(s),
           facultyId: f._id.toString(),
           facultyName: f.name,
           facultyType: f.type ?? '',
@@ -166,33 +167,15 @@ export async function GET(req: NextRequest) {
 
     for (const n of noClassRows) n.batchNames = n.batchIds.map((id) => batchNames.get(id)).filter(Boolean) as string[]
 
-    const batchOwner = new Map<string, string>()   // campus batch id -> campus name
-    for (const [name, list] of batchesOf) for (const b of list) batchOwner.set(b._id, name)
     const campusCovered = new Set<string>()     // campus|date — any entry or marker that day
     const wholeCovered = new Set<string>()      // campus|date — covers every batch (whole-campus marker, or an entry with no batch)
     const batchCovered = new Set<string>()      // campus|batchId|date
     for (const s of sessions) {
       const date = toLocalISODate(new Date(s.sessionDate))
       const ids = [s.batchId, ...(s.extraBatchIds ?? [])].filter(Boolean).map(String)
-      if (s.jointIG) {
-        // Every school the joint class covered has that batch accounted for.
-        for (const id of ids) {
-          const school = igBatchCampus.get(id)
-          if (!school) continue
-          campusCovered.add(`${school}|${date}`)
-          batchCovered.add(`${school}|${id}|${date}`)
-        }
-        continue
-      }
-      if (s.jointCampuses?.length) {
-        // A repeaters joint class: every campus it covered, and each batch under its own campus.
-        for (const name of s.jointCampuses) campusCovered.add(`${name}|${date}`)
-        for (const id of ids) {
-          const owner = batchOwner.get(id)
-          if (owner) batchCovered.add(`${owner}|${id}|${date}`)
-        }
-        continue
-      }
+      // Joint classes are a separate stream from the Push Board: they neither count as the
+      // campus's submission nor clash with its entries / No Class markers.
+      if (isJointSession(s)) continue
       const campus = (s.campusName ?? igBatchCampus.get(s.batchId ? String(s.batchId) : '')) as string | undefined
       if (!campus) continue
       campusCovered.add(`${campus}|${date}`)

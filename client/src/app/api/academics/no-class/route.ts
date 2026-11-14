@@ -10,6 +10,7 @@ import { Session } from '@/lib/models/Session'
 import { findPushCampusByName } from '@/lib/services/pushCampuses'
 import { countCampusSessionsOnDay, getTrackedCampusNames, resolveCoordinatorCampusName } from '@/lib/utils/coordinatorCampus'
 import { dayRangeFilter, parseLocalDate, toLocalISODate } from '@/lib/utils/dateRange'
+import { NOT_JOINT } from '@/lib/utils/jointSession'
 import { canTeacherEdit, EDIT_WINDOW_CLOSED_MESSAGE } from '@/lib/utils/teacherEdit'
 
 function isCoordinator(role: string): boolean {
@@ -107,6 +108,7 @@ async function checkMarker(
     : await Session.countDocuments({
         sessionDate: { $gte: date, $lte: dayEnd },
         status: { $ne: 'CANCELLED' },
+        ...NOT_JOINT,
         $or: [{ batchId: { $in: batchOids } }, { extraBatchIds: { $in: batchOids } }],
       })
   if (existing > 0) {
